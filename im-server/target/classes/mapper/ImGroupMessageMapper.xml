@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xy.server.mapper.ImGroupMessageMapper">
+
+    <resultMap id="BaseResultMap" type="com.xy.server.model.ImGroupMessage">
+        <id property="message_id" column="message_id" jdbcType="BIGINT"/>
+        <result property="group_id" column="group_id" jdbcType="VARCHAR"/>
+        <result property="from_id" column="from_id" jdbcType="VARCHAR"/>
+        <result property="message_body" column="message_body" jdbcType="VARCHAR"/>
+        <result property="message_time" column="message_time" jdbcType="BIGINT"/>
+        <result property="message_content_type" column="message_content_type" jdbcType="VARCHAR"/>
+        <result property="extra" column="extra" jdbcType="VARCHAR"/>
+        <result property="del_flag" column="del_flag" jdbcType="INTEGER"/>
+        <result property="sequence" column="sequence" jdbcType="BIGINT"/>
+        <result property="message_random" column="message_random" jdbcType="VARCHAR"/>
+        <result property="create_time" column="create_time" jdbcType="BIGINT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        message_id
+        ,group_id,from_id,
+        message_body,message_time,message_content_type,
+        extra,del_flag,sequence,
+        message_random,create_time,created_by,
+        update_time,updated_by
+    </sql>
+    <select id="selectGroupMessageByGroupId" resultType="com.xy.server.model.ImGroupMessage">
+        select *
+        from im_group_message igm
+                 INNER JOIN im_group_message_status igms
+                            on igm.message_id = igms.message_id and igm.group_id = igms.group_id
+        where igms.group_id = #{groupId}
+          and igms.to_id = #{userId}
+          and igm.message_time > #{sequence}
+        order by igm.message_time
+    </select>
+
+    <select id="selectLastGroupMessage" resultType="com.xy.server.model.ImGroupMessage">
+        select *
+        from im_group_message igm
+                 INNER JOIN im_group_message_status igms
+                            on igm.message_id = igms.message_id and igm.group_id = igms.group_id
+        where igms.group_id = #{groupId}
+          and igms.to_id = #{userId}
+        order by igm.message_time desc limit 1
+    </select>
+    <select id="selectGroupMessage" resultType="com.xy.server.model.ImGroupMessage">
+        SELECT *
+        FROM im_group_message igm
+                 INNER JOIN im_group_message_status igms ON igm.message_id = igms.message_id
+            AND igm.group_id = igms.group_id
+        WHERE igms.to_id = #{userId}
+
+          AND igm.message_time > #{sequence}
+        ORDER BY igm.message_time
+    </select>
+</mapper>

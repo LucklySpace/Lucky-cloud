@@ -1,0 +1,65 @@
+server:
+  port: 9191
+
+spring:
+  banner:
+    location: classpath:banner.txt
+  data:
+    redis:
+      repositories:
+        enabled: true
+      host: 127.0.0.1
+      port: 6379
+  cloud:
+    # gateway 配置
+    gateway:
+      #跨域设置
+      globalCors:
+        corsConfigurations:
+          '[/**]':
+            allowedOriginPatterns: "*"
+            allowed-methods: "*"
+            allowed-headers: "*"
+            allow-credentials: true
+            exposedHeaders: "Content-Disposition,Content-Type,Cache-Control"
+      #g开启服务注册和发现
+      discovery:
+        locator:
+          #表明gateway开启服务注册和发现的功能，并且spring cloud gateway自动根据服务发现为每一个服务创建了一个router，这个router将以服务名开头的请求路径转发到对应的服务
+          enabled: true
+          #是将请求路径上的服务名配置为小写（因为服务注册的时候，向注册中心注册时将服务名转成大写的了
+          lowerCaseServiceId: true
+          #另一种写法
+          #lower-case-service-id: true
+      #路由配置
+      routes:
+        # nacos中的服务1（每个服务中可集群多个应用，可在nacos中配置与治理）
+        - id: im-connect
+          uri: lb:ws://im-connect
+          predicates:
+            - Path=/im/**
+
+        - id: im-service
+          uri: lb://im-service
+          predicates:
+            - Path=/service/**
+          filters:
+            # 去除一个前缀
+            - StripPrefix=1
+
+        - id: im-auth
+          uri: lb://im-auth
+          predicates:
+            - Path=/auth/**
+          filters:
+            # 去除一个前缀
+            - StripPrefix=1
+
+
+
+# TODO: log settings
+logging:
+  config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件
+  level:
+    org.springframework: warn
+

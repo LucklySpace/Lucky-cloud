@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xy.server.mapper.ImFriendshipRequestMapper">
+
+    <resultMap id="BaseResultMap" type="com.xy.server.model.ImFriendshipRequest">
+        <id property="id" column="id" jdbcType="INTEGER"/>
+        <result property="from_id" column="from_id" jdbcType="VARCHAR"/>
+        <result property="to_id" column="to_id" jdbcType="VARCHAR"/>
+        <result property="remark" column="remark" jdbcType="VARCHAR"/>
+        <result property="read_status" column="read_status" jdbcType="INTEGER"/>
+        <result property="add_source" column="add_source" jdbcType="VARCHAR"/>
+        <result property="add_wording" column="add_wording" jdbcType="VARCHAR"/>
+        <result property="approve_status" column="approve_status" jdbcType="INTEGER"/>
+        <result property="create_time" column="create_time" jdbcType="BIGINT"/>
+        <result property="update_time" column="update_time" jdbcType="BIGINT"/>
+        <result property="sequence" column="sequence" jdbcType="BIGINT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id
+        ,from_id,
+        to_id,remark,read_status,
+        add_source,add_wording,approve_status,
+        create_time,update_time,sequence
+    </sql>
+</mapper>

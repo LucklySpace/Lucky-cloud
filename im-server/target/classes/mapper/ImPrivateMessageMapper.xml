@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xy.server.mapper.ImPrivateMessageMapper">
+
+    <resultMap id="BaseResultMap" type="com.xy.server.model.ImPrivateMessage">
+        <id property="message_id" column="message_id" jdbcType="BIGINT"/>
+        <result property="from_id" column="from_id" jdbcType="VARCHAR"/>
+        <result property="to_id" column="to_id" jdbcType="VARCHAR"/>
+        <result property="message_body" column="message_body" jdbcType="VARCHAR"/>
+        <result property="message_time" column="message_time" jdbcType="BIGINT"/>
+        <result property="message_content_type" column="message_content_type" jdbcType="VARCHAR"/>
+        <result property="read_status" column="read_status" jdbcType="INTEGER"/>
+        <result property="extra" column="extra" jdbcType="VARCHAR"/>
+        <result property="del_flag" column="del_flag" jdbcType="INTEGER"/>
+        <result property="sequence" column="sequence" jdbcType="BIGINT"/>
+        <result property="message_random" column="message_random" jdbcType="VARCHAR"/>
+        <result property="create_time" column="create_time" jdbcType="BIGINT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        message_id
+        ,from_id,to_id,
+        message_body,message_time,message_content_type,
+        read_status,extra,del_flag,
+        sequence,message_random,create_time
+    </sql>
+    <select id="selectSingleMessageByToId" resultType="com.xy.server.model.ImPrivateMessage">
+        select
+        <include refid="Base_Column_List"></include>
+        from im_private_message ipm
+        where ((ipm.from_id = #{fromId} AND ipm.to_id = #{toId})
+        OR (ipm.from_id = #{toId} AND ipm.to_id = #{fromId}))
+        and ipm.message_time > #{sequence}
+        ORDER BY ipm.message_time;
+
+    </select>
+
+    <select id="selectLastSingleMessage" resultType="com.xy.server.model.ImPrivateMessage">
+        select
+        <include refid="Base_Column_List"></include>
+        from im_private_message ipm
+        where (ipm.from_id = #{fromId} AND ipm.to_id = #{toId})
+        OR (ipm.from_id = #{toId} AND ipm.to_id = #{fromId})
+        ORDER BY ipm.message_time desc limit 1;
+    </select>
+
+    <select id="selectReadStatus" resultType="java.lang.Integer">
+        SELECT count(1)
+        from im_private_message
+        where from_id = #{fromId}
+          and to_id = #{toId}
+          and read_status = #{status}
+    </select>
+    <select id="selectSingleMessage" resultType="com.xy.server.model.ImPrivateMessage">
+        SELECT
+        <include refid="Base_Column_List"></include>
+        FROM
+        im_private_message
+        WHERE
+        ( from_id = #{userId} OR to_id = #{userId} )
+        AND message_time > #{sequence}
+    </select>
+</mapper>

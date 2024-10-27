@@ -72,5 +72,5 @@ logging:
 # TODO 榛子云短信服务
 sms:
   apiUrl: https://sms_developer.zhenzikj.com
-  appId: 112181
-  appSecret: 86813b86-b431-46ea-bd55-fcf63c2990a3
+  appId: ****
+  appSecret: ******

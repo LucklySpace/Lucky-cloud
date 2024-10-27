@@ -120,13 +120,6 @@ public class CommonExceptionHandler {
     }
 
 
-    @ExceptionHandler({MethodArgumentNotValidException.class, BindException.class})
-    public Result<?> hanlderValidException(BindException e) {
-        List<FieldError> fieldErrors = e.getBindingResult().getFieldErrors();
-        String message = fieldErrors.stream().map(DefaultMessageSourceResolvable::getDefaultMessage).collect(Collectors.joining("；"));
-        return Result.failed(message);
-    }
-
 
 }
 

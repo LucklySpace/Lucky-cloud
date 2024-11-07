@@ -1,5 +1,10 @@
 # Lynk
 
+**im-server**: http://localhost:8085/doc.html
+
+
+
+
 ## 项目环境与依赖说明文档
 
 **本文档介绍项目所使用的主要技术栈及其版本，包括JDK、Spring Boot、Spring Cloud Alibaba的具体配置。**

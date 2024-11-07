@@ -1,8 +1,8 @@
 package com.xy.server.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xy.server.domain.po.ImFriendshipGroupPo;
 import com.xy.server.mapper.ImFriendshipGroupMapper;
-import com.xy.server.model.ImFriendshipGroup;
 import com.xy.server.service.ImFriendshipGroupService;
 import org.springframework.stereotype.Service;
 
@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
  * @createDate 2024-03-17 01:33:59
  */
 @Service
-public class ImFriendshipGroupServiceImpl extends ServiceImpl<ImFriendshipGroupMapper, ImFriendshipGroup>
+public class ImFriendshipGroupServiceImpl extends ServiceImpl<ImFriendshipGroupMapper, ImFriendshipGroupPo>
         implements ImFriendshipGroupService {
 
 }

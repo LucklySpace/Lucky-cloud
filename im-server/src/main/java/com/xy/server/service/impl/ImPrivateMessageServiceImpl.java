@@ -1,8 +1,8 @@
 package com.xy.server.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xy.server.domain.po.ImPrivateMessagePo;
 import com.xy.server.mapper.ImPrivateMessageMapper;
-import com.xy.server.model.ImPrivateMessage;
 import com.xy.server.service.ImPrivateMessageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
  */
 @Slf4j(topic = "single")
 @Service
-public class ImPrivateMessageServiceImpl extends ServiceImpl<ImPrivateMessageMapper, ImPrivateMessage>
+public class ImPrivateMessageServiceImpl extends ServiceImpl<ImPrivateMessageMapper, ImPrivateMessagePo>
         implements ImPrivateMessageService {
 
 }

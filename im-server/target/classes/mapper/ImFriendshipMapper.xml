@@ -4,7 +4,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.xy.server.mapper.ImFriendshipMapper">
 
-    <resultMap id="BaseResultMap" type="com.xy.server.model.ImFriendship">
+    <resultMap id="BaseResultMap" type="com.xy.server.domain.po.ImFriendshipPo">
         <id property="owner_id" column="from_id" jdbcType="VARCHAR"/>
         <id property="to_id" column="to_id" jdbcType="VARCHAR"/>
         <result property="remark" column="remark" jdbcType="VARCHAR"/>
@@ -37,7 +37,7 @@
         extra
     </sql>
 
-    <select id="selectFriendList" resultType="com.xy.server.model.ImFriendship">
+    <select id="selectFriendList" resultType="com.xy.server.domain.po.ImFriendshipPo">
         select
         <include refid="Base_Column_List"></include>
         from im_friendship where owner_id = #{userId}

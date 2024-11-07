@@ -1,0 +1,7 @@
+nacosConfig:
+  name: im-meet
+  address: localhost
+  port: 8848
+  username: nacos
+  password: nacos
+  version: 1.0.0

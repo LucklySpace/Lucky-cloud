@@ -34,12 +34,17 @@ spring:
       #路由配置
       routes:
         # nacos中的服务1（每个服务中可集群多个应用，可在nacos中配置与治理）
-        - id: im-connect
+        - id: im-connect # 长连接服务
           uri: lb:ws://im-connect
           predicates:
             - Path=/im/**
 
-        - id: im-service
+        - id: im-meet # 多人会议服务
+          uri: lb:ws://im-meet
+          predicates:
+            - Path=/meet/**
+
+        - id: im-service # 业务处理服务
           uri: lb://im-service
           predicates:
             - Path=/service/**
@@ -47,7 +52,7 @@ spring:
             # 去除一个前缀
             - StripPrefix=1
 
-        - id: im-auth
+        - id: im-auth  # 鉴权认证服务
           uri: lb://im-auth
           predicates:
             - Path=/auth/**

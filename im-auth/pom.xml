@@ -24,6 +24,8 @@
         <mybatis.plus.version>3.5.3.1</mybatis.plus.version>
         <sentinel.version>1.8.6</sentinel.version>
         <sms.version>2.0.2</sms.version>
+        <zxing.version>3.4.1</zxing.version>
+
     </properties>
 
     <dependencies>
@@ -79,6 +81,15 @@
             <artifactId>zhenzisms</artifactId>
             <version>${sms.version}</version>
         </dependency>
+
+
+        <!-- zxing生成二维码 -->
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>${zxing.version}</version>
+        </dependency>
+
 
         <!-- Spring JDBC，包含 Hikari 连接池 -->
         <dependency>

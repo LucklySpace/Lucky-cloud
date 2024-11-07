@@ -1,4 +1,4 @@
-package com.xy.server.model;
+package com.xy.server.domain.po;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -9,28 +9,28 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * @TableName im_private_message
+ * @TableName im_group_message
  */
-@TableName(value = "im_private_message")
+@TableName(value = "im_group_message")
 @Data
-public class ImPrivateMessage implements Serializable {
+public class ImGroupMessagePo implements Serializable {
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
     /**
-     *
+     * Still in CONNECTING state.
      */
     @TableId(value = "message_id")
     private String message_id;
     /**
      *
      */
-    @TableField(value = "from_id")
-    private String from_id;
+    @TableField(value = "group_id")
+    private String group_id;
     /**
      *
      */
-    @TableField(value = "to_id")
-    private String to_id;
+    @TableField(value = "from_id")
+    private String from_id;
     /**
      *
      */
@@ -47,12 +47,7 @@ public class ImPrivateMessage implements Serializable {
     @TableField(value = "message_content_type")
     private String message_content_type;
     /**
-     *
-     */
-    @TableField(value = "read_status")
-    private Integer read_status;
-    /**
-     *
+     * If this is a native custom element, make sure to exclude it from component resolution via compilerOptions.isCustomElement.
      */
     @TableField(value = "extra")
     private String extra;
@@ -76,6 +71,5 @@ public class ImPrivateMessage implements Serializable {
      */
     @TableField(value = "create_time")
     private Long create_time;
-
 
 }

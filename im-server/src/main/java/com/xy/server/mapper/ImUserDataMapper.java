@@ -1,7 +1,7 @@
 package com.xy.server.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xy.server.model.ImUserData;
+import com.xy.server.domain.po.ImUserDataPo;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -11,7 +11,7 @@ import org.apache.ibatis.annotations.Mapper;
  * @Entity generator.domain.ImUserData
  */
 @Mapper
-public interface ImUserDataMapper extends BaseMapper<ImUserData> {
+public interface ImUserDataMapper extends BaseMapper<ImUserDataPo> {
 
 }
 

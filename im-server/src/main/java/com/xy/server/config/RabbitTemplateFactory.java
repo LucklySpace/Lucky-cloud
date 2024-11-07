@@ -4,8 +4,6 @@ import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.core.RabbitTemplate.ConfirmCallback;
 import org.springframework.amqp.rabbit.core.RabbitTemplate.ReturnsCallback;
-import org.springframework.amqp.support.converter.MessageConverter;
-import org.springframework.messaging.converter.GenericMessageConverter;
 import org.springframework.stereotype.Component;
 
 @Component

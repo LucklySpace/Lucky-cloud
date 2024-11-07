@@ -4,7 +4,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.xy.server.mapper.ImChatMapper">
 
-    <resultMap id="BaseResultMap" type="com.xy.server.model.ImChat">
+    <resultMap id="BaseResultMap" type="com.xy.server.domain.po.ImChatPo">
         <id property="chat_id" column="chat_id" jdbcType="VARCHAR"/>
         <result property="chat_type" column="chat_type" jdbcType="INTEGER"/>
         <result property="owner_id" column="owner_id" jdbcType="VARCHAR"/>

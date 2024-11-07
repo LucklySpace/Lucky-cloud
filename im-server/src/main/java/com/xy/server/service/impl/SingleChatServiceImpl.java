@@ -1,22 +1,20 @@
 package com.xy.server.service.impl;
 
-import cn.hutool.core.date.DateTime;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.xy.imcore.enums.IMStatus;
 import com.xy.imcore.enums.IMessageReadStatus;
-import com.xy.imcore.enums.IMessageSendStatus;
 import com.xy.imcore.enums.IMessageType;
 import com.xy.imcore.model.IMRegisterUserDto;
 import com.xy.imcore.model.IMSingleMessageDto;
 import com.xy.imcore.model.IMessageWrap;
 import com.xy.server.config.RabbitTemplateFactory;
+import com.xy.server.domain.po.ImChatPo;
+import com.xy.server.domain.po.ImPrivateMessagePo;
 import com.xy.server.mapper.ImChatMapper;
 import com.xy.server.mapper.ImPrivateMessageMapper;
-import com.xy.server.model.ImChat;
-import com.xy.server.model.ImPrivateMessage;
 import com.xy.server.response.Result;
 import com.xy.server.service.SingleChatService;
 import com.xy.server.utils.DateTimeUtils;
@@ -31,7 +29,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -79,32 +76,30 @@ public class SingleChatServiceImpl implements SingleChatService {
 
     @Override
     @Transactional
-    public Result send(IMSingleMessageDto IMSingleMessageDto) {
+    public Result send(IMSingleMessageDto imSingleMessageDto) {
         // 消息id
         String message_id = IdUtil.getSnowflake().nextIdStr();
         // 消息时间,使用utc时间
         long message_time =DateTimeUtils.getUTCDateTime();
 
-        IMSingleMessageDto.setMessage_id(message_id);
+        imSingleMessageDto.setMessage_id(message_id);
 
-        IMSingleMessageDto.setMessage_time(message_time);
+        imSingleMessageDto.setMessage_time(message_time);
 
-        IMSingleMessageDto.setRead_status(IMessageReadStatus.UNREAD.code());
+        imSingleMessageDto.setRead_status(IMessageReadStatus.UNREAD.code());
 
-        ImPrivateMessage imPrivateMessage = new ImPrivateMessage();
+        ImPrivateMessagePo imPrivateMessagePo = new ImPrivateMessagePo();
 
-        BeanUtils.copyProperties(IMSingleMessageDto, imPrivateMessage);
-
-        imPrivateMessage.setRead_status(IMessageReadStatus.UNREAD.code());
+        BeanUtils.copyProperties(imSingleMessageDto, imPrivateMessagePo);
 
         // 异步插入私信消息
-        insertImPrivateMessageAsync(imPrivateMessage);
+        insertImPrivateMessageAsync(imPrivateMessagePo);
 
         // 异步处理会话
-        setChatAsync(IMSingleMessageDto.getFrom_id(), IMSingleMessageDto.getTo_id(), message_time);
+        setChatAsync(imSingleMessageDto.getFrom_id(), imSingleMessageDto.getTo_id(), message_time);
 
         // 通过redis获取用户连接netty的机器码
-        Object redisObj = redisUtil.get(IMUSERPREFIX + IMSingleMessageDto.getTo_id());
+        Object redisObj = redisUtil.get(IMUSERPREFIX + imSingleMessageDto.getTo_id());
 
         if (ObjectUtil.isNotEmpty(redisObj)) {
 
@@ -114,7 +109,7 @@ public class SingleChatServiceImpl implements SingleChatService {
             String broker_id = IMRegisterUserDto.getBroker_id();
 
             // 对发送消息进行包装
-            IMessageWrap IMessageWrap = new IMessageWrap(IMessageType.SINGLE_MESSAGE.getCode(), IMSingleMessageDto);
+            IMessageWrap IMessageWrap = new IMessageWrap(IMessageType.SINGLE_MESSAGE.getCode(), imSingleMessageDto);
 
             // 创建 CorrelationData，并设置消息ID
             CorrelationData correlationData = new CorrelationData(message_id);
@@ -123,17 +118,17 @@ public class SingleChatServiceImpl implements SingleChatService {
             rabbitTemplate.convertAndSend(EXCHANGENAME, ROUTERKEYPREFIX + broker_id, JsonUtil.toJSONString(IMessageWrap),correlationData);
 
         } else {
-            log.info("用户:{} 未登录", IMSingleMessageDto.getTo_id());
+            log.info("用户:{} 未登录", imSingleMessageDto.getTo_id());
         }
 
-        return Result.success(IMSingleMessageDto);
+        return Result.success(imSingleMessageDto);
     }
 
 
-    protected void insertImPrivateMessageAsync(ImPrivateMessage imPrivateMessage) {
-        log.info("接收人:{}  发送人:{}  消息内容:{}", imPrivateMessage.getTo_id(), imPrivateMessage.getFrom_id(), imPrivateMessage.getMessage_body());
+    protected void insertImPrivateMessageAsync(ImPrivateMessagePo imPrivateMessagePo) {
+        log.info("接收人:{}  发送人:{}  消息内容:{}", imPrivateMessagePo.getTo_id(), imPrivateMessagePo.getFrom_id(), imPrivateMessagePo.getMessage_body());
         CompletableFuture.runAsync(() -> {
-            imPrivateMessageMapper.insert(imPrivateMessage);
+            imPrivateMessageMapper.insert(imPrivateMessagePo);
         });
     }
 
@@ -152,20 +147,20 @@ public class SingleChatServiceImpl implements SingleChatService {
 
     protected void createOrUpdateImChatSet(String owner_id, String to_id, long message_time) {
 
-        QueryWrapper<ImChat> chatQuery = new QueryWrapper<>();
+        QueryWrapper<ImChatPo> chatQuery = new QueryWrapper<>();
 
         // 查询会话是否存在
         chatQuery.eq("owner_id", owner_id);
         chatQuery.eq("to_id", to_id);
         chatQuery.eq("chat_type", IMessageType.SINGLE_MESSAGE.getCode());
 
-        ImChat imChat = imChatMapper.selectOne(chatQuery);
+        ImChatPo imChatPO = imChatMapper.selectOne(chatQuery);
 
-        if (ObjectUtil.isEmpty(imChat)) {
-            imChat = new ImChat();
+        if (ObjectUtil.isEmpty(imChatPO)) {
+            imChatPO = new ImChatPo();
             String id = UUID.randomUUID().toString();
 
-            imChat.setChat_id(id)
+            imChatPO.setChat_id(id)
                     .setOwner_id(owner_id)
                     .setTo_id(to_id)
                     .setSequence(message_time)
@@ -173,10 +168,10 @@ public class SingleChatServiceImpl implements SingleChatService {
                     .setIs_top(IMStatus.NO.getCode())
                     .setChat_type(IMessageType.SINGLE_MESSAGE.getCode());
 
-            imChatMapper.insert(imChat);
+            imChatMapper.insert(imChatPO);
         } else {
-            imChat.setSequence(message_time);
-            imChatMapper.updateById(imChat);
+            imChatPO.setSequence(message_time);
+            imChatMapper.updateById(imChatPO);
         }
     }
 

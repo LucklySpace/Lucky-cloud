@@ -1,8 +1,8 @@
 package com.xy.server.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xy.server.domain.po.ImGroupPo;
 import com.xy.server.mapper.ImGroupMapper;
-import com.xy.server.model.ImGroup;
 import com.xy.server.service.ImGroupService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -15,7 +15,7 @@ import java.util.List;
  * @createDate 2024-03-17 01:34:00
  */
 @Service
-public class ImGroupServiceImpl extends ServiceImpl<ImGroupMapper, ImGroup>
+public class ImGroupServiceImpl extends ServiceImpl<ImGroupMapper, ImGroupPo>
         implements ImGroupService {
 
     @Resource

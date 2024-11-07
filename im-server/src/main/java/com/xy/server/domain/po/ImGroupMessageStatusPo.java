@@ -1,4 +1,4 @@
-package com.xy.server.model;
+package com.xy.server.domain.po;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -13,7 +13,7 @@ import java.io.Serializable;
 @TableName(value = "im_group_message_status")
 @Data
 @Accessors(chain = true)
-public class ImGroupMessageStatus implements Serializable {
+public class ImGroupMessageStatusPo implements Serializable {
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
     /**

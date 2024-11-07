@@ -1,4 +1,4 @@
-package com.xy.server.model;
+package com.xy.server.domain.po;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -12,7 +12,7 @@ import java.io.Serializable;
  */
 @TableName(value = "im_friendship_group_member")
 @Data
-public class ImFriendshipGroupMember implements Serializable {
+public class ImFriendshipGroupMemberPo implements Serializable {
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
     /**
@@ -37,7 +37,7 @@ public class ImFriendshipGroupMember implements Serializable {
         if (getClass() != that.getClass()) {
             return false;
         }
-        ImFriendshipGroupMember other = (ImFriendshipGroupMember) that;
+        ImFriendshipGroupMemberPo other = (ImFriendshipGroupMemberPo) that;
         return (this.getGroup_id() == null ? other.getGroup_id() == null : this.getGroup_id().equals(other.getGroup_id()))
                 && (this.getTo_id() == null ? other.getTo_id() == null : this.getTo_id().equals(other.getTo_id()));
     }

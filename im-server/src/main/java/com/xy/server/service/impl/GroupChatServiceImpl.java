@@ -12,12 +12,12 @@ import com.xy.imcore.model.IMessageWrap;
 import com.xy.server.config.RabbitTemplateFactory;
 import com.xy.server.domain.dto.GroupDto;
 import com.xy.server.domain.dto.GroupInviteDto;
+import com.xy.server.domain.po.*;
 import com.xy.server.domain.vo.GroupMemberVo;
 import com.xy.server.exception.GlobalException;
 import com.xy.server.mapper.ImChatMapper;
 import com.xy.server.mapper.ImGroupMessageMapper;
 import com.xy.server.mapper.ImUserDataMapper;
-import com.xy.server.model.*;
 import com.xy.server.response.Result;
 import com.xy.server.response.ResultEnum;
 import com.xy.server.service.*;
@@ -91,50 +91,50 @@ public class GroupChatServiceImpl implements GroupChatService {
     /**
      * 发送群消息
      *
-     * @param IMGroupMessageDto 群消息
+     * @param imGroupMessageDto 群消息
      * @return
      */
     @Override
     @Transactional
-    public Result send(IMGroupMessageDto IMGroupMessageDto) {
+    public Result send(IMGroupMessageDto imGroupMessageDto) {
 
         // 消息id
         String message_id = IdUtil.getSnowflake().nextIdStr();
 
         // 群id
-        String group_id = IMGroupMessageDto.getGroup_id();
+        String group_id = imGroupMessageDto.getGroup_id();
 
         // 消息时间,使用utc时间
         long message_time = DateTimeUtils.getUTCDateTime();
 
-        IMGroupMessageDto.setMessage_id(message_id);
+        imGroupMessageDto.setMessage_id(message_id);
 
-        IMGroupMessageDto.setMessage_time(message_time);
+        imGroupMessageDto.setMessage_time(message_time);
 
-        ImGroupMessage imGroupMessage = new ImGroupMessage();
+        ImGroupMessagePo imGroupMessagePo = new ImGroupMessagePo();
 
-        BeanUtils.copyProperties(IMGroupMessageDto, imGroupMessage);
+        BeanUtils.copyProperties(imGroupMessageDto, imGroupMessagePo);
 
-        insertImGroupMessageAsync(imGroupMessage);
+        insertImGroupMessageAsync(imGroupMessagePo);
 
         // 数据库查询群成员
-        QueryWrapper<ImGroupMember> groupMemberQuery = new QueryWrapper<>();
+        QueryWrapper<ImGroupMemberPo> groupMemberQuery = new QueryWrapper<>();
 
         groupMemberQuery.eq("group_id", group_id);
 
-        List<ImGroupMember> imGroupMembers = imGroupMemberService.list(groupMemberQuery);
+        List<ImGroupMemberPo> imGroupMemberPos = imGroupMemberService.list(groupMemberQuery);
 
         // 使用并行流过滤和映射群成员
-        List<String> to_List = imGroupMembers.parallelStream()
-                .filter(groupMember -> !groupMember.getMember_id().equals(IMGroupMessageDto.getFrom_id()))
+        List<String> to_List = imGroupMemberPos.parallelStream()
+                .filter(groupMember -> !groupMember.getMember_id().equals(imGroupMessageDto.getFrom_id()))
                 .map(groupMember -> IMUSERPREFIX + groupMember.getMember_id())
                 .collect(Collectors.toList());
 
         // 异步设置读取状态
-        setReadStatusAsync(message_id, group_id, imGroupMembers);
+        setReadStatusAsync(message_id, group_id, imGroupMemberPos);
 
         // 异步新增会话
-        setChatAsync(group_id, message_time, imGroupMembers);
+        setChatAsync(group_id, message_time, imGroupMemberPos);
 
         // 根据群成员列表从redis获取用户 长连接信息
         List<Object> userObjList = redisUtil.batchGet(to_List);
@@ -165,10 +165,10 @@ public class GroupChatServiceImpl implements GroupChatService {
         // 遍历map，将消息分发到各个长连接机器
         for (String brokerId : map.keySet()) {
 
-            IMGroupMessageDto.setTo_List(map.get(brokerId));
+            imGroupMessageDto.setTo_List(map.get(brokerId));
 
             // 对发送消息进行包装
-            IMessageWrap IMessageWrap = new IMessageWrap(IMessageType.GROUP_MESSAGE.getCode(), IMGroupMessageDto);
+            IMessageWrap IMessageWrap = new IMessageWrap(IMessageType.GROUP_MESSAGE.getCode(), imGroupMessageDto);
 
             // 创建 CorrelationData，并设置消息ID
             CorrelationData correlationData = new CorrelationData(message_id);
@@ -178,28 +178,28 @@ public class GroupChatServiceImpl implements GroupChatService {
         }
 
 
-        return Result.success(IMGroupMessageDto);
+        return Result.success(imGroupMessageDto);
     }
 
 
-    public void insertImGroupMessageAsync(ImGroupMessage imGroupMessage) {
-        log.info("群号:{}  发送人:{}  消息内容:{}", imGroupMessage.getGroup_id(), imGroupMessage.getFrom_id(), imGroupMessage.getMessage_body());
+    public void insertImGroupMessageAsync(ImGroupMessagePo imGroupMessagePo) {
+        log.info("群号:{}  发送人:{}  消息内容:{}", imGroupMessagePo.getGroup_id(), imGroupMessagePo.getFrom_id(), imGroupMessagePo.getMessage_body());
         CompletableFuture.runAsync(() -> {
-            imGroupMessageMapper.insert(imGroupMessage);
+            imGroupMessageMapper.insert(imGroupMessagePo);
         });
     }
 
-    private void setChatAsync(String group_id, long message_time, List<ImGroupMember> imGroupMembers) {
+    private void setChatAsync(String group_id, long message_time, List<ImGroupMemberPo> imGroupMemberPos) {
         CompletableFuture.runAsync(() -> {
             // 新增会话
-            setChat(group_id, message_time, imGroupMembers);
+            setChat(group_id, message_time, imGroupMemberPos);
         });
     }
 
-    private void setReadStatusAsync(String messageId, String groupId, List<ImGroupMember> imGroupMembers) {
+    private void setReadStatusAsync(String messageId, String groupId, List<ImGroupMemberPo> imGroupMemberPos) {
         CompletableFuture.runAsync(() -> {
             // 设置消息读取状态
-            setReadStatus(messageId, groupId, imGroupMembers);
+            setReadStatus(messageId, groupId, imGroupMemberPos);
         });
     }
 
@@ -209,19 +209,19 @@ public class GroupChatServiceImpl implements GroupChatService {
      *
      * @param messageId      消息主键
      * @param groupId        群号
-     * @param imGroupMembers 群成员
+     * @param imGroupMemberPos 群成员
      */
     @Transactional
-    public void setReadStatus(String messageId, String groupId, List<ImGroupMember> imGroupMembers) {
+    public void setReadStatus(String messageId, String groupId, List<ImGroupMemberPo> imGroupMemberPos) {
 
-        List<ImGroupMessageStatus> groupReadStatusList = new ArrayList<>();
+        List<ImGroupMessageStatusPo> groupReadStatusList = new ArrayList<>();
 
-        for (ImGroupMember imGroupMember : imGroupMembers) {
-            ImGroupMessageStatus groupReadStatus = new ImGroupMessageStatus()
+        for (ImGroupMemberPo imGroupMemberPo : imGroupMemberPos) {
+            ImGroupMessageStatusPo groupReadStatus = new ImGroupMessageStatusPo()
                     .setMessage_id(messageId)
                     .setGroup_id(groupId)
                     .setRead_status(IMessageReadStatus.UNREAD.code())
-                    .setTo_id(imGroupMember.getMember_id());
+                    .setTo_id(imGroupMemberPo.getMember_id());
             groupReadStatusList.add(groupReadStatus);
         }
 
@@ -233,37 +233,37 @@ public class GroupChatServiceImpl implements GroupChatService {
      *
      * @param group_id       群号
      * @param message_time   消息时间
-     * @param imGroupMembers 群成员
+     * @param imGroupMemberPos 群成员
      */
     @Transactional
-    public void setChat(String group_id, long message_time, List<ImGroupMember> imGroupMembers) {
+    public void setChat(String group_id, long message_time, List<ImGroupMemberPo> imGroupMemberPos) {
 
-        for (ImGroupMember imGroupMember : imGroupMembers) {
+        for (ImGroupMemberPo imGroupMemberPo : imGroupMemberPos) {
 
             // 查询会话是否存在
-            QueryWrapper<ImChat> chatQuery = new QueryWrapper<>();
-            chatQuery.eq("owner_id", imGroupMember.getMember_id());
+            QueryWrapper<ImChatPo> chatQuery = new QueryWrapper<>();
+            chatQuery.eq("owner_id", imGroupMemberPo.getMember_id());
             chatQuery.eq("to_id", group_id);
             chatQuery.eq("chat_type", IMessageType.GROUP_MESSAGE.getCode());
 
-            ImChat imChat = imChatMapper.selectOne(chatQuery);
+            ImChatPo imChatPO = imChatMapper.selectOne(chatQuery);
 
-            if (ObjectUtil.isEmpty(imChat)) {
-                imChat = new ImChat();
+            if (ObjectUtil.isEmpty(imChatPO)) {
+                imChatPO = new ImChatPo();
                 String id = UUID.randomUUID().toString();
 
-                imChat.setChat_id(id)
-                        .setOwner_id(imGroupMember.getMember_id())
+                imChatPO.setChat_id(id)
+                        .setOwner_id(imGroupMemberPo.getMember_id())
                         .setTo_id(group_id)
                         .setSequence(message_time)
                         .setIs_mute(IMStatus.NO.getCode())
                         .setIs_top(IMStatus.NO.getCode())
                         .setChat_type(IMessageType.GROUP_MESSAGE.getCode());
 
-                imChatMapper.insert(imChat);
+                imChatMapper.insert(imChatPO);
             } else {
-                imChat.setSequence(message_time);
-                imChatMapper.updateById(imChat);
+                imChatPO.setSequence(message_time);
+                imChatMapper.updateById(imChatPO);
             }
 
         }
@@ -272,32 +272,32 @@ public class GroupChatServiceImpl implements GroupChatService {
     @Override
     public Result member(GroupDto groupDto) {
         // 查询群成员列表
-        List<ImGroupMember> imGroupMembers = imGroupMemberService.list(
-                new QueryWrapper<ImGroupMember>().eq("group_id", groupDto.getGroup_id())
+        List<ImGroupMemberPo> imGroupMemberPos = imGroupMemberService.list(
+                new QueryWrapper<ImGroupMemberPo>().eq("group_id", groupDto.getGroup_id())
         );
 
         // 提取成员ID列表
-        List<String> memberIdList = imGroupMembers.stream()
-                .map(ImGroupMember::getMember_id)
+        List<String> memberIdList = imGroupMemberPos.stream()
+                .map(ImGroupMemberPo::getMember_id)
                 .collect(Collectors.toList());
 
         // 根据成员ID列表查询用户信息，并将其存储到 Map 中以便快速查找
-        Map<String, ImUserData> userDataMap = imUserDataMapper.selectBatchIds(memberIdList)
+        Map<String, ImUserDataPo> userDataMap = imUserDataMapper.selectBatchIds(memberIdList)
                 .stream()
-                .collect(Collectors.toMap(ImUserData::getUser_id, Function.identity()));
+                .collect(Collectors.toMap(ImUserDataPo::getUser_id, Function.identity()));
 
         // 构建成员信息的 Map
         Map<String, GroupMemberVo> groupMemberVoMap = new HashMap<>();
-        for (ImGroupMember imGroupMember : imGroupMembers) {
-            ImUserData imUserData = userDataMap.get(imGroupMember.getMember_id());
-            if (imUserData != null) {
+        for (ImGroupMemberPo imGroupMemberPo : imGroupMemberPos) {
+            ImUserDataPo imUserDataPo = userDataMap.get(imGroupMemberPo.getMember_id());
+            if (imUserDataPo != null) {
                 GroupMemberVo groupMemberVo = new GroupMemberVo();
-                BeanUtils.copyProperties(imUserData, groupMemberVo);
-                groupMemberVo.setRole(imGroupMember.getRole());
-                groupMemberVo.setMute(imGroupMember.getMute());
-                groupMemberVo.setAlias(imGroupMember.getAlias());
+                BeanUtils.copyProperties(imUserDataPo, groupMemberVo);
+                groupMemberVo.setRole(imGroupMemberPo.getRole());
+                groupMemberVo.setMute(imGroupMemberPo.getMute());
+                groupMemberVo.setAlias(imGroupMemberPo.getAlias());
                 //groupMemberVo.setJoin_type(imGroupMember.getJoin_type());
-                groupMemberVoMap.put(imUserData.getUser_id(), groupMemberVo);
+                groupMemberVoMap.put(imUserDataPo.getUser_id(), groupMemberVo);
             }
         }
 
@@ -317,10 +317,10 @@ public class GroupChatServiceImpl implements GroupChatService {
         String userId = groupDto.getUser_id();
 
         // 查询群成员关系
-        ImGroupMember imGroupMember = imGroupMemberService.getOne(new QueryWrapper<ImGroupMember>().eq("group_id", groupId).eq("member_id", userId));
+        ImGroupMemberPo imGroupMemberPo = imGroupMemberService.getOne(new QueryWrapper<ImGroupMemberPo>().eq("group_id", groupId).eq("member_id", userId));
 
         // 获取角色
-        Integer role = imGroupMember.getRole();
+        Integer role = imGroupMemberPo.getRole();
 
         // 判断是否群主
         if (role.equals(IMemberStatus.GROUP_OWNER.getCode())) {
@@ -328,7 +328,7 @@ public class GroupChatServiceImpl implements GroupChatService {
         }
 
         // 删除群成员关系
-        imGroupMemberService.removeById(imGroupMember.getGroup_member_id());
+        imGroupMemberService.removeById(imGroupMemberPo.getGroup_member_id());
 
         log.info("退出群聊，群聊id:{},用户id:{}", groupId, userId);
     }
@@ -364,12 +364,12 @@ public class GroupChatServiceImpl implements GroupChatService {
         long time = new Date().getTime();
 
         // 保存群成员关系
-        List<ImGroupMember> imGroupMemberList = new ArrayList<>();
+        List<ImGroupMemberPo> imGroupMemberPoList = new ArrayList<>();
 
         // 邀请者默认为群主
-        ImGroupMember imGroupMember = new ImGroupMember();
+        ImGroupMemberPo imGroupMemberPo = new ImGroupMemberPo();
 
-        imGroupMember.setGroup_id(groupId)
+        imGroupMemberPo.setGroup_id(groupId)
                 .setGroup_member_id(IdUtil.getSnowflakeNextId())
                 .setMember_id(userId)
                 .setRole(IMemberStatus.GROUP_OWNER.getCode())
@@ -377,11 +377,11 @@ public class GroupChatServiceImpl implements GroupChatService {
                 .setJoin_time(time)
         ;
 
-        imGroupMemberList.add(imGroupMember);
+        imGroupMemberPoList.add(imGroupMemberPo);
 
         // 被邀请者默认为普通成员
         for (String friendId : friendIds) {
-            ImGroupMember groupMember = new ImGroupMember();
+            ImGroupMemberPo groupMember = new ImGroupMemberPo();
             groupMember.setGroup_id(groupId)
                     .setGroup_member_id(IdUtil.getSnowflakeNextId())
                     .setMember_id(friendId)
@@ -390,15 +390,15 @@ public class GroupChatServiceImpl implements GroupChatService {
                     .setJoin_time(time)
             ;
 
-            imGroupMemberList.add(groupMember);
+            imGroupMemberPoList.add(groupMember);
         }
 
-        imGroupMemberService.saveBatch(imGroupMemberList);
+        imGroupMemberService.saveBatch(imGroupMemberPoList);
 
 
         // 保存群聊
-        ImGroup imGroup = new ImGroup();
-        imGroup.setGroup_id(groupId)
+        ImGroupPo imGroupPo = new ImGroupPo();
+        imGroupPo.setGroup_id(groupId)
                 .setOwner_id(userId)
                 .setGroup_name("默认群聊-" + code)
                 .setAvatar(generateGroupAvatar(groupId))
@@ -406,7 +406,7 @@ public class GroupChatServiceImpl implements GroupChatService {
                 .setCreate_time(time)
         ;
 
-        imGroupService.save(imGroup);
+        imGroupService.save(imGroupPo);
 
         // 发送系统群聊邀请消息,系统消息默认用户000000
         IMGroupMessageDto IMGroupMessageDto = (IMGroupMessageDto)systemMessage(groupId,"加入群聊,请尽情聊天吧");
@@ -448,9 +448,9 @@ public class GroupChatServiceImpl implements GroupChatService {
         List<String> friendIds = groupInviteDto.getMemberIds();
 
         // 查询群成员列表并转换为 Set
-        Set<String> memberIdSet = imGroupMemberService.list(new QueryWrapper<ImGroupMember>().eq("group_id", groupId))
+        Set<String> memberIdSet = imGroupMemberService.list(new QueryWrapper<ImGroupMemberPo>().eq("group_id", groupId))
                 .stream()
-                .map(ImGroupMember::getMember_id)
+                .map(ImGroupMemberPo::getMember_id)
                 .collect(Collectors.toSet());
 
         if (!memberIdSet.contains(userId)) {
@@ -464,32 +464,32 @@ public class GroupChatServiceImpl implements GroupChatService {
 
         // 若有新成员，则添加到群组中
         if (!newMemberList.isEmpty()) {
-            List<ImGroupMember> newGroupMemberList = createNewGroupMembers(groupId, newMemberList);
+            List<ImGroupMemberPo> newGroupMemberList = createNewGroupMembers(groupId, newMemberList);
             imGroupMemberService.saveBatch(newGroupMemberList);
         }
 
         // 更新群头像
-        ImGroup imGroup = new ImGroup();
-        imGroup.setGroup_id(groupId)
+        ImGroupPo imGroupPo = new ImGroupPo();
+        imGroupPo.setGroup_id(groupId)
                 .setAvatar(generateGroupAvatar(groupId));
-        imGroupService.updateById(imGroup);
+        imGroupService.updateById(imGroupPo);
 
         log.info("邀请成员，群聊id:{},用户id:{},新成员id:{}", groupId, userId, newMemberList.toString());
         return Result.success(groupId);
     }
 
 
-    private List<ImGroupMember> createNewGroupMembers(String groupId, List<String> newMemberList) {
+    private List<ImGroupMemberPo> createNewGroupMembers(String groupId, List<String> newMemberList) {
         long joinTime = new Date().getTime();
         return newMemberList.stream()
                 .map(memberId -> {
-                    ImGroupMember imGroupMember = new ImGroupMember();
-                    imGroupMember.setGroup_id(groupId); // 群聊id
-                    imGroupMember.setMember_id(memberId);  // 成员id
-                    imGroupMember.setRole(IMemberStatus.NORMAL.getCode()); // 成员角色
-                    imGroupMember.setMute(IMStatus.YES.getCode()); // 是否禁言
-                    imGroupMember.setJoin_time(joinTime); // 加入时间
-                    return imGroupMember;
+                    ImGroupMemberPo imGroupMemberPo = new ImGroupMemberPo();
+                    imGroupMemberPo.setGroup_id(groupId); // 群聊id
+                    imGroupMemberPo.setMember_id(memberId);  // 成员id
+                    imGroupMemberPo.setRole(IMemberStatus.NORMAL.getCode()); // 成员角色
+                    imGroupMemberPo.setMute(IMStatus.YES.getCode()); // 是否禁言
+                    imGroupMemberPo.setJoin_time(joinTime); // 加入时间
+                    return imGroupMemberPo;
                 })
                 .collect(Collectors.toList());
     }
@@ -497,8 +497,8 @@ public class GroupChatServiceImpl implements GroupChatService {
     @Override
     public Result info(GroupDto groupDto) {
         String groupId = groupDto.getGroup_id();
-        ImGroup imGroup = imGroupService.getOne(new QueryWrapper<ImGroup>().eq("group_id", groupId));
-        return Result.success(imGroup);
+        ImGroupPo imGroupPo = imGroupService.getOne(new QueryWrapper<ImGroupPo>().eq("group_id", groupId));
+        return Result.success(imGroupPo);
     }
 
     /**

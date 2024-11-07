@@ -7,13 +7,13 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.imcore.model.IMRegisterUserDto;
 import com.xy.imcore.utils.JwtUtil;
 import com.xy.server.domain.dto.LoginDto;
+import com.xy.server.domain.po.ImUserDataPo;
+import com.xy.server.domain.po.ImUserPo;
 import com.xy.server.domain.vo.LoginVo;
 import com.xy.server.domain.vo.UserVo;
 import com.xy.server.exception.BusinessException;
 import com.xy.server.mapper.ImUserDataMapper;
 import com.xy.server.mapper.ImUserMapper;
-import com.xy.server.model.ImUser;
-import com.xy.server.model.ImUserData;
 import com.xy.server.response.ResultEnum;
 import com.xy.server.service.ImUserService;
 import com.xy.server.utils.RedisUtil;
@@ -29,7 +29,7 @@ import static com.xy.imcore.constants.Constant.IMUSERPREFIX;
  * @createDate 2024-03-17 01:34:00
  */
 @Service
-public class ImUserServiceImpl extends ServiceImpl<ImUserMapper, ImUser>
+public class ImUserServiceImpl extends ServiceImpl<ImUserMapper, ImUserPo>
         implements ImUserService {
 
     @Resource
@@ -44,15 +44,15 @@ public class ImUserServiceImpl extends ServiceImpl<ImUserMapper, ImUser>
     @Override
     public LoginVo login(LoginDto loginDto) {
 
-        QueryWrapper<ImUser> query = new QueryWrapper<>();
+        QueryWrapper<ImUserPo> query = new QueryWrapper<>();
         query.eq("user_id", loginDto.getUser_id());
-        ImUser imUser = imUserMapper.selectOne(query);
+        ImUserPo imUserPo = imUserMapper.selectOne(query);
 
-        if (imUser == null || StrUtil.isEmpty(imUser.getUser_id())) {
+        if (imUserPo == null || StrUtil.isEmpty(imUserPo.getUser_id())) {
             throw new BusinessException(ResultEnum.USER_EMPTY);
         }
 
-        if (!loginDto.getPassword().equals(imUser.getPassword())) {
+        if (!loginDto.getPassword().equals(imUserPo.getPassword())) {
             throw new BusinessException(ResultEnum.PASSWD_ERROR);
         }
 
@@ -66,16 +66,16 @@ public class ImUserServiceImpl extends ServiceImpl<ImUserMapper, ImUser>
     @Override
     public UserVo info(String user_id) {
 
-        QueryWrapper<ImUserData> query = new QueryWrapper<>();
+        QueryWrapper<ImUserDataPo> query = new QueryWrapper<>();
 
         query.eq("user_id", user_id);
 
-        ImUserData imUserData = imUserDataMapper.selectOne(query);
+        ImUserDataPo imUserDataPo = imUserDataMapper.selectOne(query);
 
         UserVo userVo = new UserVo();
 
-        if (imUserData != null) {
-            BeanUtils.copyProperties(imUserData, userVo);
+        if (imUserDataPo != null) {
+            BeanUtils.copyProperties(imUserDataPo, userVo);
         }
 
         return userVo;

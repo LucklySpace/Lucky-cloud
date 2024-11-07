@@ -4,7 +4,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.xy.server.mapper.ImGroupMemberMapper">
 
-    <resultMap id="BaseResultMap" type="com.xy.server.model.ImGroupMember">
+    <resultMap id="BaseResultMap" type="com.xy.server.domain.po.ImGroupMemberPo">
         <id property="group_member_id" column="group_member_id" jdbcType="BIGINT"/>
         <result property="group_id" column="group_id" jdbcType="VARCHAR"/>
         <result property="member_id" column="member_id" jdbcType="VARCHAR"/>

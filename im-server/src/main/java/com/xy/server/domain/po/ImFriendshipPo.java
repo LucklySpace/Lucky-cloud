@@ -1,4 +1,4 @@
-package com.xy.server.model;
+package com.xy.server.domain.po;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -13,7 +13,7 @@ import java.io.Serializable;
 @TableName(value = "im_friendship")
 @Data
 @Accessors(chain = true)
-public class ImFriendship implements Serializable {
+public class ImFriendshipPo implements Serializable {
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

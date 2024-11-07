@@ -1,7 +1,7 @@
 package com.xy.server.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xy.server.model.ImGroupMessageStatus;
+import com.xy.server.domain.po.ImGroupMessageStatusPo;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -11,7 +11,7 @@ import org.apache.ibatis.annotations.Mapper;
  * @Entity com.xy.server.model.ImGroupMessageStatus
  */
 @Mapper
-public interface ImGroupMessageStatusMapper extends BaseMapper<ImGroupMessageStatus> {
+public interface ImGroupMessageStatusMapper extends BaseMapper<ImGroupMessageStatusPo> {
 
 }
 

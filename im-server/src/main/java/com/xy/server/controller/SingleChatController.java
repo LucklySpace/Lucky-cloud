@@ -2,7 +2,6 @@ package com.xy.server.controller;
 
 
 import com.xy.imcore.model.IMSingleMessageDto;
-import com.xy.imcore.model.IMessageWrap;
 import com.xy.server.response.Result;
 import com.xy.server.service.SingleChatService;
 import io.swagger.v3.oas.annotations.Operation;

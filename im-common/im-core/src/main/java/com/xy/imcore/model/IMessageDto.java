@@ -58,7 +58,7 @@ public abstract class IMessageDto implements Serializable {
 
     private Long sequence;
 
-    private Object extra;
+    private String extra;
 
 
     // 基类

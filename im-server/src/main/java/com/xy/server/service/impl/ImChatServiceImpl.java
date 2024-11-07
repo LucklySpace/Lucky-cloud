@@ -7,12 +7,10 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.imcore.enums.IMStatus;
 import com.xy.imcore.enums.IMessageReadStatus;
 import com.xy.imcore.enums.IMessageType;
-import com.xy.imcore.model.IMGroupMessageDto;
-import com.xy.imcore.model.IMSingleMessageDto;
 import com.xy.server.domain.dto.ChatDto;
+import com.xy.server.domain.po.*;
 import com.xy.server.domain.vo.ChatVo;
 import com.xy.server.mapper.*;
-import com.xy.server.model.*;
 import com.xy.server.service.ImChatService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +25,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChat>
+public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChatPo>
         implements ImChatService {
 
     @Resource
@@ -64,7 +62,7 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChat>
 
         ChatVo chatVo = new ChatVo();
 
-        QueryWrapper<ImChat> chatQuery = new QueryWrapper<>();
+        QueryWrapper<ImChatPo> chatQuery = new QueryWrapper<>();
 
         chatQuery.eq("owner_id", chatDto.getFrom_id());
 
@@ -72,48 +70,48 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChat>
 
         chatQuery.eq("chat_type", chatDto.getChat_type());
 
-        ImChat imChat = imChatMapper.selectOne(chatQuery);
+        ImChatPo imChatPO = imChatMapper.selectOne(chatQuery);
 
-        if (ObjectUtil.isEmpty(imChat)) {
+        if (ObjectUtil.isEmpty(imChatPO)) {
 
-            imChat = new ImChat();
+            imChatPO = new ImChatPo();
 
             String id = UUID.randomUUID().toString();
 
-            imChat.setChat_id(id)
+            imChatPO.setChat_id(id)
                     .setOwner_id(chatDto.getFrom_id())
                     .setTo_id(chatDto.getTo_id())
                     .setIs_mute(IMStatus.NO.getCode())
                     .setIs_top(IMStatus.NO.getCode())
                     .setChat_type(IMessageType.SINGLE_MESSAGE.getCode());
 
-            imChatMapper.insert(imChat);
+            imChatMapper.insert(imChatPO);
         }
 
-        BeanUtils.copyProperties(imChat, chatVo);
+        BeanUtils.copyProperties(imChatPO, chatVo);
 
         // 创建单聊会话
         if (chatDto.getChat_type().equals(IMessageType.SINGLE_MESSAGE.getCode())) {
 
-            ImUserData imUserData = imUserDataMapper.selectOne(new QueryWrapper<ImUserData>().eq("user_id", chatDto.getTo_id()));
+            ImUserDataPo imUserDataPo = imUserDataMapper.selectOne(new QueryWrapper<ImUserDataPo>().eq("user_id", chatDto.getTo_id()));
 
-            chatVo.setName(imUserData.getName());
+            chatVo.setName(imUserDataPo.getName());
 
-            chatVo.setAvatar(imUserData.getAvatar());
+            chatVo.setAvatar(imUserDataPo.getAvatar());
 
-            chatVo.setId(imUserData.getUser_id());
+            chatVo.setId(imUserDataPo.getUser_id());
         }
 
         // 创建群聊会话
         if (chatDto.getChat_type().equals(IMessageType.GROUP_MESSAGE.getCode())) {
 
-            ImGroup imGroup = imGroupMapper.selectOne(new QueryWrapper<ImGroup>().eq("group_id", chatDto.getTo_id()));
+            ImGroupPo imGroupPo = imGroupMapper.selectOne(new QueryWrapper<ImGroupPo>().eq("group_id", chatDto.getTo_id()));
 
-            chatVo.setName(imGroup.getGroup_name());
+            chatVo.setName(imGroupPo.getGroup_name());
 
-            chatVo.setAvatar(imGroup.getAvatar());
+            chatVo.setAvatar(imGroupPo.getAvatar());
 
-            chatVo.setId(imGroup.getGroup_id());
+            chatVo.setId(imGroupPo.getGroup_id());
         }
 
         return chatVo;
@@ -121,28 +119,28 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChat>
 
     @Override
     public ChatVo one(String fromId, String toId) {
-        QueryWrapper<ImChat> chatQuery = new QueryWrapper<>();
+        QueryWrapper<ImChatPo> chatQuery = new QueryWrapper<>();
 
         chatQuery.eq("owner_id", fromId)
                 .eq("to_id", toId);
 
-        ImChat imChat = imChatMapper.selectOne(chatQuery);
+        ImChatPo imChatPO = imChatMapper.selectOne(chatQuery);
 
-        return getChat(imChat);
+        return getChat(imChatPO);
     }
 
     @Override
     public List<ChatVo> list(ChatDto chatDto) {
 
-        QueryWrapper<ImChat> chatQuery = new QueryWrapper<>();
+        QueryWrapper<ImChatPo> chatQuery = new QueryWrapper<>();
 
         chatQuery.eq("owner_id", chatDto.getFrom_id());
 
         chatQuery.gt("sequence", chatDto.getSequence());
 
-        List<ImChat> imChats = imChatMapper.selectList(chatQuery);
+        List<ImChatPo> imChatPos = imChatMapper.selectList(chatQuery);
 
-        List<CompletableFuture<ChatVo>> chatFutures = imChats.stream()
+        List<CompletableFuture<ChatVo>> chatFutures = imChatPos.stream()
                 .map(e -> CompletableFuture.supplyAsync(() -> getChat(e)))
                 .collect(Collectors.toList());
 
@@ -151,7 +149,7 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChat>
                 .collect(Collectors.toList());
     }
 
-    private ChatVo getChat(ImChat e) {
+    private ChatVo getChat(ImChatPo e) {
 
         switch (IMessageType.getByCode(e.getChat_type())) {
             case SINGLE_MESSAGE:
@@ -163,7 +161,7 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChat>
         }
     }
 
-    private ChatVo getSingleMessageChat(ImChat e) {
+    private ChatVo getSingleMessageChat(ImChatPo e) {
 
         ChatVo chatVo = new ChatVo();
 
@@ -173,7 +171,7 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChat>
 
         String toId = chatVo.getTo_id();
 
-        ImPrivateMessage IMSingleMessageDto = imPrivateMessageMapper.selectLastSingleMessage(ownerId, toId);
+        ImPrivateMessagePo IMSingleMessageDto = imPrivateMessageMapper.selectLastSingleMessage(ownerId, toId);
 
         chatVo.setMessage_time(0l);
 
@@ -193,18 +191,18 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChat>
 
         String targetUserId = ownerId.equals(toId) ? chatVo.getOwner_id() : chatVo.getTo_id();
 
-        ImUserData imUserData = imUserDataMapper.selectOne(new QueryWrapper<ImUserData>().eq("user_id", targetUserId));
+        ImUserDataPo imUserDataPo = imUserDataMapper.selectOne(new QueryWrapper<ImUserDataPo>().eq("user_id", targetUserId));
 
-        chatVo.setName(imUserData.getName());
+        chatVo.setName(imUserDataPo.getName());
 
-        chatVo.setAvatar(imUserData.getAvatar());
+        chatVo.setAvatar(imUserDataPo.getAvatar());
 
-        chatVo.setId(imUserData.getUser_id());
+        chatVo.setId(imUserDataPo.getUser_id());
 
         return chatVo;
     }
 
-    private ChatVo getGroupMessageChat(ImChat e) {
+    private ChatVo getGroupMessageChat(ImChatPo e) {
 
         ChatVo chatVo = new ChatVo();
 
@@ -218,18 +216,18 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChat>
 //
 //        messageQuery.eq("group_id", group_id);
 
-        ImGroupMessage IMGroupMessageDto = imGroupMessageMapper.selectLastGroupMessage(ownerId, group_id);
+        ImGroupMessagePo IMGroupMessagePoDto = imGroupMessageMapper.selectLastGroupMessage(ownerId, group_id);
 
         chatVo.setMessage_time(0L);
 
-        if (ObjectUtil.isNotEmpty(IMGroupMessageDto)) {
+        if (ObjectUtil.isNotEmpty(IMGroupMessagePoDto)) {
 
-            chatVo.setMessage(IMGroupMessageDto.getMessage_body());
+            chatVo.setMessage(IMGroupMessagePoDto.getMessage_body());
 
-            chatVo.setMessage_time(IMGroupMessageDto.getMessage_time());
+            chatVo.setMessage_time(IMGroupMessagePoDto.getMessage_time());
         }
 
-        QueryWrapper<ImGroupMessageStatus> messageStatusQuery = new QueryWrapper<>();
+        QueryWrapper<ImGroupMessageStatusPo> messageStatusQuery = new QueryWrapper<>();
 
         messageStatusQuery.eq("group_id", group_id);
 
@@ -237,19 +235,19 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChat>
 
         messageStatusQuery.eq("read_status", IMessageReadStatus.UNREAD.code());
 
-        List<ImGroupMessageStatus> imGroupMessageStatusList = imGroupMessageStatusMapper.selectList(messageStatusQuery);
+        List<ImGroupMessageStatusPo> imGroupMessageStatusPoList = imGroupMessageStatusMapper.selectList(messageStatusQuery);
 
-        if (ObjectUtil.isNotEmpty(imGroupMessageStatusList)) {
+        if (ObjectUtil.isNotEmpty(imGroupMessageStatusPoList)) {
 
-            chatVo.setUnread(imGroupMessageStatusList.size());
+            chatVo.setUnread(imGroupMessageStatusPoList.size());
         }
-        ImGroup imGroup = imGroupMapper.selectOne(new QueryWrapper<ImGroup>().eq("group_id", group_id));
+        ImGroupPo imGroupPo = imGroupMapper.selectOne(new QueryWrapper<ImGroupPo>().eq("group_id", group_id));
 
-        chatVo.setName(imGroup.getGroup_name());
+        chatVo.setName(imGroupPo.getGroup_name());
 
-        chatVo.setAvatar(imGroup.getAvatar());
+        chatVo.setAvatar(imGroupPo.getAvatar());
 
-        chatVo.setId(imGroup.getGroup_id());
+        chatVo.setId(imGroupPo.getGroup_id());
 
         return chatVo;
     }
@@ -261,17 +259,17 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChat>
      */
     private void saveSingleMessageChat(ChatDto chatDto) {
 
-        ImPrivateMessage imPrivateMessage = new ImPrivateMessage();
+        ImPrivateMessagePo imPrivateMessagePo = new ImPrivateMessagePo();
 
-        imPrivateMessage.setRead_status(IMessageReadStatus.ALREADY_READ.code());
+        imPrivateMessagePo.setRead_status(IMessageReadStatus.ALREADY_READ.code());
 
-        UpdateWrapper<ImPrivateMessage> statusUpdateWrapper = new UpdateWrapper<>();
+        UpdateWrapper<ImPrivateMessagePo> statusUpdateWrapper = new UpdateWrapper<>();
 
         statusUpdateWrapper.eq("from_id", chatDto.getFrom_id());
 
         statusUpdateWrapper.eq("to_id", chatDto.getTo_id());
 
-        imPrivateMessageMapper.update(imPrivateMessage, statusUpdateWrapper);
+        imPrivateMessageMapper.update(imPrivateMessagePo, statusUpdateWrapper);
     }
 
     /**
@@ -281,17 +279,17 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChat>
      */
     private void saveGroupMessageChat(ChatDto chatDto) {
 
-        ImGroupMessageStatus imGroupMessageStatus = new ImGroupMessageStatus();
+        ImGroupMessageStatusPo imGroupMessageStatusPo = new ImGroupMessageStatusPo();
 
-        imGroupMessageStatus.setRead_status(IMessageReadStatus.ALREADY_READ.code());
+        imGroupMessageStatusPo.setRead_status(IMessageReadStatus.ALREADY_READ.code());
 
-        UpdateWrapper<ImGroupMessageStatus> statusUpdateWrapper = new UpdateWrapper<>();
+        UpdateWrapper<ImGroupMessageStatusPo> statusUpdateWrapper = new UpdateWrapper<>();
 
         statusUpdateWrapper.eq("group_id", chatDto.getFrom_id());
 
         statusUpdateWrapper.eq("to_id", chatDto.getTo_id());
 
-        imGroupMessageStatusMapper.update(imGroupMessageStatus, statusUpdateWrapper);
+        imGroupMessageStatusMapper.update(imGroupMessageStatusPo, statusUpdateWrapper);
 
     }
 

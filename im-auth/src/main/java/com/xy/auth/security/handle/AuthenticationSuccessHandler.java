@@ -30,12 +30,12 @@ public class AuthenticationSuccessHandler extends SavedRequestAwareAuthenticatio
     //@SystemLog(about = "登录系统", type = LogType.LOGIN)
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
 
-        String username = (String) authentication.getPrincipal();
+        String userId = (String) authentication.getPrincipal();
 
         Map<String, Object> map = new HashMap<>();
 
         //1.生成token
-        String token = JwtUtil.createToken(username, 24, DateField.HOUR);
+        String token = JwtUtil.createToken(userId, 24, DateField.HOUR);
 
         map.put("token", token);
 
@@ -44,7 +44,7 @@ public class AuthenticationSuccessHandler extends SavedRequestAwareAuthenticatio
 //        map.put("expireTime", expireTime);
 
         //3.设置用户名
-        map.put("username", username);
+        map.put("username", userId);
 
         //4.返回token给前端
         ResponseUtils.out(response, new IMessageWrap(200, map));

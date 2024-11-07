@@ -46,7 +46,9 @@ public class UserAuthenticationFilter extends AbstractAuthenticationProcessingFi
     private static final String AUTH_TYPE_SMS = "sms";
 
     // 登录类型 -- 二维码登录
-    private static final String AUTH_TYPE_QRCODE = "qrcode";
+    private static final String AUTH_TYPE_QRCODE = "scan";
+
+
     private static final AntPathRequestMatcher DEFAULT_ANT_PATH_REQUEST_MATCHER =
             new AntPathRequestMatcher("/user/login", "POST");
     private final boolean postOnly = true;

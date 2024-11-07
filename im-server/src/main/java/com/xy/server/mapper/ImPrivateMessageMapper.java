@@ -1,8 +1,7 @@
 package com.xy.server.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xy.imcore.model.IMSingleMessageDto;
-import com.xy.server.model.ImPrivateMessage;
+import com.xy.server.domain.po.ImPrivateMessagePo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -15,13 +14,13 @@ import java.util.List;
  * @Entity com.xy.server.model.ImPrivateMessage
  */
 @Mapper
-public interface ImPrivateMessageMapper extends BaseMapper<ImPrivateMessage> {
+public interface ImPrivateMessageMapper extends BaseMapper<ImPrivateMessagePo> {
 
-    List<ImPrivateMessage> selectSingleMessageByToId(@Param("fromId") String fromId, @Param("toId") String toId, @Param("sequence") Long sequence);
+    List<ImPrivateMessagePo> selectSingleMessageByToId(@Param("fromId") String fromId, @Param("toId") String toId, @Param("sequence") Long sequence);
 
-    List<ImPrivateMessage> selectSingleMessage(@Param("userId") String userId, @Param("sequence") Long sequence);
+    List<ImPrivateMessagePo> selectSingleMessage(@Param("userId") String userId, @Param("sequence") Long sequence);
 
-    ImPrivateMessage selectLastSingleMessage(@Param("fromId") String fromId, @Param("toId") String toId);
+    ImPrivateMessagePo selectLastSingleMessage(@Param("fromId") String fromId, @Param("toId") String toId);
 
     Integer selectReadStatus(@Param("fromId") String fromId, @Param("toId") String toId, @Param("status") Integer code);
 }

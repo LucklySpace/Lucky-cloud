@@ -34,7 +34,7 @@ public class ResponseUtils {
 
         HttpServletResponse httpServletResponse = (HttpServletResponse) response;
 
-        ServletOutputStream out = null;
+        PrintWriter out = null;
         try {
             httpServletResponse.setCharacterEncoding("UTF-8");
             httpServletResponse.setContentType("application/json");
@@ -44,7 +44,8 @@ public class ResponseUtils {
                 log.error("Response is already committed.");
                 return;
             }
-            out = httpServletResponse.getOutputStream();
+            //ServletOutputStream out = response.getOutputStream();//用这个会出错
+            out =  response.getWriter();
             out.println(JsonUtil.toJSONString(result));
         } catch (IOException e) {
             log.error("输出JSON时发生错误", e);
@@ -53,7 +54,7 @@ public class ResponseUtils {
                 try {
                     out.flush();
                     out.close();
-                } catch (IOException e) {
+                } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
             }

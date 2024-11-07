@@ -1,7 +1,7 @@
 package com.xy.server.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xy.server.model.ImFriendshipGroup;
+import com.xy.server.domain.po.ImFriendshipGroupPo;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -11,7 +11,7 @@ import org.apache.ibatis.annotations.Mapper;
  * @Entity generator.domain.ImFriendshipGroup
  */
 @Mapper
-public interface ImFriendshipGroupMapper extends BaseMapper<ImFriendshipGroup> {
+public interface ImFriendshipGroupMapper extends BaseMapper<ImFriendshipGroupPo> {
 
 }
 

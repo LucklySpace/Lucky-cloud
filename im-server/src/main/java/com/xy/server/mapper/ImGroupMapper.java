@@ -1,7 +1,7 @@
 package com.xy.server.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xy.server.model.ImGroup;
+import com.xy.server.domain.po.ImGroupPo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -14,7 +14,7 @@ import java.util.List;
  * @Entity generator.domain.ImGroup
  */
 @Mapper
-public interface ImGroupMapper extends BaseMapper<ImGroup> {
+public interface ImGroupMapper extends BaseMapper<ImGroupPo> {
 
     List<String> selectNinePeople(@Param("groupId") String groupId);
 }

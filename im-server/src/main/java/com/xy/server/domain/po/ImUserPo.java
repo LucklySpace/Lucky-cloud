@@ -1,4 +1,4 @@
-package com.xy.server.model;
+package com.xy.server.domain.po;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -12,7 +12,7 @@ import java.io.Serializable;
  */
 @TableName(value = "im_user")
 @Data
-public class ImUser implements Serializable {
+public class ImUserPo implements Serializable {
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
     /**

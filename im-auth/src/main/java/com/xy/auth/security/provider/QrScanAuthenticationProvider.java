@@ -4,11 +4,18 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xy.auth.entity.ImUser;
 import com.xy.auth.security.token.QrScanAuthenticationToken;
 import com.xy.auth.service.ImUserService;
+import com.xy.auth.utils.RedisUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import static com.xy.auth.constant.Qrcode.QRCODE_AUTHORIZED;
+import static com.xy.auth.constant.Qrcode.QRCODE_PREFIX;
 
 
 @Slf4j
@@ -16,8 +23,11 @@ public class QrScanAuthenticationProvider implements AuthenticationProvider {
 
     private ImUserService sysUserService;    //自定义user对象
 
-    public QrScanAuthenticationProvider(ImUserService sysUserService) {
+    private RedisUtil redisUtil;
+
+    public QrScanAuthenticationProvider(ImUserService sysUserService, RedisUtil redisUtil) {
         this.sysUserService = sysUserService;
+        this.redisUtil = redisUtil;
     }
 
     @Override
@@ -26,21 +36,36 @@ public class QrScanAuthenticationProvider implements AuthenticationProvider {
         if (authentication.isAuthenticated()) {
             return authentication;
         }
+        // 前端标识
+        String qrcode = (String) authentication.getPrincipal();
+        // 用户名
+        String password = (String) authentication.getCredentials();
 
-        //获取手机号码
-        String username = (String) authentication.getPrincipal();
+        String redisKey = QRCODE_PREFIX + qrcode;
+
+        if (!redisUtil.hasKey(QRCODE_PREFIX + qrcode)) {
+             throw new UsernameNotFoundException("二维码已失效");
+        }
+
+        Map<String, Object> qrCodeInfo = redisUtil.get(redisKey);
+
+        if (!password.equals(qrCodeInfo.get("password"))) {
+            throw new UsernameNotFoundException("二维码已失效");
+        }
 
         QueryWrapper wrapper = new QueryWrapper();
-        wrapper.eq("user_id", username); //填充用户名
+        wrapper.eq("user_id", qrCodeInfo.get("userId")); //填充用户名
         ImUser user = sysUserService.getOne(wrapper);//获取用户对象
 
         if (user == null) { // 判断用户是否存在
             throw new UsernameNotFoundException("用户不存在");
         }
 
-        //将权限装入框架验证
+        // 设置二维码授权
+        redisUtil.set(QRCODE_PREFIX + qrcode, QRCODE_AUTHORIZED, 15, TimeUnit.SECONDS);
 
-        return new QrScanAuthenticationToken(user.getUser_name(), null);
+        //将权限装入框架验证
+        return new QrScanAuthenticationToken(user.getUser_id(), null);
     }
 
     @Override

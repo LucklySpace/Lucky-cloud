@@ -2,13 +2,11 @@ package com.xy.server.service.impl;
 
 import cn.hutool.core.util.ObjectUtil;
 import com.xy.imcore.enums.IMessageType;
-import com.xy.imcore.model.IMGroupMessageDto;
-import com.xy.imcore.model.IMSingleMessageDto;
 import com.xy.server.domain.dto.ChatDto;
+import com.xy.server.domain.po.ImGroupMessagePo;
+import com.xy.server.domain.po.ImPrivateMessagePo;
 import com.xy.server.mapper.ImGroupMessageMapper;
 import com.xy.server.mapper.ImPrivateMessageMapper;
-import com.xy.server.model.ImGroupMessage;
-import com.xy.server.model.ImPrivateMessage;
 import com.xy.server.service.MessageService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -34,20 +32,20 @@ public class MessageServiceImpl<T> implements MessageService {
         String userId = chatDto.getFrom_id();
         Long sequence = chatDto.getSequence();
 
-        CompletableFuture<List<ImPrivateMessage>> singleMessageFuture = CompletableFuture.supplyAsync(() -> imPrivateMessageMapper.selectSingleMessage(userId, sequence));
-        CompletableFuture<List<ImGroupMessage>> groupMessageFuture = CompletableFuture.supplyAsync(() -> imGroupMessageMapper.selectGroupMessage(userId, sequence));
+        CompletableFuture<List<ImPrivateMessagePo>> singleMessageFuture = CompletableFuture.supplyAsync(() -> imPrivateMessageMapper.selectSingleMessage(userId, sequence));
+        CompletableFuture<List<ImGroupMessagePo>> groupMessageFuture = CompletableFuture.supplyAsync(() -> imGroupMessageMapper.selectGroupMessage(userId, sequence));
 
         Map<Integer, Object> map = new HashMap<>();
 
         try {
-            List<ImPrivateMessage> IMSingleMessageDtoList = singleMessageFuture.get();
+            List<ImPrivateMessagePo> IMSingleMessageDtoList = singleMessageFuture.get();
             if (ObjectUtil.isNotEmpty(IMSingleMessageDtoList)) {
                 map.put(IMessageType.SINGLE_MESSAGE.getCode(), IMSingleMessageDtoList);
             }
 
-            List<ImGroupMessage> IMGroupMessageDtoList = groupMessageFuture.get();
-            if (ObjectUtil.isNotEmpty(IMGroupMessageDtoList)) {
-                map.put(IMessageType.GROUP_MESSAGE.getCode(), IMGroupMessageDtoList);
+            List<ImGroupMessagePo> IMGroupMessagePoDtoList = groupMessageFuture.get();
+            if (ObjectUtil.isNotEmpty(IMGroupMessagePoDtoList)) {
+                map.put(IMessageType.GROUP_MESSAGE.getCode(), IMGroupMessagePoDtoList);
             }
         } catch (InterruptedException | ExecutionException e) {
             // 处理异常
@@ -81,7 +79,7 @@ public class MessageServiceImpl<T> implements MessageService {
 
         Long sequence = chatDto.getSequence();
 
-        List<ImPrivateMessage> messageHistoryList = imPrivateMessageMapper.selectSingleMessageByToId(fromId, toId, sequence);
+        List<ImPrivateMessagePo> messageHistoryList = imPrivateMessageMapper.selectSingleMessageByToId(fromId, toId, sequence);
 
         return messageHistoryList;
     }
@@ -94,7 +92,7 @@ public class MessageServiceImpl<T> implements MessageService {
 
         Long sequence = chatDto.getSequence();
 
-        List<ImGroupMessage> messageHistoryList = imGroupMessageMapper.selectGroupMessageByGroupId(userId, groupId, sequence);
+        List<ImGroupMessagePo> messageHistoryList = imGroupMessageMapper.selectGroupMessageByGroupId(userId, groupId, sequence);
 
         return messageHistoryList;
     }

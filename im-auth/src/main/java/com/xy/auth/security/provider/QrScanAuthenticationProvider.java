@@ -65,7 +65,7 @@ public class QrScanAuthenticationProvider implements AuthenticationProvider {
         redisUtil.set(QRCODE_PREFIX + qrcode, QRCODE_AUTHORIZED, 15, TimeUnit.SECONDS);
 
         //将权限装入框架验证
-        return new QrScanAuthenticationToken(user.getUser_id(), null);
+        return new QrScanAuthenticationToken(user.getUserId(), null);
     }
 
     @Override

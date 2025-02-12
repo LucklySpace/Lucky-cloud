@@ -54,12 +54,11 @@ public class VideoChatServiceImpl implements VideoChatService {
     public void send(IMVideoMessageDto IMVideoMessageDto) {
 
         // 通过redis获取用户连接netty的机器码
-        Object redisObj = redisUtil.get(IMUSERPREFIX + IMVideoMessageDto.getTo_id());
+        Object redisObj = redisUtil.get(IMUSERPREFIX + IMVideoMessageDto.getToId());
 
         if (ObjectUtil.isNotEmpty(redisObj)) {
 
-            IMRegisterUserDto IMRegisterUserDto = JsonUtil.parseObject(redisObj, new TypeReference<IMRegisterUserDto>() {
-            });
+            IMRegisterUserDto IMRegisterUserDto = JsonUtil.parseObject(redisObj, IMRegisterUserDto.class);
 
             String broker_id = IMRegisterUserDto.getBroker_id();
             // 对发送消息进行包装
@@ -68,11 +67,11 @@ public class VideoChatServiceImpl implements VideoChatService {
             // 发送到消息队列
             rabbitTemplate.convertAndSend(EXCHANGENAME, ROUTERKEYPREFIX + broker_id, JsonUtil.toJSONString(IMessageWrap));
         } else {
-            log.info("用户:{} 未登录", IMVideoMessageDto.getTo_id());
+            log.info("用户:{} 未登录", IMVideoMessageDto.getToId());
         }
     }
 
-//    public CorrelationData setMessageAck(String message_id){
+//    public CorrelationData setMessageAck(String messageId){
 //
 //        rabbitTemplate.setMandatory(true);
 //
@@ -80,7 +79,7 @@ public class VideoChatServiceImpl implements VideoChatService {
 //
 //        CorrelationData correlationData = new CorrelationData();
 //
-//        correlationData.setId(message_id);
+//        correlationData.setId(messageId);
 //
 //        return correlationData;
 //    }

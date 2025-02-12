@@ -1,7 +1,5 @@
 package com.xy.auth.utils;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -21,18 +19,16 @@ public class ResponseUtils {
     /**
      * 使用response输出JSON
      *
-     * @param response
-     * @param result
+     * @param response 响应对象
+     * @param result   需要输出的结果对象
      */
     public static void out(ServletResponse response, Object result) {
 
         // 检查response是否是HttpServletResponse类型
-        if (!(response instanceof HttpServletResponse)) {
+        if (!(response instanceof HttpServletResponse httpServletResponse)) {
             log.error("Response is not an instance of HttpServletResponse");
             return;
         }
-
-        HttpServletResponse httpServletResponse = (HttpServletResponse) response;
 
         PrintWriter out = null;
         try {
@@ -44,8 +40,7 @@ public class ResponseUtils {
                 log.error("Response is already committed.");
                 return;
             }
-            //ServletOutputStream out = response.getOutputStream();//用这个会出错
-            out =  response.getWriter();
+            out = httpServletResponse.getWriter();
             out.println(JsonUtil.toJSONString(result));
         } catch (IOException e) {
             log.error("输出JSON时发生错误", e);

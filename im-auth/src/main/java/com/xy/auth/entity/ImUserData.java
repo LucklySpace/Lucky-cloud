@@ -27,25 +27,25 @@ public class ImUserData implements Serializable {
     @TableField(value = "name")
     private String name;
     /**
-     *
+     * 密码
      */
     @TableField(value = "password")
     private String password;
     /**
-     *
+     * 头像
      */
     @TableField(value = "avatar")
     private String avatar;
     /**
-     *
+     * 性别
      */
-    @TableField(value = "user_sex")
-    private Integer userSex;
+    @TableField(value = "gender")
+    private Integer gender;
     /**
      * 生日
      */
-    @TableField(value = "birth_day")
-    private String birthDay;
+    @TableField(value = "birthday")
+    private String birthday;
     /**
      * 地址
      */

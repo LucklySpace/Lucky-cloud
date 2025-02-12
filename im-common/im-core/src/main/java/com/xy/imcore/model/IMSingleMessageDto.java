@@ -26,7 +26,7 @@ public class IMSingleMessageDto extends IMessageDto implements Serializable {
     /**
      * send to somebody
      */
-    private String to_id;
+    private String toId;
 
     /**
      * message type

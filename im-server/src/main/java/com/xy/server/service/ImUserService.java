@@ -16,7 +16,7 @@ public interface ImUserService extends IService<ImUserPo> {
 
     LoginVo login(LoginDto loginDto);
 
-    UserVo info(String user_id);
+    UserVo info(String userId);
 
     LoginVo refreshToken(String token);
 

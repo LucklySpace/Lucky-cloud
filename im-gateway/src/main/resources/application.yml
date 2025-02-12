@@ -8,8 +8,10 @@ spring:
     redis:
       repositories:
         enabled: true
-      host: 127.0.0.1
+      host: localhost
       port: 6379
+      password:
+
   cloud:
     # gateway 配置
     gateway:
@@ -59,6 +61,7 @@ spring:
           filters:
             # 去除一个前缀
             - StripPrefix=1
+
 
 
 

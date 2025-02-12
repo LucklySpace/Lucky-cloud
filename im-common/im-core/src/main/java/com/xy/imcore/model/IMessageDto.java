@@ -21,17 +21,17 @@ public abstract class IMessageDto implements Serializable {
     /**
      * from user
      */
-    private String from_id;
+    private String fromId;
 
     /**
      * message id
      */
-    private String message_id;
+    private String messageId;
 
     /**
      * message content
      */
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "message_content_type")
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "messageContentType")
     @JsonSubTypes({
             @JsonSubTypes.Type(value = TextMessageBody.class, name = "1"), // 文本消息
             @JsonSubTypes.Type(value = ImageMessageBody.class, name = "2"),// 图片消息
@@ -39,22 +39,22 @@ public abstract class IMessageDto implements Serializable {
 
             @JsonSubTypes.Type(value = SystemMessageBody.class, name = "10") // 系统消息
     })
-    private MessageBody message_body;
+    private MessageBody messageBody;
 
     /**
      * message content type
      */
-    private String message_content_type;
+    private String messageContentType;
 
     /**
      * message timestamp
      */
-    private Long message_time;
+    private Long messageTime;
 
     /**
      * message read status
      */
-    private Integer read_status;
+    private Integer readStatus;
 
     private Long sequence;
 

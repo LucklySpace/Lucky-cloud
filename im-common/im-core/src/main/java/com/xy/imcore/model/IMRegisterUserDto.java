@@ -19,7 +19,7 @@ public class IMRegisterUserDto implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    private String user_id;
+    private String userId;
 
     private String token;
 

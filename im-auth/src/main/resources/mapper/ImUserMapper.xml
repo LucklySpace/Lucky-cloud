@@ -4,18 +4,4 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.xy.server.mapper.ImUserMapper">
 
-    <resultMap id="BaseResultMap" type="com.xy.auth.entity.ImUser">
-        <id property="userId" column="user_id" jdbcType="VARCHAR"/>
-        <result property="userName" column="user_name" jdbcType="VARCHAR"/>
-        <result property="password" column="password" jdbcType="VARCHAR"/>
-        <result property="mobile" column="mobile" jdbcType="VARCHAR"/>
-        <result property="createTime" column="create_time" jdbcType="BIGINT"/>
-        <result property="updateTime" column="update_time" jdbcType="BIGINT"/>
-    </resultMap>
-
-    <sql id="Base_Column_List">
-        user_id
-        ,user_name,password,
-        mobile,create_time,update_time
-    </sql>
 </mapper>

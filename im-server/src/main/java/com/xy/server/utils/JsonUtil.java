@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.LinkedHashMap;
 
 /**
  * JSON 工具类，封装了 Jackson 的常用方法，提供类似 Fastjson 的使用体验
@@ -70,11 +71,27 @@ public class JsonUtil {
         }
     }
 
+
     public static <T> T parseObject(Object obj, Class<T> clazz) {
         try {
-            return objectMapper.readValue(objectMapper.writeValueAsString(obj), clazz);
-        } catch (JsonProcessingException e) {
+            return objectMapper.convertValue(obj, clazz);
+        } catch (Exception e) {
             log.error("对象转换失败，目标类型：{}，对象：{}", clazz.getName(), obj, e);
+            return null;
+        }
+    }
+
+    // 方法：将 LinkedHashMap 转换为目标对象
+    public static <T> T convertToActualObject(Object obj, Class<T> clazz) {
+        try {
+            if (obj instanceof LinkedHashMap) {
+                // 如果 obj 是 LinkedHashMap，尝试转换为目标对象
+                String json = objectMapper.writeValueAsString(obj);
+                return objectMapper.readValue(json, clazz);
+            }
+            return objectMapper.convertValue(obj, clazz);
+        } catch (Exception e) {
+            System.err.println("对象转换失败：" + e.getMessage());
             return null;
         }
     }
@@ -82,9 +99,9 @@ public class JsonUtil {
     public static <T> T parseObject(Object obj, TypeReference<T> typeReference) {
         try {
             String json = objectMapper.writeValueAsString(obj);
-            return objectMapper.readValue(json, typeReference);
+            return objectMapper.convertValue(json, typeReference);
         } catch (JsonProcessingException e) {
-            log.error("对象转换失败，目标类型：{}，对象：{}", typeReference.getType(), obj, e);
+            log.error("对象转换失败，目标类型：{}，对象：{} 错误", typeReference.getType(), obj, e);
             return null;
         }
     }
@@ -94,7 +111,7 @@ public class JsonUtil {
      */
     public static String toJSONString(Object object) {
         try {
-            return objectMapper.writeValueAsString(object);
+            return object instanceof String ? (String) object : objectMapper.writeValueAsString(object);
         } catch (JsonProcessingException e) {
             log.error("对象转换为 JSON 字符串失败，对象：{}", object, e);
             return null;

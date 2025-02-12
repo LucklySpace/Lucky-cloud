@@ -3,5 +3,5 @@ nacosConfig:
   address: localhost
   port: 8848
   username: nacos
-  password: nacos
+  password: qsczse111
   version: 1.0.0

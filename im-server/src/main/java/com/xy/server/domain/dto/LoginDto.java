@@ -19,7 +19,7 @@ public class LoginDto   implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Schema(description = "用户id")
-    private String user_id;
+    private String userId;
 
     @Schema(description = "密码")
     private String password;

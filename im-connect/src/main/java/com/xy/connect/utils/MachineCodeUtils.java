@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.UUID;
 
 public class MachineCodeUtils {
     public static final String WINDOWS = "Windows";
@@ -74,6 +75,9 @@ public class MachineCodeUtils {
         } else {
             return "";
         }
+
+        // 添加随机UUID生成器
+        codeMap.put("randomUUID", UUID.randomUUID().toString());
 
         String codeMapStr = JsonUtil.toJSONString(codeMap);
         String serials = DigestUtil.md5Hex(codeMapStr);

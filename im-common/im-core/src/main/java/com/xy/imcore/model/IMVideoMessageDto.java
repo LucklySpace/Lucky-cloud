@@ -18,28 +18,28 @@ public class IMVideoMessageDto implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    private String from_id;
+    private String fromId;
 
-    private String to_id;
+    private String toId;
 
     private String url;
 
     private Integer type;
 
-    public String getFrom_id() {
-        return from_id;
+    public String getFromId() {
+        return fromId;
     }
 
-    public void setFrom_id(String from_id) {
-        this.from_id = from_id;
+    public void setFromId(String fromId) {
+        this.fromId = fromId;
     }
 
-    public String getTo_id() {
-        return to_id;
+    public String getToId() {
+        return toId;
     }
 
-    public void setTo_id(String to_id) {
-        this.to_id = to_id;
+    public void setToId(String toId) {
+        this.toId = toId;
     }
 
     public String getUrl() {

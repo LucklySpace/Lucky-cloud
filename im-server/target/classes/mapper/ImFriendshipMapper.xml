@@ -4,42 +4,9 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.xy.server.mapper.ImFriendshipMapper">
 
-    <resultMap id="BaseResultMap" type="com.xy.server.domain.po.ImFriendshipPo">
-        <id property="owner_id" column="from_id" jdbcType="VARCHAR"/>
-        <id property="to_id" column="to_id" jdbcType="VARCHAR"/>
-        <result property="remark" column="remark" jdbcType="VARCHAR"/>
-        <result property="status" column="status" jdbcType="INTEGER"/>
-        <result property="black" column="black" jdbcType="INTEGER"/>
-        <result property="create_time" column="create_time" jdbcType="BIGINT"/>
-        <result property="sequence" column="sequence" jdbcType="BIGINT"/>
-        <result property="black_sequence" column="black_sequence" jdbcType="BIGINT"/>
-        <result property="add_source" column="add_source" jdbcType="VARCHAR"/>
-        <result property="extra" column="extra" jdbcType="VARCHAR"/>
-    </resultMap>
-
-    <sql id="Base_Column_List">
-        from_id
-        ,to_id,
-        remark,status,black,
-        create_time,sequence,black_sequence,
-        add_source,extra
-    </sql>
-
-    <sql id="User_Column_List">
-        user_id
-        ,
-        name,
-        avatar,
-        user_sex,
-        birth_day,
-        location,
-        self_signature,
-        extra
-    </sql>
-
     <select id="selectFriendList" resultType="com.xy.server.domain.po.ImFriendshipPo">
         select
-        <include refid="Base_Column_List"></include>
+        *
         from im_friendship where owner_id = #{userId}
     </select>
 </mapper>

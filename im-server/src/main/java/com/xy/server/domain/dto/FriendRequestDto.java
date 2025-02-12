@@ -14,11 +14,11 @@ import lombok.experimental.Accessors;
 
 public class FriendRequestDto {
 
-    private String from_id;
+    private String fromId;
 
-    private String to_id;
+    private String toId;
 
     private String remark;
 
-    private String add_wording;
+    private String message;
 }

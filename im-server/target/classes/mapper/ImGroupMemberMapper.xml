@@ -4,25 +4,4 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.xy.server.mapper.ImGroupMemberMapper">
 
-    <resultMap id="BaseResultMap" type="com.xy.server.domain.po.ImGroupMemberPo">
-        <id property="group_member_id" column="group_member_id" jdbcType="BIGINT"/>
-        <result property="group_id" column="group_id" jdbcType="VARCHAR"/>
-        <result property="member_id" column="member_id" jdbcType="VARCHAR"/>
-        <result property="role" column="role" jdbcType="INTEGER"/>
-        <result property="speak_date" column="speak_date" jdbcType="BIGINT"/>
-        <result property="mute" column="mute" jdbcType="INTEGER"/>
-        <result property="alias" column="alias" jdbcType="VARCHAR"/>
-        <result property="join_time" column="join_time" jdbcType="BIGINT"/>
-        <result property="leave_time" column="leave_time" jdbcType="BIGINT"/>
-        <result property="join_type" column="join_type" jdbcType="VARCHAR"/>
-        <result property="extra" column="extra" jdbcType="VARCHAR"/>
-    </resultMap>
-
-    <sql id="Base_Column_List">
-        group_member_id
-        ,group_id,
-        member_id,role,speak_date,
-        mute,alias,join_time,
-        leave_time,join_type,extra
-    </sql>
 </mapper>

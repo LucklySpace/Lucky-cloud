@@ -20,6 +20,8 @@ import io.netty.util.concurrent.GenericFutureListener;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 import static com.xy.connect.StartCenter.BROKERID;
 
@@ -31,6 +33,9 @@ import static com.xy.connect.StartCenter.BROKERID;
 public class WebSocketServer extends AbstractRemoteServer {
 
     private ChannelFuture[] ChannelFutures = null;
+
+    // 定义一个定时更新 metadata 的线程池
+    private final ScheduledExecutorService metadataUpdateExecutor = Executors.newSingleThreadScheduledExecutor();
 
     @Override
     public void start() {

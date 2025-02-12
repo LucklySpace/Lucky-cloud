@@ -21,12 +21,12 @@ public class ImFriendshipPo implements Serializable {
      * owner_id
      */
     @TableField(value = "owner_id")
-    private String owner_id;
+    private String ownerId;
     /**
-     * to_id
+     * toId
      */
     @TableField(value = "to_id")
-    private String to_id;
+    private String toId;
     /**
      * 备注
      */
@@ -46,7 +46,7 @@ public class ImFriendshipPo implements Serializable {
      *
      */
     @TableField(value = "create_time")
-    private Long create_time;
+    private Long createTime;
     /**
      *
      */
@@ -56,12 +56,12 @@ public class ImFriendshipPo implements Serializable {
      *
      */
     @TableField(value = "black_sequence")
-    private Long black_sequence;
+    private Long blackSequence;
     /**
      * 来源
      */
     @TableField(value = "add_source")
-    private String add_source;
+    private String addSource;
     /**
      * 来源
      */

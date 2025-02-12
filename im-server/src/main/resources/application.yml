@@ -20,15 +20,15 @@ spring: #springboot的配置
   datasource: #定义数据源
     #127.0.0.1为本机测试的ip，3306是mysql的端口号。serverTimezone是定义时区，照抄就好，mysql高版本需要定义这些东西
     #useSSL也是某些高版本mysql需要问有没有用SSL连接
-    url: jdbc:mysql://localhost:3306/im-core?serverTimezone=GMT%2B8&useSSL=FALSE
-    username: root  #数据库用户名，root为管理员
-    password: 19940806 #该数据库用户的密码
+    url: jdbc:mysql://localhost:3306/im-core?useSSL=false&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true # MySQL Connector/J 8.X 连接的示例
+    username: root # 数据库账号
+    password: 19940806 # 数据库密码
     driver-class-name: com.mysql.cj.jdbc.Driver #数据库新的驱动，下面连接url一定要加区时
     # 使用druid数据源
     type: com.alibaba.druid.pool.DruidDataSource
 
   rabbitmq:
-    host: 127.0.0.1
+    host: localhost
     port: 5672
     username: guest
     password: guest
@@ -39,7 +39,7 @@ spring: #springboot的配置
 
   data:
     redis:
-      host: 127.0.0.1
+      host: localhost
       port: 6379
       password:
       username:
@@ -60,7 +60,7 @@ mybatis-plus:
       db-type: MYSQL
   configuration:
     # 是否开启自动驼峰命名规则映射:从数据库列名到Java属性驼峰命名的类似映射
-    map-underscore-to-camel-case: false
+    map-underscore-to-camel-case: true
     # 如果查询结果中包含空值的列，则 MyBatis 在映射的时候，不会映射这个字段
     call-setters-on-nulls: true
     # 这个配置会将执行的sql打印出来，在开发或测试的时候可以用

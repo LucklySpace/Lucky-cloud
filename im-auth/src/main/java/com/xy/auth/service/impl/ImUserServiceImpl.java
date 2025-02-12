@@ -36,11 +36,11 @@ public class ImUserServiceImpl extends ServiceImpl<ImUserMapper, ImUser>
     private RedisUtil redisUtil;
 
     @Override
-    public UserVo info(String user_id) {
+    public UserVo info(String userId) {
 
         QueryWrapper<ImUserData> query = new QueryWrapper<>();
 
-        query.eq("user_id", user_id);
+        query.eq("user_id", userId);
 
         ImUserData imUserData = imUserDataMapper.selectOne(query);
 

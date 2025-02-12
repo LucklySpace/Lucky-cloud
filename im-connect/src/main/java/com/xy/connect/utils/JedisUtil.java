@@ -14,386 +14,231 @@ import java.util.Map;
  *
  * @author lc
  */
-public class JedisUtil {
-    private static final JedisUtil jedisUtil = new JedisUtil();
-    private JedisPool jedisPool = null;
-
-    //写成静态代码块形式，只加载一次，节省资源
-//    static {
-////        Properties properties = PropertyUtil.loadProperties("redis.properties");
-//        String host = "localhost";
-//        String port = "6379";
-//        String pass = "19940806";
-//        String timeout = properties.getProperty("redis.timeout");
-//        String maxIdle = properties.getProperty("redis.maxIdle");
-//        String maxTotal = properties.getProperty("redis.maxTotal");
-//        String maxWaitMillis = properties.getProperty("redis.maxWaitMillis");
-//        String testOnBorrow = properties.getProperty("redis.testOnBorrow");
-//
-//        JedisPoolConfig config = new JedisPoolConfig();
-    //控制一个pool可分配多少个jedis实例，通过pool.getResource()来获取；
-    //如果赋值为-1，则表示不限制；如果pool已经分配了maxActive个jedis实例，则此时pool的状态为exhausted(耗尽)。
-//        config.setMaxTotal(Integer.parseInt(maxTotal));
-//        //控制一个pool最多有多少个状态为idle(空闲的)的jedis实例。
-//        config.setMaxIdle(Integer.parseInt(maxIdle));
-//        //表示当borrow(引入)一个jedis实例时，最大的等待时间，如果超过等待时间，则直接抛出JedisConnectionException；
-//        config.setMaxWaitMillis(Long.parseLong(maxWaitMillis));
-//        //在borrow一个jedis实例时，是否提前进行validate操作；如果为true，则得到的jedis实例均是可用的；
-//        config.setTestOnBorrow(Boolean.valueOf(testOnBorrow));
-//
-//        this.jedisPool = new JedisPool(config, host, Integer.parseInt(port), 10000);
-//    }
+public final class JedisUtil {
+    private static final JedisUtil INSTANCE = new JedisUtil();
+    private final JedisPool jedisPool;
 
     private JedisUtil() {
+        // 从配置中心获取 Redis 配置
         IMRedisConfig.RedisConfig redis = ConfigCenter.redisConfig.getRedis();
         JedisPoolConfig config = new JedisPoolConfig();
+        // 设置连接池参数
+        config.setMaxTotal(100);         // 最大连接数
+        config.setMaxIdle(10);           // 最大空闲连接数
+        config.setMaxWaitMillis(10000L); // 最大等待时间
+        config.setTestOnBorrow(true);    // 借出前验证连接有效性
 
-        // 如果赋值为-1，则表示不限制；如果pool已经分配了maxActive个jedis实例，则此时pool的状态为exhausted(耗尽)。
-        config.setMaxTotal(100);
-        // 控制一个pool最多有多少个状态为idle(空闲的)的jedis实例。
-        config.setMaxIdle(10);
-        // 表示当borrow(引入)一个jedis实例时，最大的等待时间，如果超过等待时间，则直接抛出JedisConnectionException；
-        config.setMaxWaitMillis(10000L);
-        // 在borrow一个jedis实例时，是否提前进行validate操作；如果为true，则得到的jedis实例均是可用的；
-        config.setTestOnBorrow(true);
-
-        this.jedisPool = new JedisPool(config, redis.getHost(), redis.getPort(), 10000);
+        // 初始化 JedisPool
+        this.jedisPool = new JedisPool(config, redis.getHost(), redis.getPort(), 10000, redis.getPassword());
     }
 
     /**
-     * 获取JedisUtil实例
-     *
-     * @return
+     * 获取 JedisUtil 实例（单例）
      */
     public static JedisUtil getInstance() {
-        return jedisUtil;
+        return INSTANCE;
     }
 
     /**
-     * 从jedis连接池中获取获取jedis对象
-     *
-     * @return
-     */
-    private Jedis getJedis() {
-        return jedisPool.getResource();
-    }
-
-    /**
-     * 回收jedis(放到finally中)
-     *
-     * @param jedis
-     */
-    private void returnJedis(Jedis jedis) {
-        if (null != jedis && null != jedisPool) {
-            // jedisPool.returnResource(jedis);
-            jedis.close();
-        }
-    }
-
-    /**
-     * 销毁连接(放到catch中)
-     *
-     * @param jedis
-     */
-    private void returnBrokenResource(Jedis jedis) {
-        if (null != jedis && null != jedisPool) {
-            jedisPool.returnResource(jedis);
-        }
-    }
-
-    /**
-     * 添加sorted set
-     *
-     * @param key
-     * @param value
-     * @param score
+     * 添加 sorted set 成员
      */
     public void zadd(String key, String value, double score) {
-        Jedis jedis = getJedis();
-        jedis.zadd(key, score, value);
-        returnJedis(jedis);
+        try (Jedis jedis = jedisPool.getResource()) {
+            jedis.zadd(key, score, value);
+        }
     }
 
     /**
-     * 返回指定位置的集合元素,0为第一个元素，-1为最后一个元素
-     * @param key
-     * @param start
-     * @param end
-     * @return
-     */
-//    public Set<String> zrange(String key, int start, int end) {
-//        Jedis jedis = getJedis();
-//        Set<String> set = jedis.zrange(key, start, end);
-//        returnJedis(jedis);
-//        return set;
-//    }
-
-    /**
-     * 获取给定区间的元素，原始按照权重由高到低排序
-     * @param key
-     * @param start
-     * @param end
-     * @return
-     */
-//    public Set<String> zrevrange(String key, int start, int end) {
-//        Jedis jedis = getJedis();
-//        Set<String> set = jedis.zrevrange(key, start, end);
-//        returnJedis(jedis);
-//        return set;
-//    }
-
-    /**
-     * 添加对应关系，如果对应关系已存在，则覆盖
-     *
-     * @param key
-     * @param map 对应关系
-     * @return 状态，成功返回OK
+     * 设置 hash 对应关系（覆盖已有）
      */
     public String hmset(String key, Map<String, String> map) {
-        Jedis jedis = getJedis();
-        String s = jedis.hmset(key, map);
-        returnJedis(jedis);
-        return s;
+        try (Jedis jedis = jedisPool.getResource()) {
+            return jedis.hmset(key, map);
+        }
     }
 
     /**
-     * 向List头部追加记录
-     *
-     * @param key
-     * @param value
-     * @return 记录总数
+     * 向列表尾部追加记录
      */
     public long rpush(String key, String value) {
-        Jedis jedis = getJedis();
-        long count = jedis.rpush(key, value);
-        returnJedis(jedis);
-        return count;
+        try (Jedis jedis = jedisPool.getResource()) {
+            return jedis.rpush(key, value);
+        }
     }
 
     /**
-     * 向List头部追加记录
-     *
-     * @param key
-     * @param value
-     * @return 记录总数
-     */
-    private long rpush(byte[] key, byte[] value) {
-        Jedis jedis = getJedis();
-        long count = jedis.rpush(key, value);
-        returnJedis(jedis);
-        return count;
-    }
-
-    /**
-     * 删除
-     *
-     * @param key
-     * @return
+     * 删除指定 key
      */
     public long del(String key) {
-        Jedis jedis = getJedis();
-        long s = jedis.del(key);
-        returnJedis(jedis);
-        return s;
+        try (Jedis jedis = jedisPool.getResource()) {
+            return jedis.del(key);
+        }
     }
 
     /**
-     * 从集合中删除成员
-     *
-     * @param key
-     * @param value
-     * @return 返回1成功
+     * 从 sorted set 中删除指定成员
      */
     public long zrem(String key, String... value) {
-        Jedis jedis = getJedis();
-        long s = jedis.zrem(key, value);
-        returnJedis(jedis);
-        return s;
+        try (Jedis jedis = jedisPool.getResource()) {
+            return jedis.zrem(key, value);
+        }
     }
 
-    public void saveValueByKey(int dbIndex, byte[] key, byte[] value, int expireTime)
-            throws Exception {
-        Jedis jedis = null;
-        boolean isBroken = false;
-        try {
-            jedis = getJedis();
+    /**
+     * 保存二进制值，同时设置有效期（单位：秒）
+     */
+    public void saveValueByKey(int dbIndex, byte[] key, byte[] value, int expireTime) throws Exception {
+        try (Jedis jedis = jedisPool.getResource()) {
             jedis.select(dbIndex);
             jedis.set(key, value);
-            if (expireTime > 0)
+            if (expireTime > 0) {
                 jedis.expire(key, expireTime);
-        } catch (Exception e) {
-            isBroken = true;
-            throw e;
-        } finally {
-            returnResource(jedis, isBroken);
+            }
         }
     }
 
+    /**
+     * 获取二进制值
+     */
     public byte[] getValueByKey(int dbIndex, byte[] key) throws Exception {
-        Jedis jedis = null;
-        byte[] result = null;
-        boolean isBroken = false;
-        try {
-            jedis = getJedis();
+        try (Jedis jedis = jedisPool.getResource()) {
             jedis.select(dbIndex);
-            result = jedis.get(key);
-        } catch (Exception e) {
-            isBroken = true;
-            throw e;
-        } finally {
-            returnResource(jedis, isBroken);
+            return jedis.get(key);
         }
-        return result;
     }
 
+    /**
+     * 根据 key 删除数据（针对二进制 key）
+     */
     public void deleteByKey(int dbIndex, byte[] key) throws Exception {
-        Jedis jedis = null;
-        boolean isBroken = false;
-        try {
-            jedis = getJedis();
+        try (Jedis jedis = jedisPool.getResource()) {
             jedis.select(dbIndex);
             jedis.del(key);
-        } catch (Exception e) {
-            isBroken = true;
-            throw e;
-        } finally {
-            returnResource(jedis, isBroken);
         }
     }
 
-    public void returnResource(Jedis jedis, boolean isBroken) {
-        if (jedis == null)
-            return;
-        if (isBroken)
-            jedisPool.returnBrokenResource(jedis);
-        else
-            jedisPool.returnResource(jedis);
-    }
-
     /**
-     * 获取总数量
-     *
-     * @param key
-     * @return
+     * 获取 sorted set 元素总数
      */
     public long zcard(String key) {
-        Jedis jedis = getJedis();
-        long count = jedis.zcard(key);
-        returnJedis(jedis);
-        return count;
+        try (Jedis jedis = jedisPool.getResource()) {
+            return jedis.zcard(key);
+        }
     }
 
     /**
-     * 是否存在KEY
-     *
-     * @param key
-     * @return
+     * 判断 key 是否存在
      */
     public boolean exists(String key) {
-        Jedis jedis = getJedis();
-        boolean exists = jedis.exists(key);
-        returnJedis(jedis);
-        return exists;
+        try (Jedis jedis = jedisPool.getResource()) {
+            return jedis.exists(key);
+        }
     }
 
     /**
-     * 重命名KEY
-     *
-     * @param oldKey
-     * @param newKey
-     * @return
+     * 重命名 key
      */
     public String rename(String oldKey, String newKey) {
-        Jedis jedis = getJedis();
-        String result = jedis.rename(oldKey, newKey);
-        returnJedis(jedis);
-        return result;
+        try (Jedis jedis = jedisPool.getResource()) {
+            return jedis.rename(oldKey, newKey);
+        }
     }
 
     /**
-     * 设置失效时间
-     *
-     * @param key
-     * @param seconds
+     * 为 key 设置失效时间（单位：秒）
      */
     public void expire(String key, int seconds) {
-        Jedis jedis = getJedis();
-        jedis.expire(key, seconds);
-        returnJedis(jedis);
+        try (Jedis jedis = jedisPool.getResource()) {
+            jedis.expire(key, seconds);
+        }
     }
 
     /**
-     * 删除失效时间
-     *
-     * @param key
+     * 删除 key 的失效时间
      */
     public void persist(String key) {
-        Jedis jedis = getJedis();
-        jedis.persist(key);
-        returnJedis(jedis);
+        try (Jedis jedis = jedisPool.getResource()) {
+            jedis.persist(key);
+        }
     }
 
     /**
-     * 添加一个键值对，如果键存在不在添加，如果不存在，添加完成以后设置键的有效期
-     *
-     * @param key
-     * @param value
-     * @param timeOut
+     * 如果 key 不存在则设置，并设置超时时间
      */
     public void setnxWithTimeOut(String key, String value, int timeOut) {
-        Jedis jedis = getJedis();
-        if (0 != jedis.setnx(key, value)) {
-            jedis.expire(key, timeOut);
+        try (Jedis jedis = jedisPool.getResource()) {
+            if (jedis.setnx(key, value) != 0) {
+                jedis.expire(key, timeOut);
+            }
         }
-        returnJedis(jedis);
     }
 
     /**
-     * 返回指定key序列值
-     *
-     * @param key
-     * @return
+     * 对 key 执行自增操作
      */
     public long incr(String key) {
-        Jedis jedis = getJedis();
-        long l = jedis.incr(key);
-        returnJedis(jedis);
-        return l;
+        try (Jedis jedis = jedisPool.getResource()) {
+            return jedis.incr(key);
+        }
     }
-
-    public void set(String key, String value) {
-        Jedis jedis = getJedis();
-        jedis.set(key, value);
-        returnJedis(jedis);
-    }
-
-    public void setEx(String key, String value) {
-        Jedis jedis = getJedis();
-        jedis.setex(key, 60 * 60 * 24, value);
-        returnJedis(jedis);
-    }
-
-    public void get(String key) {
-        Jedis jedis = getJedis();
-        jedis.get(key);
-        returnJedis(jedis);
-    }
-
 
     /**
-     * 获取当前时间
-     *
-     * @return 秒
+     * 设置 key 的值
+     */
+    public void set(String key, String value) {
+        try (Jedis jedis = jedisPool.getResource()) {
+            jedis.set(key, value);
+        }
+    }
+
+    /**
+     * 设置 key 的值，并设定过期时间（秒）
+     */
+    public void setEx(String key, String value) {
+        try (Jedis jedis = jedisPool.getResource()) {
+            jedis.setex(key, 60 * 60 * 24, value);
+        }
+    }
+
+    /**
+     * 获取 key 的值
+     */
+    public String get(String key) {
+        try (Jedis jedis = jedisPool.getResource()) {
+            return jedis.get(key);
+        }
+    }
+
+    /**
+     * 获取当前时间（秒），通过执行 Redis 的 TIME 命令
      */
     public long currentTimeSecond() {
-        Long l = 0l;
-        Jedis jedis = getJedis();
-        Object obj = jedis.eval("return redis.call('TIME')", 0);
-        if (obj != null) {
-            List<String> list = (List) obj;
-            l = Long.valueOf(list.get(0));
+        try (Jedis jedis = jedisPool.getResource()) {
+            Object obj = jedis.eval("return redis.call('TIME')", 0);
+            if (obj != null) {
+                @SuppressWarnings("unchecked")
+                List<String> list = (List<String>) obj;
+                return Long.parseLong(list.get(0));
+            }
+            return 0L;
         }
-        returnJedis(jedis);
-        return l;
+    }
+
+    /**
+     * 向 HyperLogLog 中添加成员（用于统计）
+     */
+    public void pfadd(String hyperloglogKey, String userId) {
+        try (Jedis jedis = jedisPool.getResource()) {
+            jedis.pfadd(hyperloglogKey, userId);
+        }
+    }
+
+    /**
+     * 获取 HyperLogLog 的统计值
+     */
+    public long pfcount(String hyperloglogKey) {
+        try (Jedis jedis = jedisPool.getResource()) {
+            return jedis.pfcount(hyperloglogKey);
+        }
     }
 }

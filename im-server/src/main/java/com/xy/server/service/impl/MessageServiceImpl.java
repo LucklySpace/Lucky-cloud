@@ -29,7 +29,7 @@ public class MessageServiceImpl<T> implements MessageService {
     private ImGroupMessageMapper imGroupMessageMapper;
 
     public Map<Integer, Object> list(ChatDto chatDto) {
-        String userId = chatDto.getFrom_id();
+        String userId = chatDto.getFromId();
         Long sequence = chatDto.getSequence();
 
         CompletableFuture<List<ImPrivateMessagePo>> singleMessageFuture = CompletableFuture.supplyAsync(() -> imPrivateMessageMapper.selectSingleMessage(userId, sequence));
@@ -58,7 +58,7 @@ public class MessageServiceImpl<T> implements MessageService {
     public List singleCheck(ChatDto chatDto) {
         List list = new ArrayList();
 
-        switch (IMessageType.getByCode(chatDto.getChat_type())) {
+        switch (IMessageType.getByCode(chatDto.getChatType())) {
             case SINGLE_MESSAGE:
                 list = getSingleMessageChat(chatDto);
                 break;
@@ -73,9 +73,9 @@ public class MessageServiceImpl<T> implements MessageService {
 
     private List getSingleMessageChat(ChatDto chatDto) {
 
-        String fromId = chatDto.getFrom_id();
+        String fromId = chatDto.getFromId();
 
-        String toId = chatDto.getTo_id();
+        String toId = chatDto.getToId();
 
         Long sequence = chatDto.getSequence();
 
@@ -86,9 +86,9 @@ public class MessageServiceImpl<T> implements MessageService {
 
     private List getGroupMessageChat(ChatDto chatDto) {
 
-        String groupId = chatDto.getFrom_id();
+        String groupId = chatDto.getFromId();
 
-        String userId = chatDto.getTo_id();
+        String userId = chatDto.getToId();
 
         Long sequence = chatDto.getSequence();
 

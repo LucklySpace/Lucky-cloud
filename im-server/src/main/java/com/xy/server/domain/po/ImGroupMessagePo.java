@@ -20,32 +20,32 @@ public class ImGroupMessagePo implements Serializable {
      * Still in CONNECTING state.
      */
     @TableId(value = "message_id")
-    private String message_id;
+    private String messageId;
     /**
      *
      */
     @TableField(value = "group_id")
-    private String group_id;
+    private String groupId;
     /**
      *
      */
     @TableField(value = "from_id")
-    private String from_id;
+    private String fromId;
     /**
      *
      */
     @TableField(value = "message_body", typeHandler = JacksonTypeHandler.class)
-    private Object message_body;
+    private Object messageBody;
     /**
      *
      */
     @TableField(value = "message_time")
-    private Long message_time;
+    private Long messageTime;
     /**
      *
      */
     @TableField(value = "message_content_type")
-    private String message_content_type;
+    private String messageContentType;
     /**
      * If this is a native custom element, make sure to exclude it from component resolution via compilerOptions.isCustomElement.
      */
@@ -55,7 +55,7 @@ public class ImGroupMessagePo implements Serializable {
      *
      */
     @TableField(value = "del_flag")
-    private Integer del_flag;
+    private Integer delFlag;
     /**
      *
      */
@@ -65,11 +65,11 @@ public class ImGroupMessagePo implements Serializable {
      *
      */
     @TableField(value = "message_random")
-    private String message_random;
+    private String messageRandom;
     /**
      *
      */
     @TableField(value = "create_time")
-    private Long create_time;
+    private Long createTime;
 
 }

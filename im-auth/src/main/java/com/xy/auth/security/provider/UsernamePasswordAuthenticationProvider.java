@@ -59,6 +59,8 @@ public class UsernamePasswordAuthenticationProvider implements AuthenticationPro
 
         result.setDetails(authentication.getDetails());
 
+        log.info("form login success :{}",username);
+
         return result;
     }
 
@@ -80,3 +82,4 @@ public class UsernamePasswordAuthenticationProvider implements AuthenticationPro
     }
 
 }
+

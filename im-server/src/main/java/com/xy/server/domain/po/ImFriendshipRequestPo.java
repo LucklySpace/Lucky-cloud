@@ -24,15 +24,15 @@ public class ImFriendshipRequestPo implements Serializable {
     @TableId(value = "id")
     private String id;
     /**
-     * from_id
+     * fromId
      */
     @TableField(value = "from_id")
-    private String from_id;
+    private String fromId;
     /**
-     * to_id
+     * toId
      */
     @TableField(value = "to_id")
-    private String to_id;
+    private String toId;
     /**
      * 备注
      */
@@ -42,32 +42,32 @@ public class ImFriendshipRequestPo implements Serializable {
      * 是否已读 1已读
      */
     @TableField(value = "read_status")
-    private Integer read_status;
+    private Integer readStatus;
     /**
      * 好友来源
      */
     @TableField(value = "add_source")
-    private String add_source;
+    private String addSource;
     /**
      * 好友验证信息
      */
-    @TableField(value = "add_wording")
-    private String add_wording;
+    @TableField(value = "message")
+    private String message;
     /**
      * 审批状态 1同意 2拒绝
      */
     @TableField(value = "approve_status")
-    private Integer approve_status;
+    private Integer approveStatus;
     /**
      *
      */
     @TableField(value = "create_time")
-    private Long create_time;
+    private Long createTime;
     /**
      *
      */
     @TableField(value = "update_time")
-    private Long update_time;
+    private Long updateTime;
     /**
      *
      */

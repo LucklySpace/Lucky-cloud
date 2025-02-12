@@ -20,12 +20,12 @@ public class ImUser implements Serializable {
      */
     @TableId
     @TableField(value = "user_id")
-    private String user_id;
+    private String userId;
     /**
      *
      */
     @TableField(value = "user_name")
-    private String user_name;
+    private String username;
     /**
      *
      */
@@ -40,11 +40,11 @@ public class ImUser implements Serializable {
      *
      */
     @TableField(value = "create_time")
-    private Long create_time;
+    private Long createTime;
     /**
      *
      */
     @TableField(value = "update_time")
-    private Long update_time;
+    private Long updateTime;
 
 }

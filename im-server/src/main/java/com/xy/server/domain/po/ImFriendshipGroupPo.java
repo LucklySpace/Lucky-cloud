@@ -20,17 +20,17 @@ public class ImFriendshipGroupPo implements Serializable {
      *
      */
     @TableId(value = "group_id", type = IdType.AUTO)
-    private Integer group_id;
+    private String groupId;
     /**
-     * from_id
+     * fromId
      */
     @TableField(value = "from_id")
-    private String from_id;
+    private String fromId;
     /**
      *
      */
     @TableField(value = "group_name")
-    private String group_name;
+    private String groupName;
     /**
      *
      */
@@ -40,16 +40,16 @@ public class ImFriendshipGroupPo implements Serializable {
      *
      */
     @TableField(value = "create_time")
-    private Long create_time;
+    private Long createTime;
     /**
      *
      */
     @TableField(value = "update_time")
-    private Long update_time;
+    private Long updateTime;
     /**
      *
      */
     @TableField(value = "del_flag")
-    private Integer del_flag;
+    private Integer delFlag;
 
 }

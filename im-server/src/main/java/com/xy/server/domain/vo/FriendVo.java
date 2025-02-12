@@ -7,9 +7,9 @@ import lombok.Data;
 @Data
 public class FriendVo {
 
-    private String user_id;
+    private String userId;
 
-    private String friend_id;
+    private String friendId;
 
     private String name;
 
@@ -17,7 +17,7 @@ public class FriendVo {
 
     private String avatar;
 
-    private Integer user_sex;
+    private Integer gender;
 
     private String location;
 
@@ -25,9 +25,9 @@ public class FriendVo {
 
     private Integer flag;
 
-    private String birth_day;
+    private String birthDay;
 
-    private String self_signature;
+    private String selfSignature;
 
     private Long sequence;
 

@@ -19,7 +19,6 @@ import java.net.URLDecoder;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -29,28 +28,35 @@ import java.util.concurrent.atomic.AtomicInteger;
  * // 自定义负载均衡处理类，只针对转发地址为im-connect的请求生效
  *
  * @LoadBalancerClient(value = "im-connect", configuration = {NacosWebsocketClusterChooseRule.class})
- *
+ * <p>
  * 配置开启负载均衡
  */
 @Slf4j
 public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLoadBalancer {
 
-    private static final String IMUSERPREFIX = "IM-USER-";
-    private static final String IMBROKER = "broker_id";
-    private final AtomicInteger position = new AtomicInteger(0); // 轮询计数器
+    private static final String IMUSERPREFIX = "IM-USER-"; // 用户前缀
+
+    private static final String IMBROKER = "broker_id"; // 机器码
+
     private static final String CONNECTION_COUNT = "connection_count"; // metadata 中的连接数
 
-    private final ObjectProvider<ServiceInstanceListSupplier> serviceInstanceListSupplierProvider;
-    @Resource
-    private RedisTemplate<String, String> redisTemplate;
+    private final AtomicInteger position = new AtomicInteger(0); // 轮询计数器
 
-    public NacosWebsocketClusterChooseRule(ObjectProvider<ServiceInstanceListSupplier> serviceInstanceListSupplierProvider) {
+    private final ObjectProvider<ServiceInstanceListSupplier> serviceInstanceListSupplierProvider;
+
+    private final RedisTemplate<String, String> redisTemplate;
+
+    public NacosWebsocketClusterChooseRule(ObjectProvider<ServiceInstanceListSupplier> serviceInstanceListSupplierProvider,RedisTemplate<String, String> redisTemplate) {
         this.serviceInstanceListSupplierProvider = serviceInstanceListSupplierProvider;
+        this.redisTemplate = redisTemplate;
     }
 
     @SneakyThrows
     public Mono<Response<ServiceInstance>> choose(Request request) {
+
+        // 获取请求url
         String rawQuery = ((RequestDataContext) request.getContext()).getClientRequest().getUrl().getRawQuery();
+
         String uid = extractQueryParam(rawQuery, "uid");
 
         if (uid == null) {
@@ -58,57 +64,33 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
             return Mono.just(new EmptyResponse());
         }
 
+        log.debug("当前用户 {} 的请求url为：{}", uid, rawQuery);
+
         ServiceInstanceListSupplier supplier = serviceInstanceListSupplierProvider.getIfAvailable(NoopServiceInstanceListSupplier::new);
+
         return supplier.get(request).next()
                 .map(serviceInstances -> processInstanceResponse(supplier, serviceInstances, uid));
     }
 
-    /**
-     * 根据用户ID获取服务器实例
-     *
-     * @param supplier
-     * @param serviceInstances
-     * @param uid
-     * @return
-     */
     private Response<ServiceInstance> processInstanceResponse(ServiceInstanceListSupplier supplier, List<ServiceInstance> serviceInstances, String uid) {
+
         Response<ServiceInstance> serviceInstanceResponse = getInstanceResponse(serviceInstances, uid);
+
         if (supplier instanceof SelectedInstanceCallback && serviceInstanceResponse.hasServer()) {
             ((SelectedInstanceCallback) supplier).selectedServiceInstance(serviceInstanceResponse.getServer());
         }
+
         return serviceInstanceResponse;
     }
 
     /**
-     * 获取用户服务器实例
-     *
-     * @param instances 服务器实例列表
-     * @param uid       用户ID
-     * @return 服务器实例
+     * 获取实例
+     * @param instances 实例列表
+     * @param uid 用户ID
+     * @return 实例
      */
-//    private Response<ServiceInstance> getInstanceResponse(List<ServiceInstance> instances, String uid) {
-//        if (instances.isEmpty()) {
-//            log.warn("没有可用的服务器实例");
-//            return new EmptyResponse();
-//        }
-//        // 根据用户ID选择服务器实例
-//        String brokerId = getUserBroker(uid);
-//        if (StringUtils.hasText(brokerId)) {
-//            log.debug("当前用户 {} 的 brokerId 为：{}", uid, brokerId);
-//        }
-//        return instances.stream()
-//                .filter(instance -> StringUtils.hasText(brokerId) && brokerId.equals(instance.getMetadata().get(IMBROKER)))
-//                .findFirst()
-//                .map(DefaultResponse::new)
-//                .orElseGet(() -> {
-//                    log.info("没有找到匹配的 brokerId，随机分配服务器实例");
-//                    ServiceInstance serviceInstance = instances.get(ThreadLocalRandom.current().nextInt(instances.size()));
-//                    log.info("用户 {} 分配的服务器为：{}", uid, serviceInstance.getMetadata().get(IMBROKER));
-//                    return new DefaultResponse(serviceInstance);
-//                });
-//    }
-
     private Response<ServiceInstance> getInstanceResponse(List<ServiceInstance> instances, String uid) {
+
         if (instances.isEmpty()) {
             log.warn("没有可用的服务器实例");
             return new EmptyResponse();
@@ -116,37 +98,48 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
 
         // 根据用户ID选择服务器实例
         String brokerId = getUserBroker(uid);
+
         if (StringUtils.hasText(brokerId)) {
             log.debug("当前用户 {} 的 brokerId 为：{}", uid, brokerId);
+            // 根据机器码从实例列表选择实例 ，如果没有匹配的 brokerId，使用结合轮询与最小连接数的算法选择实例
             return instances.stream()
                     .filter(instance -> brokerId.equals(instance.getMetadata().get(IMBROKER)))
                     .findFirst()
                     .map(DefaultResponse::new)
-                    .orElseGet(() -> (DefaultResponse) chooseByRoundRobin(instances, uid));
+                    .orElseGet(() -> (DefaultResponse)chooseByRoundRobinWithLeastConnection(instances, uid));
         }
 
-        // 如果没有匹配的 brokerId，使用轮询算法选择实例
-        return chooseByRoundRobin(instances, uid);
+        // 如果没有匹配的 brokerId，使用结合轮询与最小连接数的算法选择实例
+        return chooseByRoundRobinWithLeastConnection(instances, uid);
     }
 
     /**
-     * 轮训负载算法
-     * 轮询负载均衡（Round-Robin）： 如果用户没有绑定特定的服务器，可以改为轮询而不是随机选择。你可以维护一个轮询计数器，将请求依次分配到不同的服务器实例上。
-     * @param instances 实例
-     * @param uid 用户id
-     * @return
+     * 轮询与最小连接数结合的负载算法
+     * 轮询负载均衡 + 最少连接数选择：每次轮询选择一个实例，且优先选择连接数较少的实例。
+     *
+     * @param instances 实例列表
+     * @param uid       用户ID
+     * @return 选择的服务器实例
      */
-    private Response<ServiceInstance> chooseByRoundRobin(List<ServiceInstance> instances, String uid) {
-        // 轮询算法选择实例
+    private Response<ServiceInstance> chooseByRoundRobinWithLeastConnection(List<ServiceInstance> instances, String uid) {
+        // 获取当前的轮询位置
         int pos = Math.abs(position.incrementAndGet()) % instances.size();
-        ServiceInstance serviceInstance = instances.get(pos);
-        log.info("用户 {} 分配的服务器为：{}", uid, serviceInstance.getMetadata().get(IMBROKER));
-        return new DefaultResponse(serviceInstance);
-    }
 
+        ServiceInstance chosenInstance = instances.get(pos);
+
+        // 获取实例的连接数并比较，选择连接数最少的实例
+//        chosenInstance = instances.stream()
+//                .min(Comparator.comparingInt(this::getConnectionCount))
+//                .orElse(chosenInstance);
+
+        log.info("用户 {} 分配的服务器为：{}，连接数为：{}", uid, chosenInstance.getMetadata().get(IMBROKER), getConnectionCount(chosenInstance));
+
+        return new DefaultResponse(chosenInstance);
+    }
 
     /**
      * 最少连接数算法选择实例
+     *
      * @param instances 服务器实例列表
      * @return
      */
@@ -161,14 +154,14 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
     }
 
     /**
-     * 从服务实例的 metadata 中获取连接数
+     * 获取连接数的最少值
      * @param instance 服务实例
      * @return 连接数
      */
-    private int getConnectionCount(ServiceInstance instance) {
+    private Integer getConnectionCount(ServiceInstance instance) {
         String connectionCountStr = instance.getMetadata().get(CONNECTION_COUNT);
         try {
-            return connectionCountStr != null ? Integer.parseInt(connectionCountStr) : Integer.MAX_VALUE;
+            return connectionCountStr != null ? Integer.parseInt(connectionCountStr) : 0;
         } catch (NumberFormatException e) {
             log.error("解析连接数失败: {}", connectionCountStr, e);
             return Integer.MAX_VALUE;  // 如果解析失败，视为最大值，避免选择这个实例
@@ -176,10 +169,9 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
     }
 
     /**
-     * 根据用户ID获取对应的broker
-     *
-     * @param uid
-     * @return
+     * 根据用户ID获取用户对应的 brokerId
+     * @param uid 用户ID
+     * @return brokerId
      */
     private String getUserBroker(String uid) {
         try {
@@ -192,15 +184,14 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
     }
 
     /**
-     * 从查询参数中提取指定参数的值
-     *
-     * @param query
-     * @param param
-     * @return
+     * 解析查询参数
+     * @param url url
+     * @param param 参数名
+     * @return 参数值
      * @throws UnsupportedEncodingException
      */
-    private String extractQueryParam(String query, String param) throws UnsupportedEncodingException {
-        for (String p : query.split("&")) {
+    private String extractQueryParam(String url, String param) throws UnsupportedEncodingException {
+        for (String p : url.split("&")) {
             String[] keyValue = p.split("=");
             if (keyValue[0].equals(param)) {
                 return URLDecoder.decode(keyValue[1], "UTF-8");

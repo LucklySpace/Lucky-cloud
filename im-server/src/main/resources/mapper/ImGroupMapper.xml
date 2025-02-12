@@ -4,34 +4,6 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.xy.server.mapper.ImGroupMapper">
 
-    <resultMap id="BaseResultMap" type="com.xy.server.domain.po.ImGroupPo">
-        <id property="group_id" column="group_id" jdbcType="VARCHAR"/>
-        <result property="owner_id" column="owner_id" jdbcType="VARCHAR"/>
-        <result property="group_type" column="group_type" jdbcType="INTEGER"/>
-        <result property="group_name" column="group_name" jdbcType="VARCHAR"/>
-        <result property="mute" column="mute" jdbcType="INTEGER"/>
-        <result property="apply_join_type" column="apply_join_type" jdbcType="INTEGER"/>
-        <result property="avatar" column="avatar" jdbcType="VARCHAR"/>
-        <result property="max_member_count" column="max_member_count" jdbcType="INTEGER"/>
-        <result property="introduction" column="introduction" jdbcType="VARCHAR"/>
-        <result property="notification" column="notification" jdbcType="VARCHAR"/>
-        <result property="status" column="status" jdbcType="INTEGER"/>
-        <result property="sequence" column="sequence" jdbcType="BIGINT"/>
-        <result property="create_time" column="create_time" jdbcType="BIGINT"/>
-        <result property="extra" column="extra" jdbcType="VARCHAR"/>
-        <result property="update_time" column="update_time" jdbcType="BIGINT"/>
-    </resultMap>
-
-    <sql id="Base_Column_List">
-        group_id
-        ,owner_id,
-        group_type,group_name,mute,
-        apply_join_type,avatar,max_member_count,
-        introduction,notification,status,
-        sequence,create_time,extra,
-        update_time
-    </sql>
-
     <select id="selectNinePeople" resultType="java.lang.String">
         SELECT avatar
         FROM im_group_member igm

@@ -20,21 +20,21 @@ public class ImGroupMessageStatusPo implements Serializable {
      *
      */
     @TableField(value = "group_id")
-    private String group_id;
+    private String groupId;
     /**
      *
      */
     @TableField(value = "message_id")
-    private String message_id;
+    private String messageId;
     /**
      *
      */
     @TableField(value = "to_id")
-    private String to_id;
+    private String toId;
     /**
      *
      */
     @TableField(value = "read_status")
-    private Integer read_status;
+    private Integer readStatus;
 
 }

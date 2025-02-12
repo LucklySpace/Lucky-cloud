@@ -76,7 +76,9 @@ public class SmsAuthenticationProvider implements AuthenticationProvider {
         ImUser user = sysUserService.getOne(wrapper);
 
         // 将权限装入框架验证
-        SmsAuthenticationToken authenticationResult = new SmsAuthenticationToken(user.getUser_id(), null);
+        SmsAuthenticationToken authenticationResult = new SmsAuthenticationToken(user.getUserId(), null);
+
+        log.info("phone login success :{}",user.getUserId());
 
         return authenticationResult;
     }
@@ -105,3 +107,4 @@ public class SmsAuthenticationProvider implements AuthenticationProvider {
     }
 
 }
+

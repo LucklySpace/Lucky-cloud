@@ -4,21 +4,6 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.xy.server.mapper.ImPrivateMessageMapper">
 
-    <resultMap id="BaseResultMap" type="com.xy.server.domain.po.ImPrivateMessagePo">
-        <id property="message_id" column="message_id" jdbcType="BIGINT"/>
-        <result property="from_id" column="from_id" jdbcType="VARCHAR"/>
-        <result property="to_id" column="to_id" jdbcType="VARCHAR"/>
-        <result property="message_body" column="message_body" jdbcType="VARCHAR"/>
-        <result property="message_time" column="message_time" jdbcType="BIGINT"/>
-        <result property="message_content_type" column="message_content_type" jdbcType="VARCHAR"/>
-        <result property="read_status" column="read_status" jdbcType="INTEGER"/>
-        <result property="extra" column="extra" jdbcType="VARCHAR"/>
-        <result property="del_flag" column="del_flag" jdbcType="INTEGER"/>
-        <result property="sequence" column="sequence" jdbcType="BIGINT"/>
-        <result property="message_random" column="message_random" jdbcType="VARCHAR"/>
-        <result property="create_time" column="create_time" jdbcType="BIGINT"/>
-    </resultMap>
-
     <sql id="Base_Column_List">
         message_id
         ,from_id,to_id,
@@ -32,7 +17,7 @@
         from im_private_message ipm
         where ((ipm.from_id = #{fromId} AND ipm.to_id = #{toId})
         OR (ipm.from_id = #{toId} AND ipm.to_id = #{fromId}))
-        and ipm.message_time > #{sequence}
+        and ipm.message_time > #{messageTime}
         ORDER BY ipm.message_time;
 
     </select>
@@ -60,6 +45,6 @@
         im_private_message
         WHERE
         ( from_id = #{userId} OR to_id = #{userId} )
-        AND message_time > #{sequence}
+        AND message_time > #{messageTime}
     </select>
 </mapper>

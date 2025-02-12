@@ -78,15 +78,15 @@ public class SingleChatServiceImpl implements SingleChatService {
     @Transactional
     public Result send(IMSingleMessageDto imSingleMessageDto) {
         // 消息id
-        String message_id = IdUtil.getSnowflake().nextIdStr();
+        String messageId = IdUtil.getSnowflake().nextIdStr();
         // 消息时间,使用utc时间
-        long message_time =DateTimeUtils.getUTCDateTime();
+        Long messageTime =DateTimeUtils.getUTCDateTime();
 
-        imSingleMessageDto.setMessage_id(message_id);
+        imSingleMessageDto.setMessageId(messageId);
 
-        imSingleMessageDto.setMessage_time(message_time);
+        imSingleMessageDto.setMessageTime(messageTime);
 
-        imSingleMessageDto.setRead_status(IMessageReadStatus.UNREAD.code());
+        imSingleMessageDto.setReadStatus(IMessageReadStatus.UNREAD.code());
 
         ImPrivateMessagePo imPrivateMessagePo = new ImPrivateMessagePo();
 
@@ -96,14 +96,14 @@ public class SingleChatServiceImpl implements SingleChatService {
         insertImPrivateMessageAsync(imPrivateMessagePo);
 
         // 异步处理会话
-        setChatAsync(imSingleMessageDto.getFrom_id(), imSingleMessageDto.getTo_id(), message_time);
+        setChatAsync(imSingleMessageDto.getFromId(), imSingleMessageDto.getToId(), messageTime);
 
         // 通过redis获取用户连接netty的机器码
-        Object redisObj = redisUtil.get(IMUSERPREFIX + imSingleMessageDto.getTo_id());
+        Object redisObj = redisUtil.get(IMUSERPREFIX + imSingleMessageDto.getToId());
 
         if (ObjectUtil.isNotEmpty(redisObj)) {
 
-            IMRegisterUserDto IMRegisterUserDto = JsonUtil.parseObject(redisObj, new TypeReference<IMRegisterUserDto>() {});
+            IMRegisterUserDto IMRegisterUserDto = JsonUtil.parseObject(redisObj, IMRegisterUserDto.class);
 
             // 获取长连接机器码
             String broker_id = IMRegisterUserDto.getBroker_id();
@@ -112,13 +112,13 @@ public class SingleChatServiceImpl implements SingleChatService {
             IMessageWrap IMessageWrap = new IMessageWrap(IMessageType.SINGLE_MESSAGE.getCode(), imSingleMessageDto);
 
             // 创建 CorrelationData，并设置消息ID
-            CorrelationData correlationData = new CorrelationData(message_id);
+            CorrelationData correlationData = new CorrelationData(messageId);
 
             // 发送到消息队列
             rabbitTemplate.convertAndSend(EXCHANGENAME, ROUTERKEYPREFIX + broker_id, JsonUtil.toJSONString(IMessageWrap),correlationData);
 
         } else {
-            log.info("用户:{} 未登录", imSingleMessageDto.getTo_id());
+            log.info("用户:{} 未登录", imSingleMessageDto.getToId());
         }
 
         return Result.success(imSingleMessageDto);
@@ -126,32 +126,32 @@ public class SingleChatServiceImpl implements SingleChatService {
 
 
     protected void insertImPrivateMessageAsync(ImPrivateMessagePo imPrivateMessagePo) {
-        log.info("接收人:{}  发送人:{}  消息内容:{}", imPrivateMessagePo.getTo_id(), imPrivateMessagePo.getFrom_id(), imPrivateMessagePo.getMessage_body());
+        log.info("接收人:{}  发送人:{}  消息内容:{}", imPrivateMessagePo.getToId(), imPrivateMessagePo.getFromId(), imPrivateMessagePo.getMessageBody());
         CompletableFuture.runAsync(() -> {
             imPrivateMessageMapper.insert(imPrivateMessagePo);
         });
     }
 
-    private void setChatAsync(String from_id, String to_id, long message_time) {
+    private void setChatAsync(String fromId, String toId, Long messageTime) {
         CompletableFuture.runAsync(() -> {
-            setChat(from_id, to_id, message_time);
+            setChat(fromId, toId, messageTime);
         });
     }
 
 
-    public void setChat(String from_id, String to_id, long message_time) {
-        createOrUpdateImChatSet(from_id, to_id, message_time);
-        createOrUpdateImChatSet(to_id, from_id, message_time);
+    public void setChat(String fromId, String toId, Long messageTime) {
+        createOrUpdateImChatSet(fromId, toId, messageTime);
+        createOrUpdateImChatSet(toId, fromId, messageTime);
     }
 
 
-    protected void createOrUpdateImChatSet(String owner_id, String to_id, long message_time) {
+    protected void createOrUpdateImChatSet(String ownerId, String toId, Long messageTime) {
 
         QueryWrapper<ImChatPo> chatQuery = new QueryWrapper<>();
 
         // 查询会话是否存在
-        chatQuery.eq("owner_id", owner_id);
-        chatQuery.eq("to_id", to_id);
+        chatQuery.eq("owner_id", ownerId);
+        chatQuery.eq("to_id", toId);
         chatQuery.eq("chat_type", IMessageType.SINGLE_MESSAGE.getCode());
 
         ImChatPo imChatPO = imChatMapper.selectOne(chatQuery);
@@ -160,17 +160,17 @@ public class SingleChatServiceImpl implements SingleChatService {
             imChatPO = new ImChatPo();
             String id = UUID.randomUUID().toString();
 
-            imChatPO.setChat_id(id)
-                    .setOwner_id(owner_id)
-                    .setTo_id(to_id)
-                    .setSequence(message_time)
-                    .setIs_mute(IMStatus.NO.getCode())
-                    .setIs_top(IMStatus.NO.getCode())
-                    .setChat_type(IMessageType.SINGLE_MESSAGE.getCode());
+            imChatPO.setChatId(id)
+                    .setOwnerId(ownerId)
+                    .setToId(toId)
+                    .setSequence(messageTime)
+                    .setIsMute(IMStatus.NO.getCode())
+                    .setIsTop(IMStatus.NO.getCode())
+                    .setChatType(IMessageType.SINGLE_MESSAGE.getCode());
 
             imChatMapper.insert(imChatPO);
         } else {
-            imChatPO.setSequence(message_time);
+            imChatPO.setSequence(messageTime);
             imChatMapper.updateById(imChatPO);
         }
     }

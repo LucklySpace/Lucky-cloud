@@ -47,13 +47,12 @@ public class ChatController {
     @GetMapping("/one")
     @Operation(summary = "查询用户会话", tags = {"chat"}, description = "请使用此接口获取用户会话")
     @Parameters({
-            @Parameter(name = "from_id", description = "对象", required = true, in = ParameterIn.DEFAULT),
-            @Parameter(name = "to_id", description = "对象", required = true, in = ParameterIn.DEFAULT)
+            @Parameter(name = "fromId", description = "对象", required = true, in = ParameterIn.DEFAULT),
+            @Parameter(name = "toId", description = "对象", required = true, in = ParameterIn.DEFAULT)
     })
-    public ChatVo one(@RequestParam("from_id") String fromId, @RequestParam("to_id") String toId) {
+    public ChatVo one(@RequestParam("fromId") String fromId, @RequestParam("toId") String toId) {
         return imChatService.one(fromId, toId);
     }
-
 
     @PostMapping("/create")
     @Operation(summary = "用户单向创建会话", tags = {"chat"}, description = "请使用此接口创建会话")

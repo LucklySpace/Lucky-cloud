@@ -24,10 +24,9 @@
 
     <!-- 控制台输出 -->
     <appender name="file_console" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}/${datetime}/sys-console.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- 日志文件名格式 -->
-            <fileNamePattern>${LOG_HOME}/sys-console.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd}/sys-console.log</fileNamePattern>
             <!-- 日志最大 1天 -->
             <maxHistory>1</maxHistory>
         </rollingPolicy>
@@ -43,11 +42,10 @@
 
     <!-- 系统日志输出 -->
     <appender name="file_info" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}/${datetime}/sys-info.log</file>
         <!-- 循环政策：基于时间创建日志文件 -->
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- 日志文件名格式 -->
-            <fileNamePattern>${LOG_HOME}/sys-info.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd}/sys-info.log</fileNamePattern>
             <!-- 日志最大的历史 60天 -->
             <maxHistory>60</maxHistory>
         </rollingPolicy>
@@ -65,11 +63,10 @@
     </appender>
 
     <appender name="file_error" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}/${datetime}/sys-error.log</file>
         <!-- 循环政策：基于时间创建日志文件 -->
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- 日志文件名格式 -->
-            <fileNamePattern>${LOG_HOME}/sys-error.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd}/sys-error.log</fileNamePattern>
             <!-- 日志最大的历史 60天 -->
             <maxHistory>60</maxHistory>
         </rollingPolicy>
@@ -83,6 +80,22 @@
             <onMatch>ACCEPT</onMatch>
             <!-- 不匹配时的操作：拒绝（不记录） -->
             <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <!-- 为MyBatis SQL日志单独输出日志文件 -->
+    <appender name="file_sql" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd}/sys-sql.log</fileNamePattern> <!-- 文件名格式 -->
+            <maxHistory>30</maxHistory> <!-- 最多保留30天的历史日志 -->
+        </rollingPolicy>
+        <encoder>
+            <pattern>${log.pattern}</pattern> <!-- 文件日志的格式 -->
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>DEBUG</level> <!-- 仅记录DEBUG级别的日志，假设MyBatis日志通常为DEBUG级别 -->
+            <onMatch>ACCEPT</onMatch> <!-- 匹配时接收日志 -->
+            <onMismatch>DENY</onMismatch> <!-- 不匹配时拒绝日志 -->
         </filter>
     </appender>
 
@@ -105,6 +118,14 @@
         <!-- 添加附加的appender,最多只能添加一个 -->
         <appender-ref ref="file_error"/>
     </appender>
+
+    <!-- MyBatis SQL日志异步输出 -->
+    <appender name="async_sql" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold> <!-- 不丢失日志 -->
+        <queueSize>512</queueSize> <!-- 增加队列深度，避免日志丢失 -->
+        <appender-ref ref="file_sql"/> <!-- 异步输出SQL日志到file_sql -->
+    </appender>
+
 
     <!-- 整合 skywalking 控制台输出 tid -->
     <!--    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">-->
@@ -134,5 +155,14 @@
         <appender-ref ref="file_console"/>
         <!--        <appender-ref ref="sky_log"/>-->
     </root>
+
+    <!-- 为 MyBatis SQL 配置日志输出 -->
+<!--    <logger name="org.mybatis" level="DEBUG">-->
+<!--        <appender-ref ref="async_sql"/> &lt;!&ndash; 将SQL日志输出到sys_sql.log &ndash;&gt;-->
+<!--    </logger>-->
+
+    <logger name="com.mysql.cj.jdbc " level="DEBUG">
+        <appender-ref ref="async_sql"/> <!-- 将SQL日志输出到sys_sql.log -->
+    </logger>
 
 </configuration>

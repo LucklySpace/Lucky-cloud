@@ -26,17 +26,17 @@ public class ImGroupMemberPo implements Serializable {
      *
      */
     @TableId(value = "group_member_id", type = IdType.AUTO)
-    private Long group_member_id;
+    private Long groupMemberId;
     /**
-     * group_id
+     * groupId
      */
     @TableField(value = "group_id")
-    private String group_id;
+    private String groupId;
     /**
      * 成员id
      */
     @TableField(value = "member_id")
-    private String member_id;
+    private String memberId;
     /**
      * 群成员类型，0 普通成员, 1 管理员, 2 群主， 3 禁言，4 已经移除的成员
      */
@@ -46,7 +46,7 @@ public class ImGroupMemberPo implements Serializable {
      *
      */
     @TableField(value = "speak_date")
-    private Long speak_date;
+    private Long speakDate;
     /**
      * 是否全员禁言，0 不禁言；1 全员禁言
      */
@@ -61,17 +61,17 @@ public class ImGroupMemberPo implements Serializable {
      * 加入时间
      */
     @TableField(value = "join_time")
-    private Long join_time;
+    private Long joinTime;
     /**
      * 离开时间
      */
     @TableField(value = "leave_time")
-    private Long leave_time;
+    private Long leaveTime;
     /**
      * 加入类型
      */
     @TableField(value = "join_type")
-    private String join_type;
+    private String joinType;
     /**
      *
      */

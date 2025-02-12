@@ -22,11 +22,11 @@ public class SingleMessageProcess implements MessageProcess {
         // 1. 序列化获取消息
         IMSingleMessageDto messageDto = JsonUtil.convertToActualObject(IMessageWrap.getData(), IMSingleMessageDto.class);
 
-        log.info("接收到消息，发送者:{},接收者:{}，内容:{}", messageDto.getFrom_id(), messageDto.getTo_id(),
-                JsonUtil.toJSONString(messageDto.getMessage_body()));
+        log.info("接收到消息，发送者:{},接收者:{}，内容:{}", messageDto.getFromId(), messageDto.getToId(),
+                JsonUtil.toJSONString(messageDto.getMessageBody()));
         try {
             // 2. 获取接收者的channel
-            ChannelHandlerContext ctx = UserChannelCtxMap.getChannel(messageDto.getTo_id());
+            ChannelHandlerContext ctx = UserChannelCtxMap.getChannel(messageDto.getToId());
 
             // 3. 推送消息到接收者
             if (ctx != null && ctx.channel().isOpen()) {
@@ -40,13 +40,13 @@ public class SingleMessageProcess implements MessageProcess {
 
             } else {
                 // 消息推送失败确认
-                log.error("未找到WS连接，发送者:{},接收者:{}，内容:{}", messageDto.getFrom_id(), messageDto.getTo_id(),
-                        messageDto.getMessage_body());
+                log.error("未找到WS连接，发送者:{},接收者:{}，内容:{}", messageDto.getFromId(), messageDto.getToId(),
+                        messageDto.getMessageBody());
             }
 
         } catch (Exception e) {
-            log.error("发送异常，发送者:{},接收者:{}，内容:{}", messageDto.getFrom_id(), messageDto.getTo_id(),
-                    messageDto.getMessage_body());
+            log.error("发送异常，发送者:{},接收者:{}，内容:{}", messageDto.getFromId(), messageDto.getToId(),
+                    messageDto.getMessageBody());
         }
 
     }

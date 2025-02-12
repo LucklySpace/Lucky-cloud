@@ -12,15 +12,22 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import static com.xy.connect.StartCenter.BROKERID;
 import static com.xy.imcore.constants.Constant.IMUSERPREFIX;
 
 @Slf4j(topic = LogConstant.NETTY)
 public class LoginProcess implements WsProcess {
 
+    // 用户登录时记录活跃数到redis 键前缀
+    private final String hyperloglogKey = "IM-ACTIVE-USERS-";
+
     /**
      * 用户登录时保存机器码到redis
-     * @param ctx channel
+     *
+     * @param ctx      channel
      * @param sendInfo 消息
      */
     @Override
@@ -36,7 +43,7 @@ public class LoginProcess implements WsProcess {
 
         IMRegisterUserDto IMRegisterUserDto = new IMRegisterUserDto();
 
-        IMRegisterUserDto.setUser_id(userId);
+        IMRegisterUserDto.setUserId(userId);
 
         IMRegisterUserDto.setBroker_id(BROKERID);
 
@@ -48,14 +55,30 @@ public class LoginProcess implements WsProcess {
         // 响应ws
         MessageUtils.send(ctx, sendInfo.setCode(IMessageType.LOGIN.getCode()));
 
+        // 用户上线时，记录到redis,记录日活
+        addActiveUser(userId);
+
         log.debug("用户数：{}", UserChannelCtxMap.getAllChannel().size());
 
         log.info("用户:{} 连接成功 ", userId);
     }
 
+    /**
+     * 获取用户id
+     */
     private String getUserIdFromChannel(ChannelHandlerContext ctx) {
-        AttributeKey<String> attr = AttributeKey.valueOf("user_id");
+        AttributeKey<String> attr = AttributeKey.valueOf("userId");
         return ctx.channel().attr(attr).get();
+    }
+
+    /**
+     * 用户上线时，记录到redis,记录日活
+     *  https://mp.weixin.qq.com/s/ay8YO6e6uHxkO3qR5sgVAQ
+     * @param userId 用户id
+     */
+    public void addActiveUser(String userId) {
+        String dateStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
+        JedisUtil.getInstance().pfadd(hyperloglogKey + dateStr, userId);
     }
 
 

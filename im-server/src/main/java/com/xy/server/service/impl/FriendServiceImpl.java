@@ -42,27 +42,27 @@ public class FriendServiceImpl implements FriendService {
 
 
     @Override
-    public List<FriendVo> list(String user_id, String sequence) {
+    public List<FriendVo> list(String userId, String sequence) {
         // 查询用户的好友关系列表
-        List<ImFriendshipPo> imFriendshipPoList = imFriendshipMapper.selectList(new QueryWrapper<ImFriendshipPo>().eq("owner_id", user_id).gt("sequence", sequence));
+        List<ImFriendshipPo> imFriendshipPoList = imFriendshipMapper.selectList(new QueryWrapper<ImFriendshipPo>().eq("owner_id", userId).gt("sequence", sequence));
 
         List<FriendVo> friendVoList = new ArrayList<>();
 
         if (ObjectUtil.isNotEmpty(imFriendshipPoList) && !imFriendshipPoList.isEmpty()) {
             // 查询好友的用户数据列表
             List<ImUserDataPo> imUserDataPoList = imUserDataMapper.selectBatchIds(imFriendshipPoList.stream()
-                    .map(ImFriendshipPo::getTo_id)
+                    .map(ImFriendshipPo::getToId)
                     .collect(Collectors.toList()));
 
             // 将ImUserData转换为FriendVo并设置好友关系的序列
             friendVoList = imFriendshipPoList.stream()
                     .flatMap(imFriendshipPo -> imUserDataPoList.stream()
-                            .filter(imUserData -> imUserData.getUser_id().equals(imFriendshipPo.getTo_id()))
+                            .filter(imUserData -> imUserData.getUserId().equals(imFriendshipPo.getToId()))
                             .map(imUserData -> {
                                 FriendVo friendVo = new FriendVo();
                                 BeanUtils.copyProperties(imUserData, friendVo);
-                                friendVo.setUser_id(user_id);
-                                friendVo.setFriend_id(imUserData.getUser_id());
+                                friendVo.setUserId(userId);
+                                friendVo.setFriendId(imUserData.getUserId());
                                 friendVo.setBlack(imFriendshipPo.getBlack());
                                 friendVo.setAlias(imFriendshipPo.getRemark());
                                 friendVo.setSequence(imFriendshipPo.getSequence());
@@ -78,14 +78,14 @@ public class FriendServiceImpl implements FriendService {
     public FriendVo findFriend(FriendDto friendDto) {
 
         QueryWrapper<ImFriendshipPo> imFriendshipQuery = new QueryWrapper<>();
-        imFriendshipQuery.eq("owner_id", friendDto.getFrom_id());
-        imFriendshipQuery.eq("to_id", friendDto.getTo_id());
+        imFriendshipQuery.eq("owner_id", friendDto.getFromId());
+        imFriendshipQuery.eq("to_id", friendDto.getToId());
         ImFriendshipPo imFriendshipPo = imFriendshipMapper.selectOne(imFriendshipQuery);
 
         FriendVo friendVo = new FriendVo();
 
         QueryWrapper<ImUserDataPo> imUserDataQuery = new QueryWrapper<>();
-        imUserDataQuery.eq("user_id", friendDto.getTo_id());
+        imUserDataQuery.eq("user_id", friendDto.getToId());
         ImUserDataPo imUserDataPo = imUserDataMapper.selectOne(imUserDataQuery);
 
         BeanUtils.copyProperties(imUserDataPo, friendVo);
@@ -105,8 +105,8 @@ public class FriendServiceImpl implements FriendService {
 
         QueryWrapper<ImFriendshipRequestPo> imFriendshipRequestQuery = new QueryWrapper<>();
 
-        imFriendshipRequestQuery.eq("from_id", friendRequestDto.getFrom_id())
-                .eq("to_id", friendRequestDto.getTo_id());
+        imFriendshipRequestQuery.eq("from_id", friendRequestDto.getFromId())
+                .eq("to_id", friendRequestDto.getToId());
 
         if (ObjectUtil.isEmpty(imFriendshipRequestMapper.selectOne(imFriendshipRequestQuery))) {
 
@@ -117,8 +117,8 @@ public class FriendServiceImpl implements FriendService {
             BeanUtil.copyProperties(friendRequestDto, imFriendshipRequestPo);
 
             imFriendshipRequestPo.setId(id)
-                    .setRead_status(IMStatus.NO.getCode())
-                    .setApprove_status(IMStatus.NO.getCode())
+                    .setReadStatus(IMStatus.NO.getCode())
+                    .setApproveStatus(IMStatus.NO.getCode())
             ;
 
             imFriendshipRequestMapper.insert(imFriendshipRequestPo);
@@ -126,11 +126,11 @@ public class FriendServiceImpl implements FriendService {
     }
 
     @Override
-    public List<FriendshipRequestVo> request(String user_id) {
+    public List<FriendshipRequestVo> request(String userId) {
 
         QueryWrapper<ImFriendshipRequestPo> imFriendshipRequestQuery = new QueryWrapper<>();
 
-        imFriendshipRequestQuery.eq("from_id", user_id);
+        imFriendshipRequestQuery.eq("from_id", userId);
 
         List<ImFriendshipRequestPo> imFriendshipRequestPoList = imFriendshipRequestMapper.selectList(imFriendshipRequestQuery);
 
@@ -143,7 +143,7 @@ public class FriendServiceImpl implements FriendService {
             BeanUtils.copyProperties(imFriendshipRequestPo, FriendshipRequestVo);
 
             QueryWrapper<ImUserDataPo> imUserDataQuery = new QueryWrapper<>();
-            imUserDataQuery.eq("user_id", imFriendshipRequestPo.getFrom_id());
+            imUserDataQuery.eq("user_id", imFriendshipRequestPo.getToId());
             ImUserDataPo imUserDataPo = imUserDataMapper.selectOne(imUserDataQuery);
 
             FriendshipRequestVo
@@ -160,12 +160,12 @@ public class FriendServiceImpl implements FriendService {
     @Transactional
     public void approveFriend(FriendshipRequestDto friendshipRequestDto) {
 
-        String fromId = friendshipRequestDto.getFrom_id();
+        String fromId = friendshipRequestDto.getFromId();
 
-        String toId = friendshipRequestDto.getTo_id();
+        String toId = friendshipRequestDto.getToId();
 
         // 被申请方审批通过构建好友关系
-        if (friendshipRequestDto.getApprove_status().equals(IMStatus.YES.getCode())) {
+        if (friendshipRequestDto.getApproveStatus().equals(IMStatus.YES.getCode())) {
 
             QueryWrapper<ImFriendshipRequestPo> imFriendshipRequestQuery = new QueryWrapper<>();
 
@@ -179,8 +179,8 @@ public class FriendServiceImpl implements FriendService {
             bindFriend(toId, fromId, friendshipRequestDto.getRemark());
 
             imFriendshipRequestPo
-                    .setRead_status(IMStatus.YES.getCode())
-                    .setApprove_status(IMStatus.YES.getCode())
+                    .setReadStatus(IMStatus.YES.getCode())
+                    .setApproveStatus(IMStatus.YES.getCode())
             ;
 
             imFriendshipRequestMapper.updateById(imFriendshipRequestPo);
@@ -199,14 +199,14 @@ public class FriendServiceImpl implements FriendService {
 
         QueryWrapper<ImFriendshipPo> queryWrapper = new QueryWrapper<>();
 
-        queryWrapper.lambda().eq(ImFriendshipPo::getOwner_id, fromId).eq(ImFriendshipPo::getTo_id, toId);
+        queryWrapper.lambda().eq(ImFriendshipPo::getOwnerId, fromId).eq(ImFriendshipPo::getToId, toId);
 
         if (imFriendshipMapper.selectList(queryWrapper).size() == 0) {
 
             // 申请方对象
             ImFriendshipPo fromFriendship = new ImFriendshipPo()
-                    .setOwner_id(fromId)
-                    .setTo_id(toId)
+                    .setOwnerId(fromId)
+                    .setToId(toId)
                     .setRemark(remark)
                     .setStatus(IMStatus.YES.getCode())
                     .setBlack(IMStatus.YES.getCode())
@@ -224,13 +224,13 @@ public class FriendServiceImpl implements FriendService {
      */
     public void delFriend(FriendDto friendDto) {
 
-        String fromId = friendDto.getFrom_id();
+        String fromId = friendDto.getFromId();
 
-        String toId = friendDto.getTo_id();
+        String toId = friendDto.getToId();
 
         QueryWrapper<ImFriendshipPo> queryWrapper = new QueryWrapper<>();
 
-        queryWrapper.lambda().eq(ImFriendshipPo::getOwner_id, fromId).eq(ImFriendshipPo::getTo_id, toId);
+        queryWrapper.lambda().eq(ImFriendshipPo::getOwnerId, fromId).eq(ImFriendshipPo::getToId, toId);
 
         if (imFriendshipMapper.selectList(queryWrapper).size() > 0) {
 

@@ -11,7 +11,7 @@ public class Constant {
 
     public static final String IMUSERPREFIX = "IM-USER-";
 
-    public static final String IMUSER = "user_id";
+    public static final String IMUSER = "userId";
 
 
 }

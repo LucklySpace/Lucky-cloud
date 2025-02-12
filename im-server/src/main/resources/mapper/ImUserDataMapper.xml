@@ -4,31 +4,4 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.xy.server.mapper.ImUserDataMapper">
 
-    <resultMap id="BaseResultMap" type="com.xy.server.domain.po.ImUserDataPo">
-        <id property="user_id" column="user_id" jdbcType="VARCHAR"/>
-        <result property="name" column="name" jdbcType="VARCHAR"/>
-        <result property="password" column="password" jdbcType="VARCHAR"/>
-        <result property="avatar" column="avatar" jdbcType="VARCHAR"/>
-        <result property="user_sex" column="user_sex" jdbcType="INTEGER"/>
-        <result property="birth_day" column="birth_day" jdbcType="VARCHAR"/>
-        <result property="location" column="location" jdbcType="VARCHAR"/>
-        <result property="self_signature" column="self_signature" jdbcType="VARCHAR"/>
-        <result property="friend_allow_type" column="friend_allow_type" jdbcType="INTEGER"/>
-        <result property="forbidden_flag" column="forbidden_flag" jdbcType="INTEGER"/>
-        <result property="disable_add_friend" column="disable_add_friend" jdbcType="INTEGER"/>
-        <result property="silent_flag" column="silent_flag" jdbcType="INTEGER"/>
-        <result property="user_type" column="user_type" jdbcType="INTEGER"/>
-        <result property="del_flag" column="del_flag" jdbcType="INTEGER"/>
-        <result property="extra" column="extra" jdbcType="VARCHAR"/>
-    </resultMap>
-
-    <sql id="Base_Column_List">
-        user_id
-        ,name,
-        password,avatar,user_sex,
-        birth_day,location,self_signature,
-        friend_allow_type,forbidden_flag,disable_add_friend,
-        silent_flag,user_type,del_flag,
-        extra
-    </sql>
 </mapper>

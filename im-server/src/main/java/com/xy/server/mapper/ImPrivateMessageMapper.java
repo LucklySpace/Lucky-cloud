@@ -16,9 +16,9 @@ import java.util.List;
 @Mapper
 public interface ImPrivateMessageMapper extends BaseMapper<ImPrivateMessagePo> {
 
-    List<ImPrivateMessagePo> selectSingleMessageByToId(@Param("fromId") String fromId, @Param("toId") String toId, @Param("sequence") Long sequence);
+    List<ImPrivateMessagePo> selectSingleMessageByToId(@Param("fromId") String fromId, @Param("toId") String toId, @Param("messageTime") Long messageTime);
 
-    List<ImPrivateMessagePo> selectSingleMessage(@Param("userId") String userId, @Param("sequence") Long sequence);
+    List<ImPrivateMessagePo> selectSingleMessage(@Param("userId") String userId, @Param("messageTime") Long messageTime);
 
     ImPrivateMessagePo selectLastSingleMessage(@Param("fromId") String fromId, @Param("toId") String toId);
 

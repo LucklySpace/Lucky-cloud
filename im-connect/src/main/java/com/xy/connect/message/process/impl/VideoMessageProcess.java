@@ -22,10 +22,10 @@ public class VideoMessageProcess implements MessageProcess {
 
         IMVideoMessageDto messageDto = JsonUtil.convertToActualObject(IMessageWrap.getData(), IMVideoMessageDto.class);
 
-        log.info("接收到视频消息，发送者:{},接收者:{}", messageDto.getFrom_id(), messageDto.getTo_id());
+        log.info("接收到视频消息，发送者:{},接收者:{}", messageDto.getFromId(), messageDto.getToId());
         try {
 
-            ChannelHandlerContext ctx = UserChannelCtxMap.getChannel(messageDto.getTo_id());
+            ChannelHandlerContext ctx = UserChannelCtxMap.getChannel(messageDto.getToId());
 
             if (ctx != null && ctx.channel().isOpen()) {
 
@@ -39,13 +39,13 @@ public class VideoMessageProcess implements MessageProcess {
 
             } else {
                 // 消息推送失败确认
-                log.error("未找到WS连接，发送者:{},接收者:{}，内容:{}", messageDto.getFrom_id(), messageDto.getTo_id()
+                log.error("未找到WS连接，发送者:{},接收者:{}，内容:{}", messageDto.getFromId(), messageDto.getToId()
                 );
             }
 
 
         } catch (Exception e) {
-            log.error("发送异常，发送者:{},接收者:{}，内容:{}", messageDto.getFrom_id(), messageDto.getTo_id());
+            log.error("发送异常，发送者:{},接收者:{}，内容:{}", messageDto.getFromId(), messageDto.getToId());
         }
 
     }

@@ -22,11 +22,11 @@ public class GroupInviteDto  implements Serializable {
 
     @NotNull(message = "群id不能为空")
     @Schema(description = "群聊id")
-    private String group_id;
+    private String groupId;
 
     @NotNull(message = "用户id不能为空")
     @Schema(description = "用户id")
-    private String user_id;
+    private String userId;
 
     @NotNull(message = "被邀请用户id不能为空")
     @Schema(description = "被邀请用户id")

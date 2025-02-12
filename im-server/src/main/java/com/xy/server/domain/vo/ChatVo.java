@@ -14,18 +14,19 @@ import java.io.Serializable;
 public class ChatVo<T> implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    private String chat_id;
-    private Integer chat_type;
-    private String owner_id;
-    private String to_id;
-    private Integer is_mute;
-    private Integer is_top;
+    private String chatId;
+    private Integer chatType;
+    private String ownerId;
+    private String toId;
+    private Integer isMute;
+    private Integer isTop;
     private Long sequence;
     private String name;
     private String avatar;
     private Integer unread;
-    private String id; // group_id or user_id
+    private String id; // groupId or userId
     private Object message;
-    private Long message_time;
+    private String messageContentType;
+    private Long messageTime;
 
 }

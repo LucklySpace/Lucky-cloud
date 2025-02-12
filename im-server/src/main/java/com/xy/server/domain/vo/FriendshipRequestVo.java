@@ -12,16 +12,16 @@ public class FriendshipRequestVo implements Serializable {
 
     private String id;
 
-    private String from_id;
+    private String fromId;
 
-    private String to_id;
+    private String toId;
 
     private String name;
 
     private String avatar;
 
-    private String add_wording;
+    private String message;
 
-    private Integer approve_status;
+    private Integer approveStatus;
 
 }

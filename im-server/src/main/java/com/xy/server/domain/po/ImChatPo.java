@@ -22,32 +22,32 @@ public class ImChatPo implements Serializable {
      *
      */
     @TableId(value = "chat_id")
-    private String chat_id;
+    private String chatId;
     /**
      * 0 单聊 1群聊 2机器人 3公众号
      */
     @TableField(value = "chat_type")
-    private Integer chat_type;
+    private Integer chatType;
     /**
      *
      */
     @TableField(value = "owner_id")
-    private String owner_id;
+    private String ownerId;
     /**
      *
      */
     @TableField(value = "to_id")
-    private String to_id;
+    private String toId;
     /**
      * 是否免打扰 1免打扰
      */
     @TableField(value = "is_mute")
-    private Integer is_mute;
+    private Integer isMute;
     /**
      * 是否置顶 1置顶
      */
     @TableField(value = "is_top")
-    private Integer is_top;
+    private Integer isTop;
     /**
      * sequence
      */
@@ -57,6 +57,6 @@ public class ImChatPo implements Serializable {
      * 已读序列号
      */
     @TableField(value = "read_sequence")
-    private Long read_sequence;
+    private Long readSequence;
 
 }

@@ -27,17 +27,17 @@ public class GroupMessageProcess implements MessageProcess {
 
         List<String> to_List = messageDto.getTo_List();
 
-        log.info("接收到消息，发送者:{},接收者:{}，内容:{}", messageDto.getFrom_id(), to_List,
-                messageDto.getMessage_body());
+        log.info("接收到消息，发送者:{},接收者:{}，内容:{}", messageDto.getFromId(), to_List,
+                messageDto.getMessageBody());
 
         try {
             // 清理to_List，确保后续处理不会误用
             messageDto.setTo_List(null);
 
             // 2. 遍历当前netty中存在的指定群聊用户
-            for (String to_id : to_List) {
+            for (String toId : to_List) {
                 // 3. 获取群聊接收者的channel
-                ChannelHandlerContext ctx = UserChannelCtxMap.getChannel(to_id);
+                ChannelHandlerContext ctx = UserChannelCtxMap.getChannel(toId);
                 // 4. 推送消息到接收者
                 if (ctx != null && ctx.channel().isOpen()) {
                     // 推送消息到用户
@@ -50,14 +50,14 @@ public class GroupMessageProcess implements MessageProcess {
 
                 } else {
                     // 消息推送失败确认
-                    log.error("未找到WS连接，发送者:{},接收者:{}，内容:{}", messageDto.getFrom_id(), to_id,
-                            messageDto.getMessage_body());
+                    log.error("未找到WS连接，发送者:{},接收者:{}，内容:{}", messageDto.getFromId(), toId,
+                            messageDto.getMessageBody());
                 }
             }
 
         } catch (Exception e) {
-            log.error("发送异常，发送者:{},接收者:{}，内容:{}", messageDto.getFrom_id(), messageDto.getTo_List(),
-                    messageDto.getMessage_body());
+            log.error("发送异常，发送者:{},接收者:{}，内容:{}", messageDto.getFromId(), messageDto.getTo_List(),
+                    messageDto.getMessageBody());
         }
 
 

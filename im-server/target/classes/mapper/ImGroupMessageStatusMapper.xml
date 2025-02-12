@@ -4,16 +4,4 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.xy.server.mapper.ImGroupMessageStatusMapper">
 
-    <resultMap id="BaseResultMap" type="com.xy.server.domain.po.ImGroupMessageStatusPo">
-        <result property="group_id" column="group_id" jdbcType="BIGINT"/>
-        <result property="message_id" column="message_id" jdbcType="BIGINT"/>
-        <result property="to_id" column="to_id" jdbcType="BIGINT"/>
-        <result property="read_status" column="read_status" jdbcType="INTEGER"/>
-    </resultMap>
-
-    <sql id="Base_Column_List">
-        group_id
-        ,message_id,to_id,
-        read_status
-    </sql>
 </mapper>

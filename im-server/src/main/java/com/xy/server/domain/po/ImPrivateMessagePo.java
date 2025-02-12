@@ -20,37 +20,37 @@ public class ImPrivateMessagePo implements Serializable {
      *
      */
     @TableId(value = "message_id")
-    private String message_id;
+    private String messageId;
     /**
      *
      */
     @TableField(value = "from_id")
-    private String from_id;
+    private String fromId;
     /**
      *
      */
     @TableField(value = "to_id")
-    private String to_id;
+    private String toId;
     /**
      *
      */
     @TableField(value = "message_body", typeHandler = JacksonTypeHandler.class)
-    private Object message_body;
+    private Object messageBody;
     /**
      *
      */
     @TableField(value = "message_time")
-    private Long message_time;
+    private Long messageTime;
     /**
      *
      */
     @TableField(value = "message_content_type")
-    private String message_content_type;
+    private String messageContentType;
     /**
      *
      */
     @TableField(value = "read_status")
-    private Integer read_status;
+    private Integer readStatus;
     /**
      *
      */
@@ -60,7 +60,7 @@ public class ImPrivateMessagePo implements Serializable {
      *
      */
     @TableField(value = "del_flag")
-    private Integer del_flag;
+    private Integer delFlag;
     /**
      *
      */
@@ -70,12 +70,12 @@ public class ImPrivateMessagePo implements Serializable {
      *
      */
     @TableField(value = "message_random")
-    private String message_random;
+    private String messageRandom;
     /**
      *
      */
     @TableField(value = "create_time")
-    private Long create_time;
+    private Long createTime;
 
 
 }

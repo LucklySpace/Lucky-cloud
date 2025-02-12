@@ -26,7 +26,7 @@ public class IMGroupMessageDto extends IMessageDto implements Serializable {
     /**
      * group id
      */
-    private String group_id;
+    private String groupId;
 
     /**
      * group members

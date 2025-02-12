@@ -11,7 +11,7 @@ import java.util.List;
 
 public interface FriendService {
 
-    List<FriendVo> list(String user_id, String sequence);
+    List<FriendVo> list(String userId, String sequence);
 
     FriendVo findFriend(FriendDto friendDto);
 
@@ -19,7 +19,7 @@ public interface FriendService {
 
     void approveFriend(FriendshipRequestDto friendshipRequestDto);
 
-    List<FriendshipRequestVo> request(String user_id);
+    List<FriendshipRequestVo> request(String userId);
 
     void delFriend(FriendDto friendDto);
 }

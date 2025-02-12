@@ -29,7 +29,7 @@ import static com.xy.imcore.constants.Constant.IMUSERPREFIX;
 public class IMChannelHandler extends SimpleChannelInboundHandler<IMWsConnMessage> {
 
     // 常量定义，避免硬编码
-    private static final String USER_ID_ATTR_KEY = "user_id";
+    private static final String userId_ATTR_KEY = "userId";
 
     /**
      * 读取消息后处理
@@ -96,7 +96,7 @@ public class IMChannelHandler extends SimpleChannelInboundHandler<IMWsConnMessag
             // 清除redis中的用户信息
             JedisUtil.getInstance().del(IMUSERPREFIX + userId);
 
-            log.info("断开连接, userId: {}, channelId: {}", userId, ctx.channel().id().asLongText());
+            log.info("断开连接, userId: {}, channel_id: {}", userId, ctx.channel().id().asLongText());
         }
     }
 
@@ -136,7 +136,7 @@ public class IMChannelHandler extends SimpleChannelInboundHandler<IMWsConnMessag
      * 从Channel中获取用户ID
      */
     private String getUserIdFromChannel(ChannelHandlerContext ctx) {
-        return (String) ctx.channel().attr(AttributeKey.valueOf(USER_ID_ATTR_KEY)).get();
+        return (String) ctx.channel().attr(AttributeKey.valueOf(userId_ATTR_KEY)).get();
     }
 
     /**

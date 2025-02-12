@@ -12,7 +12,7 @@ import com.xy.auth.entity.ImUser;
  */
 public interface ImUserService extends IService<ImUser> {
 
-    UserVo info(String user_id);
+    UserVo info(String userId);
 
     boolean isOnline(String userId);
 }

@@ -24,25 +24,25 @@ public class ImGroupPo implements Serializable {
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
     /**
-     * group_id
+     * groupId
      */
     @TableId(value = "group_id", type = IdType.AUTO)
-    private String group_id;
+    private String groupId;
     /**
      * 群主
      */
     @TableField(value = "owner_id")
-    private String owner_id;
+    private String ownerId;
     /**
      * 群类型 1私有群（类似微信） 2公开群(类似qq）
      */
     @TableField(value = "group_type")
-    private Integer group_type;
+    private Integer groupType;
     /**
      *
      */
     @TableField(value = "group_name")
-    private String group_name;
+    private String groupName;
     /**
      * 是否全员禁言，0 不禁言；1 全员禁言
      */
@@ -55,7 +55,7 @@ public class ImGroupPo implements Serializable {
      * 2 表示允许无需审批自由加入群组
      */
     @TableField(value = "apply_join_type")
-    private Integer apply_join_type;
+    private Integer applyJoinType;
     /**
      *
      */
@@ -65,7 +65,7 @@ public class ImGroupPo implements Serializable {
      *
      */
     @TableField(value = "max_member_count")
-    private Integer max_member_count;
+    private Integer maxMemberCount;
     /**
      * 群简介
      */
@@ -90,7 +90,7 @@ public class ImGroupPo implements Serializable {
      *
      */
     @TableField(value = "create_time")
-    private Long create_time;
+    private Long createTime;
     /**
      * 来源
      */
@@ -100,6 +100,6 @@ public class ImGroupPo implements Serializable {
      *
      */
     @TableField(value = "update_time")
-    private Long update_time;
+    private Long updateTime;
 
 }

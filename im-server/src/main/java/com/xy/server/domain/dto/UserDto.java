@@ -15,5 +15,5 @@ import lombok.experimental.Accessors;
 public class UserDto {
 
     @Schema(description = "用户id")
-    private String user_id;
+    private String userId;
 }

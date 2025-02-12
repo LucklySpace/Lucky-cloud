@@ -21,9 +21,9 @@ public class GroupDto  implements Serializable {
 
     @NotNull(message = "群id不能为空")
     @Schema(description = "群聊id")
-    private String group_id;
+    private String groupId;
 
     @Schema(description = "用户id")
-    private String user_id;
+    private String userId;
 
 }

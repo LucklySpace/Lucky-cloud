@@ -40,14 +40,19 @@ public class AuthController {
     private RedisUtil redisUtil;
 
     /**
-     * 生成二维码
-     * @param qrcode 随机字符串
-     * @return
+     * 生成用于认证的二维码。
+     *
+     * @param qrcode 要编码到二维码中的随机字符串
+     * @return 包含base64编码的二维码图片的Map
      */
     @GetMapping("/qrcode")
     public Map<String, String> qrcode(@RequestParam("qrcode") String qrcode) {
         Map<String, String> map = new HashMap<>();
-        String codeToBase64 = codeService.createCodeToBase64(qrcode);
+
+        String code = QRCODE_PREFIX + qrcode;
+
+        // 生成 base64 图片二维码
+        String codeToBase64 = codeService.createCodeToBase64(code);
 
         // 将二维码状态信息存储为一个Map
         Map<String, Object> qrCodeInfo = new HashMap<>();
@@ -55,7 +60,7 @@ public class AuthController {
         qrCodeInfo.put("createdAt", System.currentTimeMillis());
 
         // 设置3分钟二维码有效期，状态为“待扫描”
-        redisUtil.set(QRCODE_PREFIX + qrcode, qrCodeInfo, 3, TimeUnit.MINUTES);
+        redisUtil.set(code, qrCodeInfo, 3, TimeUnit.MINUTES);
 
         map.put("qrcode", codeToBase64);
 
@@ -63,39 +68,45 @@ public class AuthController {
     }
 
     /**
-     * 扫码
-     * @param map 用户信息
-     * @return
+     * 处理二维码扫描过程。
+     *
+     * @param map 包含二维码和用户信息的Map
+     * @return 包含扫描结果的ResponseEntity
      */
     @PostMapping("/qrcode/scan")
-    public ResponseEntity<?> handleScan(@RequestBody Map<String, Object> map) {
-
+    public ResponseEntity<Map<String, Object>> handleScan(@RequestBody Map<String, Object> map) {
         String qrcode = (String) map.get("qrcode");
         String userId = (String) map.get("userId");
 
         String redisKey = QRCODE_PREFIX + qrcode;
 
+        Map<String, Object> response = new HashMap<>();
+
         if (!redisUtil.hasKey(redisKey)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("二维码无效或已过期");
+            response.put("status", "error");
+            response.put("message", "Invalid or expired QR code.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
 
-        // 更新二维码状态信息
+        // Update QR code status information
         Map<String, Object> qrCodeInfo = redisUtil.get(redisKey);
-
         qrCodeInfo.put("status", QRCODE_SCANNED);
         qrCodeInfo.put("userId", userId);
         qrCodeInfo.put("scannedAt", System.currentTimeMillis());
 
-        // 更新状态为已扫描，过期时间为20秒
+        // Set the updated status to scanned with an expiration time of 30 seconds
         redisUtil.set(redisKey, qrCodeInfo, 30, TimeUnit.SECONDS);
 
-        return ResponseEntity.ok("二维码已扫描");
+        response.put("status", "success");
+        response.put("message", "QR code scanned successfully.");
+        return ResponseEntity.ok(response);
     }
 
     /**
-     * 检查二维码状态
-     * @param qrcode 随机字符串
-     * @return
+     * 检查二维码的登录状态。
+     *
+     * @param qrcode 要检查的二维码字符串
+     * @return 包含二维码当前状态的ResponseEntity
      */
     @GetMapping("/qrcode/status")
     public ResponseEntity<?> checkLoginStatus(@RequestParam("qrcode") String qrcode) {
@@ -118,20 +129,23 @@ public class AuthController {
 
 
     /**
-     * 获取用户信息
-     * @param user_id
-     * @return
+     * 获取用户信息。
+     *
+     * @param userId 用户ID
+     * @return 包含用户信息的UserVo对象
      */
     @GetMapping("/info")
-    public UserVo info(@RequestParam("user_id") String user_id) {
-        return imUserService.info(user_id);
+    public UserVo info(@RequestParam("userId") String userId) {
+        return imUserService.info(userId);
     }
 
-    /***
-     * 验证手机号码 并且发送验证码
-     * @param phone 手机号
-     * @return
-     * @throws Exception
+
+    /**
+     * 验证手机号码并发送验证码。
+     *
+     * @param phone 要验证并发送验证码的手机号码
+     * @return 发送结果的字符串响应
+     * @throws Exception 如果发送过程中出现错误
      */
     @GetMapping(value = "/sms")
     public String sms(@RequestParam("phone") String phone) throws Exception {
@@ -165,12 +179,12 @@ public class AuthController {
     /**
      * 用户是否在线
      *
-     * @param user_id
+     * @param userId
      * @return
      */
     @GetMapping("/online")
-    public boolean isOnline(@RequestParam("user_id") String user_id) {
-        return imUserService.isOnline(user_id);
+    public boolean isOnline(@RequestParam("userId") String userId) {
+        return imUserService.isOnline(userId);
     }
 
 

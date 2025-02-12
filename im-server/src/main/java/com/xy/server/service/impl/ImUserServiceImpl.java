@@ -45,10 +45,10 @@ public class ImUserServiceImpl extends ServiceImpl<ImUserMapper, ImUserPo>
     public LoginVo login(LoginDto loginDto) {
 
         QueryWrapper<ImUserPo> query = new QueryWrapper<>();
-        query.eq("user_id", loginDto.getUser_id());
+        query.eq("user_id", loginDto.getUserId());
         ImUserPo imUserPo = imUserMapper.selectOne(query);
 
-        if (imUserPo == null || StrUtil.isEmpty(imUserPo.getUser_id())) {
+        if (imUserPo == null || StrUtil.isEmpty(imUserPo.getUserId())) {
             throw new BusinessException(ResultEnum.USER_EMPTY);
         }
 
@@ -56,19 +56,19 @@ public class ImUserServiceImpl extends ServiceImpl<ImUserMapper, ImUserPo>
             throw new BusinessException(ResultEnum.PASSWD_ERROR);
         }
 
-        String token = JwtUtil.createToken(loginDto.getUser_id(), 24, DateField.HOUR);
+        String token = JwtUtil.createToken(loginDto.getUserId(), 24, DateField.HOUR);
 
-        LoginVo loginVo = new LoginVo().setUser_id(loginDto.getUser_id()).setToken(token);
+        LoginVo loginVo = new LoginVo().setUserId(loginDto.getUserId()).setToken(token);
 
         return loginVo;
     }
 
     @Override
-    public UserVo info(String user_id) {
+    public UserVo info(String userId) {
 
         QueryWrapper<ImUserDataPo> query = new QueryWrapper<>();
 
-        query.eq("user_id", user_id);
+        query.eq("user_id", userId);
 
         ImUserDataPo imUserDataPo = imUserDataMapper.selectOne(query);
 
@@ -85,13 +85,13 @@ public class ImUserServiceImpl extends ServiceImpl<ImUserMapper, ImUserPo>
     public LoginVo refreshToken(String token) {
         String username = JwtUtil.getUsername(token);
         String refreshToken = JwtUtil.createToken(username, 24, DateField.HOUR);
-        LoginVo loginVo = new LoginVo().setUser_id(username).setToken(refreshToken);
+        LoginVo loginVo = new LoginVo().setUserId(username).setToken(refreshToken);
         return loginVo;
     }
 
     @Override
     public void register(IMRegisterUserDto IMRegisterUserDto) {
-        redisUtil.set(IMUSERPREFIX + IMRegisterUserDto.getUser_id(), IMRegisterUserDto);
+        redisUtil.set(IMUSERPREFIX + IMRegisterUserDto.getUserId(), IMRegisterUserDto);
     }
 }
 

@@ -23,8 +23,7 @@
 
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-        <mapstruct.version>1.6.2</mapstruct.version>
+        <jackson.version>2.15.2</jackson.version>
     </properties>
 
     <dependencies>
@@ -194,6 +193,23 @@
             <scope>compile</scope>
         </dependency>
 
+        <!-- 引入jackson依赖包-->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
 
     </dependencies>
     <dependencyManagement>

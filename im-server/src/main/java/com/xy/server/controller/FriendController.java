@@ -29,10 +29,10 @@ public class FriendController {
     @GetMapping("/list")
     @Operation(summary = "查询好友列表", tags = {"friend"}, description = "请使用此接口查询好友列表")
     @Parameters({
-            @Parameter(name = "user_id", description = "请求对象", required = true, in = ParameterIn.QUERY)
+            @Parameter(name = "userId", description = "请求对象", required = true, in = ParameterIn.QUERY)
     })
-    public List<FriendVo> list(@RequestParam("user_id") String user_id, @RequestParam("sequence") String sequence) {
-        return friendService.list(user_id, sequence);
+    public List<FriendVo> list(@RequestParam("userId") String userId, @RequestParam("sequence") String sequence) {
+        return friendService.list(userId, sequence);
     }
 
 
@@ -66,13 +66,15 @@ public class FriendController {
     }
 
 
+
+
     @GetMapping("/request")
     @Operation(summary = "查询好友请求列表", tags = {"friend"}, description = "请使用此接口查询好友请求列表")
     @Parameters({
-            @Parameter(name = "user_id", description = "请求对象", required = true, in = ParameterIn.DEFAULT)
+            @Parameter(name = "userId", description = "请求对象", required = true, in = ParameterIn.DEFAULT)
     })
-    public List<FriendshipRequestVo> request(@RequestParam("user_id") String user_id) {
-        return friendService.request(user_id);
+    public List<FriendshipRequestVo> request(@RequestParam("userId") String userId) {
+        return friendService.request(userId);
     }
 
 

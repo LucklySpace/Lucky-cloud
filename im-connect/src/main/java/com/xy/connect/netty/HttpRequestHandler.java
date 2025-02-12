@@ -43,7 +43,7 @@ public class HttpRequestHandler extends SimpleChannelInboundHandler<FullHttpRequ
             // 修改 uri
             request.setUri("/im");
 
-            // 将 user_id 存入 channel 属性中
+            // 将 userId 存入 channel 属性中
             ctx.channel().attr(key).set(JwtUtil.getUsername(token));
 
             ctx.fireChannelRead(request.retain());

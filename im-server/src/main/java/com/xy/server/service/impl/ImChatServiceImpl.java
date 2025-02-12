@@ -2,7 +2,7 @@ package com.xy.server.service.impl;
 
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.imcore.enums.IMStatus;
 import com.xy.imcore.enums.IMessageReadStatus;
@@ -45,7 +45,7 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChatPo>
     @Override
     public void read(ChatDto chatDto) {
 
-        switch (IMessageType.getByCode(chatDto.getChat_type())) {
+        switch (IMessageType.getByCode(chatDto.getChatType())) {
             case SINGLE_MESSAGE:
                 saveSingleMessageChat(chatDto);
                 break;
@@ -64,11 +64,11 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChatPo>
 
         QueryWrapper<ImChatPo> chatQuery = new QueryWrapper<>();
 
-        chatQuery.eq("owner_id", chatDto.getFrom_id());
+        chatQuery.eq("owner_id", chatDto.getFromId());
 
-        chatQuery.eq("to_id", chatDto.getTo_id());
+        chatQuery.eq("to_id", chatDto.getToId());
 
-        chatQuery.eq("chat_type", chatDto.getChat_type());
+        chatQuery.eq("chat_type", chatDto.getChatType());
 
         ImChatPo imChatPO = imChatMapper.selectOne(chatQuery);
 
@@ -78,12 +78,12 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChatPo>
 
             String id = UUID.randomUUID().toString();
 
-            imChatPO.setChat_id(id)
-                    .setOwner_id(chatDto.getFrom_id())
-                    .setTo_id(chatDto.getTo_id())
-                    .setIs_mute(IMStatus.NO.getCode())
-                    .setIs_top(IMStatus.NO.getCode())
-                    .setChat_type(IMessageType.SINGLE_MESSAGE.getCode());
+            imChatPO.setChatId(id)
+                    .setOwnerId(chatDto.getFromId())
+                    .setToId(chatDto.getToId())
+                    .setIsMute(IMStatus.NO.getCode())
+                    .setIsTop(IMStatus.NO.getCode())
+                    .setChatType(IMessageType.SINGLE_MESSAGE.getCode());
 
             imChatMapper.insert(imChatPO);
         }
@@ -91,27 +91,27 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChatPo>
         BeanUtils.copyProperties(imChatPO, chatVo);
 
         // 创建单聊会话
-        if (chatDto.getChat_type().equals(IMessageType.SINGLE_MESSAGE.getCode())) {
+        if (chatDto.getChatType().equals(IMessageType.SINGLE_MESSAGE.getCode())) {
 
-            ImUserDataPo imUserDataPo = imUserDataMapper.selectOne(new QueryWrapper<ImUserDataPo>().eq("user_id", chatDto.getTo_id()));
+            ImUserDataPo imUserDataPo = imUserDataMapper.selectOne(new QueryWrapper<ImUserDataPo>().eq("user_id", chatDto.getToId()));
 
             chatVo.setName(imUserDataPo.getName());
 
             chatVo.setAvatar(imUserDataPo.getAvatar());
 
-            chatVo.setId(imUserDataPo.getUser_id());
+            chatVo.setId(imUserDataPo.getUserId());
         }
 
         // 创建群聊会话
-        if (chatDto.getChat_type().equals(IMessageType.GROUP_MESSAGE.getCode())) {
+        if (chatDto.getChatType().equals(IMessageType.GROUP_MESSAGE.getCode())) {
 
-            ImGroupPo imGroupPo = imGroupMapper.selectOne(new QueryWrapper<ImGroupPo>().eq("group_id", chatDto.getTo_id()));
+            ImGroupPo imGroupPo = imGroupMapper.selectOne(new QueryWrapper<ImGroupPo>().eq("group_id", chatDto.getToId()));
 
-            chatVo.setName(imGroupPo.getGroup_name());
+            chatVo.setName(imGroupPo.getGroupName());
 
             chatVo.setAvatar(imGroupPo.getAvatar());
 
-            chatVo.setId(imGroupPo.getGroup_id());
+            chatVo.setId(imGroupPo.getGroupId());
         }
 
         return chatVo;
@@ -134,7 +134,7 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChatPo>
 
         QueryWrapper<ImChatPo> chatQuery = new QueryWrapper<>();
 
-        chatQuery.eq("owner_id", chatDto.getFrom_id());
+        chatQuery.eq("owner_id", chatDto.getFromId());
 
         chatQuery.gt("sequence", chatDto.getSequence());
 
@@ -151,7 +151,7 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChatPo>
 
     private ChatVo getChat(ImChatPo e) {
 
-        switch (IMessageType.getByCode(e.getChat_type())) {
+        switch (IMessageType.getByCode(e.getChatType())) {
             case SINGLE_MESSAGE:
                 return getSingleMessageChat(e);
             case GROUP_MESSAGE:
@@ -167,19 +167,21 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChatPo>
 
         BeanUtils.copyProperties(e, chatVo);
 
-        String ownerId = chatVo.getOwner_id();
+        String ownerId = chatVo.getOwnerId();
 
-        String toId = chatVo.getTo_id();
+        String toId = chatVo.getToId();
 
         ImPrivateMessagePo IMSingleMessageDto = imPrivateMessageMapper.selectLastSingleMessage(ownerId, toId);
 
-        chatVo.setMessage_time(0l);
+        chatVo.setMessageTime(0l);
 
         if (ObjectUtil.isNotEmpty(IMSingleMessageDto)) {
 
-            chatVo.setMessage(IMSingleMessageDto.getMessage_body());
+            chatVo.setMessage(IMSingleMessageDto.getMessageBody());
 
-            chatVo.setMessage_time(IMSingleMessageDto.getMessage_time());
+            chatVo.setMessageContentType(IMSingleMessageDto.getMessageContentType());
+
+            chatVo.setMessageTime(IMSingleMessageDto.getMessageTime());
         }
 
         Integer unread = imPrivateMessageMapper.selectReadStatus(toId, ownerId, IMessageReadStatus.UNREAD.code());
@@ -189,7 +191,7 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChatPo>
             chatVo.setUnread(unread);
         }
 
-        String targetUserId = ownerId.equals(toId) ? chatVo.getOwner_id() : chatVo.getTo_id();
+        String targetUserId = ownerId.equals(toId) ? chatVo.getOwnerId() : chatVo.getToId();
 
         ImUserDataPo imUserDataPo = imUserDataMapper.selectOne(new QueryWrapper<ImUserDataPo>().eq("user_id", targetUserId));
 
@@ -197,7 +199,7 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChatPo>
 
         chatVo.setAvatar(imUserDataPo.getAvatar());
 
-        chatVo.setId(imUserDataPo.getUser_id());
+        chatVo.setId(imUserDataPo.getUserId());
 
         return chatVo;
     }
@@ -208,28 +210,28 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChatPo>
 
         BeanUtils.copyProperties(e, chatVo);
 
-        String ownerId = chatVo.getOwner_id();
+        String ownerId = chatVo.getOwnerId();
 
-        String group_id = chatVo.getTo_id();
+        String groupId = chatVo.getToId();
 
 //        QueryWrapper<ImGroupMessage> messageQuery = new QueryWrapper<>();
 //
-//        messageQuery.eq("group_id", group_id);
+//        messageQuery.eq("groupId", groupId);
 
-        ImGroupMessagePo IMGroupMessagePoDto = imGroupMessageMapper.selectLastGroupMessage(ownerId, group_id);
+        ImGroupMessagePo IMGroupMessagePoDto = imGroupMessageMapper.selectLastGroupMessage(ownerId, groupId);
 
-        chatVo.setMessage_time(0L);
+        chatVo.setMessageTime(0L);
 
         if (ObjectUtil.isNotEmpty(IMGroupMessagePoDto)) {
 
-            chatVo.setMessage(IMGroupMessagePoDto.getMessage_body());
+            chatVo.setMessage(IMGroupMessagePoDto.getMessageBody());
 
-            chatVo.setMessage_time(IMGroupMessagePoDto.getMessage_time());
+            chatVo.setMessageTime(IMGroupMessagePoDto.getMessageTime());
         }
 
         QueryWrapper<ImGroupMessageStatusPo> messageStatusQuery = new QueryWrapper<>();
 
-        messageStatusQuery.eq("group_id", group_id);
+        messageStatusQuery.eq("group_id", groupId);
 
         messageStatusQuery.eq("to_id", ownerId);
 
@@ -241,13 +243,13 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChatPo>
 
             chatVo.setUnread(imGroupMessageStatusPoList.size());
         }
-        ImGroupPo imGroupPo = imGroupMapper.selectOne(new QueryWrapper<ImGroupPo>().eq("group_id", group_id));
+        ImGroupPo imGroupPo = imGroupMapper.selectOne(new QueryWrapper<ImGroupPo>().eq("group_id", groupId));
 
-        chatVo.setName(imGroupPo.getGroup_name());
+        chatVo.setName(imGroupPo.getGroupName());
 
         chatVo.setAvatar(imGroupPo.getAvatar());
 
-        chatVo.setId(imGroupPo.getGroup_id());
+        chatVo.setId(imGroupPo.getGroupId());
 
         return chatVo;
     }
@@ -258,18 +260,29 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChatPo>
      * @param chatDto
      */
     private void saveSingleMessageChat(ChatDto chatDto) {
+        // 参数校验，避免空指针异常
+        if (chatDto == null || chatDto.getFromId() == null || chatDto.getToId() == null) {
+            // 此处建议使用日志记录工具记录异常信息
+            log.warn("chatDto 或相关字段为 null，无法更新消息状态");
+            return;
+        }
 
-        ImPrivateMessagePo imPrivateMessagePo = new ImPrivateMessagePo();
+        // 构造更新对象，将状态标记为已读
+        ImPrivateMessagePo updateMessage = new ImPrivateMessagePo();
+        updateMessage.setReadStatus(IMessageReadStatus.ALREADY_READ.code());
 
-        imPrivateMessagePo.setRead_status(IMessageReadStatus.ALREADY_READ.code());
+        // 使用 LambdaUpdateWrapper 进行条件构造，字段名通过方法引用来保证类型安全
+        LambdaUpdateWrapper<ImPrivateMessagePo> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(ImPrivateMessagePo::getFromId, chatDto.getFromId())
+                .eq(ImPrivateMessagePo::getToId,  chatDto.getToId());
 
-        UpdateWrapper<ImPrivateMessagePo> statusUpdateWrapper = new UpdateWrapper<>();
-
-        statusUpdateWrapper.eq("from_id", chatDto.getFrom_id());
-
-        statusUpdateWrapper.eq("to_id", chatDto.getTo_id());
-
-        imPrivateMessageMapper.update(imPrivateMessagePo, statusUpdateWrapper);
+        // 执行更新
+        int updatedRows = imPrivateMessageMapper.update(updateMessage, updateWrapper);
+        if (updatedRows == 0) {
+            log.warn("未更新任何记录，fromId: {}, toId: {}", chatDto.getFromId(), chatDto.getToId());
+        } else {
+            log.info("成功更新 {} 条记录，fromId: {}, toId: {}", updatedRows, chatDto.getFromId(), chatDto.getToId());
+        }
     }
 
     /**
@@ -278,23 +291,29 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChatPo>
      * @param chatDto
      */
     private void saveGroupMessageChat(ChatDto chatDto) {
+        // 参数校验
+        if (chatDto == null || chatDto.getFromId() == null || chatDto.getToId() == null) {
+            log.warn("chatDto 或必要字段为 null，无法更新群消息状态");
+            return;
+        }
 
-        ImGroupMessageStatusPo imGroupMessageStatusPo = new ImGroupMessageStatusPo();
+        // 构造更新对象，将状态标记为已读
+        ImGroupMessageStatusPo updateStatus = new ImGroupMessageStatusPo();
+        updateStatus.setReadStatus(IMessageReadStatus.ALREADY_READ.code());
 
-        imGroupMessageStatusPo.setRead_status(IMessageReadStatus.ALREADY_READ.code());
+        // 使用 LambdaUpdateWrapper 构造条件，避免硬编码字段名
+        LambdaUpdateWrapper<ImGroupMessageStatusPo> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(ImGroupMessageStatusPo::getGroupId, chatDto.getFromId())
+                .eq(ImGroupMessageStatusPo::getToId, chatDto.getToId());
 
-        UpdateWrapper<ImGroupMessageStatusPo> statusUpdateWrapper = new UpdateWrapper<>();
-
-        statusUpdateWrapper.eq("group_id", chatDto.getFrom_id());
-
-        statusUpdateWrapper.eq("to_id", chatDto.getTo_id());
-
-        imGroupMessageStatusMapper.update(imGroupMessageStatusPo, statusUpdateWrapper);
-
+        // 执行更新，并记录更新结果
+        int updatedRows = imGroupMessageStatusMapper.update(updateStatus, updateWrapper);
+        if (updatedRows == 0) {
+            log.warn("未更新任何群消息记录，groupId: {}, toId: {}", chatDto.getFromId(), chatDto.getToId());
+        } else {
+            log.info("成功更新 {} 条群消息记录，groupId: {}, toId: {}", updatedRows, chatDto.getFromId(), chatDto.getToId());
+        }
     }
 
 }
-
-
-
 

@@ -4,28 +4,6 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.xy.server.mapper.ImGroupMessageMapper">
 
-    <resultMap id="BaseResultMap" type="com.xy.server.domain.po.ImGroupMessagePo">
-        <id property="message_id" column="message_id" jdbcType="BIGINT"/>
-        <result property="group_id" column="group_id" jdbcType="VARCHAR"/>
-        <result property="from_id" column="from_id" jdbcType="VARCHAR"/>
-        <result property="message_body" column="message_body" jdbcType="VARCHAR"/>
-        <result property="message_time" column="message_time" jdbcType="BIGINT"/>
-        <result property="message_content_type" column="message_content_type" jdbcType="VARCHAR"/>
-        <result property="extra" column="extra" jdbcType="VARCHAR"/>
-        <result property="del_flag" column="del_flag" jdbcType="INTEGER"/>
-        <result property="sequence" column="sequence" jdbcType="BIGINT"/>
-        <result property="message_random" column="message_random" jdbcType="VARCHAR"/>
-        <result property="create_time" column="create_time" jdbcType="BIGINT"/>
-    </resultMap>
-
-    <sql id="Base_Column_List">
-        message_id
-        ,group_id,from_id,
-        message_body,message_time,message_content_type,
-        extra,del_flag,sequence,
-        message_random,create_time,created_by,
-        update_time,updated_by
-    </sql>
     <select id="selectGroupMessageByGroupId" resultType="com.xy.server.domain.po.ImGroupMessagePo">
         select *
         from im_group_message igm

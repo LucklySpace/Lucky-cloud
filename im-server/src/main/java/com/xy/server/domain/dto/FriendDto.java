@@ -20,8 +20,8 @@ public class FriendDto implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Schema(description = "自己id")
-    private String from_id;
+    private String fromId;
 
     @Schema(description = "好友id")
-    private String to_id;
+    private String toId;
 }

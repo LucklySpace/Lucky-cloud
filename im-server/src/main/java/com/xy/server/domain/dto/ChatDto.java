@@ -20,22 +20,22 @@ public class ChatDto implements Serializable {
 
     @NotNull(message = "会话id不能为空")
     @Schema(description = "会话id")
-    private String chat_id;
+    private String chatId;
 
     @Schema(description = "会话类型")
-    private Integer chat_type;
+    private Integer chatType;
 
     @Schema(description = "发送人")
-    private String from_id;
+    private String fromId;
 
     @Schema(description = "接收人")
-    private String to_id;
+    private String toId;
 
     @Schema(description = "是否屏蔽")
-    private Integer is_mute;
+    private Integer isMute;
 
     @Schema(description = "是否置顶")
-    private Integer is_top;
+    private Integer isTop;
 
     @Schema(description = "时序")
     private Long sequence;

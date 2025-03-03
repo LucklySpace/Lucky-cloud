@@ -2,7 +2,6 @@ package com.xy.server.service.impl;
 
 
 import cn.hutool.core.util.ObjectUtil;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.xy.imcore.enums.IMessageType;
 import com.xy.imcore.model.IMRegisterUserDto;
 import com.xy.imcore.model.IMVideoMessageDto;
@@ -60,12 +59,12 @@ public class VideoChatServiceImpl implements VideoChatService {
 
             IMRegisterUserDto IMRegisterUserDto = JsonUtil.parseObject(redisObj, IMRegisterUserDto.class);
 
-            String broker_id = IMRegisterUserDto.getBroker_id();
+            String brokerId = IMRegisterUserDto.getBrokerId();
             // 对发送消息进行包装
             IMessageWrap IMessageWrap = new IMessageWrap(IMessageType.VIDEO_MESSAGE.getCode(), IMVideoMessageDto);
 
             // 发送到消息队列
-            rabbitTemplate.convertAndSend(EXCHANGENAME, ROUTERKEYPREFIX + broker_id, JsonUtil.toJSONString(IMessageWrap));
+            rabbitTemplate.convertAndSend(EXCHANGENAME, ROUTERKEYPREFIX + brokerId, JsonUtil.toJSONString(IMessageWrap));
         } else {
             log.info("用户:{} 未登录", IMVideoMessageDto.getToId());
         }

@@ -17,8 +17,9 @@ public class UserChannelCtxMap {
 
     /**
      * 添加channel
+     *
      * @param userId 用户id
-     * @param ctx channel
+     * @param ctx    channel
      */
     public static void addChannel(String userId, ChannelHandlerContext ctx) {
         channelMap.put(userId, ctx);
@@ -26,6 +27,7 @@ public class UserChannelCtxMap {
 
     /**
      * 移除channel
+     *
      * @param userId 用户id
      */
     public static void removeChannel(String userId) {
@@ -36,8 +38,9 @@ public class UserChannelCtxMap {
 
     /**
      * 获取channel
-     * @Param userId 用户id
+     *
      * @return channel
+     * @Param userId 用户id
      */
     public static ChannelHandlerContext getChannel(String userId) {
         if (userId == null) {
@@ -49,6 +52,7 @@ public class UserChannelCtxMap {
 
     /**
      * 获取所有channel
+     *
      * @return 所有channel
      */
     public static Map<String, ChannelHandlerContext> getAllChannel() {

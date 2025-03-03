@@ -1,6 +1,5 @@
 package com.xy.auth.service;
 
-import cn.hutool.core.io.FileUtil;
 import cn.hutool.extra.qrcode.QrCodeException;
 import cn.hutool.extra.qrcode.QrCodeUtil;
 import cn.hutool.extra.qrcode.QrConfig;
@@ -28,10 +27,11 @@ public class QrCodeService {
         }
         return null;
     }
+
     //生成到流
     public void createCodeToStream(String content, HttpServletResponse response) {
         try {
-            QrCodeUtil.generate(content,config, "png", response.getOutputStream());
+            QrCodeUtil.generate(content, config, "png", response.getOutputStream());
         } catch (QrCodeException | IOException e) {
             e.printStackTrace();
         }

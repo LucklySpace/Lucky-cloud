@@ -1,19 +1,23 @@
 package com.xy.server.domain.po;
 
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.io.Serializable;
 
 /**
  * @TableName im_chat_set
  */
-@TableName(value = "im_chat")
 @Data
 @Accessors(chain = true)
+@NoArgsConstructor
+@AllArgsConstructor
+@TableName(value = "im_chat")
 public class ImChatPo implements Serializable {
 
     @TableField(exist = false)
@@ -58,5 +62,28 @@ public class ImChatPo implements Serializable {
      */
     @TableField(value = "read_sequence")
     private Long readSequence;
+
+    /**
+     * 创建时间
+     */
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @TableField(value = "create_time", fill = FieldFill.INSERT)
+    private Long createTime;
+
+    /**
+     * 修改时间
+     */
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @TableField(value = "update_time", fill = FieldFill.UPDATE)
+    private Long updateTime;
+
+    @TableLogic(value = "0", delval = "1")
+    @TableField(value = "del_flag")
+    private Integer delFlag;
+
+    @Version
+    private Integer version;
 
 }

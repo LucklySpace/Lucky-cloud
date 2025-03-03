@@ -44,7 +44,7 @@ public class QrScanAuthenticationProvider implements AuthenticationProvider {
         String redisKey = QRCODE_PREFIX + qrcode;
 
         if (!redisUtil.hasKey(QRCODE_PREFIX + qrcode)) {
-             throw new UsernameNotFoundException("二维码已失效");
+            throw new UsernameNotFoundException("二维码已失效");
         }
 
         Map<String, Object> qrCodeInfo = redisUtil.get(redisKey);

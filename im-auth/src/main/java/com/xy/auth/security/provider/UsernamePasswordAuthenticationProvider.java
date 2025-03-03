@@ -16,9 +16,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import java.security.PrivateKey;
-import java.util.Base64;
-
 @Slf4j
 public class UsernamePasswordAuthenticationProvider implements AuthenticationProvider {
 
@@ -59,7 +56,7 @@ public class UsernamePasswordAuthenticationProvider implements AuthenticationPro
 
         result.setDetails(authentication.getDetails());
 
-        log.info("form login success :{}",username);
+        log.info("form login success :{}", username);
 
         return result;
     }

@@ -16,12 +16,13 @@
 
     <properties>
         <!-- Java版本 -->
-        <java.version>17</java.version>
+        <java.version>21</java.version>
 
         <jjwt.version>0.9.1</jjwt.version>
         <java.jwt.version>3.10.1</java.jwt.version>
         <jaxb.api.version>2.3.1</jaxb.api.version>
-        <mybatis.plus.version>3.5.3.1</mybatis.plus.version>
+        <mybatis.plus.version>3.5.5</mybatis.plus.version>
+        <mybatis.spring.version>3.0.3</mybatis.spring.version>
         <sentinel.version>1.8.6</sentinel.version>
         <sms.version>2.0.2</sms.version>
         <zxing.version>3.4.1</zxing.version>
@@ -109,6 +110,11 @@
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-boot-starter</artifactId>
             <version>${mybatis.plus.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis-spring</artifactId>
+            <version>${mybatis.spring.version}</version>
         </dependency>
 
         <!-- Spring Security，用于安全认证 -->

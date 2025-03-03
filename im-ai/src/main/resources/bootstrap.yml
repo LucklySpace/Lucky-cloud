@@ -1,0 +1,29 @@
+# Spring
+spring:
+  application:
+    # 应用名称
+    name: im-ai
+  profiles:
+    # 环境配置
+    active: dev
+  cloud:
+    sentinel:
+      # 取消控制台懒加载
+      eager: true
+      transport:
+        # sentinel控制台地址
+        dashboard: localhost:8858
+    nacos:
+      discovery:
+        # 服务注册地址
+        server-addr: localhost:8848
+        username: nacos
+        password: nacos
+      config:
+        # 配置中心地址
+        server-addr: localhost:8848
+        # 配置文件格式
+        file-extension: yml
+        # 共享配置
+        shared-configs:
+          - application-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}

@@ -9,7 +9,6 @@
         FROM im_group_member igm
                  JOIN im_user_data iud ON igm.member_id = iud.user_id
         WHERE igm.group_id = #{groupId}
-        ORDER BY RAND()
-            LIMIT 9;
+        ORDER BY RAND() LIMIT 9;
     </select>
 </mapper>

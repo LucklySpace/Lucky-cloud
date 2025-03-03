@@ -1,8 +1,6 @@
 package com.xy.meet.netty.service.codec;
 
 
-
-import com.xy.imcore.model.IMWsConnMessage;
 import com.xy.meet.entity.Message;
 import com.xy.meet.utils.JsonUtil;
 import io.netty.channel.ChannelHandlerContext;

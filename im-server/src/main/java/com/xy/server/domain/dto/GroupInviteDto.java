@@ -16,7 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "群聊邀请")
-public class GroupInviteDto  implements Serializable {
+public class GroupInviteDto implements Serializable {
 
     private static final long serialVersionUID = 1L;
 

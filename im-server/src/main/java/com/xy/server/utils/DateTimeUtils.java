@@ -809,14 +809,17 @@ public class DateTimeUtils extends DateUtils {
      * @return
      */
     public static Date getLastDateBySecond(Date date, Integer second) {
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");// 24小时制
-        // SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");//12小时制
+        // 24小时制
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        //12小时制
+        // SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
         if (date == null) {
             return null;
         }
         Calendar cal = Calendar.getInstance();
         cal.setTime(date);
-        cal.add(Calendar.SECOND, second);// 24小时制
+        // 24小时制
+        cal.add(Calendar.SECOND, second);
         date = cal.getTime();
         cal = null;
         return date;
@@ -860,7 +863,8 @@ public class DateTimeUtils extends DateUtils {
      * @return int 1、昨天 2、近7天 3、近15天 4、近30天
      */
     public static Integer getTimeScope(Date dateBefore, Date dateAfter) {
-        int daysDifferent = compareDays(dateBefore, dateAfter);// 1、昨天 2、近7天 3、近15天 4、近30天
+        // 1、昨天 2、近7天 3、近15天 4、近30天
+        int daysDifferent = compareDays(dateBefore, dateAfter);
         if (daysDifferent == 1) {
             return 1;
         } else if (daysDifferent >= 2 && daysDifferent <= 7) {

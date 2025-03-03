@@ -45,7 +45,7 @@ public class LoginProcess implements WsProcess {
 
         IMRegisterUserDto.setUserId(userId);
 
-        IMRegisterUserDto.setBroker_id(BROKERID);
+        IMRegisterUserDto.setBrokerId(BROKERID);
 
         IMRegisterUserDto.setToken(token);
 
@@ -73,7 +73,8 @@ public class LoginProcess implements WsProcess {
 
     /**
      * 用户上线时，记录到redis,记录日活
-     *  https://mp.weixin.qq.com/s/ay8YO6e6uHxkO3qR5sgVAQ
+     * https://mp.weixin.qq.com/s/ay8YO6e6uHxkO3qR5sgVAQ
+     *
      * @param userId 用户id
      */
     public void addActiveUser(String userId) {
@@ -83,3 +84,4 @@ public class LoginProcess implements WsProcess {
 
 
 }
+

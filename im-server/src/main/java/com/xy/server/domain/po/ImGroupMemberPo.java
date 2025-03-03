@@ -1,54 +1,54 @@
 package com.xy.server.domain.po;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.io.Serializable;
 
 /**
  * @TableName im_group_member
  */
-@TableName(value = "im_group_member")
 @Data
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
+@TableName(value = "im_group_member")
 public class ImGroupMemberPo implements Serializable {
+
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
     /**
-     *
+     * 群成员ID
      */
     @TableId(value = "group_member_id", type = IdType.AUTO)
     private Long groupMemberId;
     /**
-     * groupId
+     * 群组ID
      */
     @TableField(value = "group_id")
     private String groupId;
     /**
-     * 成员id
+     * 成员用户ID
      */
     @TableField(value = "member_id")
     private String memberId;
     /**
-     * 群成员类型，0 普通成员, 1 管理员, 2 群主， 3 禁言，4 已经移除的成员
+     * 群成员角色（0普通成员，1管理员，2群主）
      */
     @TableField(value = "role")
     private Integer role;
     /**
-     *
+     * 最后发言时间
      */
     @TableField(value = "speak_date")
     private Long speakDate;
     /**
-     * 是否全员禁言，0 不禁言；1 全员禁言
+     * 是否禁言（0不禁言，1禁言）
      */
     @TableField(value = "mute")
     private Integer mute;
@@ -73,9 +73,35 @@ public class ImGroupMemberPo implements Serializable {
     @TableField(value = "join_type")
     private String joinType;
     /**
-     *
+     * 扩展字段
      */
     @TableField(value = "extra")
     private String extra;
+
+    /**
+     * 创建时间
+     */
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @TableField(value = "create_time", fill = FieldFill.INSERT)
+    private Long createTime;
+
+    /**
+     * 更新时间
+     */
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @TableField(value = "update_time", fill = FieldFill.UPDATE)
+    private Long updateTime;
+
+    /**
+     * 删除标识（0正常，1删除）
+     */
+    @TableLogic(value = "0", delval = "1")
+    @TableField(value = "del_flag")
+    private Integer delFlag;
+
+    @Version
+    private Integer version;
 
 }

@@ -20,7 +20,7 @@ services:
       - "6379:6379"
     volumes:
       - /root/redis/conf/redis.conf:/usr/local/etc/redis/redis.conf
-    command: ["--appendonly", "yes"]
+    command: [ "--appendonly", "yes" ]
 
   minio:
     image: minio/minio

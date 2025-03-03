@@ -1,6 +1,5 @@
 package com.xy.im.lb;
 
-import jakarta.annotation.Resource;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
@@ -36,7 +35,7 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
 
     private static final String IMUSERPREFIX = "IM-USER-"; // 用户前缀
 
-    private static final String IMBROKER = "broker_id"; // 机器码
+    private static final String IMBROKER = "brokerId"; // 机器码
 
     private static final String CONNECTION_COUNT = "connection_count"; // metadata 中的连接数
 
@@ -46,12 +45,13 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
 
     private final RedisTemplate<String, String> redisTemplate;
 
-    public NacosWebsocketClusterChooseRule(ObjectProvider<ServiceInstanceListSupplier> serviceInstanceListSupplierProvider,RedisTemplate<String, String> redisTemplate) {
+    public NacosWebsocketClusterChooseRule(ObjectProvider<ServiceInstanceListSupplier> serviceInstanceListSupplierProvider, RedisTemplate<String, String> redisTemplate) {
         this.serviceInstanceListSupplierProvider = serviceInstanceListSupplierProvider;
         this.redisTemplate = redisTemplate;
     }
 
     @SneakyThrows
+    @Override
     public Mono<Response<ServiceInstance>> choose(Request request) {
 
         // 获取请求url
@@ -85,8 +85,9 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
 
     /**
      * 获取实例
+     *
      * @param instances 实例列表
-     * @param uid 用户ID
+     * @param uid       用户ID
      * @return 实例
      */
     private Response<ServiceInstance> getInstanceResponse(List<ServiceInstance> instances, String uid) {
@@ -106,7 +107,7 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
                     .filter(instance -> brokerId.equals(instance.getMetadata().get(IMBROKER)))
                     .findFirst()
                     .map(DefaultResponse::new)
-                    .orElseGet(() -> (DefaultResponse)chooseByRoundRobinWithLeastConnection(instances, uid));
+                    .orElseGet(() -> (DefaultResponse) chooseByRoundRobinWithLeastConnection(instances, uid));
         }
 
         // 如果没有匹配的 brokerId，使用结合轮询与最小连接数的算法选择实例
@@ -155,6 +156,7 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
 
     /**
      * 获取连接数的最少值
+     *
      * @param instance 服务实例
      * @return 连接数
      */
@@ -170,6 +172,7 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
 
     /**
      * 根据用户ID获取用户对应的 brokerId
+     *
      * @param uid 用户ID
      * @return brokerId
      */
@@ -185,7 +188,8 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
 
     /**
      * 解析查询参数
-     * @param url url
+     *
+     * @param url   url
      * @param param 参数名
      * @return 参数值
      * @throws UnsupportedEncodingException

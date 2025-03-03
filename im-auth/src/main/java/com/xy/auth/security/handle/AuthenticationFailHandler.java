@@ -4,7 +4,6 @@ package com.xy.auth.security.handle;
 import com.xy.auth.security.exception.AuthenticationFailException;
 import com.xy.auth.security.exception.TokenIsInvalidException;
 import com.xy.auth.security.exception.TokenIsNullException;
-import com.xy.auth.utils.JsonUtil;
 import com.xy.auth.utils.RedisUtil;
 import com.xy.auth.utils.ResponseUtils;
 import com.xy.imcore.model.IMessageWrap;

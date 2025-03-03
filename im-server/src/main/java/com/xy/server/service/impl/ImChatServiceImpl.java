@@ -173,7 +173,7 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChatPo>
 
         ImPrivateMessagePo IMSingleMessageDto = imPrivateMessageMapper.selectLastSingleMessage(ownerId, toId);
 
-        chatVo.setMessageTime(0l);
+        chatVo.setMessageTime(0L);
 
         if (ObjectUtil.isNotEmpty(IMSingleMessageDto)) {
 
@@ -274,7 +274,7 @@ public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChatPo>
         // 使用 LambdaUpdateWrapper 进行条件构造，字段名通过方法引用来保证类型安全
         LambdaUpdateWrapper<ImPrivateMessagePo> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(ImPrivateMessagePo::getFromId, chatDto.getFromId())
-                .eq(ImPrivateMessagePo::getToId,  chatDto.getToId());
+                .eq(ImPrivateMessagePo::getToId, chatDto.getToId());
 
         // 执行更新
         int updatedRows = imPrivateMessageMapper.update(updateMessage, updateWrapper);

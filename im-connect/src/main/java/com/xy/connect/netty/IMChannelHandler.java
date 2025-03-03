@@ -8,7 +8,6 @@ import com.xy.connect.netty.process.HeartBeatProcess;
 import com.xy.connect.netty.process.LoginProcess;
 import com.xy.connect.netty.process.WsProcess;
 import com.xy.connect.utils.JedisUtil;
-import com.xy.connect.utils.JsonUtil;
 import com.xy.imcore.enums.IMessageType;
 import com.xy.imcore.model.IMWsConnMessage;
 import io.netty.channel.ChannelHandlerContext;

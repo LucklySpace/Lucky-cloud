@@ -46,7 +46,7 @@ public class GroupChatController {
             @Parameter(name = "groupInviteDto", description = "邀请信息", required = true, in = ParameterIn.DEFAULT)
     })
     public Result invite(@RequestBody GroupInviteDto groupInviteDto) {
-        return groupChatService.invite(groupInviteDto);
+        return groupChatService.inviteGroup(groupInviteDto);
     }
 
     @PostMapping("/member")
@@ -54,8 +54,8 @@ public class GroupChatController {
     @Parameters({
             @Parameter(name = "groupDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result member(@RequestBody GroupDto groupDto) {
-        return groupChatService.member(groupDto);
+    public Result getMembers(@RequestBody GroupDto groupDto) {
+        return groupChatService.getMembers(groupDto);
     }
 
 
@@ -65,7 +65,7 @@ public class GroupChatController {
             @Parameter(name = "groupDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })
     public Result info(@RequestBody GroupDto groupDto) {
-        return groupChatService.info(groupDto);
+        return groupChatService.groupInfo(groupDto);
     }
 
 
@@ -75,7 +75,7 @@ public class GroupChatController {
             @Parameter(name = "groupDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })
     public void quit(@RequestBody GroupDto groupDto) {
-        groupChatService.quit(groupDto);
+        groupChatService.quitGroup(groupDto);
     }
 
 }

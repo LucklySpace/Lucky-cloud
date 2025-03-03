@@ -15,7 +15,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "群聊对象")
-public class GroupDto  implements Serializable {
+public class GroupDto implements Serializable {
 
     private static final long serialVersionUID = 1L;
 

@@ -3,18 +3,13 @@ package com.xy.auth.utils;
 
 import lombok.extern.slf4j.Slf4j;
 
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.*;
-import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
@@ -115,7 +110,9 @@ public class RSAUtil {
         StringBuilder sb = new StringBuilder();
         for (byte b : src) {
             String hex = Integer.toHexString(b & 0xFF);
-            if (hex.length() < 2) sb.append('0');
+            if (hex.length() < 2) {
+                sb.append('0');
+            }
             sb.append(hex);
         }
         return sb.toString();

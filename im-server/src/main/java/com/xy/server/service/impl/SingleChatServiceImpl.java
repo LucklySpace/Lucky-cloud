@@ -3,7 +3,6 @@ package com.xy.server.service.impl;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.xy.imcore.enums.IMStatus;
 import com.xy.imcore.enums.IMessageReadStatus;
 import com.xy.imcore.enums.IMessageType;
@@ -41,137 +40,143 @@ public class SingleChatServiceImpl implements SingleChatService {
 
     @Resource
     private RedisUtil redisUtil;
-
     @Resource
     private ImPrivateMessageMapper imPrivateMessageMapper;
-
     @Resource
     private ImChatMapper imChatMapper;
-
     @Resource
     private RabbitTemplateFactory rabbitTemplateFactory;
 
     private RabbitTemplate rabbitTemplate;
 
-    /**
-     * 不同的消息实现不同的confirm
-     * 保证消息可靠性
-     */
     @PostConstruct
     public void init() {
-        rabbitTemplate = rabbitTemplateFactory.createRabbitTemplate((correlationData, ack, cause) -> {
-            if (ack) {
-                log.info("single消息成功发送到交换机，消息ID: {}", correlationData != null ? correlationData.getId() : null);
-            } else {
-                log.error("single消息发送到交换机失败，原因: {}", cause);
-                // 可以在此处做消息的重发或其他处理
-            }
-        }, (returnedMessage) -> {
-            log.info("RabbitMQ-single交换机到队列退回:::return callback 消息体：{},应答码:{},原因:{},交换机:{},路由键:{}",
-                    returnedMessage.getMessage(), returnedMessage.getReplyCode(), returnedMessage.getReplyText(),
-                    returnedMessage.getExchange(), returnedMessage.getRoutingKey());
-        });
+        rabbitTemplate = rabbitTemplateFactory.createRabbitTemplate(
+                (correlationData, ack, cause) -> {
+                    if (ack) {
+                        log.info("single消息成功发送到交换机，消息ID: {}",
+                                correlationData != null ? correlationData.getId() : null);
+                    } else {
+                        log.error("single消息发送到交换机失败，原因: {}", cause);
+                    }
+                },
+                returnedMessage -> log.warn("RabbitMQ退回消息: 消息体：{}, 码:{}, 原因:{}, 交换机:{}, 路由键:{}",
+                        returnedMessage.getMessage(), returnedMessage.getReplyCode(),
+                        returnedMessage.getReplyText(), returnedMessage.getExchange(), returnedMessage.getRoutingKey())
+        );
     }
-
 
     @Override
     @Transactional
-    public Result send(IMSingleMessageDto imSingleMessageDto) {
-        // 消息id
-        String messageId = IdUtil.getSnowflake().nextIdStr();
-        // 消息时间,使用utc时间
-        Long messageTime =DateTimeUtils.getUTCDateTime();
+    public Result send(IMSingleMessageDto dto) {
+        try {
+            // 消息id
+            String messageId = IdUtil.getSnowflake().nextIdStr();
+            // 消息时间
+            Long messageTime = DateTimeUtils.getUTCDateTime();
+            dto.setMessageId(messageId)
+                    .setMessageTime(messageTime)
+                    .setReadStatus(IMessageReadStatus.UNREAD.code());
 
-        imSingleMessageDto.setMessageId(messageId);
+            // 构建私信消息对象并异步插入
+            ImPrivateMessagePo messagePo = new ImPrivateMessagePo();
+            BeanUtils.copyProperties(dto, messagePo);
+            insertImPrivateMessageAsync(messagePo);
 
-        imSingleMessageDto.setMessageTime(messageTime);
+            // 异步更新会话信息
+            setChatAsync(dto.getFromId(), dto.getToId(), messageTime);
 
-        imSingleMessageDto.setReadStatus(IMessageReadStatus.UNREAD.code());
+            // 通过redis查找接收者长连接信息
+            Object redisObj = redisUtil.get(IMUSERPREFIX + dto.getToId());
 
-        ImPrivateMessagePo imPrivateMessagePo = new ImPrivateMessagePo();
+            // 判断长连接信息是否为空，不为空则发送消息到mq
+            if (ObjectUtil.isNotEmpty(redisObj)) {
+                IMRegisterUserDto registerUser = JsonUtil.parseObject(redisObj, IMRegisterUserDto.class);
+                String brokerId = registerUser.getBrokerId();
+                IMessageWrap wrap = new IMessageWrap(IMessageType.SINGLE_MESSAGE.getCode(), dto);
+                CorrelationData correlationData = new CorrelationData(messageId);
+                rabbitTemplate.convertAndSend(EXCHANGENAME, ROUTERKEYPREFIX + brokerId,
+                        JsonUtil.toJSONString(wrap), correlationData);
+            } else {
+                log.info("用户:{} 未登录", dto.getToId());
+            }
+            return Result.success(dto);
+        } catch (Exception e) {
 
-        BeanUtils.copyProperties(imSingleMessageDto, imPrivateMessagePo);
+            log.error("发送单聊消息异常: {}", e.getMessage(), e);
 
-        // 异步插入私信消息
-        insertImPrivateMessageAsync(imPrivateMessagePo);
-
-        // 异步处理会话
-        setChatAsync(imSingleMessageDto.getFromId(), imSingleMessageDto.getToId(), messageTime);
-
-        // 通过redis获取用户连接netty的机器码
-        Object redisObj = redisUtil.get(IMUSERPREFIX + imSingleMessageDto.getToId());
-
-        if (ObjectUtil.isNotEmpty(redisObj)) {
-
-            IMRegisterUserDto IMRegisterUserDto = JsonUtil.parseObject(redisObj, IMRegisterUserDto.class);
-
-            // 获取长连接机器码
-            String broker_id = IMRegisterUserDto.getBroker_id();
-
-            // 对发送消息进行包装
-            IMessageWrap IMessageWrap = new IMessageWrap(IMessageType.SINGLE_MESSAGE.getCode(), imSingleMessageDto);
-
-            // 创建 CorrelationData，并设置消息ID
-            CorrelationData correlationData = new CorrelationData(messageId);
-
-            // 发送到消息队列
-            rabbitTemplate.convertAndSend(EXCHANGENAME, ROUTERKEYPREFIX + broker_id, JsonUtil.toJSONString(IMessageWrap),correlationData);
-
-        } else {
-            log.info("用户:{} 未登录", imSingleMessageDto.getToId());
+            return Result.failed("发送消息失败");
         }
-
-        return Result.success(imSingleMessageDto);
     }
 
-
-    protected void insertImPrivateMessageAsync(ImPrivateMessagePo imPrivateMessagePo) {
-        log.info("接收人:{}  发送人:{}  消息内容:{}", imPrivateMessagePo.getToId(), imPrivateMessagePo.getFromId(), imPrivateMessagePo.getMessageBody());
+    /**
+     * 保存消息到数据库
+     * @param messagePo
+     */
+    private void insertImPrivateMessageAsync(ImPrivateMessagePo messagePo) {
         CompletableFuture.runAsync(() -> {
-            imPrivateMessageMapper.insert(imPrivateMessagePo);
+            try {
+                imPrivateMessageMapper.insert(messagePo);
+            } catch (Exception e) {
+                log.error("异步插入私信消息异常: {}", e.getMessage(), e);
+            }
         });
     }
 
+    /**
+     * 保存会话
+     * @param fromId
+     * @param toId
+     * @param messageTime
+     */
     private void setChatAsync(String fromId, String toId, Long messageTime) {
         CompletableFuture.runAsync(() -> {
-            setChat(fromId, toId, messageTime);
+            try {
+                setChat(fromId, toId, messageTime);
+            } catch (Exception e) {
+                log.error("异步更新会话异常: {}", e.getMessage(), e);
+            }
         });
     }
 
-
-    public void setChat(String fromId, String toId, Long messageTime) {
+    private void setChat(String fromId, String toId, Long messageTime) {
         createOrUpdateImChatSet(fromId, toId, messageTime);
         createOrUpdateImChatSet(toId, fromId, messageTime);
     }
 
+    /**
+     * 创建或更新会话
+     * @param ownerId
+     * @param toId
+     * @param messageTime
+     */
+//    @LockTransactional(name = "'im-chat'+ #ownerId + ':createOrUpdateImChat'")
+    private void createOrUpdateImChatSet(String ownerId, String toId, Long messageTime) {
+        try {
+            QueryWrapper<ImChatPo> query = new QueryWrapper<>();
+            query.eq("owner_id", ownerId)
+                    .eq("to_id", toId)
+                    .eq("chat_type", IMessageType.SINGLE_MESSAGE.getCode());
+            ImChatPo chatPo = imChatMapper.selectOne(query);
 
-    protected void createOrUpdateImChatSet(String ownerId, String toId, Long messageTime) {
+            if (ObjectUtil.isEmpty(chatPo)) {
+                chatPo = new ImChatPo();
+                chatPo.setChatId(UUID.randomUUID().toString())
+                        .setOwnerId(ownerId)
+                        .setToId(toId)
+                        .setSequence(messageTime)
+                        .setIsMute(IMStatus.NO.getCode())
+                        .setIsTop(IMStatus.NO.getCode())
+                        .setChatType(IMessageType.SINGLE_MESSAGE.getCode());
+                imChatMapper.insert(chatPo);
+            } else {
+                chatPo.setSequence(messageTime);
+                imChatMapper.updateById(chatPo);
+            }
 
-        QueryWrapper<ImChatPo> chatQuery = new QueryWrapper<>();
-
-        // 查询会话是否存在
-        chatQuery.eq("owner_id", ownerId);
-        chatQuery.eq("to_id", toId);
-        chatQuery.eq("chat_type", IMessageType.SINGLE_MESSAGE.getCode());
-
-        ImChatPo imChatPO = imChatMapper.selectOne(chatQuery);
-
-        if (ObjectUtil.isEmpty(imChatPO)) {
-            imChatPO = new ImChatPo();
-            String id = UUID.randomUUID().toString();
-
-            imChatPO.setChatId(id)
-                    .setOwnerId(ownerId)
-                    .setToId(toId)
-                    .setSequence(messageTime)
-                    .setIsMute(IMStatus.NO.getCode())
-                    .setIsTop(IMStatus.NO.getCode())
-                    .setChatType(IMessageType.SINGLE_MESSAGE.getCode());
-
-            imChatMapper.insert(imChatPO);
-        } else {
-            imChatPO.setSequence(messageTime);
-            imChatMapper.updateById(imChatPO);
+        } catch (Exception e) {
+            log.error("创建或更新会话异常: ownerId={}, toId={}, messageTime={}, error={}",
+                    ownerId, toId, messageTime, e.getMessage(), e);
         }
     }
 

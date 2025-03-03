@@ -3,7 +3,6 @@ package com.xy.imcore.model;
 
 import com.xy.imcore.enums.IMessageType;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
@@ -31,7 +30,6 @@ public class IMSingleMessageDto extends IMessageDto implements Serializable {
     /**
      * message type
      */
-    private String message_type = String.valueOf(IMessageType.SINGLE_MESSAGE.getCode());
-
+    private Integer messageType = IMessageType.SINGLE_MESSAGE.getCode();
 
 }

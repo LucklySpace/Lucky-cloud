@@ -17,18 +17,18 @@ public class QRConfig {
     private String errorCorrectionLevel = "L"; // 容错级别
 
     @Bean
-    public QrConfig qrConfig(){
+    public QrConfig qrConfig() {
         //初始宽度和高度
-        QrConfig qrConfig=new QrConfig(width,height);
+        QrConfig qrConfig = new QrConfig(width, height);
 
         //设置边距，即二维码和边框的距离
         qrConfig.setMargin(2);
         //设置二维码的纠错级别
         qrConfig.setErrorCorrection(ErrorCorrectionLevel.valueOf(errorCorrectionLevel));
         //设置前景色
-        qrConfig.setForeColor(Color.BLACK.getRGB());
+        qrConfig.setForeColor(Color.BLACK);
         //设置背景色
-        qrConfig.setBackColor(Color.WHITE.getRGB());
+        qrConfig.setBackColor(Color.WHITE);
 
         return qrConfig;
     }

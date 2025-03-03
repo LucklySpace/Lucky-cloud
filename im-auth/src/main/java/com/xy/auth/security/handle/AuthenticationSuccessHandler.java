@@ -24,7 +24,6 @@ import java.util.Map;
 public class AuthenticationSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
 
 
-
     @Override
     //@Schema(description = "登录成功回调")
     //@SystemLog(about = "登录系统", type = LogType.LOGIN)

@@ -14,7 +14,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "登录")
-public class LoginDto   implements Serializable {
+public class LoginDto implements Serializable {
 
     private static final long serialVersionUID = 1L;
 

@@ -1,7 +1,6 @@
 package com.xy.meet;
 
 
-
 import com.xy.meet.config.ConfigCenter;
 import com.xy.meet.config.LogConstant;
 import com.xy.meet.netty.service.IMeetChatServer;
@@ -29,11 +28,6 @@ public class StartCenter {
         new IMeetChatServer().start();
         // new AbstractRemoteServer().start();
     }
-
-
-
-
-
 
 
 }

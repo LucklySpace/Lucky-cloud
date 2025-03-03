@@ -22,12 +22,9 @@ public class ResponseResult implements ResponseBodyAdvice<Object> {
 
     @Override
     public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
-        if (returnType.getDeclaringClass().isAnnotationPresent(ResponseNotIntercept.class)) {
-            //若在类中加了@ResponseNotIntercept 则该类中的方法不用做统一的拦截
-            return false;
-        }
-        if (returnType.getMethod().isAnnotationPresent(ResponseNotIntercept.class)) {
-            //若方法上加了@ResponseNotIntercept 则该方法不用做统一的拦截
+        // 判断方法或类上是否存在 @ResponseNotIntercept 注解
+        if (returnType.getDeclaringClass().isAnnotationPresent(ResponseNotIntercept.class) ||
+                returnType.getMethod().isAnnotationPresent(ResponseNotIntercept.class)) {
             return false;
         }
         return true;

@@ -20,27 +20,23 @@ import java.util.concurrent.TimeUnit;
 @RefreshScope
 public class SmsServiceImpl implements SmsService {
 
-    @Value("${sms.apiUrl}")
-    private String apiUrl;
-
-    @Value("${sms.appId}")
-    private String appId;
-
-    @Value("${sms.appSecret}")
-    private String appSecret;
-
-    @Resource
-    private RedisUtil redisUtil;
-
     // 短信模板ID和验证码过期时间抽取为常量
     private static final String TEMPLATE_ID = "10120";
     private static final int EXPIRE_MINUTES = 3;
+    @Value("${sms.apiUrl}")
+    private String apiUrl;
+    @Value("${sms.appId}")
+    private String appId;
+    @Value("${sms.appSecret}")
+    private String appSecret;
+    @Resource
+    private RedisUtil redisUtil;
 
     @Override
     public String sendMessage(String phone) throws Exception {
 
         // 检查手机号是否在 Redis 中存在，防止频繁请求
-        if (!StringUtils.isEmpty(redisUtil.get(phone))) {
+        if (StringUtils.hasText(redisUtil.get(phone))) {
             log.error("请求频繁，手机号: {}", phone);
             throw new SmsException("请求频繁，请稍后再试");
         }

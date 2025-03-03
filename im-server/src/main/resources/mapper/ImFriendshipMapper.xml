@@ -5,8 +5,8 @@
 <mapper namespace="com.xy.server.mapper.ImFriendshipMapper">
 
     <select id="selectFriendList" resultType="com.xy.server.domain.po.ImFriendshipPo">
-        select
-        *
-        from im_friendship where owner_id = #{userId}
+        select *
+        from im_friendship
+        where owner_id = #{userId}
     </select>
 </mapper>

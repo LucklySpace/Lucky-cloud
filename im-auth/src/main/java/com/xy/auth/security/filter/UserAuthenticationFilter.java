@@ -1,7 +1,6 @@
 package com.xy.auth.security.filter;
 
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xy.auth.security.token.QrScanAuthenticationToken;
 import com.xy.auth.security.token.SmsAuthenticationToken;
 import com.xy.auth.security.token.UserAuthenticationToken;
@@ -67,7 +66,7 @@ public class UserAuthenticationFilter extends AbstractAuthenticationProcessingFi
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
             throws AuthenticationException {
 
-        if (postOnly && !request.getMethod().equalsIgnoreCase("POST")) {
+        if (postOnly && !"POST".equalsIgnoreCase(request.getMethod())) {
             throw new AuthenticationServiceException("Authentication method not supported: " + request.getMethod());
         }
 
@@ -108,15 +107,15 @@ public class UserAuthenticationFilter extends AbstractAuthenticationProcessingFi
     }
 
 
-
     /**
      * 获取认证请求的所有参数 读取请求体并返回一个Map
+     *
      * @param request Http请求对象
      * @return 请求体中包含的参数Map
      * @throws Exception 如果读取时出错
      */
     @SneakyThrows
-    private Map<String, String> readRequestBody(HttpServletRequest request)  {
+    private Map<String, String> readRequestBody(HttpServletRequest request) {
         String body = request.getReader().lines().collect(Collectors.joining());
         if (StringUtils.hasText(body)) {
             // 如果请求体非空，解析成Map

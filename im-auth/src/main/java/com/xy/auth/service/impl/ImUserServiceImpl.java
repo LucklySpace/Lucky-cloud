@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
 import java.util.Objects;
-import java.util.Optional;
 
 
 /**
@@ -56,7 +55,7 @@ public class ImUserServiceImpl extends ServiceImpl<ImUserMapper, ImUser>
     @Override
     public boolean isOnline(String userId) {
         LinkedHashMap str = redisUtil.get(IMUSERPREFIX + userId);
-        return Objects.nonNull(str) ;
+        return Objects.nonNull(str);
     }
 
 

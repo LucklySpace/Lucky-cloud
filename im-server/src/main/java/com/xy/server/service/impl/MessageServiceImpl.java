@@ -28,6 +28,7 @@ public class MessageServiceImpl<T> implements MessageService {
     @Resource
     private ImGroupMessageMapper imGroupMessageMapper;
 
+    @Override
     public Map<Integer, Object> list(ChatDto chatDto) {
         String userId = chatDto.getFromId();
         Long sequence = chatDto.getSequence();
@@ -57,7 +58,6 @@ public class MessageServiceImpl<T> implements MessageService {
     @Override
     public List singleCheck(ChatDto chatDto) {
         List list = new ArrayList();
-
         switch (IMessageType.getByCode(chatDto.getChatType())) {
             case SINGLE_MESSAGE:
                 list = getSingleMessageChat(chatDto);

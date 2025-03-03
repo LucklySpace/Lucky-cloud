@@ -44,7 +44,7 @@ public abstract class IMessageDto implements Serializable {
     /**
      * message content type
      */
-    private String messageContentType;
+    private Integer messageContentType;
 
     /**
      * message timestamp

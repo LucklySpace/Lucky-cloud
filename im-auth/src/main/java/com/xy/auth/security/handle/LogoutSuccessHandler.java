@@ -1,6 +1,5 @@
 package com.xy.auth.security.handle;
 
-import com.xy.auth.utils.JsonUtil;
 import com.xy.auth.utils.ResponseUtils;
 import com.xy.imcore.model.IMessageWrap;
 import jakarta.servlet.ServletException;
@@ -8,7 +7,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
-
 
 import java.io.IOException;
 
@@ -26,7 +24,7 @@ public class LogoutSuccessHandler implements org.springframework.security.web.au
 
         IMessageWrap wrap = new IMessageWrap(300, "退出");
 
-        ResponseUtils.out(response,wrap);
+        ResponseUtils.out(response, wrap);
     }
 
 }

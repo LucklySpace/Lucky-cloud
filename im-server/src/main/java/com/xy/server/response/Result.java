@@ -6,8 +6,6 @@ import lombok.NoArgsConstructor;
 
 /**
  * 统一返回数据结构
- *
- * @author xlwang
  */
 @Data
 @NoArgsConstructor

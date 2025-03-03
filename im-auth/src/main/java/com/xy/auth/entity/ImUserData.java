@@ -27,11 +27,6 @@ public class ImUserData implements Serializable {
     @TableField(value = "name")
     private String name;
     /**
-     * 密码
-     */
-    @TableField(value = "password")
-    private String password;
-    /**
      * 头像
      */
     @TableField(value = "avatar")

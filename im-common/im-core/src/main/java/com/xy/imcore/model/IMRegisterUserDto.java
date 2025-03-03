@@ -2,7 +2,6 @@ package com.xy.imcore.model;
 
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
@@ -23,7 +22,7 @@ public class IMRegisterUserDto implements Serializable {
 
     private String token;
 
-    private String broker_id;
+    private String brokerId;
 
 
 }

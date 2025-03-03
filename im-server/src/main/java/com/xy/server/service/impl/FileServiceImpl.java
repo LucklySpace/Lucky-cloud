@@ -116,6 +116,7 @@ public class FileServiceImpl implements FileService {
      * @param file
      * @return
      */
+    @Override
     public MultipartFile fileToMultipartFile(File file) {
         MultipartFile result = null;
         if (null != file) {
@@ -135,6 +136,7 @@ public class FileServiceImpl implements FileService {
      * @param file
      * @return
      */
+    @Override
     public MultipartFile fileToImageMultipartFile(File file) {
         MultipartFile result = null;
         if (null != file) {

@@ -32,10 +32,9 @@ import static com.xy.connect.StartCenter.BROKERID;
 @Slf4j(topic = LogConstant.NETTY)
 public class WebSocketServer extends AbstractRemoteServer {
 
-    private ChannelFuture[] ChannelFutures = null;
-
     // 定义一个定时更新 metadata 的线程池
     private final ScheduledExecutorService metadataUpdateExecutor = Executors.newSingleThreadScheduledExecutor();
+    private ChannelFuture[] ChannelFutures = null;
 
     @Override
     public void start() {
@@ -155,7 +154,7 @@ public class WebSocketServer extends AbstractRemoteServer {
             instance.setEnabled(true); // 是否启用
             instance.setHealthy(true); // 健康状态
             instance.setWeight(1.0); // 权重
-            instance.addMetadata("broker_id", BROKERID); // 机器码
+            instance.addMetadata("brokerId", BROKERID); // 机器码
             instance.addMetadata("version", version); // 版本号
             instance.addMetadata("protocol", "websocket"); // 协议
             // 注册服务到Nacos

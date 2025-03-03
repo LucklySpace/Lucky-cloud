@@ -29,12 +29,11 @@ public class JwtAuthencationTokenFilter extends OncePerRequestFilter {
     /**
      * 用户校验失败处理器
      */
-    private AuthenticationFailHandler authenticationFailHandler;
+    private final AuthenticationFailHandler authenticationFailHandler;
     /**
      * 忽略url地址
      */
-    private SecurityProperties securityProperties;
-
+    private final SecurityProperties securityProperties;
 
 
     public JwtAuthencationTokenFilter(AuthenticationFailHandler authenticationFailHandler, SecurityProperties securityProperties) {
@@ -71,7 +70,7 @@ public class JwtAuthencationTokenFilter extends OncePerRequestFilter {
         }
 
         // 校验这个token是否为null
-        if (!StringUtils.hasText(token) || ObjectUtils.isEmpty(token) || token.equals("null")) {
+        if (!StringUtils.hasText(token) || ObjectUtils.isEmpty(token) || "null".equals(token)) {
 
             //获取url地址
             String uri = request.getRequestURI();
@@ -131,7 +130,7 @@ public class JwtAuthencationTokenFilter extends OncePerRequestFilter {
         //application.yml中忽略请求地址
         String[] ignoreUrls = securityProperties.getIgnoreUrl();
 
-        if (StringUtils.isEmpty(IgnoreUrl) || ignoreUrls.length == 0) {
+        if (!StringUtils.hasText(IgnoreUrl) || ignoreUrls.length == 0) {
             return false;
         }
         for (String url : ignoreUrls) {

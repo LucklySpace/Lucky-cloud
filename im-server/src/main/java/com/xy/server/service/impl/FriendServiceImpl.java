@@ -88,7 +88,11 @@ public class FriendServiceImpl implements FriendService {
         imUserDataQuery.eq("user_id", friendDto.getToId());
         ImUserDataPo imUserDataPo = imUserDataMapper.selectOne(imUserDataQuery);
 
-        BeanUtils.copyProperties(imUserDataPo, friendVo);
+        if (ObjectUtil.isNotEmpty(imUserDataPo)) {
+            BeanUtils.copyProperties(imUserDataPo, friendVo);
+        } else {
+           return null;
+        }
 
         if (ObjectUtil.isNotEmpty(imFriendshipPo)) {
             friendVo.setFlag(IMStatus.YES.getCode());
@@ -130,7 +134,7 @@ public class FriendServiceImpl implements FriendService {
 
         QueryWrapper<ImFriendshipRequestPo> imFriendshipRequestQuery = new QueryWrapper<>();
 
-        imFriendshipRequestQuery.eq("from_id", userId);
+        imFriendshipRequestQuery.eq("to_id", userId);
 
         List<ImFriendshipRequestPo> imFriendshipRequestPoList = imFriendshipRequestMapper.selectList(imFriendshipRequestQuery);
 
@@ -222,6 +226,7 @@ public class FriendServiceImpl implements FriendService {
      *
      * @param friendDto
      */
+    @Override
     public void delFriend(FriendDto friendDto) {
 
         String fromId = friendDto.getFromId();

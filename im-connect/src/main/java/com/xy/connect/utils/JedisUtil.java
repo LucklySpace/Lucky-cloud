@@ -87,7 +87,7 @@ public final class JedisUtil {
     /**
      * 保存二进制值，同时设置有效期（单位：秒）
      */
-    public void saveValueByKey(int dbIndex, byte[] key, byte[] value, int expireTime) throws Exception {
+    public void saveValueByKey(int dbIndex, byte[] key, byte[] value, long expireTime) throws Exception {
         try (Jedis jedis = jedisPool.getResource()) {
             jedis.select(dbIndex);
             jedis.set(key, value);
@@ -147,7 +147,7 @@ public final class JedisUtil {
     /**
      * 为 key 设置失效时间（单位：秒）
      */
-    public void expire(String key, int seconds) {
+    public void expire(String key, long seconds) {
         try (Jedis jedis = jedisPool.getResource()) {
             jedis.expire(key, seconds);
         }
@@ -165,7 +165,7 @@ public final class JedisUtil {
     /**
      * 如果 key 不存在则设置，并设置超时时间
      */
-    public void setnxWithTimeOut(String key, String value, int timeOut) {
+    public void setnxWithTimeOut(String key, String value, long timeOut) {
         try (Jedis jedis = jedisPool.getResource()) {
             if (jedis.setnx(key, value) != 0) {
                 jedis.expire(key, timeOut);
@@ -196,7 +196,7 @@ public final class JedisUtil {
      */
     public void setEx(String key, String value) {
         try (Jedis jedis = jedisPool.getResource()) {
-            jedis.setex(key, 60 * 60 * 24, value);
+            jedis.setex(key, 60 * 60 * 24L, value);
         }
     }
 

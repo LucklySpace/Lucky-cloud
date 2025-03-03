@@ -66,7 +66,7 @@ public class IMeetChatServer {
                             pipeline.addLast("decode", new MessageDecoder());
 
                             // 添加心跳检测
-                            pipeline.addLast(new IdleStateHandler(0, 0,nettyConfig.getHeartBeatTime(), TimeUnit.MILLISECONDS));
+                            pipeline.addLast(new IdleStateHandler(0, 0, nettyConfig.getHeartBeatTime(), TimeUnit.MILLISECONDS));
 
                             pipeline.addLast(new IMeetChatServerHandler());
                         }
@@ -117,7 +117,7 @@ public class IMeetChatServer {
             instance.setEnabled(true); // 是否启用
             instance.setHealthy(true); // 健康状态
             instance.setWeight(1.0); // 权重
-            //instance.addMetadata("broker_id", BROKERID); // 机器码
+            //instance.addMetadata("brokerId", BROKERID); // 机器码
             instance.addMetadata("version", version); // 版本号
             instance.addMetadata("protocol", "websocket"); // 协议
             // 注册服务到Nacos

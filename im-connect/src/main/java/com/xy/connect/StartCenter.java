@@ -75,13 +75,13 @@ public class StartCenter {
      */
     private static void getMachineCode() {
         // 获取机器码
-        String broker_id = MachineCodeUtils.getMachineCode();
+        String brokerId = MachineCodeUtils.getMachineCode();
 
-        log.info("获取机器码 ：{}", broker_id);
+        log.info("获取机器码 ：{}", brokerId);
 
-        BROKERID = broker_id;
+        BROKERID = brokerId;
 
-        ROUTINGKEY = com.xy.imcore.constants.Constant.ROUTERKEYPREFIX + broker_id;
+        ROUTINGKEY = com.xy.imcore.constants.Constant.ROUTERKEYPREFIX + brokerId;
     }
 
 

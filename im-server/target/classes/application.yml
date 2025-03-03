@@ -6,6 +6,7 @@ server:
     min-response-size: 1024
 
 
+
 spring: #springboot的配置
   banner:
     location: classpath:banner.txt

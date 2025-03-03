@@ -37,6 +37,6 @@ public class IMGroupMessageDto extends IMessageDto implements Serializable {
     /**
      * message type
      */
-    private String message_type = String.valueOf(IMessageType.GROUP_MESSAGE.getCode());
+    private Integer messageType = IMessageType.GROUP_MESSAGE.getCode();
 
 }

@@ -49,7 +49,8 @@ public class FileController {
     @PostMapping("/upload/stream")
     public ResponseEntity<String> uploadFileStream(InputStream inputStream) {
         String uploadDir = System.getProperty("user.dir") + "/uploads/";
-        String fileName = "uploaded-file.txt"; // 可以通过请求头或其他方式获取文件名
+        // 可以通过请求头或其他方式获取文件名
+        String fileName = "uploaded-file.txt";
 
         File outputFile = new File(uploadDir + fileName);
         if (!outputFile.getParentFile().exists()) {

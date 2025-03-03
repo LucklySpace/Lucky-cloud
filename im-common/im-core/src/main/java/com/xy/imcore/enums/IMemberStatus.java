@@ -1,7 +1,5 @@
 package com.xy.imcore.enums;
 
-import java.util.EnumMap;
-
 /**
  * 群成员角色枚举
  */

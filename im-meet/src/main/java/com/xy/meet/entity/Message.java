@@ -13,7 +13,8 @@ public class Message {
     private Set<User> users;
     private String body;
 
-    public Message() {}
+    public Message() {
+    }
 
     public Message(String type, String roomId, String userId) {
         this.type = type;
@@ -48,13 +49,12 @@ public class Message {
         this.userId = userId;
     }
 
-    public void setUsers(Set<User> users) {
-        this.users = users;
-    }
-
-
     public Set<User> getUsers() {
         return users;
+    }
+
+    public void setUsers(Set<User> users) {
+        this.users = users;
     }
 
     public String getBody() {

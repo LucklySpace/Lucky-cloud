@@ -14,11 +14,11 @@ public interface GroupChatService {
 
     Result send(IMGroupMessageDto IMGroupMessageDto);
 
-    Result member(GroupDto groupDto);
+    Result getMembers(GroupDto groupDto);
 
-    void quit(GroupDto groupDto);
+    void quitGroup(GroupDto groupDto);
 
-    Result invite(GroupInviteDto groupInviteDto);
+    Result inviteGroup(GroupInviteDto groupInviteDto);
 
-    Result info(GroupDto groupDto);
+    Result groupInfo(GroupDto groupDto);
 }

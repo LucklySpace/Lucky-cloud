@@ -76,7 +76,7 @@ public class WebSecurityConfig {
 
     @Bean
     public QrScanAuthenticationProvider qrScanAuthenticationProvider() {
-        return new QrScanAuthenticationProvider(sysUserService,redisUtil);
+        return new QrScanAuthenticationProvider(sysUserService, redisUtil);
     }
 
     // 定义认证管理器 AuthenticationManager

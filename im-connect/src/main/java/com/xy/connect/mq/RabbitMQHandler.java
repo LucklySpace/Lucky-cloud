@@ -9,6 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeoutException;
 
 import static com.xy.imcore.constants.Constant.EXCHANGENAME;
 import static com.xy.imcore.constants.Constant.ROUTERKEYPREFIX;
@@ -21,14 +24,15 @@ import static com.xy.imcore.constants.Constant.ROUTERKEYPREFIX;
 public class RabbitMQHandler implements Runnable {
 
     private final MessageHandler messageHandler;
-    private Connection connection = null;
-    private Channel channel = null;
     private final String host;
     private final int port;
     private final String userName;
     private final String password;
     private final String virtualHost;
     private final String queueName;
+    private final ExecutorService executorService;
+    private Connection connection = null;
+    private Channel channel = null;
     private volatile boolean isConnected = false;
 
     public RabbitMQHandler(String host, int port, String queueName, MessageHandler messageHandler) {
@@ -47,8 +51,8 @@ public class RabbitMQHandler implements Runnable {
         this.virtualHost = virtualHost;
         this.queueName = queueName;
         this.messageHandler = messageHandler;
-        // 启动线程
-        new Thread(this).start();
+        this.executorService = Executors.newSingleThreadExecutor();
+        this.executorService.submit(this);
     }
 
     public boolean isConnected() {
@@ -160,8 +164,8 @@ public class RabbitMQHandler implements Runnable {
     /**
      * 将错误信息发送回生产者
      *
-     * @param envelope 信封
-     * @param body 原始消息体
+     * @param envelope     信封
+     * @param body         原始消息体
      * @param errorMessage 错误消息
      */
     private void sendErrorMessageToProducer(Envelope envelope, byte[] body, String errorMessage) {
@@ -181,13 +185,14 @@ public class RabbitMQHandler implements Runnable {
     /**
      * 释放资源
      */
-    public void close() {
+    private void close() {
         try {
             if (channel != null && channel.isOpen()) {
+                channel.basicCancel(queueName);
                 channel.close();
                 log.info("RabbitMQ Channel 关闭成功");
             }
-        } catch (Exception e) {
+        } catch (IOException | TimeoutException e) {
             log.warn("关闭 Channel 异常", e);
         } finally {
             channel = null;
@@ -198,7 +203,7 @@ public class RabbitMQHandler implements Runnable {
                 connection.close();
                 log.info("RabbitMQ Connection 关闭成功");
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             log.warn("关闭 Connection 异常", e);
         } finally {
             connection = null;
@@ -218,10 +223,10 @@ public class RabbitMQHandler implements Runnable {
                 } else {
                     log.debug("RabbitMQ 队列 {} 正在运行", queueName);
                 }
-                // 每分钟检测一次连接状态
                 Thread.sleep(1000 * 60);
-            } catch (Exception e) {
+            } catch (InterruptedException e) {
                 log.error("RabbitMQ 运行异常", e);
+                Thread.currentThread().interrupt();
             }
         }
     }

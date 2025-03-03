@@ -19,19 +19,15 @@ import java.util.Base64;
 @ConfigurationProperties(prefix = "security.rsa.key")
 public class RSAKeyProperties {
 
-    private String secret;
-
-    private String publicKeyStr;
-    private String privateKeyStr;
-
-    private PublicKey publicKey;
-    private PrivateKey privateKey;
-
     // 指定密钥长度
     private static final int KEY_SIZE = 2048;
-
     // 设置相对目录 rsa
     private static final String RSA_DIR = "./rsa/";
+    private String secret;
+    private String publicKeyStr;
+    private String privateKeyStr;
+    private PublicKey publicKey;
+    private PrivateKey privateKey;
 
     /**
      * 在构造完成后生成公钥和私钥
@@ -56,7 +52,7 @@ public class RSAKeyProperties {
             this.publicKey = RSAUtil.getPublicKey(publicKeyPath);
             this.privateKey = RSAUtil.getPrivateKey(privateKeyPath);
 
-            this.publicKeyStr =   Base64.getEncoder().encodeToString(publicKey.getEncoded());
+            this.publicKeyStr = Base64.getEncoder().encodeToString(publicKey.getEncoded());
             this.privateKeyStr = Base64.getEncoder().encodeToString(privateKey.getEncoded());
 
             log.info("RSA 公钥和私钥生成成功，保存于相对路径 rsa/");

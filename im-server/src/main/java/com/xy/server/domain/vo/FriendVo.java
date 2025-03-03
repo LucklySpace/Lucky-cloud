@@ -13,7 +13,8 @@ public class FriendVo {
 
     private String name;
 
-    private String alias; // 别名
+    // 别名
+    private String alias;
 
     private String avatar;
 
@@ -21,7 +22,8 @@ public class FriendVo {
 
     private String location;
 
-    private Integer black; // 是否拉黑 1正常 2拉黑
+    // 是否拉黑 1正常 2拉黑
+    private Integer black;
 
     private Integer flag;
 

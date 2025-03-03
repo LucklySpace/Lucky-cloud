@@ -25,13 +25,16 @@ public class StringUtils {
     }
 
     public static boolean hasText(CharSequence str) {
-        if (!(hasLength(str)))
+        if (!(hasLength(str))) {
             return false;
+        }
 
         int strLen = str.length();
-        for (int i = 0; i < strLen; ++i)
-            if (!(Character.isWhitespace(str.charAt(i))))
+        for (int i = 0; i < strLen; ++i) {
+            if (!(Character.isWhitespace(str.charAt(i)))) {
                 return true;
+            }
+        }
 
         return false;
     }
@@ -44,8 +47,9 @@ public class StringUtils {
     public static String replace(String template, String placeholder,
                                  String replacement, boolean wholeWords) {
         int loc = template.indexOf(placeholder);
-        if (loc < 0)
+        if (loc < 0) {
             return template;
+        }
 
         boolean actuallyReplace = (!(wholeWords))
                 || (loc + placeholder.length() == template.length())
@@ -62,15 +66,18 @@ public class StringUtils {
     }
 
     public static String trimWhitespace(String str) {
-        if (!(hasLength(str)))
+        if (!(hasLength(str))) {
             return str;
+        }
 
         StringBuilder sb = new StringBuilder(str);
-        while ((sb.length() > 0) && (Character.isWhitespace(sb.charAt(0))))
+        while ((sb.length() > 0) && (Character.isWhitespace(sb.charAt(0)))) {
             sb.deleteCharAt(0);
+        }
 
-        while ((sb.length() > 0) && (Character.isWhitespace(sb.charAt(sb.length() - 1))))
+        while ((sb.length() > 0) && (Character.isWhitespace(sb.charAt(sb.length() - 1)))) {
             sb.deleteCharAt(sb.length() - 1);
+        }
 
         return sb.toString();
     }
@@ -80,8 +87,9 @@ public class StringUtils {
     }
 
     public static boolean isInGroup(String index, String group) {
-        if (isBlank(index) || isBlank(group))
+        if (isBlank(index) || isBlank(group)) {
             return false;
+        }
 
         String[] ss = group.split(",");
         for (String s : ss) {
@@ -93,8 +101,9 @@ public class StringUtils {
     }
 
     public static String headToUpperCase(String str) {
-        if (isBlank(str))
+        if (isBlank(str)) {
             return str;
+        }
 
         if (str.length() == 1) {
             return str.toUpperCase();

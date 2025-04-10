@@ -10,9 +10,9 @@ import java.util.Map;
 
 public class MessageHandlerFactory {
 
-    private static final Map<Integer, MessageProcess> HANDLERS = new HashMap();
+    private final Map<Integer, MessageProcess> HANDLERS = new HashMap();
 
-    static {
+    public MessageHandlerFactory() {
         /** 单聊消息处理handler */
         HANDLERS.put(IMessageType.SINGLE_MESSAGE.getCode(), new SingleMessageProcess());
 
@@ -26,19 +26,14 @@ public class MessageHandlerFactory {
         // HANDLERS.put(MessageType.SERVER_MSG_SENT_STATUS_REPORT.getMsgType(), new ServerReportMessageHandler());
     }
 
-    private MessageHandlerFactory() {
-
-    }
-
     /**
      * 根据消息类型获取对应的处理handler
      *
      * @param msgType
      * @return
      */
-    public static MessageProcess getHandlerByMsgType(Integer msgType) {
+    public MessageProcess getHandlerByMsgType(Integer msgType) {
         return HANDLERS.get(msgType);
     }
-
 
 }

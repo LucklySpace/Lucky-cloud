@@ -3,6 +3,8 @@ package com.xy.imcore.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.xy.imcore.enums.IMessageType;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,6 +28,7 @@ public class IMGroupMessageDto extends IMessageDto implements Serializable {
     /**
      * group id
      */
+    @NotBlank(message = "群聊id不能为空")
     private String groupId;
 
     /**

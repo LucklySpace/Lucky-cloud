@@ -8,33 +8,56 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
-/**
- * EpollEventLoopGroup 与 NioEventLoopGroup 的使用区别以及出现场景
- * 在linux上使用EpollEventLoopGroup会有较少的gc有更高级的特性，只有在Linux上才可以使用
- * 文章链接：http://li5jun.com/article/391.html
- */
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+
 public class NettyEventLoopFactory {
 
     private static final String NETTY_EPOLL_ENABLE_KEY = "netty.epoll.enable";
     private static final String OS_NAME_KEY = "os.name";
     private static final String OS_LINUX_PREFIX = "linux";
 
-    private static final boolean isEpollEnabled;
-    private static final boolean isLinux;
+    // EPOLL 是否已启用
+    private static final boolean IS_EPOLL_ENABLED;
+    // 是否linux
+    private static final boolean IS_LINUX;
+
+    // 虚拟线程池，用于 Offload 阻塞任务
+    private static final ExecutorService VIRTUAL_THREAD_POOL = Executors.newVirtualThreadPerTaskExecutor();
 
     static {
         String osName = System.getProperty(OS_NAME_KEY);
-        isLinux = osName != null && osName.toLowerCase().contains(OS_LINUX_PREFIX);
+        IS_LINUX = osName != null && osName.toLowerCase().contains(OS_LINUX_PREFIX);
 
         String epollEnabled = System.getProperty(NETTY_EPOLL_ENABLE_KEY, "false");
-        isEpollEnabled = Boolean.parseBoolean(epollEnabled) && isLinux && Epoll.isAvailable();
+        IS_EPOLL_ENABLED = Boolean.parseBoolean(epollEnabled) && IS_LINUX && Epoll.isAvailable();
     }
 
+    /**
+     * 创建 EventLoopGroup，内部线程使用虚拟线程创建（通过 VirtualThreadFactory）。
+     *
+     * @param threads 线程数
+     * @return EventLoopGroup 实例
+     */
     public static EventLoopGroup eventLoopGroup(int threads) {
-        return isEpollEnabled ? new EpollEventLoopGroup(threads) : new NioEventLoopGroup(threads);
+        // 使用自定义的 VirtualThreadFactory 来构造 EventLoopGroup
+        ThreadFactory threadFactory = new NettyVirtualThreadFactory(
+                IS_EPOLL_ENABLED ? EpollEventLoopGroup.class : NioEventLoopGroup.class,
+                Thread.MAX_PRIORITY
+        );
+        return IS_EPOLL_ENABLED
+                ? new EpollEventLoopGroup(threads, threadFactory)
+                : new NioEventLoopGroup(threads, threadFactory);
     }
 
+
+    /**
+     * 根据当前环境选择合适的 ServerSocketChannel 类。
+     *
+     * @return ServerSocketChannel 的 Class 对象
+     */
     public static Class<? extends ServerSocketChannel> serverSocketChannelClass() {
-        return isEpollEnabled ? EpollServerSocketChannel.class : NioServerSocketChannel.class;
+        return IS_EPOLL_ENABLED ? EpollServerSocketChannel.class : NioServerSocketChannel.class;
     }
 }

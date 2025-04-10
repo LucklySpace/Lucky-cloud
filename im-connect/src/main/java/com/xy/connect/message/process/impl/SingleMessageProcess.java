@@ -35,8 +35,9 @@ public class SingleMessageProcess implements MessageProcess {
                         .code(IMessageType.SINGLE_MESSAGE.getCode())
                         .data(messageDto)
                         .build();
-                ctx.channel().writeAndFlush(wsConnMessage);
+
                 // 消息发送成功确认
+                ctx.channel().writeAndFlush(wsConnMessage);
 
             } else {
                 // 消息推送失败确认

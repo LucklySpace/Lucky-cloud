@@ -23,6 +23,8 @@ public class IMNacosConfig {
 
         private Integer port;
 
+        private String group;
+
         private String username;
 
         private String password;
@@ -75,6 +77,14 @@ public class IMNacosConfig {
 
         public void setVersion(String version) {
             this.version = version;
+        }
+
+        public String getGroup() {
+            return group;
+        }
+
+        public void setGroup(String group) {
+            this.group = group;
         }
     }
 }

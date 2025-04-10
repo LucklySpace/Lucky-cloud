@@ -19,6 +19,7 @@ import static com.xy.imcore.constants.Constant.ROUTERKEYPREFIX;
 /**
  * RabbitMQ连接客户端工具类
  * https://blog.csdn.net/u010989191/article/details/112220574#:~:text=1.%E5%BC%95%E8%A8%80%20R
+ * @author dense
  */
 @Slf4j(topic = LogConstant.RABBITMQ)
 public class RabbitMQHandler implements Runnable {

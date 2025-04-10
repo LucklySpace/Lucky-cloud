@@ -68,7 +68,7 @@ public class SingleChatServiceImpl implements SingleChatService {
 
     @Override
     @Transactional
-    public Result send(IMSingleMessageDto dto) {
+    public Result<?> send(IMSingleMessageDto dto) {
         try {
             // 消息id
             String messageId = IdUtil.getSnowflake().nextIdStr();
@@ -87,13 +87,13 @@ public class SingleChatServiceImpl implements SingleChatService {
             setChatAsync(dto.getFromId(), dto.getToId(), messageTime);
 
             // 通过redis查找接收者长连接信息
-            Object redisObj = redisUtil.get(IMUSERPREFIX + dto.getToId());
+            Object redisObj =  redisUtil.get(IMUSERPREFIX + dto.getToId());
 
             // 判断长连接信息是否为空，不为空则发送消息到mq
             if (ObjectUtil.isNotEmpty(redisObj)) {
                 IMRegisterUserDto registerUser = JsonUtil.parseObject(redisObj, IMRegisterUserDto.class);
                 String brokerId = registerUser.getBrokerId();
-                IMessageWrap wrap = new IMessageWrap(IMessageType.SINGLE_MESSAGE.getCode(), dto);
+                IMessageWrap<?> wrap = new IMessageWrap<>(IMessageType.SINGLE_MESSAGE.getCode(), dto);
                 CorrelationData correlationData = new CorrelationData(messageId);
                 rabbitTemplate.convertAndSend(EXCHANGENAME, ROUTERKEYPREFIX + brokerId,
                         JsonUtil.toJSONString(wrap), correlationData);

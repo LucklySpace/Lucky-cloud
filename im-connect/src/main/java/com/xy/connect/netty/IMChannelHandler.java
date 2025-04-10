@@ -23,13 +23,13 @@ import static com.xy.imcore.constants.Constant.IMUSERPREFIX;
 
 /**
  * TCP WebSocket connection handler.
+ * @author dense
  */
 @Slf4j(topic = LogConstant.NETTY)
-public class IMChannelHandler extends SimpleChannelInboundHandler<IMWsConnMessage> {
+public class IMChannelHandler extends SimpleChannelInboundHandler<IMWsConnMessage<?>> {
 
-    // 常量定义，避免硬编码
-    private static final String userId_ATTR_KEY = "userId";
-
+    // 定义一个 AttributeKey
+    private static final AttributeKey<String> USER_ID_ATTR_KEY = AttributeKey.valueOf("userId");
     /**
      * 读取消息后处理
      */
@@ -50,12 +50,17 @@ public class IMChannelHandler extends SimpleChannelInboundHandler<IMWsConnMessag
      * 根据消息类型处理对应逻辑
      */
     private void handleMessage(ChannelHandlerContext ctx, IMessageType messageType, IMWsConnMessage message) {
+
+        // 获取处理器
         WsProcess wsProcess = switch (messageType) {
+            // 登录
             case LOGIN -> new LoginProcess();
+            // 心跳
             case HEART_BEAT -> new HeartBeatProcess();
             default -> null;
         };
 
+        // 登录注册或心跳处理
         if (ObjectUtil.isNotEmpty(wsProcess)) {
             wsProcess.process(ctx, message);
         } else {
@@ -135,7 +140,7 @@ public class IMChannelHandler extends SimpleChannelInboundHandler<IMWsConnMessag
      * 从Channel中获取用户ID
      */
     private String getUserIdFromChannel(ChannelHandlerContext ctx) {
-        return (String) ctx.channel().attr(AttributeKey.valueOf(userId_ATTR_KEY)).get();
+        return (String) ctx.channel().attr(USER_ID_ATTR_KEY).get();
     }
 
     /**

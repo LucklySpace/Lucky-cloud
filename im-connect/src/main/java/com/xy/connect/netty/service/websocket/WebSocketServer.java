@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-import static com.xy.connect.StartCenter.BROKERID;
+import static com.xy.connect.ApplicationBootstrap.BROKERID;
 
 
 /**
@@ -48,9 +48,9 @@ public class WebSocketServer extends AbstractRemoteServer {
                 .option(ChannelOption.SO_REUSEADDR, true)
                 // 接收缓冲区大小，根据需要调整，以减少大流量情况下数据包丢失的风险
                 .option(ChannelOption.SO_RCVBUF, 16 * 1024)
-                // 保持长连接状态，避免连接频繁断开重连
+                // 是否开启 TCP 底层心跳机制 保持长连接状态，避免连接频繁断开重连
                 .childOption(ChannelOption.SO_KEEPALIVE, true)
-                // 禁用Nagle算法，减少延迟，提高实时性
+                // TCP默认开启了 Nagle 算法，该算法的作用是尽可能的发送大数据快，减少网络传输。TCP_NODELAY 参数的作用就是控制是否启用 Nagle 算法。 禁用Nagle算法，减少延迟，提高实时性
                 .childOption(ChannelOption.TCP_NODELAY, true)
                 // 设置ChannelPipeline，也就是业务职责链，由处理的Handler串联而成，由worker线程池处理
                 .childHandler(new ChannelInitializer<Channel>() {
@@ -61,8 +61,8 @@ public class WebSocketServer extends AbstractRemoteServer {
                         ChannelPipeline pipeline = ch.pipeline();
                         // 添加HTTP编解码器
                         pipeline.addLast("http-codec", new HttpServerCodec());
-                        // 聚合HTTP消息，避免处理分段数据
-                        pipeline.addLast("aggregator", new HttpObjectAggregator(65535));
+                        // 聚合HTTP消息，避免处理分段数据,最大64KB
+                        pipeline.addLast("aggregator", new HttpObjectAggregator(1024 * 64));
                         // 支持大数据流的处理
                         pipeline.addLast("http-chunked", new ChunkedWriteHandler());
                         // 处理Http请求转WebSocket握手请求
@@ -91,16 +91,14 @@ public class WebSocketServer extends AbstractRemoteServer {
                 Integer port = ports.get(i);
                 ChannelFuture channelFuture = bootstrap.bind(port);
                 ChannelFutures[i] = channelFuture;
-                channelFuture.addListener(new GenericFutureListener<Future<? super Void>>() {
-                    @Override
-                    public void operationComplete(Future<? super Void> future) throws Exception {
-                        if (future.isSuccess()) {
-                            // 注册服务到nacos
-                            registerNacos(port);
-                            log.info("Started success,port:{}", port);
-                        } else {
-                            log.info("Started Failed,port:{}", port);
-                        }
+                channelFuture.addListener(future -> {
+                    if (future.isSuccess()) {
+                        // 注册服务到nacos
+                        registerNacos(port);
+
+                        log.info("Started success,port:{}", port);
+                    } else {
+                        log.info("Started Failed,port:{}", port);
                     }
                 });
             }
@@ -109,13 +107,10 @@ public class WebSocketServer extends AbstractRemoteServer {
             for (int i = 0; i < ports.size(); i++) {
                 final Channel channel = ChannelFutures[i].channel();
                 int finalI = i;
-                channel.closeFuture().addListener(new GenericFutureListener<Future<? super Void>>() {
-                    @Override
-                    public void operationComplete(Future<? super Void> future) {
-                        log.info("channel close !");
-                        channel.close();
-                        ChannelFutures[finalI] = null;
-                    }
+                channel.closeFuture().addListener(future -> {
+                    log.info("channel close !");
+                    channel.close();
+                    ChannelFutures[finalI] = null;
                 });
             }
 
@@ -165,5 +160,4 @@ public class WebSocketServer extends AbstractRemoteServer {
             log.error("Failed to register service to Nacos, port: {}", port, e);
         }
     }
-
 }

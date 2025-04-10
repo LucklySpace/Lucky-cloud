@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Slf4j
 @RestController
-@RequestMapping("/message/group")
+@RequestMapping("/api/message/group")
 @Tag(name = "group", description = "群聊")
 public class GroupChatController {
 
@@ -32,11 +33,11 @@ public class GroupChatController {
     private GroupChatService groupChatService;
 
     @PostMapping("/send")
-    @Operation(summary = "发送消息", tags = {"group"}, description = "请使用此接口发送群聊消息")
+    @Operation(summary = "群聊发送消息", tags = {"group"}, description = "请使用此接口发送群聊消息")
     @Parameters({
             @Parameter(name = "groupMessageDto", description = "消息对象", required = true, in = ParameterIn.QUERY)
     })
-    public Result send(@RequestBody IMGroupMessageDto groupMessageDto) {
+    public Result send(@Valid @RequestBody IMGroupMessageDto groupMessageDto) {
         return groupChatService.send(groupMessageDto);
     }
 

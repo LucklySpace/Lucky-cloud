@@ -23,10 +23,16 @@ public class RSAKeyProperties {
     private static final int KEY_SIZE = 2048;
     // 设置相对目录 rsa
     private static final String RSA_DIR = "./rsa/";
+
+    // 盐值
     private String secret;
+    // 公钥字符串
     private String publicKeyStr;
+    //私钥字符串
     private String privateKeyStr;
+
     private PublicKey publicKey;
+
     private PrivateKey privateKey;
 
     /**

@@ -1,6 +1,6 @@
 nettyConfig:
   heartBeatTime: 30000
-  bossThreadSize: 8
+  bossThreadSize: 4
   workThreadSize: 16
   tcpConfig:
     enable: false

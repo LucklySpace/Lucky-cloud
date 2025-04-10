@@ -2,8 +2,7 @@ package com.xy.server.utils;
 
 
 import jakarta.annotation.Resource;
-import org.springframework.data.redis.core.RedisCallback;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.*;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -15,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 public final class RedisUtil {
 
     @Resource
-    private RedisTemplate<String, Object> redisTemplate;
+    private RedisTemplate<String,Object> redisTemplate;
 
     // =============================common============================
 
@@ -89,10 +88,9 @@ public final class RedisUtil {
      * @param key 键
      * @return 值
      */
-    public <T> T get(String key) {
-        return key == null ? null : (T) redisTemplate.opsForValue().get(key);
+    public Object  get(String key) {
+        return redisTemplate.opsForValue().get(key);
     }
-
 
     /**
      * 批量获取
@@ -100,7 +98,7 @@ public final class RedisUtil {
      * @param keys 键集合
      * @return 值
      */
-    public List<Object> batchGet(List<String> keys) {
+    public  List<Object> batchGet(List<String> keys) {
         return redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
             for (String key : keys) {
                 connection.get(key.getBytes());
@@ -108,8 +106,8 @@ public final class RedisUtil {
             return null;
         });
     }
-//    public List<Object> batchGet(List<String> keys) {
-//        List<Object> results = redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+//    public <T> List<T> batchGet(List<String> keys) {
+//        List<T> results = redisTemplate.executePipelined((RedisCallback<T>) connection -> {
 //            StringRedisConnection stringRedisConnection = (StringRedisConnection) connection;
 //            for (String key : keys) {
 //                stringRedisConnection.get(key);
@@ -125,7 +123,7 @@ public final class RedisUtil {
      * @param keys 键集合
      * @return 值
      */
-    public List<Object> batchGetFromStrings(List<String> keys) {
+    public  List<Object> batchGetFromStrings(List<String> keys) {
         return redisTemplate.opsForValue().multiGet(keys);
     }
 
@@ -138,7 +136,7 @@ public final class RedisUtil {
      * @return true成功 false失败
      */
 
-    public boolean set(String key, Object value) {
+    public <T> boolean set(String key, T value) {
         try {
             redisTemplate.opsForValue().set(key, value);
             return true;
@@ -158,10 +156,34 @@ public final class RedisUtil {
      * @return true成功 false 失败
      */
 
-    public boolean set(String key, Object value, long time) {
+    public <T> boolean set(String key, T value, long time) {
         try {
             if (time > 0) {
                 redisTemplate.opsForValue().set(key, value, time, TimeUnit.SECONDS);
+            } else {
+                set(key, value);
+            }
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+
+    /**
+     * 普通缓存放入并设置时间
+     *
+     * @param key   键
+     * @param value 值
+     * @param time  时间(秒) time要大于0 如果time小于等于0 将设置无限期
+     * @return true成功 false 失败
+     */
+
+    public <T> boolean set(String key, T value, long time, TimeUnit timeUnit) {
+        try {
+            if (time > 0) {
+                redisTemplate.opsForValue().set(key, value, time, timeUnit);
             } else {
                 set(key, value);
             }
@@ -209,8 +231,9 @@ public final class RedisUtil {
      * @param key  键 不能为null
      * @param item 项 不能为null
      */
-    public Object hget(String key, String item) {
-        return redisTemplate.opsForHash().get(key, item);
+    public <T> T hget(String key, String item) {
+        HashOperations<String, String, T> ops = redisTemplate.opsForHash();
+        return ops.get(key, item);
     }
 
     /**
@@ -219,8 +242,9 @@ public final class RedisUtil {
      * @param key 键
      * @return 对应的多个键值
      */
-    public Map<Object, Object> hmget(String key) {
-        return redisTemplate.opsForHash().entries(key);
+    public <T> Map<String, T> hmget(String key) {
+        HashOperations<String, String, T> ops = redisTemplate.opsForHash();
+        return ops.entries(key);
     }
 
     /**
@@ -229,7 +253,7 @@ public final class RedisUtil {
      * @param key 键
      * @param map 对应多个键值
      */
-    public boolean hmset(String key, Map<String, Object> map) {
+    public <T> boolean hmset(String key, Map<String, T> map) {
         try {
             redisTemplate.opsForHash().putAll(key, map);
             return true;
@@ -248,7 +272,7 @@ public final class RedisUtil {
      * @param time 时间(秒)
      * @return true成功 false失败
      */
-    public boolean hmset(String key, Map<String, Object> map, long time) {
+    public <T> boolean hmset(String key, Map<String, T> map, long time) {
         try {
             redisTemplate.opsForHash().putAll(key, map);
             if (time > 0) {
@@ -270,7 +294,7 @@ public final class RedisUtil {
      * @param value 值
      * @return true 成功 false失败
      */
-    public boolean hset(String key, String item, Object value) {
+    public <T> boolean hset(String key, String item, T value) {
         try {
             redisTemplate.opsForHash().put(key, item, value);
             return true;
@@ -289,7 +313,7 @@ public final class RedisUtil {
      * @param time  时间(秒) 注意:如果已存在的hash表有时间,这里将会替换原有的时间
      * @return true 成功 false失败
      */
-    public boolean hset(String key, String item, Object value, long time) {
+    public <T> boolean hset(String key, String item, T value, long time) {
         try {
             redisTemplate.opsForHash().put(key, item, value);
             if (time > 0) {
@@ -309,7 +333,7 @@ public final class RedisUtil {
      * @param key  键 不能为null
      * @param item 项 可以使多个 不能为null
      */
-    public void hdel(String key, Object... item) {
+    public <T> void hdel(String key, T... item) {
         redisTemplate.opsForHash().delete(key, item);
     }
 
@@ -357,9 +381,9 @@ public final class RedisUtil {
      *
      * @param key 键
      */
-    public Set<Object> sGet(String key) {
+    public <T> Set<T> sGet(String key) {
         try {
-            return redisTemplate.opsForSet().members(key);
+            return (Set<T>) redisTemplate.opsForSet().members(key);
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -374,7 +398,7 @@ public final class RedisUtil {
      * @param value 值
      * @return true 存在 false不存在
      */
-    public boolean sHasKey(String key, Object value) {
+    public <T> boolean sHasKey(String key, T value) {
         try {
             return redisTemplate.opsForSet().isMember(key, value);
         } catch (Exception e) {
@@ -391,7 +415,7 @@ public final class RedisUtil {
      * @param values 值 可以是多个
      * @return 成功个数
      */
-    public long sSet(String key, Object... values) {
+    public <T> long sSet(String key, T... values) {
         try {
             return redisTemplate.opsForSet().add(key, values);
         } catch (Exception e) {
@@ -409,7 +433,7 @@ public final class RedisUtil {
      * @param values 值 可以是多个
      * @return 成功个数
      */
-    public long sSetAndTime(String key, long time, Object... values) {
+    public <T> long sSetAndTime(String key, long time, T... values) {
         try {
             Long count = redisTemplate.opsForSet().add(key, values);
             if (time > 0) {
@@ -446,7 +470,7 @@ public final class RedisUtil {
      * @return 移除的个数
      */
 
-    public long setRemove(String key, Object... values) {
+    public <T> long setRemove(String key, T... values) {
         try {
             Long count = redisTemplate.opsForSet().remove(key, values);
             return count;
@@ -465,9 +489,9 @@ public final class RedisUtil {
      * @param start 开始
      * @param end   结束 0 到 -1代表所有值
      */
-    public List<Object> lGet(String key, long start, long end) {
+    public <T> List<T> lGet(String key, long start, long end) {
         try {
-            return redisTemplate.opsForList().range(key, start, end);
+            return (List<T>) redisTemplate.opsForList().range(key, start, end);
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -496,9 +520,10 @@ public final class RedisUtil {
      * @param key   键
      * @param index 索引 index>=0时， 0 表头，1 第二个元素，依次类推；index<0时，-1，表尾，-2倒数第二个元素，依次类推
      */
-    public Object lGetIndex(String key, long index) {
+    public <T> T lGetIndex(String key, long index) {
         try {
-            return redisTemplate.opsForList().index(key, index);
+            ListOperations<String, T> ops = (ListOperations<String, T>) redisTemplate.opsForList();
+            return ops.index(key, index);
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -512,7 +537,7 @@ public final class RedisUtil {
      * @param key   键
      * @param value 值
      */
-    public boolean lSet(String key, Object value) {
+    public <T> boolean lSet(String key, T value) {
         try {
             redisTemplate.opsForList().rightPush(key, value);
             return true;
@@ -530,7 +555,7 @@ public final class RedisUtil {
      * @param value 值
      * @param time  时间(秒)
      */
-    public boolean lSet(String key, Object value, long time) {
+    public <T> boolean lSet(String key, T value, long time) {
         try {
             redisTemplate.opsForList().rightPush(key, value);
             if (time > 0) {
@@ -552,7 +577,7 @@ public final class RedisUtil {
      * @param value 值
      * @return
      */
-    public boolean lSet(String key, List<Object> value) {
+    public <T> boolean lSet(String key, List<T> value) {
         try {
             redisTemplate.opsForList().rightPushAll(key, value);
             return true;
@@ -572,7 +597,7 @@ public final class RedisUtil {
      * @param time  时间(秒)
      * @return
      */
-    public boolean lSet(String key, List<Object> value, long time) {
+    public <T> boolean lSet(String key, List<T> value, long time) {
         try {
             redisTemplate.opsForList().rightPushAll(key, value);
             if (time > 0) {
@@ -595,7 +620,7 @@ public final class RedisUtil {
      * @return
      */
 
-    public boolean lUpdateIndex(String key, long index, Object value) {
+    public <T> boolean lUpdateIndex(String key, long index, T value) {
         try {
             redisTemplate.opsForList().set(key, index, value);
             return true;
@@ -615,7 +640,7 @@ public final class RedisUtil {
      * @return 移除的个数
      */
 
-    public long lRemove(String key, long count, Object value) {
+    public <T> long lRemove(String key, long count, T value) {
         try {
             Long remove = redisTemplate.opsForList().remove(key, count, value);
             return remove;
@@ -626,4 +651,6 @@ public final class RedisUtil {
 
     }
 
+    public void set(String code, Map<String, Object> qrCodeInfo, int i, TimeUnit timeUnit) {
+    }
 }

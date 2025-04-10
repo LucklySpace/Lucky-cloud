@@ -8,7 +8,10 @@ import com.xy.connect.netty.IMChannelHandler;
 import com.xy.connect.netty.factory.NettyEventLoopFactory;
 import com.xy.connect.netty.service.tcp.TcpSocketServer;
 import com.xy.connect.netty.service.websocket.WebSocketServer;
+import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.handler.timeout.IdleStateHandler;
@@ -16,8 +19,13 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 启停netty服务
+ *
+ * @author dense
+ */
 @Slf4j(topic = LogConstant.NETTY)
-public class AbstractRemoteServer implements IMServer {
+public class AbstractRemoteServer {
 
     public IMNettyConfig.NettyConfig nettyConfig;
     public IMNacosConfig.NacosConfig nacosConfig;
@@ -39,6 +47,9 @@ public class AbstractRemoteServer implements IMServer {
         bossGroup = NettyEventLoopFactory.eventLoopGroup(nettyConfig.getBossThreadSize());
 
         workGroup = NettyEventLoopFactory.eventLoopGroup(nettyConfig.getWorkThreadSize());
+
+        Bootstrap bootstrap = new Bootstrap();
+        bootstrap.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
     }
 
     protected void addPipeline(ChannelPipeline pipeline) {
@@ -46,8 +57,6 @@ public class AbstractRemoteServer implements IMServer {
         pipeline.addLast(new IMChannelHandler());
     }
 
-
-    @Override
     public void start() {
         //启动TCP服务器
         if (ConfigCenter.nettyConfig.getNettyConfig().getTcpConfig().isEnable()) {
@@ -59,8 +68,6 @@ public class AbstractRemoteServer implements IMServer {
         }
     }
 
-
-    @Override
     public void stop() {
         if (bossGroup != null && !bossGroup.isShuttingDown() && !bossGroup.isShutdown()) {
             bossGroup.shutdownGracefully();

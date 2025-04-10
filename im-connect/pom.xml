@@ -27,8 +27,11 @@
         <redis.version>4.2.3</redis.version>
         <jackson.version>2.15.2</jackson.version>
         <rabbitmq.version>5.20.0</rabbitmq.version>
-        <jedis.version>3.7.0</jedis.version>
+        <jedis.version>4.4.0</jedis.version>
         <lombok.version>1.18.30</lombok.version>
+        <snakeyaml.version>2.2</snakeyaml.version>
+        <logback.version>1.1.11</logback.version>
+        <nacos.version>2.4.2</nacos.version>
     </properties>
 
 
@@ -96,7 +99,7 @@
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
-            <version>2.2</version>
+            <version>${snakeyaml.version}</version>
             <scope>compile</scope>
         </dependency>
 
@@ -109,13 +112,13 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.1.11</version>
+            <version>${logback.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.alibaba.nacos</groupId>
             <artifactId>nacos-client</artifactId>
-            <version>2.4.2</version>
+            <version>${nacos.version}</version>
             <exclusions>
                 <!--排除snakeyaml依赖-->
                 <exclusion>

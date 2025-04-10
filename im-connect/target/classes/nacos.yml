@@ -1,6 +1,7 @@
 nacosConfig:
   name: im-connect
   address: localhost
+  group: DEFAULT_GROUP
   port: 8848
   username: nacos
   password: nacos

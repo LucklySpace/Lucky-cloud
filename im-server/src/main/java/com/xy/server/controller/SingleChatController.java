@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Slf4j
 @RestController
-@RequestMapping("/message/single")
+@RequestMapping("/api/message/single")
 @Tag(name = "single", description = "单聊")
 public class SingleChatController {
 
@@ -31,11 +32,11 @@ public class SingleChatController {
 
 
     @PostMapping("/send")
-    @Operation(summary = "发送消息", tags = {"single"}, description = "请使用此接口发送单聊消息")
+    @Operation(summary = "单聊发送消息", tags = {"single"}, description = "请使用此接口发送单聊消息")
     @Parameters({
             @Parameter(name = "singleMessageDto", description = "消息对象", required = true, in = ParameterIn.QUERY)
     })
-    public Result send(@RequestBody IMSingleMessageDto singleMessageDto) {
+    public Result send(@Valid @RequestBody IMSingleMessageDto singleMessageDto) {
         return singleChatService.send(singleMessageDto);
     }
 

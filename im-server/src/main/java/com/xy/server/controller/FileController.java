@@ -19,7 +19,7 @@ import java.io.*;
 
 @Slf4j
 @RestController
-@RequestMapping("/file")
+@RequestMapping("/api/file")
 @Tag(name = "file", description = "文件")
 public class FileController {
 

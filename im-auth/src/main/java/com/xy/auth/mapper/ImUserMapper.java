@@ -1,7 +1,7 @@
 package com.xy.auth.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xy.auth.entity.ImUser;
+import com.xy.auth.domain.dto.ImUserDto;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -11,7 +11,7 @@ import org.apache.ibatis.annotations.Mapper;
  * @Entity generator.domain.ImUser
  */
 @Mapper
-public interface ImUserMapper extends BaseMapper<ImUser> {
+public interface ImUserMapper extends BaseMapper<ImUserDto> {
 
 }
 

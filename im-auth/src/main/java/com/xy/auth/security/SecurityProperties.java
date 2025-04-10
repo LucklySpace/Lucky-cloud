@@ -33,5 +33,4 @@ public class SecurityProperties {
 
 
     private RSAKeyProperties RSAKeyProperties;
-
 }

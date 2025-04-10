@@ -1,4 +1,4 @@
-package com.xy.auth.entity;
+package com.xy.auth.domain.dto;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -12,7 +12,8 @@ import java.io.Serializable;
  */
 @TableName(value = "im_user")
 @Data
-public class ImUser implements Serializable {
+public class ImUserDto implements Serializable {
+
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
     /**

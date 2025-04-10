@@ -17,7 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
-import static com.xy.connect.StartCenter.BROKERID;
+import static com.xy.connect.ApplicationBootstrap.BROKERID;
 
 
 /**

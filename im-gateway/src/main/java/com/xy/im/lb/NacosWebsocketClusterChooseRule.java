@@ -22,9 +22,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
+ *
+ * 自定义 im-connect 长连接服务的负载均衡
+ *
  * 自定义负载均衡实现需要实现 ReactorServiceInstanceLoadBalancer 接口 以及重写choose方法
  * 主类定义：
- * // 自定义负载均衡处理类，只针对转发地址为im-connect的请求生效
+ * 自定义负载均衡处理类，只针对转发地址为im-connect的请求生效
  *
  * @LoadBalancerClient(value = "im-connect", configuration = {NacosWebsocketClusterChooseRule.class})
  * <p>
@@ -33,19 +36,23 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLoadBalancer {
 
-    private static final String IMUSERPREFIX = "IM-USER-"; // 用户前缀
+    // 用户前缀
+    private static final String IM_USER_PREFIX = "IM-USER-";
 
-    private static final String IMBROKER = "brokerId"; // 机器码
+    // 机器码
+    private static final String IM_BROKER = "brokerId";
 
-    private static final String CONNECTION_COUNT = "connection_count"; // metadata 中的连接数
+    // metadata 中的连接数
+    private static final String CONNECTION_COUNT = "connection_count";
 
-    private final AtomicInteger position = new AtomicInteger(0); // 轮询计数器
+    // 轮询计数器
+    private final AtomicInteger position = new AtomicInteger(0);
 
     private final ObjectProvider<ServiceInstanceListSupplier> serviceInstanceListSupplierProvider;
 
-    private final RedisTemplate<String, String> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
 
-    public NacosWebsocketClusterChooseRule(ObjectProvider<ServiceInstanceListSupplier> serviceInstanceListSupplierProvider, RedisTemplate<String, String> redisTemplate) {
+    public NacosWebsocketClusterChooseRule(ObjectProvider<ServiceInstanceListSupplier> serviceInstanceListSupplierProvider, RedisTemplate<String, Object> redisTemplate) {
         this.serviceInstanceListSupplierProvider = serviceInstanceListSupplierProvider;
         this.redisTemplate = redisTemplate;
     }
@@ -57,6 +64,7 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
         // 获取请求url
         String rawQuery = ((RequestDataContext) request.getContext()).getClientRequest().getUrl().getRawQuery();
 
+        // 获取用户uid
         String uid = extractQueryParam(rawQuery, "uid");
 
         if (uid == null) {
@@ -68,6 +76,7 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
 
         ServiceInstanceListSupplier supplier = serviceInstanceListSupplierProvider.getIfAvailable(NoopServiceInstanceListSupplier::new);
 
+        // 获取长连接服务
         return supplier.get(request).next()
                 .map(serviceInstances -> processInstanceResponse(supplier, serviceInstances, uid));
     }
@@ -104,7 +113,7 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
             log.debug("当前用户 {} 的 brokerId 为：{}", uid, brokerId);
             // 根据机器码从实例列表选择实例 ，如果没有匹配的 brokerId，使用结合轮询与最小连接数的算法选择实例
             return instances.stream()
-                    .filter(instance -> brokerId.equals(instance.getMetadata().get(IMBROKER)))
+                    .filter(instance -> brokerId.equals(instance.getMetadata().get(IM_BROKER)))
                     .findFirst()
                     .map(DefaultResponse::new)
                     .orElseGet(() -> (DefaultResponse) chooseByRoundRobinWithLeastConnection(instances, uid));
@@ -133,7 +142,7 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
 //                .min(Comparator.comparingInt(this::getConnectionCount))
 //                .orElse(chosenInstance);
 
-        log.info("用户 {} 分配的服务器为：{}，连接数为：{}", uid, chosenInstance.getMetadata().get(IMBROKER), getConnectionCount(chosenInstance));
+        log.info("用户 {} 分配的服务器为：{}，当前连接数为：{}", uid, chosenInstance.getMetadata().get(IM_BROKER), getConnectionCount(chosenInstance));
 
         return new DefaultResponse(chosenInstance);
     }
@@ -150,7 +159,7 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
                 .min(Comparator.comparingInt(this::getConnectionCount))
                 .orElseThrow(() -> new IllegalStateException("找不到合适的服务实例"));
 
-        log.info("选择的服务器为：{}，连接数为：{}", leastConnectionInstance.getMetadata().get(IMBROKER), getConnectionCount(leastConnectionInstance));
+        log.info("选择的服务器为：{}，连接数为：{}", leastConnectionInstance.getMetadata().get(IM_BROKER), getConnectionCount(leastConnectionInstance));
         return new DefaultResponse(leastConnectionInstance);
     }
 
@@ -166,7 +175,8 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
             return connectionCountStr != null ? Integer.parseInt(connectionCountStr) : 0;
         } catch (NumberFormatException e) {
             log.error("解析连接数失败: {}", connectionCountStr, e);
-            return Integer.MAX_VALUE;  // 如果解析失败，视为最大值，避免选择这个实例
+            // 如果解析失败，视为最大值，避免选择这个实例
+            return Integer.MAX_VALUE;
         }
     }
 
@@ -178,8 +188,8 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
      */
     private String getUserBroker(String uid) {
         try {
-            Object userObj = redisTemplate.boundValueOps(IMUSERPREFIX + uid).get();
-            return userObj != null ? ((LinkedHashMap<?, ?>) userObj).get(IMBROKER).toString() : null;
+            Object userObj = redisTemplate.opsForValue().get(IM_USER_PREFIX + uid);
+            return userObj != null ? ((LinkedHashMap<?, ?>) userObj).get(IM_BROKER).toString() : null;
         } catch (Exception e) {
             log.error("Redis 获取 broker 出错，UID: {}", uid, e);
             return null;

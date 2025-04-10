@@ -2,7 +2,7 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.xy.connect</groupId>
+    <groupId>com.xy</groupId>
     <artifactId>im-common</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>im-common</name>
@@ -31,6 +31,7 @@
         <hutool.version>5.8.25</hutool.version>
         <redis.version>4.2.3</redis.version>
         <jackson.version>2.15.2</jackson.version>
+        <jakarta-validation.version>3.0.2</jakarta-validation.version>
     </properties>
 
 
@@ -43,6 +44,11 @@
             <version>${hutool.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+            <version>${jakarta-validation.version}</version>
+        </dependency>
 
         <!--  lombok-->
         <dependency>

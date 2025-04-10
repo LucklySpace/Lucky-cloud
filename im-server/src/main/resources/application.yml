@@ -1,20 +1,15 @@
 server:
   port: 8085   #  配置启动端口号
-  compression:
-    enabled: true #  开启gzip压缩
-    mime-types: application/json,application/xml,text/html,text/xml,text/plain
-    min-response-size: 1024
-
-
 
 spring: #springboot的配置
   banner:
     location: classpath:banner.txt
   profiles:
-    include: undertow  # 引用其他的yml文件
+    include: undertow, swagger  # 引用其他的yml文件
   threads:
     virtual:
       enabled: true  # 开启虚拟线程
+
   servlet:
     multipart:
       max-file-size: 10MB
@@ -44,6 +39,14 @@ spring: #springboot的配置
       port: 6379
       password:
       username:
+      database: 0      # 数据库索引（默认为0）
+      timeout: 1800000 # 连接超时时间（毫秒）
+      lettuce:
+        pool:
+          max-active: 20  # 连接池最大连接数
+          max-wait: -1    # 最大阻塞等待时间（负数表示无限制）
+          max-idle: 5     # 最大空闲连接数
+          min-idle: 0     # 最小空闲连接数
 
 
 # mybatis-plus相关配置
@@ -67,32 +70,6 @@ mybatis-plus:
     # 这个配置会将执行的sql打印出来，在开发或测试的时候可以用
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl   #打印sql
     #log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
-
-
-#springdoc相关配置
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-    tags-sorter: alpha
-    operations-sorter: alpha
-  api-docs:
-    enabled: true
-    path: /v3/api-docs
-  group-configs:
-    - group: 'server'
-      paths-to-match: '/**'
-      packages-to-scan: com.xy.server  #改成你自己的包名，一般到启动类的包名
-
-
-
-# TODO: knife4j相关配置 可以不用改
-knife4j:
-  enable: true        # 开启增强配置
-  production: false   # 开启生产环境屏蔽
-  setting:
-    language: zh_cn   # 默认中文
-    swagger-model-name: 实体类
-
 
 
 minio:

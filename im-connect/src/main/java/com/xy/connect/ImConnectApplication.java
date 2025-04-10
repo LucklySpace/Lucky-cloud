@@ -8,9 +8,7 @@ public class ImConnectApplication {
 
 
     public static void main(String[] args) {
-
-        StartCenter.start();
-
+        new ApplicationBootstrap().start();
     }
 
 }

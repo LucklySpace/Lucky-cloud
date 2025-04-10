@@ -17,7 +17,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/chat")
+@RequestMapping("/api/chat")
 @Tag(name = "chat", description = "用户会话")
 public class ChatController {
 

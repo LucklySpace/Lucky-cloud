@@ -20,7 +20,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/friend")
+@RequestMapping("/api/friend")
 @Tag(name = "friend", description = "用户好友")
 public class FriendController {
     @Resource

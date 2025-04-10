@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 @RestController
-@RequestMapping("/video")
+@RequestMapping("/api/video")
 @Tag(name = "video", description = "视频")
 public class VideoChatController {
 
@@ -25,7 +25,7 @@ public class VideoChatController {
 
 
     @PostMapping("/send")
-    @Operation(summary = "发送消息", tags = {"video"}, description = "请使用此接口发送视频消息")
+    @Operation(summary = "视频发送消息", tags = {"video"}, description = "请使用此接口发送视频消息")
     @Parameters({
             @Parameter(name = "IMVideoMessageDto", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
     })

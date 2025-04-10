@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Slf4j
 @RestController
-@RequestMapping("/file")
+@RequestMapping("/api/file")
 public class FileMinioController {
 
     @Resource

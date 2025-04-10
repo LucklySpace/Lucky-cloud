@@ -12,7 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @RestController
-@RequestMapping("/media")
+@RequestMapping("/api/media")
 public class MediaMinioController {
 
 

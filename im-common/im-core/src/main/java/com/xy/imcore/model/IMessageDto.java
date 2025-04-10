@@ -3,12 +3,17 @@ package com.xy.imcore.model;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.Accessors;
 
 import java.io.Serial;
 import java.io.Serializable;
 
+/**
+ * @author dense
+ */
 @Data
 @Accessors(chain = true)
 @NoArgsConstructor
@@ -19,17 +24,24 @@ public abstract class IMessageDto implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * from user
+     * 发送者
      */
+    @NotBlank(message = "发送人id不能为空")
     private String fromId;
 
     /**
-     * message id
+     * 临时消息id
+     */
+    @NotBlank(message = "消息临时id不能为空")
+    private String messageTempId;
+
+    /**
+     * 消息id
      */
     private String messageId;
 
     /**
-     * message content
+     * 消息内容
      */
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "messageContentType")
     @JsonSubTypes({
@@ -42,17 +54,17 @@ public abstract class IMessageDto implements Serializable {
     private MessageBody messageBody;
 
     /**
-     * message content type
+     * 消息内容类型
      */
     private Integer messageContentType;
 
     /**
-     * message timestamp
+     * 消息时间戳
      */
     private Long messageTime;
 
     /**
-     * message read status
+     * 消息阅读状态
      */
     private Integer readStatus;
 
@@ -73,6 +85,8 @@ public abstract class IMessageDto implements Serializable {
     @Setter
     @ToString
     public static class TextMessageBody extends MessageBody {
+
+        @NotBlank(message = "消息内容不能为空")
         private String message;
     }
 

@@ -1,19 +1,39 @@
 package com.xy.auth.security.token;
 
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 
+import java.io.Serial;
 import java.util.Collection;
 
-public class SmsAuthenticationToken extends AbstractAuthenticationToken {
+/**
+ * 手机验证码认证信息， 手机号、验证码
+ *
+ * @author dense
+ */
+public class MobileAuthenticationToken extends AbstractAuthenticationToken {
+    @Serial
+    private static final long serialVersionUID = 530L;
 
-    private final Object principal;
+    // 手机号
+    private Object principal;
+
+    // 验证码
     private Object credentials;
 
-    public SmsAuthenticationToken(Object principal, Object credentials) {
-        super((Collection) null);
+
+    public MobileAuthenticationToken(String principal, String credentials) {
+        super(null);
         this.principal = principal;
         this.credentials = credentials;
         this.setAuthenticated(false);
+    }
+
+    public MobileAuthenticationToken(Object principal, Object credentials, Collection<? extends GrantedAuthority> authorities) {
+        super(authorities);
+        this.principal = principal;
+        this.credentials = credentials;
+        super.setAuthenticated(true);
     }
 
     @Override
@@ -41,4 +61,3 @@ public class SmsAuthenticationToken extends AbstractAuthenticationToken {
         this.credentials = null;
     }
 }
-

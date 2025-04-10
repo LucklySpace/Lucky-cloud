@@ -6,16 +6,19 @@ import org.springframework.security.core.GrantedAuthority;
 import java.util.Collection;
 
 /**
- * @author: xxm
- * @description:用户名和密码验证的token
+ * qr扫码登录
+ *
+ * @author dense
  */
 public class QrScanAuthenticationToken extends AbstractAuthenticationToken {
 
+    // qr码
     private final Object principal;
+    // 临时密码
     private Object credentials;
 
     public QrScanAuthenticationToken(Object principal, Object credentials) {
-        super((Collection) null);
+        super(null);
         this.principal = principal;
         this.credentials = credentials;
         this.setAuthenticated(false);

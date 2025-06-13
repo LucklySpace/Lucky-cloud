@@ -46,7 +46,6 @@ public class HanLPController {
     }
 
 
-
     @Operation(summary = "提取关键词", tags = {"alysis"}, description = "请使用此接口提取关键词")
     @Parameters({
             @Parameter(name = "content", description = "待处理的内容", required = true, in = ParameterIn.QUERY),

@@ -24,10 +24,8 @@ import java.io.IOException;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class DemoAhoCorasickDoubleArrayTrieSegment
-{
-    public static void main(String[] args) throws IOException
-    {
+public class DemoAhoCorasickDoubleArrayTrieSegment {
+    public static void main(String[] args) throws IOException {
         HanLP.Config.ShowTermNature = false;
         AhoCorasickDoubleArrayTrieSegment segment = new AhoCorasickDoubleArrayTrieSegment();
         System.out.println(segment.seg("江西鄱阳湖干枯，中国最大淡水湖变成大草原"));

@@ -1,15 +1,8 @@
 package com.hankcs.hanlp.corpus.synonym;
 
-import com.hankcs.hanlp.dictionary.CoreSynonymDictionary;
-import com.hankcs.hanlp.dictionary.common.CommonSynonymDictionary;
-import com.hankcs.hanlp.dictionary.common.CommonSynonymDictionaryEx;
 import junit.framework.TestCase;
 
-import java.io.FileInputStream;
-import java.util.List;
-
-public class SynonymTest extends TestCase
-{
+public class SynonymTest extends TestCase {
 //    public void testCreate() throws Exception
 //    {
 //        String[] testCaseArray = new String[]

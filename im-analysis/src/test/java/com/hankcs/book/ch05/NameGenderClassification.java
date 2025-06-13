@@ -15,7 +15,8 @@ import com.hankcs.hanlp.model.perceptron.model.LinearModel;
 
 import java.io.IOException;
 
-import static com.hankcs.hanlp.model.perceptron.PerceptronNameGenderClassifierTest.*;
+import static com.hankcs.hanlp.model.perceptron.PerceptronNameGenderClassifierTest.TESTING_SET;
+import static com.hankcs.hanlp.model.perceptron.PerceptronNameGenderClassifierTest.TRAINING_SET;
 
 /**
  * 《自然语言处理入门》5.3 基于感知机的人名性别分类
@@ -26,10 +27,8 @@ import static com.hankcs.hanlp.model.perceptron.PerceptronNameGenderClassifierTe
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class NameGenderClassification
-{
-    public static void main(String[] args) throws IOException
-    {
+public class NameGenderClassification {
+    public static void main(String[] args) throws IOException {
         trainAndEvaluate("简单特征模板", new CheapFeatureClassifier(), false);
         trainAndEvaluate("简单特征模板", new CheapFeatureClassifier(), true);
 
@@ -40,8 +39,7 @@ public class NameGenderClassification
         trainAndEvaluate("复杂特征模板", new RichFeatureClassifier(), true);
     }
 
-    private static void trainAndEvaluate(String template, PerceptronNameGenderClassifier classifier, boolean averagePerceptron) throws IOException
-    {
+    private static void trainAndEvaluate(String template, PerceptronNameGenderClassifier classifier, boolean averagePerceptron) throws IOException {
         String algorithm = averagePerceptron ? "平均感知机算法" : "朴素感知机算法";
         System.out.println("训练集准确率：" + classifier.train(TRAINING_SET, 10, averagePerceptron));
         LinearModel model = classifier.getModel();

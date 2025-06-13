@@ -2,7 +2,10 @@ package com.xy.server.utils;
 
 
 import jakarta.annotation.Resource;
-import org.springframework.data.redis.core.*;
+import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.ListOperations;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -14,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 public final class RedisUtil {
 
     @Resource
-    private RedisTemplate<String,Object> redisTemplate;
+    private RedisTemplate<String, Object> redisTemplate;
 
     // =============================common============================
 
@@ -88,7 +91,7 @@ public final class RedisUtil {
      * @param key 键
      * @return 值
      */
-    public Object  get(String key) {
+    public Object get(String key) {
         return redisTemplate.opsForValue().get(key);
     }
 
@@ -98,7 +101,7 @@ public final class RedisUtil {
      * @param keys 键集合
      * @return 值
      */
-    public  List<Object> batchGet(List<String> keys) {
+    public List<Object> batchGet(List<String> keys) {
         return redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
             for (String key : keys) {
                 connection.get(key.getBytes());
@@ -123,7 +126,7 @@ public final class RedisUtil {
      * @param keys 键集合
      * @return 值
      */
-    public  List<Object> batchGetFromStrings(List<String> keys) {
+    public List<Object> batchGetFromStrings(List<String> keys) {
         return redisTemplate.opsForValue().multiGet(keys);
     }
 
@@ -651,6 +654,4 @@ public final class RedisUtil {
 
     }
 
-    public void set(String code, Map<String, Object> qrCodeInfo, int i, TimeUnit timeUnit) {
-    }
 }

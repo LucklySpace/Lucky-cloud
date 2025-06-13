@@ -3,6 +3,7 @@ package com.xy.auth.service.impl;
 import com.xy.auth.security.exception.AuthenticationFailException;
 import com.xy.auth.service.SmsService;
 import com.xy.auth.utils.RedisUtil;
+import com.xy.response.domain.ResultCode;
 import com.zhenzi.sms.ZhenziSmsClient;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +16,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static com.xy.auth.response.ResultCode.SMS_ERROR;
 
 @Slf4j
 @Service
@@ -84,7 +84,7 @@ public class SmsServiceImpl implements SmsService {
             return client.send(params);
         } catch (Exception e) {
             log.error("短信发送失败，手机号: {}, 错误信息: {}", phone, e.getMessage());
-            throw new AuthenticationFailException(SMS_ERROR);
+            throw new AuthenticationFailException(ResultCode.SMS_ERROR);
         }
     }
 }

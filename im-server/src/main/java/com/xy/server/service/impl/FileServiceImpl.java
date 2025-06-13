@@ -1,7 +1,7 @@
 package com.xy.server.service.impl;
 
+import com.xy.response.domain.ResultCode;
 import com.xy.server.exception.BusinessException;
-import com.xy.server.response.ResultEnum;
 import com.xy.server.service.FileService;
 import com.xy.server.utils.MinioUtil;
 import com.xy.server.utils.MockMultipartFile;
@@ -88,7 +88,7 @@ public class FileServiceImpl implements FileService {
 
         // 大小校验
         if (file.getSize() > 1000 * 1024 * 1024) {
-            throw new BusinessException(ResultEnum.VALIDATE_FAILED);
+            throw new BusinessException(ResultCode.REQUEST_DATA_TOO_LARGE);
         }
 
         String filePath = getFileType(file.getOriginalFilename());
@@ -97,7 +97,7 @@ public class FileServiceImpl implements FileService {
         String fileName = minioUtil.upload(bucketName, filePath, file);
 
         if (StringUtils.isEmpty(fileName)) {
-            throw new BusinessException(ResultEnum.VALIDATE_FAILED);
+            throw new BusinessException(ResultCode.FAIL);
         }
 
         return generUrl(filePath, fileName);

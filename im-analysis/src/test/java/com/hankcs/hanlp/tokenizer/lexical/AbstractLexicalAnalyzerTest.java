@@ -11,25 +11,21 @@ import junit.framework.TestCase;
 import java.io.IOException;
 import java.util.List;
 
-public class AbstractLexicalAnalyzerTest extends TestCase
-{
-    public void testSegment() throws Exception
-    {
+public class AbstractLexicalAnalyzerTest extends TestCase {
+    public void testSegment() throws Exception {
         String[] testCase = new String[]{
-            "北川景子参演了林诣彬导演的《速度与激情3》",
-            "林志玲亮相网友:确定不是波多野结衣？",
-            "龟山千广和近藤公园在龟山公园里喝酒赏花",
+                "北川景子参演了林诣彬导演的《速度与激情3》",
+                "林志玲亮相网友:确定不是波多野结衣？",
+                "龟山千广和近藤公园在龟山公园里喝酒赏花",
         };
         Segment segment = HanLP.newSegment("crf").enableJapaneseNameRecognize(true);
-        for (String sentence : testCase)
-        {
+        for (String sentence : testCase) {
             List<Term> termList = segment.seg(sentence);
             System.out.println(termList);
         }
     }
 
-    public void testCustomDictionary() throws Exception
-    {
+    public void testCustomDictionary() throws Exception {
         LexicalAnalyzer analyzer = new PerceptronLexicalAnalyzer();
         String text = "攻城狮逆袭单身狗，迎娶白富美，走上人生巅峰";
         System.out.println(analyzer.segment(text));
@@ -37,8 +33,7 @@ public class AbstractLexicalAnalyzerTest extends TestCase
         System.out.println(analyzer.segment(text));
     }
 
-    public void testOverwriteTag() throws IOException
-    {
+    public void testOverwriteTag() throws IOException {
         CRFLexicalAnalyzer analyzer = new CRFLexicalAnalyzer();
         String text = "强行修改词性";
         System.out.println(analyzer.seg(text));

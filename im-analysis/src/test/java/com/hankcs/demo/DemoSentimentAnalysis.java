@@ -24,15 +24,21 @@ import java.io.IOException;
  *
  * @author hankcs
  */
-public class DemoSentimentAnalysis
-{
+public class DemoSentimentAnalysis {
     /**
      * 中文情感挖掘语料-ChnSentiCorp 谭松波
      */
     public static final String CORPUS_FOLDER = TestUtility.ensureTestData("ChnSentiCorp情感分析酒店评论", "http://file.hankcs.com/corpus/ChnSentiCorp.zip");
 
-    public static void main(String[] args) throws IOException
-    {
+    static {
+        File corpusFolder = new File(CORPUS_FOLDER);
+        if (!corpusFolder.exists() || !corpusFolder.isDirectory()) {
+            System.err.println("没有文本分类语料，请阅读IClassifier.train(java.lang.String)中定义的语料格式、准备语料");
+            System.exit(1);
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
         IClassifier classifier = new NaiveBayesClassifier(); // 创建分类器，更高级的功能请参考IClassifier的接口定义
         classifier.train(CORPUS_FOLDER);                     // 训练后的模型支持持久化，下次就不必训练了
         predict(classifier, "前台客房服务态度非常好！早餐很丰富，房价很干净。再接再厉！");
@@ -40,18 +46,7 @@ public class DemoSentimentAnalysis
         predict(classifier, "可利用文本分类实现情感分析，效果还行");
     }
 
-    private static void predict(IClassifier classifier, String text)
-    {
+    private static void predict(IClassifier classifier, String text) {
         System.out.printf("《%s》 情感极性是 【%s】\n", text, classifier.classify(text));
-    }
-
-    static
-    {
-        File corpusFolder = new File(CORPUS_FOLDER);
-        if (!corpusFolder.exists() || !corpusFolder.isDirectory())
-        {
-            System.err.println("没有文本分类语料，请阅读IClassifier.train(java.lang.String)中定义的语料格式、准备语料");
-            System.exit(1);
-        }
     }
 }

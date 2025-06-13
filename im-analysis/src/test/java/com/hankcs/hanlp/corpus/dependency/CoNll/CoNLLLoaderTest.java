@@ -1,19 +1,8 @@
 package com.hankcs.hanlp.corpus.dependency.CoNll;
 
-import com.hankcs.hanlp.corpus.dictionary.DictionaryMaker;
-import com.hankcs.hanlp.corpus.dictionary.item.Item;
-import com.hankcs.hanlp.corpus.io.IOUtil;
 import junit.framework.TestCase;
 
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.Set;
-
-public class CoNLLLoaderTest extends TestCase
-{
+public class CoNLLLoaderTest extends TestCase {
 //    public void testConvert() throws Exception
 //    {
 //        LinkedList<CoNLLSentence> coNLLSentences = CoNLLLoader.loadSentenceList("D:\\Doc\\语料库\\依存分析训练数据\\THU\\dev.conll.fixed.txt");

@@ -1,0 +1,169 @@
+<configuration>
+
+    <!-- 应用名称 value 需替换自己的服务名 -->
+    <property name="APP_NAME" value="im-database"/>
+
+    <!--日志文件的保存路径,首先查找系统属性-Dlog.dir,如果存在就使用其；否则，在当前目录下创建名为logs目录做日志存放的目录 -->
+    <property name="LOG_HOME" value="${log.dir:-logs}/${APP_NAME}"/>
+
+    <!-- 时间 -->
+    <timestamp key="datetime" datePattern="yyyy-MM-dd"/>
+
+    <!-- 控制台输出格式 -->
+    <property name="console.log.pattern"
+              value="%red(%d{yyyy-MM-dd HH:mm:ss}) %green([%thread]) %highlight(%-5level) %boldMagenta(%logger{36}%n) - %msg%n"/>
+    <property name="log.pattern" value="%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"/>
+
+    <!-- 控制台输出 -->
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${console.log.pattern}</pattern>
+            <charset>utf-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 控制台输出 -->
+    <appender name="file_console" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- 日志文件名格式 -->
+            <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd}/sys-console.log</fileNamePattern>
+            <!-- 日志最大 1天 -->
+            <maxHistory>1</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${log.pattern}</pattern>
+            <charset>utf-8</charset>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <!-- 过滤的级别 -->
+            <level>INFO</level>
+        </filter>
+    </appender>
+
+    <!-- 系统日志输出 -->
+    <appender name="file_info" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 循环政策：基于时间创建日志文件 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- 日志文件名格式 -->
+            <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd}/sys-info.log</fileNamePattern>
+            <!-- 日志最大的历史 60天 -->
+            <maxHistory>60</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${log.pattern}</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <!-- 过滤的级别 -->
+            <level>INFO</level>
+            <!-- 匹配时的操作：接收（记录） -->
+            <onMatch>ACCEPT</onMatch>
+            <!-- 不匹配时的操作：拒绝（不记录） -->
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <appender name="file_error" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 循环政策：基于时间创建日志文件 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- 日志文件名格式 -->
+            <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd}/sys-error.log</fileNamePattern>
+            <!-- 日志最大的历史 60天 -->
+            <maxHistory>60</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${log.pattern}</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <!-- 过滤的级别 -->
+            <level>ERROR</level>
+            <!-- 匹配时的操作：接收（记录） -->
+            <onMatch>ACCEPT</onMatch>
+            <!-- 不匹配时的操作：拒绝（不记录） -->
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <!-- 为MyBatis SQL日志单独输出日志文件 -->
+    <appender name="file_sql" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd}/sys-sql.log</fileNamePattern> <!-- 文件名格式 -->
+            <maxHistory>30</maxHistory> <!-- 最多保留30天的历史日志 -->
+        </rollingPolicy>
+        <encoder>
+            <pattern>${log.pattern}</pattern> <!-- 文件日志的格式 -->
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>DEBUG</level> <!-- 仅记录DEBUG级别的日志，假设MyBatis日志通常为DEBUG级别 -->
+            <onMatch>ACCEPT</onMatch> <!-- 匹配时接收日志 -->
+            <onMismatch>DENY</onMismatch> <!-- 不匹配时拒绝日志 -->
+        </filter>
+    </appender>
+
+    <!-- info异步输出 -->
+    <appender name="async_info" class="ch.qos.logback.classic.AsyncAppender">
+        <!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 -->
+        <discardingThreshold>0</discardingThreshold>
+        <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
+        <queueSize>512</queueSize>
+        <!-- 添加附加的appender,最多只能添加一个 -->
+        <appender-ref ref="file_info"/>
+    </appender>
+
+    <!-- error异步输出 -->
+    <appender name="async_error" class="ch.qos.logback.classic.AsyncAppender">
+        <!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 -->
+        <discardingThreshold>0</discardingThreshold>
+        <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
+        <queueSize>512</queueSize>
+        <!-- 添加附加的appender,最多只能添加一个 -->
+        <appender-ref ref="file_error"/>
+    </appender>
+
+    <!-- MyBatis SQL日志异步输出 -->
+    <appender name="async_sql" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold> <!-- 不丢失日志 -->
+        <queueSize>512</queueSize> <!-- 增加队列深度，避免日志丢失 -->
+        <appender-ref ref="file_sql"/> <!-- 异步输出SQL日志到file_sql -->
+    </appender>
+
+
+    <!-- 整合 skywalking 控制台输出 tid -->
+    <!--    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">-->
+    <!--        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">-->
+    <!--            <layout class="org.apache.skywalking.apm.toolkit.log.logback.v1.x.TraceIdPatternLogbackLayout">-->
+    <!--                <pattern>[%tid] ${console.log.pattern}</pattern>-->
+    <!--            </layout>-->
+    <!--            <charset>utf-8</charset>-->
+    <!--        </encoder>-->
+    <!--    </appender>-->
+
+    <!-- 整合 skywalking 推送采集日志 -->
+    <!--    <appender name="sky_log" class="org.apache.skywalking.apm.toolkit.log.logback.v1.x.log.GRPCLogClientAppender">-->
+    <!--        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">-->
+    <!--            <layout class="org.apache.skywalking.apm.toolkit.log.logback.v1.x.TraceIdPatternLogbackLayout">-->
+    <!--                <pattern>[%tid] ${console.log.pattern}</pattern>-->
+    <!--            </layout>-->
+    <!--            <charset>utf-8</charset>-->
+    <!--        </encoder>-->
+    <!--    </appender>-->
+
+    <!--系统操作日志-->
+    <root level="info">
+        <appender-ref ref="console"/>
+        <appender-ref ref="async_info"/>
+        <appender-ref ref="async_error"/>
+        <appender-ref ref="file_console"/>
+        <!--        <appender-ref ref="sky_log"/>-->
+    </root>
+
+
+    <!-- 为 MyBatis SQL 配置日志输出 -->
+    <!--    <logger name="org.mybatis" level="DEBUG">-->
+    <!--        <appender-ref ref="async_sql"/> &lt;!&ndash; 将SQL日志输出到sys_sql.log &ndash;&gt;-->
+    <!--    </logger>-->
+
+    <logger name="com.mysql.cj.jdbc " level="DEBUG">
+        <appender-ref ref="async_sql"/> <!-- 将SQL日志输出到sys_sql.log -->
+    </logger>
+
+</configuration>

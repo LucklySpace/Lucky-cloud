@@ -8,48 +8,39 @@ import org.junit.Assert;
 
 import java.util.TreeMap;
 
-public class DoubleArrayTrieTest extends TestCase
-{
-    public void testDatFromFile() throws Exception
-    {
+public class DoubleArrayTrieTest extends TestCase {
+    public void testDatFromFile() throws Exception {
         TreeMap<String, String> map = new TreeMap<String, String>();
         IOUtil.LineIterator iterator = new IOUtil.LineIterator("data/dictionary/CoreNatureDictionary.mini.txt");
-        while (iterator.hasNext())
-        {
+        while (iterator.hasNext()) {
             String line = iterator.next();
             map.put(line, line);
         }
         DoubleArrayTrie<String> trie = new DoubleArrayTrie<String>();
         trie.build(map);
-        for (String key : map.keySet())
-        {
+        for (String key : map.keySet()) {
             assertEquals(key, trie.get(key));
         }
 
         trie.build(map);
-        for (String key : map.keySet())
-        {
+        for (String key : map.keySet()) {
             assertEquals(key, trie.get(key));
         }
     }
 
-    public void testGet() throws Exception
-    {
+    public void testGet() throws Exception {
     }
 
-    public void testLongestSearcher() throws Exception
-    {
+    public void testLongestSearcher() throws Exception {
         TreeMap<String, String> buildFrom = new TreeMap<String, String>();
         String[] keys = new String[]{"he", "her", "his"};
-        for (String key : keys)
-        {
+        for (String key : keys) {
             buildFrom.put(key, key);
         }
         DoubleArrayTrie<String> trie = new DoubleArrayTrie<String>(buildFrom);
         String text = "her3he6his-hers! ";
         DoubleArrayTrie<String>.LongestSearcher searcher = trie.getLongestSearcher(text.toCharArray(), 0);
-        while (searcher.next())
-        {
+        while (searcher.next()) {
 //            System.out.printf("[%d, %d)=%s\n", searcher.begin, searcher.begin + searcher.length, searcher.value);
             assertEquals(searcher.value, text.substring(searcher.begin, searcher.begin + searcher.length));
         }
@@ -86,8 +77,7 @@ public class DoubleArrayTrieTest extends TestCase
         }
     }
 
-    public void testTransmit() throws Exception
-    {
+    public void testTransmit() throws Exception {
         DoubleArrayTrie<CoreDictionary.Attribute> dat = CustomDictionary.DEFAULT.dat;
         int index = dat.transition("钱", 1);
         assertNull(dat.output(index));
@@ -144,30 +134,25 @@ public class DoubleArrayTrieTest extends TestCase
 //        }
 //    }
 
-    public void testHandleEmptyString() throws Exception
-    {
+    public void testHandleEmptyString() throws Exception {
         String emptyString = "";
         DoubleArrayTrie<String> dat = new DoubleArrayTrie<String>();
         TreeMap<String, String> dictionary = new TreeMap<String, String>();
         dictionary.put("bug", "问题");
         dat.build(dictionary);
         DoubleArrayTrie<String>.Searcher searcher = dat.getSearcher(emptyString, 0);
-        while (searcher.next())
-        {
+        while (searcher.next()) {
         }
     }
 
-    public void testIssue966() throws Exception
-    {
+    public void testIssue966() throws Exception {
         TreeMap<String, String> map = new TreeMap<String, String>();
-        for (String word : "001乡道, 北京, 北京市通信公司, 来广营乡, 通州区".split(", "))
-        {
+        for (String word : "001乡道, 北京, 北京市通信公司, 来广营乡, 通州区".split(", ")) {
             map.put(word, word);
         }
         DoubleArrayTrie<String> trie = new DoubleArrayTrie<String>(map);
         DoubleArrayTrie<String>.LongestSearcher searcher = trie.getLongestSearcher("北京市通州区001乡道发生了一件有意思的事情，来广营乡歌舞队正在跳舞", 0);
-        while (searcher.next())
-        {
+        while (searcher.next()) {
             System.out.printf("%d %s\n", searcher.begin, searcher.value);
         }
     }
@@ -175,8 +160,7 @@ public class DoubleArrayTrieTest extends TestCase
     public void testEnableFastBuild() {
         TreeMap<String, String> map = new TreeMap<String, String>();
         IOUtil.LineIterator iterator = new IOUtil.LineIterator("data/dictionary/CoreNatureDictionary.mini.txt");
-        while (iterator.hasNext())
-        {
+        while (iterator.hasNext()) {
             String line = iterator.next();
             map.put(line, line);
         }

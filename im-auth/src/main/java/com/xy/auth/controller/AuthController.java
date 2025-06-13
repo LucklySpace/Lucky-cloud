@@ -4,8 +4,6 @@ package com.xy.auth.controller;
 import cn.hutool.core.date.DateField;
 import com.xy.auth.annotations.count.TakeCount;
 import com.xy.auth.domain.LoginRequest;
-import com.xy.auth.domain.vo.UserVo;
-import com.xy.auth.response.Result;
 import com.xy.auth.security.RSAKeyProperties;
 import com.xy.auth.security.token.MobileAuthenticationToken;
 import com.xy.auth.security.token.QrScanAuthenticationToken;
@@ -14,7 +12,11 @@ import com.xy.auth.service.QrCodeService;
 import com.xy.auth.service.SmsService;
 import com.xy.auth.utils.RSAUtil;
 import com.xy.auth.utils.RedisUtil;
+import com.xy.domain.vo.UserVo;
 import com.xy.imcore.utils.JwtUtil;
+import com.xy.response.domain.Result;
+import com.xy.response.domain.ResultCode;
+import com.xy.security.sign.annotation.Signature;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
@@ -23,6 +25,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -32,6 +35,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -48,7 +52,7 @@ import static com.xy.auth.constant.QrcodeConstant.*;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/{version}/auth")
 @Tag(name = "auth", description = "用户认证")
 public class AuthController {
 
@@ -83,7 +87,9 @@ public class AuthController {
     @Parameters({
             @Parameter(name = "loginRequest", description = "用户登录信息", required = true, in = ParameterIn.DEFAULT)
     })
+    @Signature(verify = false, sign = true)
     public Mono<Result<?>> login(@RequestBody LoginRequest loginRequest) {
+        Locale locale = LocaleContextHolder.getLocale();
         Authentication authentication;
         try {
             switch (loginRequest.getAuthType()) {
@@ -100,16 +106,16 @@ public class AuthController {
                     authentication = authenticationManager.authenticate(new QrScanAuthenticationToken(loginRequest.getPrincipal(), loginRequest.getCredentials()));
                     break;
                 default:
-                    return Mono.just(Result.failed("不支持的认证方式")) ;
+                    // 不支持的认证类型
+                    return Mono.just(Result.failed(ResultCode.UNSUPPORTED_AUTHENTICATION_TYPE));
             }
         } catch (Exception e) {
+            // 身份认证失败
             log.error("Authentication failed", e);
-            return  Mono.just(Result.failed("认证失败"));
+            return Mono.just(Result.failed(ResultCode.AUTHENTICATION_FAILED));
         }
-        return  Mono.just(Result.success(generateTokenByUsername(authentication)));
+        return Mono.just(Result.success(generateTokenByUsername(authentication)));
     }
-
-
 
 
     /**
@@ -131,9 +137,9 @@ public class AuthController {
         String codeToBase64 = codeService.createCodeToBase64(code);
 
         // 将二维码状态信息存储为一个Map 设置3分钟二维码有效期，状态为“待扫描”
-        redisUtil.set(code, Map.of("status", QRCODE_PENDING,"createdAt", System.currentTimeMillis()), 3, TimeUnit.MINUTES);
+        redisUtil.set(code, Map.of("status", QRCODE_PENDING, "createdAt", System.currentTimeMillis()), 3, TimeUnit.MINUTES);
 
-        return  Mono.just(Map.of("qrcode", codeToBase64));
+        return Mono.just(Map.of("qrcode", codeToBase64));
     }
 
     /**
@@ -279,6 +285,23 @@ public class AuthController {
     public Mono<String> passwordEncode(@RequestParam("password") String password) throws Exception {
         return Mono.just(RSAUtil.encrypt(password, rsaKeyProp.getPublicKeyStr()));
     }
+
+    /**
+     * 密码加密
+     *
+     * @param password 密码
+     * @return 加密后的密文
+     * @throws Exception
+     */
+    @PostMapping("/password2")
+    @Operation(summary = "密码加密", tags = {"auth"}, description = "请使用此接口密码加密")
+    @Parameters({
+            @Parameter(name = "password", description = "密码原文", required = true, in = ParameterIn.DEFAULT)
+    })
+    public Mono<String> passwordEncode2(@RequestParam("password") String password,@RequestParam("publicKey") String publicKey) throws Exception {
+        return Mono.just(RSAUtil.encrypt(password, publicKey));
+    }
+
 
     /**
      * 用户是否在线

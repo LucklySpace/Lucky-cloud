@@ -23,10 +23,8 @@ import com.hankcs.hanlp.seg.Viterbi.ViterbiSegment;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class DemoCustomDictionary
-{
-    public static void main(String[] args)
-    {
+public class DemoCustomDictionary {
+    public static void main(String[] args) {
         Segment segment = new ViterbiSegment();
         final String sentence = "社会摇摆简称社会摇";
         segment.enableCustomDictionary(false);

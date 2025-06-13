@@ -20,23 +20,18 @@ import java.util.List;
 /**
  * @author hankcs
  */
-public class SegmentTestCase extends TestCase
-{
+public class SegmentTestCase extends TestCase {
     @SuppressWarnings("deprecation")
-    public static void assertNoNature(List<Term> termList, Nature nature)
-    {
-        for (Term term : termList)
-        {
+    public static void assertNoNature(List<Term> termList, Nature nature) {
+        for (Term term : termList) {
             Assert.assertNotSame(nature, term.nature);
         }
     }
 
     @SuppressWarnings("deprecation")
-    public static void assertSegmentationHas(List<Term> termList, String part)
-    {
+    public static void assertSegmentationHas(List<Term> termList, String part) {
         StringBuilder sbSentence = new StringBuilder();
-        for (Term term : termList)
-        {
+        for (Term term : termList) {
             sbSentence.append(term.word);
         }
         assertFalse(sbSentence.toString().contains(part));

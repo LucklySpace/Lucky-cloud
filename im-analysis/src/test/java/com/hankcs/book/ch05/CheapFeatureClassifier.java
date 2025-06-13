@@ -25,11 +25,9 @@ import java.util.List;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class CheapFeatureClassifier extends PerceptronNameGenderClassifier
-{
+public class CheapFeatureClassifier extends PerceptronNameGenderClassifier {
     @Override
-    protected List<Integer> extractFeature(String text, FeatureMap featureMap)
-    {
+    protected List<Integer> extractFeature(String text, FeatureMap featureMap) {
         List<Integer> featureList = new LinkedList<Integer>();
         String givenName = extractGivenName(text);
         // 特征模板1：g[0]，与位置无关

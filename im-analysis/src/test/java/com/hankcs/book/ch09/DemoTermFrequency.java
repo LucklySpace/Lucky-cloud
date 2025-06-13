@@ -12,7 +12,6 @@ package com.hankcs.book.ch09;
 
 import com.hankcs.hanlp.corpus.occurrence.TermFrequency;
 import com.hankcs.hanlp.mining.word.TermFrequencyCounter;
-import com.hankcs.hanlp.model.perceptron.PerceptronLexicalAnalyzer;
 
 import java.io.IOException;
 
@@ -25,10 +24,8 @@ import java.io.IOException;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class DemoTermFrequency
-{
-    public static void main(String[] args) throws IOException
-    {
+public class DemoTermFrequency {
+    public static void main(String[] args) throws IOException {
         TermFrequencyCounter counter = new TermFrequencyCounter();
 //        counter.getSegment().enableIndexMode(true);
 //        counter.setSegment(new PerceptronLexicalAnalyzer().enableIndexMode(true));

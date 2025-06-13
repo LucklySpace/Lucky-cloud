@@ -22,10 +22,8 @@ import java.io.IOException;
  *
  * @author hankcs
  */
-public class DemoUseAhoCorasickDoubleArrayTrieSegment
-{
-    public static void main(String[] args) throws IOException
-    {
+public class DemoUseAhoCorasickDoubleArrayTrieSegment {
+    public static void main(String[] args) throws IOException {
         // AhoCorasickDoubleArrayTrieSegment要求用户必须提供自己的词典路径
         AhoCorasickDoubleArrayTrieSegment segment = new AhoCorasickDoubleArrayTrieSegment(HanLP.Config.CustomDictionaryPath[0]);
         System.out.println(segment.seg("微观经济学继续教育循环经济"));

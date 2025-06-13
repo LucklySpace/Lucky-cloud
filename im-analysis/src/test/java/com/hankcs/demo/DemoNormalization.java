@@ -20,10 +20,8 @@ import com.hankcs.hanlp.dictionary.CustomDictionary;
  *
  * @author hankcs
  */
-public class DemoNormalization
-{
-    public static void main(String[] args)
-    {
+public class DemoNormalization {
+    public static void main(String[] args) {
         HanLP.Config.Normalization = true;
         CustomDictionary.insert("爱听4G", "nz 1000");
         System.out.println(HanLP.segment("爱听4g"));

@@ -1,6 +1,6 @@
 package com.xy.server.exception;
 
-import com.xy.server.response.ResultEnum;
+import com.xy.response.domain.ResultCode;
 
 public class BusinessException extends RuntimeException {
 
@@ -8,7 +8,7 @@ public class BusinessException extends RuntimeException {
 
     private String message;
 
-    public BusinessException(ResultEnum resultEnum) {
+    public BusinessException(ResultCode resultEnum) {
         this.code = resultEnum.getCode();
         this.message = resultEnum.getMessage();
     }

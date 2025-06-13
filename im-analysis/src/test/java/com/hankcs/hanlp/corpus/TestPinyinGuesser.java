@@ -11,19 +11,12 @@
  */
 package com.hankcs.hanlp.corpus;
 
-import com.hankcs.hanlp.HanLP;
-import com.hankcs.hanlp.dictionary.py.Pinyin;
-import com.hankcs.hanlp.dictionary.py.PinyinDictionary;
-import com.hankcs.hanlp.dictionary.py.PinyinUtil;
-import com.hankcs.hanlp.dictionary.py.String2PinyinConverter;
-import com.hankcs.hanlp.utility.TextUtility;
 import junit.framework.TestCase;
 
 /**
  * @author hankcs
  */
-public class TestPinyinGuesser extends TestCase
-{
+public class TestPinyinGuesser extends TestCase {
 //    public void testGuess() throws Exception
 //    {
 //        System.out.println(String2PinyinConverter.convert2Pair("飞流zh下sqianch！", true));

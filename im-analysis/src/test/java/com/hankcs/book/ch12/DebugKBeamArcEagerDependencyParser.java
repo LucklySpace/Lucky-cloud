@@ -27,10 +27,8 @@ import java.io.IOException;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class DebugKBeamArcEagerDependencyParser
-{
-    public static void main(String[] args) throws IOException, ClassNotFoundException
-    {
+public class DebugKBeamArcEagerDependencyParser {
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
         IDependencyParser parser = new KBeamArcEagerDependencyParser();
         CoNLLSentence sentence = parser.parse("人吃鱼");
         System.out.println(sentence);

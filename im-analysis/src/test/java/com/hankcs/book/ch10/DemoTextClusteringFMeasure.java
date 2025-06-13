@@ -20,6 +20,5 @@ package com.hankcs.book.ch10;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class DemoTextClusteringFMeasure extends com.hankcs.demo.DemoTextClusteringFMeasure
-{
+public class DemoTextClusteringFMeasure extends com.hankcs.demo.DemoTextClusteringFMeasure {
 }

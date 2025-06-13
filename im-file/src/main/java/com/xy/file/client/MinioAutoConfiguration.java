@@ -1,7 +1,6 @@
 package com.xy.file.client;
 
 import io.minio.MinioAsyncClient;
-import io.minio.MinioClient;
 import jakarta.annotation.Resource;
 import okhttp3.ConnectionPool;
 import okhttp3.Dispatcher;

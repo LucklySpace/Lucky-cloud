@@ -1,33 +1,24 @@
 package com.hankcs.hanlp.dictionary.other;
 
-import com.hankcs.hanlp.HanLP;
-import com.hankcs.hanlp.corpus.io.IOUtil;
 import junit.framework.TestCase;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-public class CharTableTest extends TestCase
-{
-    public void testNormalization() throws Exception
-    {
+public class CharTableTest extends TestCase {
+    public void testNormalization() throws Exception {
         System.out.println(CharTable.convert('？'));
         assertEquals('(', CharTable.convert('（'));
     }
 
-    public void testNormalizeSpace() throws Exception
-    {
+    public void testNormalizeSpace() throws Exception {
         assertEquals(CharTable.convert('\t'), ' ');
         assertEquals(CharTable.convert('\n'), ' ');
         assertEquals(CharTable.convert('\f'), ' ');
     }
 
-    public void testIssue1615()
-    {
+    public void testIssue1615() {
         new File("data/dictionary/other/CharTable.txt.bin").delete();
         Map<String, String> normalizationBadCase = new HashMap<String, String>();
         normalizationBadCase.put("猛", "猛");
@@ -42,8 +33,7 @@ public class CharTableTest extends TestCase
         normalizationBadCase.put("糸", "丝");
         normalizationBadCase.put("乾", "乾");
         normalizationBadCase.put("艸", "草");
-        for (Map.Entry<String, String> entry : normalizationBadCase.entrySet())
-        {
+        for (Map.Entry<String, String> entry : normalizationBadCase.entrySet()) {
             String input = entry.getKey();
             String result = CharTable.convert(input);
             String expected = entry.getValue();

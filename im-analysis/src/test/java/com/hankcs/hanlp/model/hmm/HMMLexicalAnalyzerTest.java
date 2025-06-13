@@ -3,13 +3,11 @@ package com.hankcs.hanlp.model.hmm;
 import com.hankcs.hanlp.corpus.PKU;
 import junit.framework.TestCase;
 
-public class HMMLexicalAnalyzerTest extends TestCase
-{
+public class HMMLexicalAnalyzerTest extends TestCase {
 
     public static final String CORPUS_PATH = PKU.PKU199801_TRAIN;
 
-    public void testTrain() throws Exception
-    {
+    public void testTrain() throws Exception {
         HMMSegmenter segmenter = new HMMSegmenter();
         segmenter.train(CORPUS_PATH);
         HMMPOSTagger tagger = new HMMPOSTagger();

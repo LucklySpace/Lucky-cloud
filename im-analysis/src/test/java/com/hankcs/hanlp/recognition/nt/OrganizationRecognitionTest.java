@@ -1,20 +1,8 @@
 package com.hankcs.hanlp.recognition.nt;
 
-import com.hankcs.hanlp.HanLP;
-import com.hankcs.hanlp.corpus.dictionary.DictionaryMaker;
-import com.hankcs.hanlp.corpus.dictionary.item.Item;
-import com.hankcs.hanlp.corpus.io.IOUtil;
-import com.hankcs.hanlp.dictionary.CoreDictionary;
-import com.hankcs.hanlp.dictionary.common.CommonStringDictionary;
-import com.hankcs.hanlp.seg.Dijkstra.DijkstraSegment;
-import com.hankcs.hanlp.utility.LexiconUtility;
 import junit.framework.TestCase;
 
-import java.util.Map;
-import java.util.Set;
-
-public class OrganizationRecognitionTest extends TestCase
-{
+public class OrganizationRecognitionTest extends TestCase {
 //    public void testSeg() throws Exception
 //    {
 //        HanLP.Config.enableDebug();

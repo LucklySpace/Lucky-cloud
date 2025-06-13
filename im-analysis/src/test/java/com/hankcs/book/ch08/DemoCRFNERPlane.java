@@ -29,10 +29,8 @@ import static com.hankcs.book.ch08.DemoPlane.PLANE_MODEL;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class DemoCRFNERPlane
-{
-    public static void main(String[] args) throws IOException
-    {
+public class DemoCRFNERPlane {
+    public static void main(String[] args) throws IOException {
         NERecognizer recognizer = train(PLANE_CORPUS, PLANE_MODEL);
         String[] wordArray = {"歼", "-", "7", "战斗机", "正是", "仿照", "米格", "-", "21", "而", "制", "。"}; // 构造单词序列
         String[] posArray = {"v", "w", "w", "n", "d", "v", "nr", "w", "m", "c", "v", "w"}; // 构造词性序列
@@ -41,8 +39,7 @@ public class DemoCRFNERPlane
             System.out.printf("%-4s\t%s\t%s\t\n", wordArray[i], posArray[i], nerTagArray[i]);
     }
 
-    public static NERecognizer train(String corpus, String model) throws IOException
-    {
+    public static NERecognizer train(String corpus, String model) throws IOException {
         if (IOUtil.isFileExisted(model + ".txt")) // 若存在CRF++训练结果，则直接加载
             return new CRFNERecognizer(model + ".txt");
         CRFNERecognizer recognizer = new CRFNERecognizer(null); // 空白

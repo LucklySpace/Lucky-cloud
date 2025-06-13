@@ -25,10 +25,8 @@ import java.io.IOException;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class DemoDoubleArrayTrieSegment
-{
-    public static void main(String[] args) throws IOException
-    {
+public class DemoDoubleArrayTrieSegment {
+    public static void main(String[] args) throws IOException {
         HanLP.Config.ShowTermNature = false; // 分词结果不显示词性
         // 默认加载配置文件指定的 CoreDictionaryPath
         DoubleArrayTrieSegment segment = new DoubleArrayTrieSegment();
@@ -43,8 +41,7 @@ public class DemoDoubleArrayTrieSegment
         HanLP.Config.ShowTermNature = true;         // 顺便观察一下词性
         System.out.println(segment.seg("上海市虹口区大连西路550号SISU"));
 
-        for (Term term : segment.seg("上海市虹口区大连西路550号SISU"))
-        {
+        for (Term term : segment.seg("上海市虹口区大连西路550号SISU")) {
             System.out.printf("单词:%s 词性:%s\n", term.word, term.nature);
         }
     }

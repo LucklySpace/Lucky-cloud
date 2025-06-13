@@ -9,6 +9,7 @@ import org.springframework.cloud.loadbalancer.core.NoopServiceInstanceListSuppli
 import org.springframework.cloud.loadbalancer.core.ReactorServiceInstanceLoadBalancer;
 import org.springframework.cloud.loadbalancer.core.SelectedInstanceCallback;
 import org.springframework.cloud.loadbalancer.core.ServiceInstanceListSupplier;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
@@ -22,9 +23,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
- *
  * 自定义 im-connect 长连接服务的负载均衡
- *
+ * <p>
  * 自定义负载均衡实现需要实现 ReactorServiceInstanceLoadBalancer 接口 以及重写choose方法
  * 主类定义：
  * 自定义负载均衡处理类，只针对转发地址为im-connect的请求生效
@@ -50,9 +50,9 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
 
     private final ObjectProvider<ServiceInstanceListSupplier> serviceInstanceListSupplierProvider;
 
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final ReactiveRedisTemplate<String, Object> redisTemplate;
 
-    public NacosWebsocketClusterChooseRule(ObjectProvider<ServiceInstanceListSupplier> serviceInstanceListSupplierProvider, RedisTemplate<String, Object> redisTemplate) {
+    public NacosWebsocketClusterChooseRule(ObjectProvider<ServiceInstanceListSupplier> serviceInstanceListSupplierProvider, ReactiveRedisTemplate<String, Object> redisTemplate) {
         this.serviceInstanceListSupplierProvider = serviceInstanceListSupplierProvider;
         this.redisTemplate = redisTemplate;
     }
@@ -160,6 +160,7 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
                 .orElseThrow(() -> new IllegalStateException("找不到合适的服务实例"));
 
         log.info("选择的服务器为：{}，连接数为：{}", leastConnectionInstance.getMetadata().get(IM_BROKER), getConnectionCount(leastConnectionInstance));
+
         return new DefaultResponse(leastConnectionInstance);
     }
 
@@ -188,7 +189,7 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
      */
     private String getUserBroker(String uid) {
         try {
-            Object userObj = redisTemplate.opsForValue().get(IM_USER_PREFIX + uid);
+            Object userObj = redisTemplate.opsForValue().get(IM_USER_PREFIX + uid).toFuture().get();
             return userObj != null ? ((LinkedHashMap<?, ?>) userObj).get(IM_BROKER).toString() : null;
         } catch (Exception e) {
             log.error("Redis 获取 broker 出错，UID: {}", uid, e);

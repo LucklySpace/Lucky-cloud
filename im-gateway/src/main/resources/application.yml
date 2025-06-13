@@ -72,6 +72,11 @@ spring:
             # 去除一个前缀
             - StripPrefix=1
 
+        - id: im-generator  # id生成服务
+          uri: lb://im-generator
+          predicates:
+            - Path=/gen/**
+
 
 # TODO: log settings
 logging:

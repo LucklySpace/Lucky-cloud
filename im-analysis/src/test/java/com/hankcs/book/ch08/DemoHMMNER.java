@@ -16,7 +16,6 @@ import com.hankcs.hanlp.model.perceptron.PerceptronPOSTagger;
 import com.hankcs.hanlp.model.perceptron.PerceptronSegmenter;
 import com.hankcs.hanlp.model.perceptron.utility.Utility;
 import com.hankcs.hanlp.tokenizer.lexical.AbstractLexicalAnalyzer;
-import com.hankcs.hanlp.tokenizer.lexical.LexicalAnalyzer;
 import com.hankcs.hanlp.tokenizer.lexical.NERecognizer;
 
 import java.io.IOException;
@@ -31,23 +30,19 @@ import java.util.Map;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class DemoHMMNER
-{
-    public static void main(String[] args) throws IOException
-    {
+public class DemoHMMNER {
+    public static void main(String[] args) throws IOException {
         NERecognizer recognizer = train(PKU.PKU199801_TRAIN);
         test(recognizer);
     }
 
-    public static NERecognizer train(String corpus) throws IOException
-    {
+    public static NERecognizer train(String corpus) throws IOException {
         HMMNERecognizer recognizer = new HMMNERecognizer();
         recognizer.train(corpus); // data/test/pku98/199801-train.txt
         return recognizer;
     }
 
-    public static void test(NERecognizer recognizer) throws IOException
-    {
+    public static void test(NERecognizer recognizer) throws IOException {
         String[] wordArray = {"华北", "电力", "公司"}; // 构造单词序列
         String[] posArray = {"ns", "n", "n"}; // 构造词性序列
         String[] nerTagArray = recognizer.recognize(wordArray, posArray); // 序列标注

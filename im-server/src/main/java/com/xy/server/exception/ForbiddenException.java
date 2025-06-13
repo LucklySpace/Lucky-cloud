@@ -1,6 +1,6 @@
 package com.xy.server.exception;
 
-import com.xy.server.response.ResultEnum;
+import com.xy.response.domain.ResultCode;
 
 public class ForbiddenException extends RuntimeException {
 
@@ -8,7 +8,7 @@ public class ForbiddenException extends RuntimeException {
 
     private String message;
 
-    public ForbiddenException(ResultEnum resultEnum) {
+    public ForbiddenException(ResultCode resultEnum) {
         this.code = resultEnum.getCode();
         this.message = resultEnum.getMessage();
     }

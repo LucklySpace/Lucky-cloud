@@ -22,6 +22,5 @@ import com.hankcs.demo.DemoWord2Vec;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class DemoTrainWord2Vec extends DemoWord2Vec
-{
+public class DemoTrainWord2Vec extends DemoWord2Vec {
 }

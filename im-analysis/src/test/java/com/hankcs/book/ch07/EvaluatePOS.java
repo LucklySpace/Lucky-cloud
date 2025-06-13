@@ -34,24 +34,20 @@ import java.io.IOException;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class EvaluatePOS
-{
-    static HMMPOSTagger trainHMM(String corpus, HiddenMarkovModel model) throws IOException
-    {
+public class EvaluatePOS {
+    static HMMPOSTagger trainHMM(String corpus, HiddenMarkovModel model) throws IOException {
         HMMPOSTagger tagger = new HMMPOSTagger(model);
         tagger.train(corpus);
         return tagger;
     }
 
-    static PerceptronPOSTagger trainPerceptronPOS(String corpus) throws IOException
-    {
+    static PerceptronPOSTagger trainPerceptronPOS(String corpus) throws IOException {
         PerceptronTrainer trainer = new POSTrainer();
         LinearModel model = trainer.train(corpus, File.createTempFile("hanlp", "pos.bin").getAbsolutePath()).getModel();
         return new PerceptronPOSTagger(model);
     }
 
-    static CRFPOSTagger trainCRFPOS(String corpus) throws IOException
-    {
+    static CRFPOSTagger trainCRFPOS(String corpus) throws IOException {
         CRFPOSTagger tagger = new CRFPOSTagger(null);
         String modelPath = "data/test/pku98/pos.bin";
         tagger.train(corpus, modelPath);
@@ -60,8 +56,7 @@ public class EvaluatePOS
         return new CRFPOSTagger(modelPath);
     }
 
-    public static void main(String[] args) throws IOException
-    {
+    public static void main(String[] args) throws IOException {
         System.out.printf("一阶HMM\t%.2f%%\n", PosTagUtil.evaluate(trainHMM(PKU.PKU199801_TRAIN, new FirstOrderHiddenMarkovModel()), PKU.PKU199801_TEST));
         System.out.printf("二阶HMM\t%.2f%%\n", PosTagUtil.evaluate(trainHMM(PKU.PKU199801_TRAIN, new SecondOrderHiddenMarkovModel()), PKU.PKU199801_TEST));
         System.out.printf("感知机\t%.2f%%\n", PosTagUtil.evaluate(trainPerceptronPOS(PKU.PKU199801_TRAIN), PKU.PKU199801_TEST));

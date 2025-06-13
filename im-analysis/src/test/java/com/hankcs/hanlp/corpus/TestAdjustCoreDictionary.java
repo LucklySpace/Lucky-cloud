@@ -11,28 +11,14 @@
  */
 package com.hankcs.hanlp.corpus;
 
-import com.hankcs.hanlp.HanLP;
-import com.hankcs.hanlp.corpus.dictionary.DictionaryMaker;
-import com.hankcs.hanlp.corpus.dictionary.EasyDictionary;
-import com.hankcs.hanlp.corpus.dictionary.TFDictionary;
-import com.hankcs.hanlp.corpus.dictionary.item.Item;
-import com.hankcs.hanlp.corpus.document.CorpusLoader;
-import com.hankcs.hanlp.corpus.document.Document;
-import com.hankcs.hanlp.corpus.document.sentence.word.CompoundWord;
-import com.hankcs.hanlp.corpus.document.sentence.word.IWord;
-import com.hankcs.hanlp.corpus.occurrence.TermFrequency;
-import com.hankcs.hanlp.corpus.util.CorpusUtil;
 import junit.framework.TestCase;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * 往核心词典里补充等效词串
+ *
  * @author hankcs
  */
-public class TestAdjustCoreDictionary extends TestCase
-{
+public class TestAdjustCoreDictionary extends TestCase {
 
 //    public static final String DATA_DICTIONARY_CORE_NATURE_DICTIONARY_TXT = HanLP.Config.CoreDictionaryPath;
 //

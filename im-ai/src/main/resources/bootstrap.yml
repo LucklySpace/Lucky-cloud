@@ -5,7 +5,7 @@ spring:
     name: im-ai
   profiles:
     # 环境配置
-    active: dev
+    active: ${APP_PROFILES_ACTIVE:dev}
   cloud:
     sentinel:
       # 取消控制台懒加载

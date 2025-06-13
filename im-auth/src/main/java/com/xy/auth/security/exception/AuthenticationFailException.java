@@ -1,6 +1,6 @@
 package com.xy.auth.security.exception;
 
-import com.xy.auth.response.ResultCode;
+import com.xy.response.domain.ResultCode;
 import org.springframework.security.core.AuthenticationException;
 
 public class AuthenticationFailException extends AuthenticationException {
@@ -16,7 +16,7 @@ public class AuthenticationFailException extends AuthenticationException {
     }
 
     public AuthenticationFailException(ResultCode resultCode) {
-        super(resultCode.getEn());
+        super(resultCode.getMessage());
         this.resultCode = resultCode;
     }
 

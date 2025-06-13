@@ -25,13 +25,11 @@ import java.io.IOException;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class DemoPlane
-{
+public class DemoPlane {
     static String PLANE_CORPUS = TestUtility.ensureTestData("plane-re", "http://file.hankcs.com/corpus/plane-re.zip") + "/train.txt";
     static String PLANE_MODEL = PLANE_CORPUS.replace("train.txt", "model.bin");
 
-    public static void main(String[] args) throws IOException
-    {
+    public static void main(String[] args) throws IOException {
         NERTrainer trainer = new NERTrainer();
         trainer.tagSet.nerLabels.clear(); // 不识别nr、ns、nt
         trainer.tagSet.nerLabels.add("np"); // 目标是识别np
@@ -42,5 +40,6 @@ public class DemoPlane
         PerceptronLexicalAnalyzer analyzer = new PerceptronLexicalAnalyzer(segmenter, new PerceptronPOSTagger(), recognizer);
         analyzer.enableTranslatedNameRecognize(false).enableCustomDictionary(false);
         System.out.println(analyzer.analyze("米高扬设计米格-17PF：米格-17PF型战斗机比米格-17P性能更好。"));
-        System.out.println(analyzer.analyze("米格-阿帕奇-666S横空出世。"));    }
+        System.out.println(analyzer.analyze("米格-阿帕奇-666S横空出世。"));
+    }
 }

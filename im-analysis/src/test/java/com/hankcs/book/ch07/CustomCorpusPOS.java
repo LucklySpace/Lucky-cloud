@@ -28,8 +28,7 @@ import static com.hankcs.book.ch07.EvaluatePOS.trainPerceptronPOS;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class CustomCorpusPOS
-{
+public class CustomCorpusPOS {
     /**
      * 诛仙语料库
      * Zhang, Meishan and Zhang, Yue and Che, Wanxiang and Liu, Ting
@@ -37,8 +36,7 @@ public class CustomCorpusPOS
      */
     public static final String ZHUXIAN = TestUtility.ensureTestData("zhuxian", "http://file.hankcs.com/corpus/zhuxian.zip") + "/train.txt";
 
-    public static void main(String[] args) throws IOException
-    {
+    public static void main(String[] args) throws IOException {
         PerceptronPOSTagger posTagger = trainPerceptronPOS(ZHUXIAN); // 训练
         AbstractLexicalAnalyzer analyzer = new AbstractLexicalAnalyzer(new PerceptronSegmenter(), posTagger); // 包装
         System.out.println(analyzer.analyze("陆雪琪的天琊神剑不做丝毫退避，直冲而上，瞬间，这两道奇光异宝撞到了一起。")); // 分词+标注

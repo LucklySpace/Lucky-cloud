@@ -24,10 +24,8 @@ import java.io.IOException;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class CustomPOS
-{
-    public static void main(String[] args) throws IOException
-    {
+public class CustomPOS {
+    public static void main(String[] args) throws IOException {
         CustomDictionary.insert("苹果", "手机品牌 1");
         CustomDictionary.insert("iPhone X", "手机型号 1");
         PerceptronLexicalAnalyzer analyzer = new PerceptronLexicalAnalyzer();

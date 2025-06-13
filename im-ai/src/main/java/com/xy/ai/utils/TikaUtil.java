@@ -10,12 +10,6 @@ import org.apache.tika.sax.BodyContentHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 /**
  * 文件内容提取工具
  */

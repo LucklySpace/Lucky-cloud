@@ -11,6 +11,11 @@
 
     <modules>
         <module>im-core</module>
+        <module>im-domain</module>
+        <module>im-utils</module>
+        <module>im-spring</module>
+        <module>im-security</module>
+        <module>im-general</module>
     </modules>
 
     <properties>
@@ -22,8 +27,10 @@
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
+        <spring-boot.version>3.2.0</spring-boot.version>
 
-        <lombok.version>1.18.30</lombok.version>
+        <mybatis-plus-spring.version>3.5.11</mybatis-plus-spring.version>
+        <lombok.version>1.18.34</lombok.version>
         <netty.version>4.1.86.Final</netty.version>
         <mysql.version>8.0.16</mysql.version>
         <slf4j.version>1.7.25</slf4j.version>
@@ -31,7 +38,10 @@
         <hutool.version>5.8.25</hutool.version>
         <redis.version>4.2.3</redis.version>
         <jackson.version>2.15.2</jackson.version>
+        <commons.lang3.version>3.9</commons.lang3.version>
+        <commons.io.version>2.11.0</commons.io.version>
         <jakarta-validation.version>3.0.2</jakarta-validation.version>
+        <logback.version>1.2.3</logback.version>
     </properties>
 
 
@@ -50,6 +60,37 @@
             <version>${jakarta-validation.version}</version>
         </dependency>
 
+        <!-- 引入jackson依赖包-->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>${commons.io.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>${commons.lang3.version}</version>
+        </dependency>
+
         <!--  lombok-->
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -57,27 +98,29 @@
             <version>${lombok.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+
     </dependencies>
 
     <build>
         <plugins>
             <!-- 原生编译支持 -->
-            <plugin>
-                <groupId>org.graalvm.buildtools</groupId>
-                <artifactId>native-maven-plugin</artifactId>
-            </plugin>
+            <!--            <plugin>-->
+            <!--                <groupId>org.graalvm.buildtools</groupId>-->
+            <!--                <artifactId>native-maven-plugin</artifactId>-->
+            <!--            </plugin>-->
 
             <!-- Spring Boot Maven 插件 -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>repackage</goal>
-                        </goals>
-                    </execution>
-                </executions>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
             </plugin>
         </plugins>
     </build>

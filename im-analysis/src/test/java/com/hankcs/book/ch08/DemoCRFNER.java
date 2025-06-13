@@ -29,16 +29,13 @@ import static com.hankcs.book.ch08.DemoHMMNER.test;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class DemoCRFNER
-{
-    public static void main(String[] args) throws IOException
-    {
+public class DemoCRFNER {
+    public static void main(String[] args) throws IOException {
         NERecognizer recognizer = train(PKU.PKU199801_TRAIN, PKU.NER_MODEL);
         test(recognizer);
     }
 
-    public static NERecognizer train(String corpus, String model) throws IOException
-    {
+    public static NERecognizer train(String corpus, String model) throws IOException {
         if (IOUtil.isFileExisted(model + ".txt")) // 若存在CRF++训练结果，则直接加载
             return new CRFNERecognizer(model + ".txt");
         CRFNERecognizer recognizer = new CRFNERecognizer(null); // 空白

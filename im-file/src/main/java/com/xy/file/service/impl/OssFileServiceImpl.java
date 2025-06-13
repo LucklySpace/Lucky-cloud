@@ -34,7 +34,7 @@ public class OssFileServiceImpl implements OssFileService {
 
     /**
      * 获取文件上传进度
-     * 
+     *
      * @param identifier 文件唯一标识
      * @return 文件上传进度信息
      */
@@ -71,9 +71,9 @@ public class OssFileServiceImpl implements OssFileService {
 
     /**
      * 初始化分片上传
-     * 
+     *
      * @param reqOssFile 文件信息对象
-     * @return 上传初始化结果,包含uploadId和预签名URL
+     * @return 上传初始化结果, 包含uploadId和预签名URL
      */
     @Override
     public ResponseResult initMultiPartUpload(OssFile reqOssFile) {
@@ -141,6 +141,7 @@ public class OssFileServiceImpl implements OssFileService {
 
     /**
      * 获取文件信息
+     *
      * @param identifier
      * @return
      */

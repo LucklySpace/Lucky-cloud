@@ -24,23 +24,18 @@ import java.io.IOException;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class CrfppTrainHanLPLoad
-{
+public class CrfppTrainHanLPLoad {
     public static final String TXT_CORPUS_PATH = "data/test/my_cws_corpus.txt";
     public static final String TSV_CORPUS_PATH = TXT_CORPUS_PATH + ".tsv";
     public static final String TEMPLATE_PATH = "data/test/cws-template.txt";
     public static final String CRF_MODEL_PATH = "data/test/crf-cws-model";
     public static final String CRF_MODEL_TXT_PATH = "data/test/crf-cws-model.txt";
 
-    public static void main(String[] args) throws IOException
-    {
-        if (IOUtil.isFileExisted(CRF_MODEL_TXT_PATH))
-        {
+    public static void main(String[] args) throws IOException {
+        if (IOUtil.isFileExisted(CRF_MODEL_TXT_PATH)) {
             CRFSegmenter segmenter = new CRFSegmenter(CRF_MODEL_TXT_PATH);
             System.out.println(segmenter.segment("商品和服务"));
-        }
-        else
-        {
+        } else {
             CRFSegmenter segmenter = new CRFSegmenter(null); // 创建空白分词器
             segmenter.convertCorpus(TXT_CORPUS_PATH, TSV_CORPUS_PATH); // 执行转换
             segmenter.dumpTemplate(TEMPLATE_PATH);

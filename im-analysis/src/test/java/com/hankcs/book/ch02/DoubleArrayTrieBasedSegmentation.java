@@ -15,7 +15,6 @@ import com.hankcs.hanlp.collection.trie.DoubleArrayTrie;
 import com.hankcs.hanlp.corpus.io.IOUtil;
 import com.hankcs.hanlp.dictionary.CoreDictionary;
 
-
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
@@ -30,22 +29,18 @@ import java.util.TreeMap;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class DoubleArrayTrieBasedSegmentation
-{
-    public static void main(String[] args) throws IOException
-    {
+public class DoubleArrayTrieBasedSegmentation {
+    public static void main(String[] args) throws IOException {
         testTinyDAT();
         testSpeed();
     }
 
-    public static void testTinyDAT()
-    {
+    public static void testTinyDAT() {
         TreeMap<String, String> tinyDictionary = createTinyTreeMap();
         DoubleArrayTrie<String> dat = new DoubleArrayTrie<String>(tinyDictionary);
     }
 
-    public static TreeMap<String, String> createTinyTreeMap()
-    {
+    public static TreeMap<String, String> createTinyTreeMap() {
         TreeMap<String, String> tinyDictionary = new TreeMap<String, String>();
         tinyDictionary.put("自然", "'nature'");
         tinyDictionary.put("自然人", "human");
@@ -55,11 +50,10 @@ public class DoubleArrayTrieBasedSegmentation
         return tinyDictionary;
     }
 
-    public static void testSpeed() throws IOException
-    {
+    public static void testSpeed() throws IOException {
         // 加载词典
         TreeMap<String, CoreDictionary.Attribute> dictionary =
-            IOUtil.loadDictionary("data/dictionary/CoreNatureDictionary.mini.txt");
+                IOUtil.loadDictionary("data/dictionary/CoreNatureDictionary.mini.txt");
         DoubleArrayTrie<CoreDictionary.Attribute> dat = new DoubleArrayTrie<CoreDictionary.Attribute>(dictionary);
 
         String text = "江西鄱阳湖干枯，中国最大淡水湖变成大草原";
@@ -70,8 +64,7 @@ public class DoubleArrayTrieBasedSegmentation
         System.out.println("===DoubleArrayTrie接口===");
         System.out.println("完全切分");
         start = System.currentTimeMillis();
-        for (int i = 0; i < pressure; ++i)
-        {
+        for (int i = 0; i < pressure; ++i) {
             segmentFully(text, dat);
         }
         costTime = (System.currentTimeMillis() - start) / (double) 1000;
@@ -79,8 +72,7 @@ public class DoubleArrayTrieBasedSegmentation
 
         System.out.println("正向最长");
         start = System.currentTimeMillis();
-        for (int i = 0; i < pressure; ++i)
-        {
+        for (int i = 0; i < pressure; ++i) {
             segmentForwardLongest(text, dat);
         }
         costTime = (System.currentTimeMillis() - start) / (double) 1000;
@@ -94,14 +86,11 @@ public class DoubleArrayTrieBasedSegmentation
      * @param dictionary 词典
      * @return 单词列表
      */
-    public static List<String> segmentFully(final String text, DoubleArrayTrie<CoreDictionary.Attribute> dictionary)
-    {
+    public static List<String> segmentFully(final String text, DoubleArrayTrie<CoreDictionary.Attribute> dictionary) {
         final List<String> wordList = new LinkedList<String>();
-        dictionary.parseText(text, new AhoCorasickDoubleArrayTrie.IHit<CoreDictionary.Attribute>()
-        {
+        dictionary.parseText(text, new AhoCorasickDoubleArrayTrie.IHit<CoreDictionary.Attribute>() {
             @Override
-            public void hit(int begin, int end, CoreDictionary.Attribute value)
-            {
+            public void hit(int begin, int end, CoreDictionary.Attribute value) {
                 wordList.add(text.substring(begin, end));
             }
         });
@@ -115,14 +104,11 @@ public class DoubleArrayTrieBasedSegmentation
      * @param dictionary 词典
      * @return 单词列表
      */
-    public static List<String> segmentForwardLongest(final String text, DoubleArrayTrie<CoreDictionary.Attribute> dictionary)
-    {
+    public static List<String> segmentForwardLongest(final String text, DoubleArrayTrie<CoreDictionary.Attribute> dictionary) {
         final List<String> wordList = new LinkedList<String>();
-        dictionary.parseLongestText(text, new AhoCorasickDoubleArrayTrie.IHit<CoreDictionary.Attribute>()
-        {
+        dictionary.parseLongestText(text, new AhoCorasickDoubleArrayTrie.IHit<CoreDictionary.Attribute>() {
             @Override
-            public void hit(int begin, int end, CoreDictionary.Attribute value)
-            {
+            public void hit(int begin, int end, CoreDictionary.Attribute value) {
                 wordList.add(text.substring(begin, end));
             }
         });

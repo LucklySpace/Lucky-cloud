@@ -22,17 +22,14 @@ import java.io.IOException;
 /**
  * @author hankcs
  */
-public class DemoNRF
-{
-    public static void main(String[] args) throws IOException
-    {
+public class DemoNRF {
+    public static void main(String[] args) throws IOException {
         HanLP.Config.enableDebug();
         String sentence = "我知道卡利斯勒出生于英格兰";
         Segment segment = new DijkstraSegment().enableTranslatedNameRecognize(true);
         System.out.println(segment.seg(sentence));
 
-        if (CoreBiGramTableDictionary.getBiFrequency("未##人", "出生于") == 0)
-        {
+        if (CoreBiGramTableDictionary.getBiFrequency("未##人", "出生于") == 0) {
             BufferedWriter bw = IOUtil.newBufferedWriter(HanLP.Config.BiGramDictionaryPath, true);
             bw.write("\n未##人@出生于 1\n");
             bw.close();

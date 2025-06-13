@@ -23,6 +23,37 @@ public class HanLPService {
 
     private static final String FILTER_TERMS = "`~!@#$^&*()=|{}':;',\\[\\].<>/?~！@#￥……&*（）——|{}【】‘；：”“'。，、？";
 
+    /**
+     * 词频分析
+     *
+     * @param allWords  去重后所有词列表
+     * @param sentWords 分析词列表
+     * @return
+     */
+    private static int[] statistic(List<String> allWords, List<String> sentWords) {
+        int[] result = new int[allWords.size()];
+        for (int i = 0; i < allWords.size(); i++) {
+            result[i] = Collections.frequency(sentWords, allWords.get(i));
+        }
+        return result;
+    }
+
+    /**
+     * 合并两个分词结果（去重）
+     */
+    private static List<String> mergeList(List<String> list1, List<String> list2) {
+        List<String> result = new ArrayList<>();
+        result.addAll(list1);
+        result.addAll(list2);
+        return result.stream().distinct().collect(Collectors.toList());
+    }
+
+    /**
+     * 分词（过滤特殊字符的词）
+     */
+    private static List<String> getSplitWords(String sentence) {
+        return HanLP.segment(sentence).stream().map(a -> a.word).filter(s -> !FILTER_TERMS.contains(s)).collect(Collectors.toList());
+    }
 
     // 关键词提取
     public List<String> extractKeyword(String content, int size) {
@@ -109,6 +140,34 @@ public class HanLPService {
         return HanLPDependencyParser.format(sentence);
     }
 
+//    public double getSimilarity(String sentence1, String sentence2) {
+//
+//        List<String> sent1WordList =  standardSegment(sentence1).stream()
+//                .map(term -> term.word)
+//                .collect(Collectors.toList());
+//
+//        List<String> sent2WordList =standardSegment(sentence2).stream()
+//                .map(term -> term.word)
+//                .collect(Collectors.toList());
+//
+//        List<String> allWords = mergeList(sent1WordList, sent2WordList);
+//
+//        int[] statistic1 = statistic(allWords, sent1WordList);
+//        int[] statistic2 = statistic(allWords, sent2WordList);
+//
+//        double dividend = 0;
+//        double divisor1 = 0;
+//        double divisor2 = 0;
+//
+//        for (int i = 0; i < statistic1.length; i++) {
+//            dividend += statistic1[i] * statistic2[i];
+//            divisor1 += Math.pow(statistic1[i], 2);
+//            divisor2 += Math.pow(statistic2[i], 2);
+//        }
+//
+//        return dividend / (Math.sqrt(divisor1) * Math.sqrt(divisor2));
+//    }
+
     // 逆序格式化依存句法分析结果
     public String formatDependencyReverse(CoNLLSentence sentence) {
         return HanLPDependencyParser.formatReverse(sentence);
@@ -143,66 +202,6 @@ public class HanLPService {
         double divisor2 = Math.sqrt(Arrays.stream(statistic2).map(i -> i * i).sum());
 
         return dividend / (divisor1 * divisor2);
-    }
-
-//    public double getSimilarity(String sentence1, String sentence2) {
-//
-//        List<String> sent1WordList =  standardSegment(sentence1).stream()
-//                .map(term -> term.word)
-//                .collect(Collectors.toList());
-//
-//        List<String> sent2WordList =standardSegment(sentence2).stream()
-//                .map(term -> term.word)
-//                .collect(Collectors.toList());
-//
-//        List<String> allWords = mergeList(sent1WordList, sent2WordList);
-//
-//        int[] statistic1 = statistic(allWords, sent1WordList);
-//        int[] statistic2 = statistic(allWords, sent2WordList);
-//
-//        double dividend = 0;
-//        double divisor1 = 0;
-//        double divisor2 = 0;
-//
-//        for (int i = 0; i < statistic1.length; i++) {
-//            dividend += statistic1[i] * statistic2[i];
-//            divisor1 += Math.pow(statistic1[i], 2);
-//            divisor2 += Math.pow(statistic2[i], 2);
-//        }
-//
-//        return dividend / (Math.sqrt(divisor1) * Math.sqrt(divisor2));
-//    }
-
-    /**
-     * 词频分析
-     *
-     * @param allWords  去重后所有词列表
-     * @param sentWords 分析词列表
-     * @return
-     */
-    private static int[] statistic(List<String> allWords, List<String> sentWords) {
-        int[] result = new int[allWords.size()];
-        for (int i = 0; i < allWords.size(); i++) {
-            result[i] = Collections.frequency(sentWords, allWords.get(i));
-        }
-        return result;
-    }
-
-    /**
-     * 合并两个分词结果（去重）
-     */
-    private static List<String> mergeList(List<String> list1, List<String> list2) {
-        List<String> result = new ArrayList<>();
-        result.addAll(list1);
-        result.addAll(list2);
-        return result.stream().distinct().collect(Collectors.toList());
-    }
-
-    /**
-     * 分词（过滤特殊字符的词）
-     */
-    private static List<String> getSplitWords(String sentence) {
-        return HanLP.segment(sentence).stream().map(a -> a.word).filter(s -> !FILTER_TERMS.contains(s)).collect(Collectors.toList());
     }
 
 } 

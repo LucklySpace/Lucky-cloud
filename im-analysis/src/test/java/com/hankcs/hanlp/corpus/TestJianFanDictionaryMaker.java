@@ -11,26 +11,17 @@
  */
 package com.hankcs.hanlp.corpus;
 
-import com.hankcs.hanlp.HanLP;
-import com.hankcs.hanlp.corpus.dictionary.StringDictionary;
-import com.hankcs.hanlp.corpus.io.IOUtil;
-import com.hankcs.hanlp.dictionary.other.CharTable;
 import junit.framework.TestCase;
-
-import java.io.*;
-import java.util.*;
 
 /**
  * @author hankcs
  */
-public class TestJianFanDictionaryMaker extends TestCase
-{
+public class TestJianFanDictionaryMaker extends TestCase {
 
     private String cc = "/Users/hankcs/CppProjects/OpenCC/data/dictionary/";
     private String root = "data/dictionary/tc/";
 
-    public void testCombine() throws Exception
-    {
+    public void testCombine() throws Exception {
 //        StringDictionary dictionaryHanLP = new StringDictionary("=");
 //        dictionaryHanLP.load(HanLP.Config.t2sDictionaryPath);
 //

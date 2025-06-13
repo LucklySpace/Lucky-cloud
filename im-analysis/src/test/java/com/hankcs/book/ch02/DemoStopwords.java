@@ -32,8 +32,7 @@ import java.util.TreeMap;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class DemoStopwords
-{
+public class DemoStopwords {
     /**
      * 从词典文件加载停用词
      *
@@ -41,12 +40,10 @@ public class DemoStopwords
      * @return 双数组trie树
      * @throws IOException
      */
-    static DoubleArrayTrie<String> loadStopwordFromFile(String path) throws IOException
-    {
+    static DoubleArrayTrie<String> loadStopwordFromFile(String path) throws IOException {
         TreeMap<String, String> map = new TreeMap<String, String>();
         IOUtil.LineIterator lineIterator = new IOUtil.LineIterator(path);
-        for (String word : lineIterator)
-        {
+        for (String word : lineIterator) {
             map.put(word, word);
         }
 
@@ -60,19 +57,16 @@ public class DemoStopwords
      * @return 双数组trie树
      * @throws IOException
      */
-    static DoubleArrayTrie<String> loadStopwordFromWords(String... words) throws IOException
-    {
+    static DoubleArrayTrie<String> loadStopwordFromWords(String... words) throws IOException {
         TreeMap<String, String> map = new TreeMap<String, String>();
-        for (String word : words)
-        {
+        for (String word : words) {
             map.put(word, word);
         }
 
         return new DoubleArrayTrie<String>(map);
     }
 
-    public static void main(String[] args) throws IOException
-    {
+    public static void main(String[] args) throws IOException {
         DoubleArrayTrie<String> trie = loadStopwordFromFile(HanLP.Config.CoreStopWordDictionaryPath);
         final String text = "停用词的意义相对而言无关紧要吧。";
         HanLP.Config.ShowTermNature = false;
@@ -91,8 +85,7 @@ public class DemoStopwords
      * @param termList 分词结果
      * @param trie     停用词词典
      */
-    public static void removeStopwords(List<Term> termList, DoubleArrayTrie<String> trie)
-    {
+    public static void removeStopwords(List<Term> termList, DoubleArrayTrie<String> trie) {
         ListIterator<Term> listIterator = termList.listIterator();
         while (listIterator.hasNext())
             if (trie.containsKey(listIterator.next().word))
@@ -107,15 +100,12 @@ public class DemoStopwords
      * @param trie        停用词词典
      * @return 结果
      */
-    public static String replaceStopwords(final String text, final String replacement, DoubleArrayTrie<String> trie)
-    {
+    public static String replaceStopwords(final String text, final String replacement, DoubleArrayTrie<String> trie) {
         final StringBuilder sbOut = new StringBuilder(text.length());
         final int[] offset = new int[]{0};
-        trie.parseLongestText(text, new AhoCorasickDoubleArrayTrie.IHit<String>()
-        {
+        trie.parseLongestText(text, new AhoCorasickDoubleArrayTrie.IHit<String>() {
             @Override
-            public void hit(int begin, int end, String value)
-            {
+            public void hit(int begin, int end, String value) {
                 if (begin > offset[0])
                     sbOut.append(text.substring(offset[0], begin));
                 sbOut.append(replacement);

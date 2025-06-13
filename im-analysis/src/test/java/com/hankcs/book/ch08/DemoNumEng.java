@@ -23,10 +23,8 @@ import com.hankcs.hanlp.seg.Viterbi.ViterbiSegment;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class DemoNumEng
-{
-    public static void main(String[] args)
-    {
+public class DemoNumEng {
+    public static void main(String[] args) {
         Segment segment = new ViterbiSegment();
         System.out.println(segment.seg("牛奶三〇〇克壹佰块"));
         System.out.println(segment.seg("牛奶300克100块"));

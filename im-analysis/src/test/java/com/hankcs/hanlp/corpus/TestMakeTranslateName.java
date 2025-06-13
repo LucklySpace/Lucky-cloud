@@ -11,30 +11,14 @@
  */
 package com.hankcs.hanlp.corpus;
 
-import com.hankcs.hanlp.HanLP;
-import com.hankcs.hanlp.corpus.io.IOUtil;
-import com.hankcs.hanlp.corpus.tag.Nature;
-import com.hankcs.hanlp.dictionary.CoreDictionary;
-import com.hankcs.hanlp.dictionary.CustomDictionary;
 import com.hankcs.hanlp.dictionary.nr.TranslatedPersonDictionary;
-import com.hankcs.hanlp.seg.Dijkstra.DijkstraSegment;
-import com.hankcs.hanlp.seg.common.Term;
-import com.hankcs.hanlp.tokenizer.StandardTokenizer;
 import junit.framework.TestCase;
-
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * @author hankcs
  */
-public class TestMakeTranslateName extends TestCase
-{
-//    public void testCombineOuterDictionary() throws Exception
+public class TestMakeTranslateName extends TestCase {
+    //    public void testCombineOuterDictionary() throws Exception
 //    {
 //        String root = "D:\\JavaProjects\\SougouDownload\\data\\";
 //        String[] pathArray = new String[]{"常用外国人名.txt", "外国人名", "外国姓名大全.txt", "外国诗人名.txt", "英语姓名词典.txt", "俄罗斯人名.txt"};
@@ -73,8 +57,7 @@ public class TestMakeTranslateName extends TestCase
 //        IOUtil.saveCollectionToTxt(wordSet, "data/dictionary/person/音译用字.txt");
 //    }
 //
-    public void testQuery() throws Exception
-    {
+    public void testQuery() throws Exception {
         assertTrue(TranslatedPersonDictionary.containsKey("汤姆"));
 //        HanLP.Config.enableDebug();
 //        System.out.println(TranslatedPersonDictionary.containsKey("汤姆"));

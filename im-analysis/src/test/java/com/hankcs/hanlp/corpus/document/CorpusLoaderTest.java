@@ -1,15 +1,8 @@
 package com.hankcs.hanlp.corpus.document;
 
-import com.hankcs.hanlp.corpus.dictionary.DictionaryMaker;
-import com.hankcs.hanlp.corpus.document.sentence.word.IWord;
-import com.hankcs.hanlp.corpus.document.sentence.word.Word;
 import junit.framework.TestCase;
 
-import java.io.*;
-import java.util.List;
-
-public class CorpusLoaderTest extends TestCase
-{
+public class CorpusLoaderTest extends TestCase {
 //    public void testMultiThread() throws Exception
 //    {
 //        CorpusLoader.HandlerThread[] handlerThreadArray = new CorpusLoader.HandlerThread[4];

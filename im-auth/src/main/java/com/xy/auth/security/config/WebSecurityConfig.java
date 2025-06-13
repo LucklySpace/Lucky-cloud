@@ -7,7 +7,7 @@ import com.xy.auth.security.filter.TokenAuthenticationFilter;
 import com.xy.auth.security.provider.MobileAuthenticationProvider;
 import com.xy.auth.security.provider.QrScanAuthenticationProvider;
 import com.xy.auth.security.provider.UsernamePasswordAuthenticationProvider;
-import com.xy.auth.service.impl.ImUserServiceImpl;
+import com.xy.auth.service.ImUserService;
 import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,7 +40,7 @@ public class WebSecurityConfig {
     private CustomAuthenticationEntryPoint myAuthenticationEntryPoint;
 
     @Resource
-    private ImUserServiceImpl customUserDetailsService;
+    private ImUserService customUserDetailsService;
 
     @Resource
     private PasswordEncoder passwordEncoder;

@@ -7,12 +7,16 @@ package com.xy.connect.config;
  */
 public class LogConstant {
 
-    public final static String MAIN = "IM-Connect";
+    public final static String Main = "IM-Connect";
 
-    public final static String CONFIG = "IM-ConfigCenter";
+    public final static String Netty = "netty";
 
-    public final static String NETTY = "NettyServer";
+    public final static String Rabbit = "rabbit";
 
-    public final static String RABBITMQ = "RabbitMQServer";
+    public final static String Spring = "spring";
+
+    public final static String Nacos = "nacos";
+
+    public final static String Message = "message";
 
 }

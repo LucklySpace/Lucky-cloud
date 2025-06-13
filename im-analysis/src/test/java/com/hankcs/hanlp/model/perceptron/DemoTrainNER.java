@@ -18,21 +18,16 @@ import java.io.IOException;
 /**
  * @author hankcs
  */
-public class DemoTrainNER
-{
-    public static void main(String[] args) throws IOException
-    {
+public class DemoTrainNER {
+    public static void main(String[] args) throws IOException {
         PerceptronTrainer trainer = new NERTrainer();
         trainer.train("data/test/pku98/199801.txt", Config.NER_MODEL_FILE);
     }
 
-    public static void trainYourNER()
-    {
-        PerceptronTrainer trainer = new NERTrainer()
-        {
+    public static void trainYourNER() {
+        PerceptronTrainer trainer = new NERTrainer() {
             @Override
-            protected TagSet createTagSet()
-            {
+            protected TagSet createTagSet() {
                 NERTagSet tagSet = new NERTagSet();
                 tagSet.nerLabels.add("YourNER1");
                 tagSet.nerLabels.add("YourNER2");

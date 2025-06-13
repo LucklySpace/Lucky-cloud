@@ -14,8 +14,11 @@
         <module>im-auth</module>
         <module>im-common</module>
         <module>im-server</module>
+        <module>im-database</module>
         <module>im-file</module>
         <module>im-analysis</module>
+        <module>im-generator</module>
+        <module>im-proxy</module>
     </modules>
 
     <properties>
@@ -28,6 +31,10 @@
         <spring-cloud-alibaba.version>2023.0.0.0-RC1</spring-cloud-alibaba.version>
 
         <skywalking.version>8.0.1</skywalking.version>
+
+        <jackson.annotations.version>2.17.2</jackson.annotations.version>
+        <mybatis-plus-spring.version>3.5.11</mybatis-plus-spring.version>
+
         <!--        <spring-boot-admin.version>2.7.10</spring-boot-admin.version>-->
         <!--        <tobato.version>1.27.2</tobato.version>-->
         <!--        <kaptcha.version>2.3.3</kaptcha.version>-->
@@ -132,22 +139,22 @@
                 </configuration>
             </plugin>
         </plugins>
-<!--        <pluginManagement>-->
-<!--            <plugins>-->
-<!--                <plugin>-->
-<!--                    <groupId>org.springframework.boot</groupId>-->
-<!--                    <artifactId>spring-boot-maven-plugin</artifactId>-->
-<!--                    <version>${spring-boot.version}</version>-->
-<!--                    <executions>-->
-<!--                        <execution>-->
-<!--                            <goals>-->
-<!--                                <goal>repackage</goal>-->
-<!--                            </goals>-->
-<!--                        </execution>-->
-<!--                    </executions>-->
-<!--                </plugin>-->
-<!--            </plugins>-->
-<!--        </pluginManagement>-->
+        <!--        <pluginManagement>-->
+        <!--            <plugins>-->
+        <!--                <plugin>-->
+        <!--                    <groupId>org.springframework.boot</groupId>-->
+        <!--                    <artifactId>spring-boot-maven-plugin</artifactId>-->
+        <!--                    <version>${spring-boot.version}</version>-->
+        <!--                    <executions>-->
+        <!--                        <execution>-->
+        <!--                            <goals>-->
+        <!--                                <goal>repackage</goal>-->
+        <!--                            </goals>-->
+        <!--                        </execution>-->
+        <!--                    </executions>-->
+        <!--                </plugin>-->
+        <!--            </plugins>-->
+        <!--        </pluginManagement>-->
     </build>
 
     <repositories>

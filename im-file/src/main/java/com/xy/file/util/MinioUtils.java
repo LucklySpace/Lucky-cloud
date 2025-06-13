@@ -4,7 +4,6 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.text.StrPool;
 import cn.hutool.core.util.IdUtil;
-import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.google.common.collect.HashMultimap;
 import com.xy.file.client.MinioProperties;
@@ -79,17 +78,17 @@ public class MinioUtils {
 
             // 获取已上传的分片列表
             ListPartsResponse partResult = pearlMinioClient.listMultipart(
-                bucketName, null, fileName, 1000, 0, uploadId, null, null
+                    bucketName, null, fileName, 1000, 0, uploadId, null, null
             ).get();
 
             if (partResult.result() != null) {
                 // 存储未完成分片的预签名URL
                 TreeMap<String, String> chunkMap = new TreeMap<>();
-                
+
                 // 获取所有分片编号列表
                 List<Integer> allPartNumbers = IntStream.rangeClosed(1, reqOssFile.getPartNum())
-                    .boxed()
-                    .toList();
+                        .boxed()
+                        .toList();
 
                 List<Part> uploadedParts = partResult.result().partList();
 
@@ -102,8 +101,8 @@ public class MinioUtils {
                 } else {
                     // 获取已上传完成的分片编号
                     List<Integer> finishedPartNumbers = uploadedParts.stream()
-                        .map(Part::partNumber)
-                        .collect(Collectors.toList());
+                            .map(Part::partNumber)
+                            .collect(Collectors.toList());
 
                     // 为未上传的分片生成预签名URL
                     for (Integer partNumber : allPartNumbers) {

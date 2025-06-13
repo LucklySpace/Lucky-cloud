@@ -26,10 +26,8 @@ import java.util.Map;
  *
  * @author hankcs
  */
-public class DemoCustomDictionary
-{
-    public static void main(String[] args)
-    {
+public class DemoCustomDictionary {
+    public static void main(String[] args) {
         // 动态增加
         CustomDictionary.add("攻城狮");
         // 强行插入
@@ -43,19 +41,16 @@ public class DemoCustomDictionary
 
         // DoubleArrayTrie分词
         final char[] charArray = text.toCharArray();
-        CustomDictionary.parseText(charArray, new AhoCorasickDoubleArrayTrie.IHit<CoreDictionary.Attribute>()
-        {
+        CustomDictionary.parseText(charArray, new AhoCorasickDoubleArrayTrie.IHit<CoreDictionary.Attribute>() {
             @Override
-            public void hit(int begin, int end, CoreDictionary.Attribute value)
-            {
+            public void hit(int begin, int end, CoreDictionary.Attribute value) {
                 System.out.printf("[%d:%d]=%s %s\n", begin, end, new String(charArray, begin, end - begin), value);
             }
         });
         // 首字哈希之后二分的trie树分词
         BaseSearcher searcher = CustomDictionary.getSearcher(text);
         Map.Entry entry;
-        while ((entry = searcher.next()) != null)
-        {
+        while ((entry = searcher.next()) != null) {
             System.out.println(entry);
         }
 

@@ -1,21 +1,9 @@
 package com.hankcs.hanlp.dependency;
 
-import com.hankcs.hanlp.HanLP;
-import com.hankcs.hanlp.corpus.dependency.CoNll.CoNLLLoader;
-import com.hankcs.hanlp.corpus.dependency.CoNll.CoNLLSentence;
-import com.hankcs.hanlp.corpus.dependency.CoNll.CoNLLWord;
-import com.hankcs.hanlp.corpus.dependency.CoNll.Evaluator;
-import com.hankcs.hanlp.corpus.tag.Nature;
-import com.hankcs.hanlp.seg.common.Term;
 import junit.framework.TestCase;
 
-import java.util.LinkedList;
-import java.util.List;
-
-public class MaxEntDependencyParserTest extends TestCase
-{
-    public void testMaxEntParser() throws Exception
-    {
+public class MaxEntDependencyParserTest extends TestCase {
+    public void testMaxEntParser() throws Exception {
 //        HanLP.Config.enableDebug();
 //        System.out.println(MaxEntDependencyParser.compute("我每天骑车上学"));
     }

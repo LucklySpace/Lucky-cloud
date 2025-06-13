@@ -1,6 +1,5 @@
 package com.hankcs.hanlp.seg.NShort;
 
-import com.hankcs.hanlp.HanLP;
 import com.hankcs.hanlp.seg.Segment;
 import com.hankcs.hanlp.seg.common.Term;
 import com.hankcs.hanlp.tokenizer.StandardTokenizer;
@@ -9,10 +8,8 @@ import junit.framework.TestCase;
 import java.util.LinkedList;
 import java.util.List;
 
-public class NShortSegmentTest extends TestCase
-{
-    public void testParse() throws Exception
-    {
+public class NShortSegmentTest extends TestCase {
+    public void testParse() throws Exception {
         List<List<Term>> wordResults = new LinkedList<List<Term>>();
         wordResults.add(NShortSegment.parse("3-4月"));
         wordResults.add(NShortSegment.parse("3-4月份"));
@@ -30,8 +27,7 @@ public class NShortSegmentTest extends TestCase
 //        }
     }
 
-    public void testIssue691() throws Exception
-    {
+    public void testIssue691() throws Exception {
 //        HanLP.Config.enableDebug();
         StandardTokenizer.SEGMENT.enableCustomDictionary(false);
         Segment nShortSegment = new NShortSegment().enableCustomDictionary(false).enablePlaceRecognize(true).enableOrganizationRecognize(true);

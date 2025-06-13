@@ -1,6 +1,5 @@
 package com.hankcs.hanlp.collection.dartsclone;
 
-import com.hankcs.hanlp.collection.trie.DoubleArrayTrie;
 import com.hankcs.hanlp.corpus.io.IOUtil;
 import junit.framework.TestCase;
 
@@ -9,38 +8,31 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-public class DartMapTest extends TestCase
-{
+public class DartMapTest extends TestCase {
     Set<String> validKeySet;
     Set<String> invalidKeySet;
     private DartMap<Integer> dartMap;
 
-    public void setUp() throws Exception
-    {
+    public void setUp() throws Exception {
         IOUtil.LineIterator iterator = new IOUtil.LineIterator("data/dictionary/CoreNatureDictionary.ngram.txt");
         validKeySet = new TreeSet<String>();
-        while (iterator.hasNext())
-        {
+        while (iterator.hasNext()) {
             validKeySet.add(iterator.next().split("\\s")[0]);
         }
         TreeMap<String, Integer> map = new TreeMap<String, Integer>();
-        for (String key : validKeySet)
-        {
+        for (String key : validKeySet) {
             map.put(key, key.length());
         }
         dartMap = new DartMap<Integer>(map);
     }
 
-    public void testGenerateInvalidKeySet() throws Exception
-    {
+    public void testGenerateInvalidKeySet() throws Exception {
         invalidKeySet = new TreeSet<String>();
         Random random = new Random(System.currentTimeMillis());
-        while (invalidKeySet.size() < validKeySet.size())
-        {
+        while (invalidKeySet.size() < validKeySet.size()) {
             int length = random.nextInt(10) + 1;
             StringBuilder key = new StringBuilder(length);
-            for (int i = 0; i < length; ++i)
-            {
+            for (int i = 0; i < length; ++i) {
                 key.append(random.nextInt(Character.MAX_VALUE));
             }
             if (validKeySet.contains(key.toString())) continue;
@@ -48,21 +40,17 @@ public class DartMapTest extends TestCase
         }
     }
 
-    public void testBuild() throws Exception
-    {
+    public void testBuild() throws Exception {
     }
 
-    public void testContainsAndNoteContains() throws Exception
-    {
+    public void testContainsAndNoteContains() throws Exception {
         testBuild();
-        for (String key : validKeySet)
-        {
-            assertEquals(key.length(), (int)dartMap.get(key));
+        for (String key : validKeySet) {
+            assertEquals(key.length(), (int) dartMap.get(key));
         }
 
         testGenerateInvalidKeySet();
-        for (String key : invalidKeySet)
-        {
+        for (String key : invalidKeySet) {
             assertEquals(null, dartMap.get(key));
         }
     }

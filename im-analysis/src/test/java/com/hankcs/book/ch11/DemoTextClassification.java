@@ -20,6 +20,5 @@ package com.hankcs.book.ch11;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class DemoTextClassification extends com.hankcs.demo.DemoTextClassification
-{
+public class DemoTextClassification extends com.hankcs.demo.DemoTextClassification {
 }

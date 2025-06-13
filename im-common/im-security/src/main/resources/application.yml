@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: im-crypto
+
+security:
+  crypto:
+    default-encrypt: AES
+    default-decrypt: AES
+    aes-key: g64fi7uihebib6d34njcbybfiuyiusyhdf98q38i7unqi7ew
+  sign:
+    secret: g876q3f4fiddybc7684cq87b634fg87
+  rsa-public-key:
+    3f3b7uyttuify7634fgb8y87tgbery7475t9h4f5487ygb8y8eyr93uqhuo972o8yubrf9672t45f
+  rsa-private-key:
+    hd9834678yc98go34i7iifyh96784hfub78438bf7g8457yth79gychu857uy85gtfr883

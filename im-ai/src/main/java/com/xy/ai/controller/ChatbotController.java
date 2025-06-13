@@ -17,7 +17,7 @@ public class ChatbotController {
 
     private final ChatClient chatClient;
 
-    public ChatbotController(ChatClient chatClient){
+    public ChatbotController(ChatClient chatClient) {
         this.chatClient = chatClient;
     }
 

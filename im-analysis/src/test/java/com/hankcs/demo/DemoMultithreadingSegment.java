@@ -12,7 +12,6 @@ package com.hankcs.demo;
 
 import com.hankcs.hanlp.HanLP;
 import com.hankcs.hanlp.model.crf.CRFLexicalAnalyzer;
-import com.hankcs.hanlp.seg.CRF.CRFSegment;
 import com.hankcs.hanlp.seg.Segment;
 
 import java.io.IOException;
@@ -23,10 +22,8 @@ import java.io.IOException;
  *
  * @author hankcs
  */
-public class DemoMultithreadingSegment
-{
-    public static void main(String[] args) throws IOException
-    {
+public class DemoMultithreadingSegment {
+    public static void main(String[] args) throws IOException {
         Segment segment = new CRFLexicalAnalyzer(HanLP.Config.CRFCWSModelPath).enableCustomDictionary(false); // CRF分词器效果好，速度慢，并行化之后可以提高一些速度
 
         String text = "举办纪念活动铭记二战历史，不忘战争带给人类的深重灾难，是为了防止悲剧重演，确保和平永驻；" +
@@ -36,8 +33,7 @@ public class DemoMultithreadingSegment
         System.out.println(segment.seg(text));
         int pressure = 10000;
         StringBuilder sbBigText = new StringBuilder(text.length() * pressure);
-        for (int i = 0; i < pressure; i++)
-        {
+        for (int i = 0; i < pressure; i++) {
             sbBigText.append(text);
         }
         text = sbBigText.toString();

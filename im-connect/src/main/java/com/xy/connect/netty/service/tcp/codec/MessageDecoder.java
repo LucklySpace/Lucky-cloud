@@ -1,7 +1,7 @@
 package com.xy.connect.netty.service.tcp.codec;
 
-import com.xy.connect.utils.JsonUtil;
-import com.xy.imcore.model.IMWsConnMessage;
+import com.xy.connect.utils.JacksonUtil;
+import com.xy.imcore.model.IMConnectMessage;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
@@ -32,6 +32,6 @@ public class MessageDecoder extends ByteToMessageDecoder {
         // 读取缓冲区中的数据，转换为字符串
         String text = in.readCharSequence(in.readableBytes(), CharsetUtil.UTF_8).toString();
         // 将字符串解析为 JSON 对象，并添加到解码结果列表中
-        list.add(JsonUtil.parseObject(text, IMWsConnMessage.class));
+        list.add(JacksonUtil.fromJson(text, IMConnectMessage.class));
     }
 }

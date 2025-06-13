@@ -11,26 +11,13 @@
  */
 package com.hankcs.hanlp.corpus;
 
-import com.hankcs.hanlp.HanLP;
-import com.hankcs.hanlp.corpus.dictionary.DictionaryMaker;
-import com.hankcs.hanlp.corpus.dictionary.EasyDictionary;
-import com.hankcs.hanlp.corpus.dictionary.NTDictionaryMaker;
-import com.hankcs.hanlp.corpus.document.CorpusLoader;
-import com.hankcs.hanlp.corpus.document.Document;
-import com.hankcs.hanlp.corpus.tag.Nature;
-import com.hankcs.hanlp.seg.Dijkstra.DijkstraSegment;
-import com.hankcs.hanlp.seg.common.Term;
 import junit.framework.TestCase;
-
-import java.io.*;
-import java.util.List;
 
 
 /**
  * @author hankcs
  */
-public class TestMakeCompanyCorpus extends TestCase
-{
+public class TestMakeCompanyCorpus extends TestCase {
 //    public void testMake() throws Exception
 //    {
 //        DijkstraSegment segment = new DijkstraSegment();

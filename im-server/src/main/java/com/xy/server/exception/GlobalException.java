@@ -1,6 +1,6 @@
 package com.xy.server.exception;
 
-import com.xy.server.response.ResultEnum;
+import com.xy.response.domain.ResultCode;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -17,13 +17,13 @@ public class GlobalException extends RuntimeException implements Serializable {
         this.message = message;
     }
 
-    public GlobalException(ResultEnum resultEnum) {
+    public GlobalException(ResultCode resultEnum) {
         this.code = resultEnum.getCode();
         this.message = resultEnum.getMessage();
     }
 
 
-    public GlobalException(ResultEnum resultEnum, String message) {
+    public GlobalException(ResultCode resultEnum, String message) {
         this.code = resultEnum.getCode();
         this.message = message;
     }

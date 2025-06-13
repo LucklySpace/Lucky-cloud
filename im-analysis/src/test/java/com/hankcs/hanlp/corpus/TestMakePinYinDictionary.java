@@ -11,22 +11,12 @@
  */
 package com.hankcs.hanlp.corpus;
 
-import com.hankcs.hanlp.HanLP;
-import com.hankcs.hanlp.corpus.dictionary.SimpleDictionary;
-import com.hankcs.hanlp.corpus.dictionary.StringDictionary;
-import com.hankcs.hanlp.corpus.dictionary.StringDictionaryMaker;
-import com.hankcs.hanlp.corpus.io.IOUtil;
-import com.hankcs.hanlp.dictionary.py.*;
-import com.hankcs.hanlp.utility.TextUtility;
 import junit.framework.TestCase;
-
-import java.util.*;
 
 /**
  * @author hankcs
  */
-public class TestMakePinYinDictionary extends TestCase
-{
+public class TestMakePinYinDictionary extends TestCase {
 //    public void testCombine() throws Exception
 //    {
 //        HanLP.Config.enableDebug();

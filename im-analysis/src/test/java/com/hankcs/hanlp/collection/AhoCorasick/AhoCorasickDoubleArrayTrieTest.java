@@ -2,22 +2,18 @@ package com.hankcs.hanlp.collection.AhoCorasick;
 
 import com.hankcs.hanlp.algorithm.ahocorasick.trie.Emit;
 import com.hankcs.hanlp.algorithm.ahocorasick.trie.Trie;
-import com.hankcs.hanlp.collection.trie.DoubleArrayTrie;
 import com.hankcs.hanlp.corpus.io.IOUtil;
 import junit.framework.TestCase;
 import org.junit.Assert;
 
 import java.util.*;
 
-public class AhoCorasickDoubleArrayTrieTest extends TestCase
-{
+public class AhoCorasickDoubleArrayTrieTest extends TestCase {
 
-    public void testTwoAC() throws Exception
-    {
+    public void testTwoAC() throws Exception {
         TreeMap<String, String> map = new TreeMap<String, String>();
         IOUtil.LineIterator iterator = new IOUtil.LineIterator("data/dictionary/CoreNatureDictionary.mini.txt");
-        while (iterator.hasNext())
-        {
+        while (iterator.hasNext()) {
             String line = iterator.next().split("\\s")[0];
             map.put(line, line);
         }
@@ -27,19 +23,16 @@ public class AhoCorasickDoubleArrayTrieTest extends TestCase
         AhoCorasickDoubleArrayTrie<String> act = new AhoCorasickDoubleArrayTrie<String>();
         act.build(map);
 
-        for (String key : map.keySet())
-        {
+        for (String key : map.keySet()) {
             Collection<Emit> emits = trie.parseText(key);
             Set<String> otherSet = new HashSet<String>();
-            for (Emit emit : emits)
-            {
+            for (Emit emit : emits) {
                 otherSet.add(emit.getKeyword() + emit.getEnd());
             }
 
             List<AhoCorasickDoubleArrayTrie<String>.Hit<String>> entries = act.parseText(key);
             Set<String> mySet = new HashSet<String>();
-            for (AhoCorasickDoubleArrayTrie<String>.Hit<String> entry : entries)
-            {
+            for (AhoCorasickDoubleArrayTrie<String>.Hit<String> entry : entries) {
                 mySet.add(entry.value + (entry.end - 1));
             }
 
@@ -47,8 +40,7 @@ public class AhoCorasickDoubleArrayTrieTest extends TestCase
         }
     }
 
-    public void testBuildEmptyTrie()
-    {
+    public void testBuildEmptyTrie() {
         AhoCorasickDoubleArrayTrie<String> acdat = new AhoCorasickDoubleArrayTrie<String>();
         TreeMap<String, String> map = new TreeMap<String, String>();
         acdat.build(map);
@@ -58,6 +50,7 @@ public class AhoCorasickDoubleArrayTrieTest extends TestCase
 
     /**
      * 测试构建和匹配，使用《我的团长我的团》.txt作为测试数据，并且判断匹配是否正确
+     *
      * @throws Exception
      */
 //    public void testSegment() throws Exception
@@ -94,12 +87,10 @@ public class AhoCorasickDoubleArrayTrieTest extends TestCase
 //        }
 //        System.out.printf("%d ms\n", System.currentTimeMillis() - timeMillis);
 //    }
-
     public void testEnableFastBuild() {
         TreeMap<String, String> map = new TreeMap<String, String>();
         IOUtil.LineIterator iterator = new IOUtil.LineIterator("data/dictionary/CoreNatureDictionary.txt");
-        while (iterator.hasNext())
-        {
+        while (iterator.hasNext()) {
             String line = iterator.next();
             map.put(line, line);
         }

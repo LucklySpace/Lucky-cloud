@@ -29,16 +29,13 @@ import java.util.TreeMap;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class AhoCorasickSegmentation
-{
-    public static void main(String[] args) throws IOException
-    {
+public class AhoCorasickSegmentation {
+    public static void main(String[] args) throws IOException {
         classicDemo();
         evaluateSpeed();
     }
 
-    private static void classicDemo()
-    {
+    private static void classicDemo() {
         String[] keyArray = new String[]{"hers", "his", "she", "he"};
         Trie trie = new Trie();
         for (String key : keyArray)
@@ -47,11 +44,10 @@ public class AhoCorasickSegmentation
             System.out.printf("[%d:%d]=%s\n", emit.getStart(), emit.getEnd(), emit.getKeyword());
     }
 
-    private static void evaluateSpeed() throws IOException
-    {
+    private static void evaluateSpeed() throws IOException {
         // 加载词典
         TreeMap<String, CoreDictionary.Attribute> dictionary =
-            IOUtil.loadDictionary("data/dictionary/CoreNatureDictionary.mini.txt");
+                IOUtil.loadDictionary("data/dictionary/CoreNatureDictionary.mini.txt");
         Trie trie = new Trie(dictionary.keySet());
 
         String text = "江西鄱阳湖干枯，中国最大淡水湖变成大草原";
@@ -62,8 +58,7 @@ public class AhoCorasickSegmentation
         System.out.println("===AC自动机接口===");
         System.out.println("完全切分");
         start = System.currentTimeMillis();
-        for (int i = 0; i < pressure; ++i)
-        {
+        for (int i = 0; i < pressure; ++i) {
             segmentFully(text, trie);
         }
         costTime = (System.currentTimeMillis() - start) / (double) 1000;
@@ -77,11 +72,9 @@ public class AhoCorasickSegmentation
      * @param dictionary 词典
      * @return 单词列表
      */
-    public static List<String> segmentFully(final String text, Trie dictionary)
-    {
+    public static List<String> segmentFully(final String text, Trie dictionary) {
         final List<String> wordList = new LinkedList<String>();
-        for (Emit emit : dictionary.parseText(text))
-        {
+        for (Emit emit : dictionary.parseText(text)) {
             wordList.add(emit.getKeyword());
         }
         return wordList;

@@ -90,6 +90,7 @@ public class OssFileImageServiceImpl implements OssFileImageService {
 
     /**
      * 上传图片
+     *
      * @param file
      * @return
      */
@@ -204,6 +205,7 @@ public class OssFileImageServiceImpl implements OssFileImageService {
 
     /**
      * 检查图片
+     *
      * @param file
      * @param threshold
      * @return

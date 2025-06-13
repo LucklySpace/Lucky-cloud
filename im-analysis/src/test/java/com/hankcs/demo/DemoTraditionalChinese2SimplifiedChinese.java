@@ -18,10 +18,8 @@ import com.hankcs.hanlp.HanLP;
  *
  * @author hankcs
  */
-public class DemoTraditionalChinese2SimplifiedChinese
-{
-    public static void main(String[] args)
-    {
+public class DemoTraditionalChinese2SimplifiedChinese {
+    public static void main(String[] args) {
         System.out.println(HanLP.convertToTraditionalChinese("“以后等你当上皇后，就能买草莓庆祝了”。发现一根白头发"));
         System.out.println(HanLP.convertToSimplifiedChinese("憑藉筆記簿型電腦寫程式HanLP"));
         // 简体转台湾繁体

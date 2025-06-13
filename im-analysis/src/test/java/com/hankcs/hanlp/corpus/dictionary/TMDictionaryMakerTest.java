@@ -2,10 +2,8 @@ package com.hankcs.hanlp.corpus.dictionary;
 
 import junit.framework.TestCase;
 
-public class TMDictionaryMakerTest extends TestCase
-{
-    public void testCreate() throws Exception
-    {
+public class TMDictionaryMakerTest extends TestCase {
+    public void testCreate() throws Exception {
         TMDictionaryMaker tmDictionaryMaker = new TMDictionaryMaker();
         tmDictionaryMaker.addPair("ab", "cd");
         tmDictionaryMaker.addPair("ab", "cd");

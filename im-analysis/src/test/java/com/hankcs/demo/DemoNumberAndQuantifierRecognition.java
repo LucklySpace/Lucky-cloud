@@ -17,10 +17,8 @@ import com.hankcs.hanlp.tokenizer.StandardTokenizer;
  *
  * @author hankcs
  */
-public class DemoNumberAndQuantifierRecognition
-{
-    public static void main(String[] args)
-    {
+public class DemoNumberAndQuantifierRecognition {
+    public static void main(String[] args) {
         StandardTokenizer.SEGMENT.enableNumberQuantifierRecognize(true);
         String[] testCase = new String[]
                 {
@@ -31,8 +29,7 @@ public class DemoNumberAndQuantifierRecognition
                         "牛奶三〇〇克*2",
                         "ChinaJoy“扫黄”细则露胸超2厘米罚款",
                 };
-        for (String sentence : testCase)
-        {
+        for (String sentence : testCase) {
             System.out.println(StandardTokenizer.segment(sentence));
         }
     }

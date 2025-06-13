@@ -25,13 +25,11 @@ import java.io.IOException;
  *
  * @author hankcs
  */
-public class DemoPerceptronLexicalAnalyzer extends TestUtility
-{
-    public static void main(String[] args) throws IOException
-    {
+public class DemoPerceptronLexicalAnalyzer extends TestUtility {
+    public static void main(String[] args) throws IOException {
         PerceptronLexicalAnalyzer analyzer = new PerceptronLexicalAnalyzer("data/model/perceptron/pku199801/cws.bin",
-                                                                           HanLP.Config.PerceptronPOSModelPath,
-                                                                           HanLP.Config.PerceptronNERModelPath);
+                HanLP.Config.PerceptronPOSModelPath,
+                HanLP.Config.PerceptronNERModelPath);
         System.out.println(analyzer.analyze("上海华安工业（集团）公司董事长谭旭光和秘书胡花蕊来到美国纽约现代艺术博物馆参观"));
         System.out.println(analyzer.analyze("微软公司於1975年由比爾·蓋茲和保羅·艾倫創立，18年啟動以智慧雲端、前端為導向的大改組。"));
 
@@ -54,8 +52,8 @@ public class DemoPerceptronLexicalAnalyzer extends TestUtility
 
         // 请用户按需执行对空格制表符等的预处理，只有你最清楚自己的文本中都有些什么奇怪的东西
         System.out.println(analyzer.analyze("空格 \t\n\r\f&nbsp;统统都不要"
-                                                .replaceAll("\\s+", "")    // 去除所有空白符
-                                                .replaceAll("&nbsp;", "")  // 如果一些文本中含有html控制符
+                .replaceAll("\\s+", "")    // 去除所有空白符
+                .replaceAll("&nbsp;", "")  // 如果一些文本中含有html控制符
         ));
     }
 }

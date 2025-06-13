@@ -3,10 +3,8 @@ package com.hankcs.hanlp.suggest.scorer.pinyin;
 import com.hankcs.hanlp.algorithm.LongestCommonSubstring;
 import junit.framework.TestCase;
 
-public class PinyinKeyTest extends TestCase
-{
-    public void testConstruct() throws Exception
-    {
+public class PinyinKeyTest extends TestCase {
+    public void testConstruct() throws Exception {
         PinyinKey pinyinKeyA = new PinyinKey("专题分析");
         PinyinKey pinyinKeyB = new PinyinKey("教室资格");
 //        System.out.println(pinyinKeyA);

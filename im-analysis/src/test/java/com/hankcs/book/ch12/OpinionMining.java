@@ -27,10 +27,8 @@ import java.util.List;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class OpinionMining
-{
-    public static void main(String[] args) throws IOException, ClassNotFoundException
-    {
+public class OpinionMining {
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
         IDependencyParser parser = new KBeamArcEagerDependencyParser();
         CoNLLSentence tree = parser.parse("电池非常棒，机身不长，长的是待机，但是屏幕分辨率不高。");
         System.out.println(tree);
@@ -42,19 +40,15 @@ public class OpinionMining
         extactOpinion3(tree);
     }
 
-    static void extactOpinion1(CoNLLSentence tree)
-    {
+    static void extactOpinion1(CoNLLSentence tree) {
         for (CoNLLWord word : tree)
             if (word.POSTAG.equals("NN") && word.DEPREL.equals("nsubj"))
                 System.out.printf("%s = %s\n", word.LEMMA, word.HEAD.LEMMA);
     }
 
-    static void extactOpinion2(CoNLLSentence tree)
-    {
-        for (CoNLLWord word : tree)
-        {
-            if (word.POSTAG.equals("NN") && word.DEPREL.equals("nsubj"))
-            {
+    static void extactOpinion2(CoNLLSentence tree) {
+        for (CoNLLWord word : tree) {
+            if (word.POSTAG.equals("NN") && word.DEPREL.equals("nsubj")) {
                 if (tree.findChildren(word.HEAD, "neg").isEmpty())
                     System.out.printf("%s = %s\n", word.LEMMA, word.HEAD.LEMMA);
                 else
@@ -63,20 +57,15 @@ public class OpinionMining
         }
     }
 
-    static void extactOpinion3(CoNLLSentence tree)
-    {
-        for (CoNLLWord word : tree)
-        {
-            if (word.POSTAG.equals("NN"))
-            {
-                if (word.DEPREL.equals("nsubj"))
-                {
+    static void extactOpinion3(CoNLLSentence tree) {
+        for (CoNLLWord word : tree) {
+            if (word.POSTAG.equals("NN")) {
+                if (word.DEPREL.equals("nsubj")) {
                     if (tree.findChildren(word.HEAD, "neg").isEmpty())
                         System.out.printf("%s = %s\n", word.LEMMA, word.HEAD.LEMMA);
                     else
                         System.out.printf("%s = 不%s\n", word.LEMMA, word.HEAD.LEMMA);
-                }
-                else if (word.DEPREL.equals("attr")) // ①属性
+                } else if (word.DEPREL.equals("attr")) // ①属性
                 {
                     List<CoNLLWord> top = tree.findChildren(word.HEAD, "top"); // ②主题
                     if (!top.isEmpty())

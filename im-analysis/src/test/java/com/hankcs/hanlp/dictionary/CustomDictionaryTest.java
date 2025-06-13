@@ -1,30 +1,17 @@
 package com.hankcs.hanlp.dictionary;
 
 import com.hankcs.hanlp.HanLP;
-import com.hankcs.hanlp.corpus.dictionary.DictionaryMaker;
-import com.hankcs.hanlp.corpus.dictionary.item.Item;
 import com.hankcs.hanlp.corpus.tag.Nature;
-import com.hankcs.hanlp.seg.Segment;
-import com.hankcs.hanlp.seg.common.Term;
-import com.hankcs.hanlp.utility.Predefine;
 import junit.framework.TestCase;
 
-import java.io.*;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-
-public class CustomDictionaryTest extends TestCase
-{
+public class CustomDictionaryTest extends TestCase {
 //    public void testReload() throws Exception
 //    {
 //        assertEquals(true, CustomDictionary.reload());
 //        assertEquals(true, CustomDictionary.contains("中华白海豚"));
 //    }
 
-    public void testGet() throws Exception
-    {
+    public void testGet() throws Exception {
         assertEquals("nz 1 ", CustomDictionary.get("一个心眼儿").toString());
     }
 
@@ -108,6 +95,7 @@ public class CustomDictionaryTest extends TestCase
 
     /**
      * data/dictionary/custom/全国地名大全.txt中有很多人名，删掉它们
+     *
      * @throws Exception
      */
 //    public void testRemoveNotNS() throws Exception
@@ -135,9 +123,7 @@ public class CustomDictionaryTest extends TestCase
 //            }
 //        });
 //    }
-
-    public void testCustomNature() throws Exception
-    {
+    public void testCustomNature() throws Exception {
         Nature pcNature1 = Nature.create("电脑品牌");
         Nature pcNature2 = Nature.create("电脑品牌");
         assertEquals(pcNature1, pcNature2);
@@ -162,16 +148,14 @@ public class CustomDictionaryTest extends TestCase
 //        System.out.println(HanLP.segment(text));
 //    }
 
-    public void testIssue540() throws Exception
-    {
+    public void testIssue540() throws Exception {
         CustomDictionary.add("123");
         CustomDictionary.add("摩根");
         CustomDictionary.remove("123");
         CustomDictionary.remove("摩根");
     }
 
-    public void testReload()
-    {
+    public void testReload() {
         CustomDictionary.reload();
         System.out.println(HanLP.segment("自然语言处理"));
     }

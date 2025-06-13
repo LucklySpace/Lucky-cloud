@@ -2,8 +2,7 @@ package com.hankcs.hanlp.corpus.dictionary;
 
 import junit.framework.TestCase;
 
-public class DictionaryMakerTest extends TestCase
-{
+public class DictionaryMakerTest extends TestCase {
     // 部分标注有问题，比如逗号缺少标注等等，尝试修复它
 //    public void testAdjust() throws Exception
 //    {

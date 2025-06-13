@@ -1,0 +1,129 @@
+server:
+  port: 8084   #  配置启动端口号
+  compression:
+    # http响应的gzip压缩
+    enabled: true
+    # 压缩所需的最小长度，响应长度大于等于该值就会压缩，默认2KB
+    min-response-size: 2048
+    # 需要压缩的响应的Content-type
+    mime-types:
+      - image/png
+      - image/jpeg
+      - image/jpg
+      - text/html
+      - application/javascript
+      - text/css
+      - application/octet-stream
+      - application/json
+
+spring:
+  jackson:
+    time-zone: UTC
+  banner:
+    location: classpath:banner.txt
+  threads:
+    virtual:
+      enabled: true  # 开启虚拟线程
+  servlet:
+    multipart:
+      max-file-size: 10MB
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtualHost: /
+    publisher-returns: true #设置publisher-returns消息成功则会向发布者发送成功，失败时不会将消息丢弃，而是返回给发布者，发布者根据需求处理
+    publisher-confirm-type: correlated #开启发布确认模式，具体有三个值，具体的可以去百度
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      username:
+      database: 0      # 数据库索引（默认为0）
+      timeout: 1800000 # 连接超时时间（毫秒）
+      lettuce:
+        pool:
+          max-active: 20  # 连接池最大连接数
+          max-wait: -1    # 最大阻塞等待时间（负数表示无限制）
+          max-idle: 5     # 最大空闲连接数
+          min-idle: 0     # 最小空闲连接数
+
+#springdoc相关配置
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  group-configs:
+    - group: 'server'
+      paths-to-match: '/**'
+      packages-to-scan: com.xy.server  #改成你自己的包名，一般到启动类的包名
+
+# TODO: knife4j相关配置 可以不用改
+knife4j:
+  enable: true        # 开启增强配置
+  production: false   # 开启生产环境屏蔽
+  setting:
+    language: zh_cn   # 默认中文
+    swagger-model-name: 实体类
+
+
+
+# TODO: security
+security:
+  crypto:
+    default-encrypt: AES
+    default-decrypt: AES
+    aes-key: g64fi7uihebib6d34njcbybfiuyiusyhdf98q38i7unqi7ew
+  sign:
+    secret: g876q3f4fiddybc7684cq87b634fg87
+  rsa-public-key:
+    3f3b7uyttuify7634fgb8y87tgbery7475t9h4f5487ygb8y8eyr93uqhuo972o8yubrf9672t45f
+  rsa-private-key:
+    hd9834678yc98go34i7iifyh96784hfub78438bf7g8457yth79gychu857uy85gtfr883
+  expiration: 30                                                      #JWT过期时间
+  secret: 'dasfdffdsfgfadgfshfghfgdsfgxcxfdghhfh'                     #JWT盐值
+  ignore-url:
+    - '/api/auth/login'
+    - '/api/auth/encrypt'
+    - '/api/auth/publickey'
+    - '/api/auth/qrcode'
+    - '/api/auth/qrcode/status'
+    - '/api/auth/password'
+    - '/api/auth/sms'
+    - '/doc.html'
+    - '/swagger-ui.html'
+    - '/webjars/**'
+    - '/swagger-resources/**'
+    - '/v2/**'
+    - '/v3/**'
+  rsa:
+    key:
+      secret: '1234567890' #RSA加密盐值
+
+
+# TODO: log settings
+logging:
+  config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件
+  level:
+    com.xy.*.mapper: debug
+    com.xy.*: debug
+    org.springframework: warn
+
+# TODO 榛子云短信服务
+sms:
+  apiUrl: https://sms_developer.zhenzikj.com
+  appId: 112181
+  appSecret: 86813b86-b431-46ea-bd55-fcf63c2990a3
+
+qrcode:
+  width: 300
+  height: 300
+  format: PNG
+  error-correction-level: L

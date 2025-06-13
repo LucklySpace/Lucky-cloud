@@ -1,142 +1,178 @@
 package com.xy.server.response.handler;
 
 
-
+import com.xy.response.domain.Result;
+import com.xy.response.domain.ResultCode;
+import com.xy.server.exception.BusinessException;
+import com.xy.server.exception.ForbiddenException;
 import com.xy.server.response.ResponseNotIntercept;
-import com.xy.server.response.Result;
+import jakarta.servlet.ServletException;
+import jakarta.validation.ConstraintViolationException;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.MethodParameter;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.validation.BindException;
-import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 import javax.naming.SizeLimitExceededException;
 import java.nio.file.AccessDeniedException;
 import java.rmi.ServerException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * 全局异常处理
- *
- * @author dense
+ * 全局异常处理器
+ * 用于统一返回 API 结果格式
  */
 @Slf4j
-@RestControllerAdvice(basePackages = "com.xy.auth")
+@RestControllerAdvice(basePackages = "com.xy.server")
 public class GlobalHandler implements ResponseBodyAdvice<Object> {
 
-
-
     /**
-     * 处理Validated验证异常
-     * @param e
-     * @return
+     * 处理自定义商务异常
      */
-    @ExceptionHandler({BindException.class})
-    public Result<?> bindExceptionHandler(BindException e) {
-        ObjectError objectError = e.getBindingResult().getAllErrors().get(0);
-        log.error("BindException：", e);
-        return Result.failed(objectError.getDefaultMessage());
-    }
-
-
-    /**
-     * 处理请求数据超大异常
-     * @param e
-     * @return
-     * @ExceptionHandler
-     */
-    @ExceptionHandler(SizeLimitExceededException.class)
-    public Result<?> sizeLimitExceededExceptionHandler(SizeLimitExceededException e) {
-        log.error("SizeLimitExceededException异常：", e);
-        return Result.failed("请求数据大小不允许超过10MB");
-    }
-
-
-    /**
-     * 空值异常
-     * @param ex
-     * @return
-     */
-    @ExceptionHandler(value = NullPointerException.class)
-    public Result<?> handleNullPointerException(NullPointerException ex) {
-        // 对空指针异常的处理逻辑
-        log.error("Authentication error: {}", ex.getMessage(), ex);
-
-        return Result.failed("result is null ");
-    }
-
-
-    /**
-     * 服务异常
-     * @param ex
-     * @return
-     */
-    @ExceptionHandler(ServerException.class)
-    public Result<?> handleServerException(ServerException ex) {
-        log.error("Server error: {}", ex.getMessage(), ex);
-        return Result.failed(6000, ex.getMessage());
+    @ExceptionHandler(BusinessException.class)
+    public Result<?> handleBusinessException(BusinessException ex) {
+        log.error("BusinessException: {}", ex.getMessage(), ex);
+        return Result.failed(ex.getCode(), ex.getMessage());
     }
 
     /**
-     * 权限不足
-     * @param ex
-     * @return
+     * 处理缺失必填参数异常
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public Result<?> handleMissingServletRequestParameterException(MissingServletRequestParameterException ex) {
+        log.error("Missing Parameter: {}", ex.getMessage(), ex);
+        return Result.failed(ResultCode.VALIDATION_INCOMPLETE, ex.getMessage());
+    }
+
+    /**
+     * 处理 PathVariable / RequestParam 校验失败
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public Result<?> handleConstraintViolationException(ConstraintViolationException ex) {
+        log.error("Constraint Violation: {}", ex.getMessage(), ex);
+        return Result.failed(ResultCode.VALIDATION_INCOMPLETE, ex.getMessage());
+    }
+
+    /**
+     * 处理参数类型不符异常
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public Result<?> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
+        log.error("Type Mismatch: {}", ex.getMessage(), ex);
+        return Result.failed(ResultCode.VALIDATION_INCOMPLETE, "参数: " + ex.getName() + " 类型错误");
+    }
+
+    /**
+     * 处理输入体校验异常 (@RequestBody)
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Result<?> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
+        log.error("MethodArgumentNotValid: {}", ex.getMessage(), ex);
+        String msg = ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .collect(Collectors.joining(", "));
+        return Result.failed(ResultCode.VALIDATION_INCOMPLETE, msg);
+    }
+
+    /**
+     * 处理 form-data 校验异常 (@ModelAttribute)
+     */
+    @ExceptionHandler(BindException.class)
+    public Result<?> handleBindException(BindException ex) {
+        log.error("BindException: {}", ex.getMessage(), ex);
+        String msg = ex.getAllErrors().stream()
+                .map(ObjectError::getDefaultMessage)
+                .collect(Collectors.joining("; "));
+        return Result.failed(ResultCode.VALIDATION_INCOMPLETE, msg);
+    }
+
+    /**
+     * 处理禁止访问异常
+     */
+    @ExceptionHandler(ForbiddenException.class)
+    public Result<?> handleForbiddenException(ForbiddenException ex) {
+        log.error("ForbiddenException: {}", ex.getMessage(), ex);
+        return Result.failed(ResultCode.FORBIDDEN);
+    }
+
+    /**
+     * 处理系统 Servlet 异常
+     */
+    @ExceptionHandler(ServletException.class)
+    public Result<?> handleServletException(ServletException ex) {
+        log.error("ServletException: {}", ex.getMessage(), ex);
+        return Result.failed(ResultCode.SERVICE_EXCEPTION, ex.getMessage());
+    }
+
+    /**
+     * 处理访问权限异常
      */
     @ExceptionHandler(AccessDeniedException.class)
     public Result<?> handleAccessDeniedException(AccessDeniedException ex) {
-        log.warn("Access denied: {}", ex.getMessage(), ex);
-        return Result.failed(403, "权限不足");
+        log.warn("AccessDeniedException: {}", ex.getMessage(), ex);
+        return Result.failed(ResultCode.NO_PERMISSION);
     }
 
     /**
-     * 通用异常处理
+     * 处理大文件上传异常
+     */
+    @ExceptionHandler(SizeLimitExceededException.class)
+    public Result<?> handleSizeLimitExceededException(SizeLimitExceededException ex) {
+        log.error("SizeLimitExceededException: {}", ex.getMessage(), ex);
+        return Result.failed(ResultCode.REQUEST_DATA_TOO_LARGE);
+    }
+
+    /**
+     * 处理空指针异常
+     */
+    @ExceptionHandler(NullPointerException.class)
+    public Result<?> handleNullPointerException(NullPointerException ex) {
+        log.error("NullPointerException: {}", ex.getMessage(), ex);
+        return Result.failed(ResultCode.NOT_FOUND);
+    }
+
+    /**
+     * 处理服务异常
+     */
+    @ExceptionHandler(ServerException.class)
+    public Result<?> handleServerException(ServerException ex) {
+        log.error("ServerException: {}", ex.getMessage(), ex);
+        return Result.failed(ResultCode.SERVICE_EXCEPTION);
+    }
+
+    /**
+     * 统一异常处理
      */
     @ExceptionHandler(Exception.class)
     public Result<?> handleGeneralException(Exception ex) {
-        log.error("Unhandled exception: {}", ex.getMessage(), ex);
-        return Result.failed(500, "服务器内部异常，请稍后重试");
-    }
-
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public Result<?>  handleValidationExceptions(MethodArgumentNotValidException ex)
-    {
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-        });
-        return  Result.failed(500, "服务器内部异常，请稍后重试");
-    }
-
-
-    @Override
-    public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
-        // 判断方法或类上是否存在 @ResponseNotIntercept 注解
-        if (returnType.getDeclaringClass().isAnnotationPresent(ResponseNotIntercept.class) ||
-                returnType.getMethod().isAnnotationPresent(ResponseNotIntercept.class)) {
-            return false;
-        }
-        return true;
+        log.error("Unhandled Exception: {}", ex.getMessage(), ex);
+        return Result.failed(ResultCode.INTERNAL_SERVER_ERROR);
     }
 
     /**
-     * https://www.cnblogs.com/oldboyooxx/p/10824531.html
-     * string 返回值 序列化异常
-     * @return
+     * 支持返回体前置处理
+     * 如果类或方法标记了 @ResponseNotIntercept 则不处理
+     */
+    @Override
+    public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
+        return !(returnType.getDeclaringClass().isAnnotationPresent(ResponseNotIntercept.class)
+                || returnType.getMethod().isAnnotationPresent(ResponseNotIntercept.class));
+    }
+
+    /**
+     * 将非 Result 类型结果装裱为 Result.success
+     * 特别处理 String 类型不兼容的问题
      */
     @SneakyThrows
     @Override
@@ -148,5 +184,4 @@ public class GlobalHandler implements ResponseBodyAdvice<Object> {
         }
         return Result.success(body);
     }
-
 }

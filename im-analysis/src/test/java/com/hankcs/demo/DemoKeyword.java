@@ -12,18 +12,16 @@
 package com.hankcs.demo;
 
 import com.hankcs.hanlp.HanLP;
-import com.hankcs.hanlp.summary.TextRankKeyword;
 
 import java.util.List;
 
 /**
  * 关键词提取
+ *
  * @author hankcs
  */
-public class DemoKeyword
-{
-    public static void main(String[] args)
-    {
+public class DemoKeyword {
+    public static void main(String[] args) {
         String content = "程序员(英文Programmer)是从事程序开发、维护的专业人员。" +
                 "一般将程序员分为程序设计人员和程序编码人员，" +
                 "但两者的界限并不非常清楚，特别是在中国。" +

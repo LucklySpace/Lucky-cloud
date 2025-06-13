@@ -2,21 +2,11 @@ package com.hankcs.hanlp.model.crf;
 
 import com.hankcs.hanlp.HanLP;
 import com.hankcs.hanlp.collection.trie.bintrie.BinTrie;
-import com.hankcs.hanlp.corpus.document.CorpusLoader;
-import com.hankcs.hanlp.corpus.document.Document;
-import com.hankcs.hanlp.corpus.document.sentence.word.IWord;
-import com.hankcs.hanlp.corpus.document.sentence.word.Word;
 import com.hankcs.hanlp.corpus.io.ByteArray;
-import com.hankcs.hanlp.corpus.io.IOUtil;
-import com.hankcs.hanlp.seg.CRF.CRFSegment;
 import com.hankcs.hanlp.utility.Predefine;
 import junit.framework.TestCase;
 
-import java.io.*;
-import java.util.List;
-
-public class CRFModelTest extends TestCase
-{
+public class CRFModelTest extends TestCase {
 //    public void testTemplate() throws Exception
 //    {
 //        FeatureTemplate featureTemplate = FeatureTemplate.create("U05:%x[-2,0]/%x[-1,0]/%x[0,0]");
@@ -139,17 +129,14 @@ public class CRFModelTest extends TestCase
 //        CRFSegment segment = new CRFSegment();
 //        System.out.println(segment.seg(text));
 //    }
-
-    public static String compile(String tag)
-    {
+    public static String compile(String tag) {
         if (tag.startsWith("m")) return "M";
         else if (tag.equals("x")) return "W";
         else if (tag.equals("nx")) return "W";
         return null;
     }
 
-    public void testLoadModelWithBiGramFeature() throws Exception
-    {
+    public void testLoadModelWithBiGramFeature() throws Exception {
         String path = HanLP.Config.CRFSegmentModelPath + Predefine.BIN_EXT;
         CRFModel model = new CRFModel(new BinTrie<FeatureFunction>());
         model.load(ByteArray.createByteArray(path));
@@ -157,8 +144,7 @@ public class CRFModelTest extends TestCase
         Table table = new Table();
         String text = "人民生活进一步改善了";
         table.v = new String[text.length()][2];
-        for (int i = 0; i < text.length(); i++)
-        {
+        for (int i = 0; i < text.length(); i++) {
             table.v[i][0] = String.valueOf(text.charAt(i));
         }
 

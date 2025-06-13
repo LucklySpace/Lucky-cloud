@@ -19,18 +19,16 @@ import java.util.List;
 
 /**
  * 地名识别
+ *
  * @author hankcs
  */
-public class DemoPlaceRecognition
-{
-    public static void main(String[] args)
-    {
+public class DemoPlaceRecognition {
+    public static void main(String[] args) {
         String[] testCase = new String[]{
                 "蓝翔给宁夏固原市彭阳县红河镇黑牛沟村捐赠了挖掘机",
         };
         Segment segment = HanLP.newSegment().enablePlaceRecognize(true);
-        for (String sentence : testCase)
-        {
+        for (String sentence : testCase) {
             List<Term> termList = segment.seg(sentence);
             System.out.println(termList);
         }

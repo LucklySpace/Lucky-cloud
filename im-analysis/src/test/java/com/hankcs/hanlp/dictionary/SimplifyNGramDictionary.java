@@ -11,21 +11,14 @@
  */
 package com.hankcs.hanlp.dictionary;
 
-import com.hankcs.hanlp.HanLP;
-import com.hankcs.hanlp.corpus.dictionary.TFDictionary;
-import com.hankcs.hanlp.corpus.occurrence.TermFrequency;
-import com.hankcs.hanlp.dictionary.CoreDictionary;
 import junit.framework.TestCase;
-
-import java.io.*;
-import java.util.*;
 
 /**
  * 有一些类似于 工程@学 1 的条目会干扰 工程学家 的识别，这类@后接短字符的可以过滤掉
+ *
  * @author hankcs
  */
-public class SimplifyNGramDictionary extends TestCase
-{
+public class SimplifyNGramDictionary extends TestCase {
 //    String path = "data/dictionary/CoreNatureDictionary.ngram.txt";
 //    public void testSimplify() throws Exception
 //    {

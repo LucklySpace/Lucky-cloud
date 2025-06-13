@@ -33,33 +33,26 @@ import java.util.List;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class FeatureEngineering
-{
-    public static void main(String[] args) throws IOException
-    {
-        CWSTrainer trainer = new CWSTrainer()
-        {
+public class FeatureEngineering {
+    public static void main(String[] args) throws IOException {
+        CWSTrainer trainer = new CWSTrainer() {
             @Override
-            protected Instance createInstance(Sentence sentence, FeatureMap featureMap)
-            {
+            protected Instance createInstance(Sentence sentence, FeatureMap featureMap) {
                 return createMyCWSInstance(sentence, featureMap);
             }
         };
         LinearModel model = trainer.train(MSR.TRAIN_PATH, MSR.MODEL_PATH).getModel();
 //        LinearModel model = new LinearModel(MSR.MODEL_PATH);
-        PerceptronSegmenter segmenter = new PerceptronSegmenter(model)
-        {
+        PerceptronSegmenter segmenter = new PerceptronSegmenter(model) {
             @Override
-            protected Instance createInstance(Sentence sentence, FeatureMap featureMap)
-            {
+            protected Instance createInstance(Sentence sentence, FeatureMap featureMap) {
                 return createMyCWSInstance(sentence, featureMap);
             }
         };
         System.out.println(segmenter.segment("叠字特征帮助识别张文文李冰冰"));
     }
 
-    private static Instance createMyCWSInstance(Sentence sentence, FeatureMap mutableFeatureMap)
-    {
+    private static Instance createMyCWSInstance(Sentence sentence, FeatureMap mutableFeatureMap) {
         List<Word> wordList = sentence.toSimpleWordList();
         String[] termArray = Utility.toWordArray(wordList);
         Instance instance = new MyCWSInstance(termArray, mutableFeatureMap);
@@ -69,33 +62,28 @@ public class FeatureEngineering
     /**
      * @author hankcs
      */
-    public static class MyCWSInstance extends CWSInstance
-    {
+    public static class MyCWSInstance extends CWSInstance {
+        public MyCWSInstance(String[] termArray, FeatureMap featureMap) {
+            super(termArray, featureMap);
+        }
+
+        public MyCWSInstance(String sentence, FeatureMap featureMap) {
+            super(sentence, featureMap);
+        }
+
         @Override
-        protected int[] extractFeature(String sentence, FeatureMap featureMap, int position)
-        {
+        protected int[] extractFeature(String sentence, FeatureMap featureMap, int position) {
             int[] defaultFeatures = super.extractFeature(sentence, featureMap, position);
             char preChar = position >= 1 ? sentence.charAt(position - 1) : '_';
             String myFeature = preChar == sentence.charAt(position) ? "Y" : "N"; // 叠字特征
             int id = featureMap.idOf(myFeature);
-            if (id != -1)
-            {// 将叠字特征放到默认特征向量的尾部
+            if (id != -1) {// 将叠字特征放到默认特征向量的尾部
                 int[] newFeatures = new int[defaultFeatures.length + 1];
                 System.arraycopy(defaultFeatures, 0, newFeatures, 0, defaultFeatures.length);
                 newFeatures[defaultFeatures.length] = id;
                 return newFeatures;
             }
             return defaultFeatures;
-        }
-
-        public MyCWSInstance(String[] termArray, FeatureMap featureMap)
-        {
-            super(termArray, featureMap);
-        }
-
-        public MyCWSInstance(String sentence, FeatureMap featureMap)
-        {
-            super(sentence, featureMap);
         }
     }
 }

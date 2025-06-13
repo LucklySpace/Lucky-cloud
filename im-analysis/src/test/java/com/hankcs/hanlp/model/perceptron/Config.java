@@ -15,8 +15,7 @@ import com.hankcs.hanlp.HanLP;
 /**
  * @author hankcs
  */
-public class Config
-{
+public class Config {
     public static final String CWS_MODEL_FILE = HanLP.Config.PerceptronCWSModelPath;
     public static final String POS_MODEL_FILE = HanLP.Config.PerceptronPOSModelPath;
     public static final String NER_MODEL_FILE = HanLP.Config.PerceptronNERModelPath;

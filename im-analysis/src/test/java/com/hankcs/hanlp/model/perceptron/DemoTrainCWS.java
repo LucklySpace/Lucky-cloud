@@ -2,10 +2,8 @@ package com.hankcs.hanlp.model.perceptron;
 
 import java.io.IOException;
 
-public class DemoTrainCWS
-{
-    public static void main(String[] args) throws IOException
-    {
+public class DemoTrainCWS {
+    public static void main(String[] args) throws IOException {
         PerceptronTrainer trainer = new CWSTrainer();
         PerceptronTrainer.Result result = trainer.train(
                 "data/test/pku98/199801.txt",

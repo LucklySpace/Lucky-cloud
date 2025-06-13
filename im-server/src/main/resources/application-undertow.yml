@@ -1,20 +1,4 @@
 server:
-  compression:
-    # http响应的gzip压缩
-    enabled: true
-    # 压缩所需的最小长度，响应长度大于等于该值就会压缩，默认2KB
-    min-response-size: 2048
-    # 需要压缩的响应的Content-type
-    mime-types:
-      - image/png
-      - image/jpeg
-      - image/jpg
-      - text/html
-      - application/javascript
-      - text/css
-      - application/octet-stream
-      - application/json
-
   undertow:
     # 以下的配置会影响buffer,这些buffer会用于服务器连接的IO操作
     # 如果每次需要 ByteBuffer 的时候都去申请，对于堆内存的 ByteBuffer 需要走 JVM 内存分配流程（TLAB -> 堆），对于直接内存则需要走系统调用，这样效率是很低下的。

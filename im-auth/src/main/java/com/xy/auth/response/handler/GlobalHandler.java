@@ -2,8 +2,9 @@ package com.xy.auth.response.handler;
 
 
 import com.xy.auth.response.ResponseNotIntercept;
-import com.xy.auth.response.Result;
 import com.xy.auth.security.exception.AuthenticationFailException;
+import com.xy.response.domain.Result;
+import com.xy.response.domain.ResultCode;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.MethodParameter;
@@ -42,9 +43,8 @@ public class GlobalHandler implements ResponseBodyAdvice<Object> {
         log.error("Authentication error: {}", ex.getMessage(), ex);
 
         if (ex instanceof AuthenticationFailException e) {
-            return Result.failed(e.getResultCode().getCode(), e.getResultCode().getZh());
+            return Result.failed(e.getResultCode());
         }
-
         return Result.failed(1000, ex.getMessage());
     }
 
@@ -72,7 +72,8 @@ public class GlobalHandler implements ResponseBodyAdvice<Object> {
     @ExceptionHandler(SizeLimitExceededException.class)
     public Result<?> sizeLimitExceededExceptionHandler(SizeLimitExceededException e) {
         log.error("SizeLimitExceededException异常：", e);
-        return Result.failed("请求数据大小不允许超过10MB");
+        // "请求数据大小不允许超过10MB"
+        return Result.failed(ResultCode.REQUEST_DATA_TOO_LARGE);
     }
 
 
@@ -86,8 +87,8 @@ public class GlobalHandler implements ResponseBodyAdvice<Object> {
     public Result<?> handleNullPointerException(NullPointerException ex) {
         // 对空指针异常的处理逻辑
         log.error("Authentication error: {}", ex.getMessage(), ex);
-
-        return Result.failed("result is null ");
+        // 资源未找到
+        return Result.failed(ResultCode.NOT_FOUND);
     }
 
 
@@ -100,7 +101,8 @@ public class GlobalHandler implements ResponseBodyAdvice<Object> {
     @ExceptionHandler(ServerException.class)
     public Result<?> handleServerException(ServerException ex) {
         log.error("Server error: {}", ex.getMessage(), ex);
-        return Result.failed(6000, ex.getMessage());
+        // 服务异常
+        return Result.failed(ResultCode.SERVICE_EXCEPTION);
     }
 
     /**
@@ -112,7 +114,8 @@ public class GlobalHandler implements ResponseBodyAdvice<Object> {
     @ExceptionHandler(AccessDeniedException.class)
     public Result<?> handleAccessDeniedException(AccessDeniedException ex) {
         log.warn("Access denied: {}", ex.getMessage(), ex);
-        return Result.failed(403, "权限不足");
+        // 没有权限
+        return Result.failed(ResultCode.NO_PERMISSION);
     }
 
     /**
@@ -121,7 +124,8 @@ public class GlobalHandler implements ResponseBodyAdvice<Object> {
     @ExceptionHandler(Exception.class)
     public Result<?> handleGeneralException(Exception ex) {
         log.error("Unhandled exception: {}", ex.getMessage(), ex);
-        return Result.failed(500, "服务器内部异常，请稍后重试");
+        // 服务器内部异常，请稍后重试
+        return Result.failed(ResultCode.INTERNAL_SERVER_ERROR);
     }
 
 

@@ -17,12 +17,9 @@ import static com.hankcs.demo.DemoTextClassification.CORPUS_FOLDER;
 /**
  * @author hankcs
  */
-public class DemoTextClusteringFMeasure
-{
-    public static void main(String[] args)
-    {
-        for (String algorithm : new String[]{"kmeans", "repeated bisection"})
-        {
+public class DemoTextClusteringFMeasure {
+    public static void main(String[] args) {
+        for (String algorithm : new String[]{"kmeans", "repeated bisection"}) {
             System.out.printf("%s F1=%.2f\n", algorithm, ClusterAnalyzer.evaluate(CORPUS_FOLDER, algorithm) * 100);
         }
     }

@@ -12,7 +12,6 @@ package com.hankcs.book.ch11;
 
 import com.hankcs.hanlp.classification.corpus.AbstractDataSet;
 import com.hankcs.hanlp.classification.corpus.Document;
-import com.hankcs.hanlp.classification.corpus.FileDataSet;
 import com.hankcs.hanlp.classification.corpus.MemoryDataSet;
 
 import java.io.IOException;
@@ -31,17 +30,14 @@ import static com.hankcs.demo.DemoTextClassification.CORPUS_FOLDER;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class DemoLoadTextClassificationCorpus
-{
-    public static void main(String[] args) throws IOException
-    {
+public class DemoLoadTextClassificationCorpus {
+    public static void main(String[] args) throws IOException {
         AbstractDataSet dataSet = new MemoryDataSet(); // ①将数据集加载到内存中
         dataSet.load(CORPUS_FOLDER); // ②加载data/test/搜狗文本分类语料库迷你版
         dataSet.add("自然语言处理", "自然语言处理很有趣"); // ③新增样本
         List<String> allClasses = dataSet.getCatalog().getCategories(); // ④获取标注集
         System.out.printf("标注集：%s\n", allClasses);
-        for (Document document : dataSet)
-        {
+        for (Document document : dataSet) {
             System.out.println("第一篇文档的类别：" + allClasses.get(document.category));
             break;
         }

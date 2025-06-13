@@ -3,9 +3,10 @@ package com.hankcs.hanlp.utility;
 import com.hankcs.hanlp.corpus.tag.Nature;
 import com.hankcs.hanlp.dictionary.CoreDictionary;
 import com.hankcs.hanlp.seg.common.Vertex;
-import java.util.HashMap;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.HashMap;
 
 public class MathUtilityTest {
     static final double DELTA = 0.0;
@@ -20,9 +21,9 @@ public class MathUtilityTest {
     public void testSumFloat() {
         Assert.assertEquals(0.0f, MathUtility.sum(new float[0]), DELTA);
         Assert.assertEquals(
-            22.5f,
-            MathUtility.sum(new float[]{1.0f, 5.5f, 16.0f}),
-            DELTA
+                22.5f,
+                MathUtility.sum(new float[]{1.0f, 5.5f, 16.0f}),
+                DELTA
         );
     }
 
@@ -35,16 +36,16 @@ public class MathUtilityTest {
     @Test
     public void testAverage() {
         Assert.assertEquals(
-            2.0,
-            MathUtility.average(new double[]{1.0, 2.0, 3.0}),
-            DELTA
+                2.0,
+                MathUtility.average(new double[]{1.0, 2.0, 3.0}),
+                DELTA
         );
     }
 
     @Test
     public void testNormalizeExpHashMap() {
         HashMap<String, Double> predictionScores =
-            new HashMap<String, Double>();
+                new HashMap<String, Double>();
         predictionScores.put("foo", 1.0);
         predictionScores.put("Bar", 2.0);
         predictionScores.put("test", 0.5);
@@ -63,8 +64,8 @@ public class MathUtilityTest {
     public void testNormalizeExpDoubleArray() {
         double[] predictionScores = {0, 1, 2, 3};
         double[] expected = {
-            0.03205860328008499, 0.08714431874203257,
-            0.23688281808991013, 0.6439142598879724
+                0.03205860328008499, 0.08714431874203257,
+                0.23688281808991013, 0.6439142598879724
         };
         MathUtility.normalizeExp(predictionScores);
 
@@ -75,24 +76,24 @@ public class MathUtilityTest {
     public void testCalculateWeight() {
         Nature[] natures = new Nature[]{Nature.begin};
         Vertex vertex1 = new Vertex(
-            "Bar",
-            new CoreDictionary.Attribute(10),
-            55
+                "Bar",
+                new CoreDictionary.Attribute(10),
+                55
         );
         Vertex vertex2 = new Vertex(
-            "foo",
-            new CoreDictionary.Attribute(natures, new int[]{-1}),
-            65678
+                "foo",
+                new CoreDictionary.Attribute(natures, new int[]{-1}),
+                65678
         );
 
         Assert.assertEquals(2.1972155419463637,
-            MathUtility.calculateWeight(vertex1, vertex2),
-            DELTA
+                MathUtility.calculateWeight(vertex1, vertex2),
+                DELTA
         );
 
         Assert.assertEquals(0.10536051123919675,
-            MathUtility.calculateWeight(new Vertex("foo"), new Vertex("Bar")),
-            DELTA
+                MathUtility.calculateWeight(new Vertex("foo"), new Vertex("Bar")),
+                DELTA
         );
     }
 }

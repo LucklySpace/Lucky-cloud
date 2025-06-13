@@ -1,25 +1,25 @@
 server:
-    port: 8082   #  配置启动端口号
-    compression:
-        enabled: true #  开启gzip压缩
-        mime-types: application/json,application/xml,text/html,text/xml,text/plain
-        min-response-size: 1024
+  port: 8082   #  配置启动端口号
+  compression:
+    enabled: true #  开启gzip压缩
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+    min-response-size: 1024
 
 
 
 spring: #springboot的配置
-    banner:
-        location: classpath:banner.txt
-    profiles:
-        include: undertow  # 引用其他的yml文件
-    threads:
-        virtual:
-            enabled: true  # 开启虚拟线程
+  banner:
+    location: classpath:banner.txt
+  profiles:
+    include: undertow  # 引用其他的yml文件
+  threads:
+    virtual:
+      enabled: true  # 开启虚拟线程
 
 # TODO: knife4j相关配置 可以不用改
 knife4j:
-    enable: true        # 开启增强配置
-    production: false   # 开启生产环境屏蔽
-    setting:
-        language: zh_cn   # 默认中文
-        swagger-model-name: 实体类
+  enable: true        # 开启增强配置
+  production: false   # 开启生产环境屏蔽
+  setting:
+    language: zh_cn   # 默认中文
+    swagger-model-name: 实体类

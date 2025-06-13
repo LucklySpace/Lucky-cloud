@@ -18,8 +18,6 @@ import com.hankcs.hanlp.corpus.document.sentence.Sentence;
 import com.hankcs.hanlp.seg.Dijkstra.DijkstraSegment;
 import com.hankcs.hanlp.seg.Segment;
 
-import java.io.IOException;
-
 /**
  * 《自然语言处理入门》8.4.1 基于角色标注的中国人名识别
  * 配套书籍：http://nlp.hankcs.com/book.php
@@ -29,20 +27,17 @@ import java.io.IOException;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class DemoRoleTagNR
-{
+public class DemoRoleTagNR {
     public static final String MODEL = "data/test/nr";
 
-    public static void main(String[] args)
-    {
+    public static void main(String[] args) {
         demoNR();
         trainOneSentence();
         train(PKU.PKU199801, MODEL);
         test();
     }
 
-    private static void trainOneSentence()
-    {
+    private static void trainOneSentence() {
         EasyDictionary dictionary = EasyDictionary.create(HanLP.Config.CoreDictionaryPath); // 核心词典
         NRDictionaryMaker maker = new NRDictionaryMaker(dictionary); // 训练模块
         maker.verbose = true; // 调试输出
@@ -50,31 +45,27 @@ public class DemoRoleTagNR
         maker.saveTxtTo(MODEL); // 输出HMM到txt
     }
 
-    private static void train(String corpus, String model)
-    {
+    private static void train(String corpus, String model) {
         EasyDictionary dictionary = EasyDictionary.create(HanLP.Config.CoreDictionaryPath); // 核心词典
         NRDictionaryMaker maker = new NRDictionaryMaker(dictionary); // 训练模块
         maker.train(corpus); // 在语料库上训练
         maker.saveTxtTo(model); // 输出HMM到txt
     }
 
-    private static Segment load(String model)
-    {
+    private static Segment load(String model) {
         HanLP.Config.PersonDictionaryPath = model + ".txt"; // data/test/nr.txt
         HanLP.Config.PersonDictionaryTrPath = model + ".tr.txt"; // data/test/nr.tr.txt
         Segment segment = new DijkstraSegment(); // 该分词器便于调试
         return segment;
     }
 
-    private static void test()
-    {
+    private static void test() {
         Segment segment = load(MODEL);
         HanLP.Config.enableDebug();
         System.out.println(segment.seg("龚学平等领导"));
     }
 
-    private static void demoNR()
-    {
+    private static void demoNR() {
         HanLP.Config.enableDebug();
         Segment segment = new DijkstraSegment();
         System.out.println(segment.seg("王国维和服务员"));

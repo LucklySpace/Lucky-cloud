@@ -1,0 +1,49 @@
+app:
+  name: MiniSpring
+
+
+rabbitmq:
+  address: localhost
+  port: 5672
+  username: guest
+  password: guest
+  virtual: /
+  exchange: IM-SERVER
+  routingKeyPrefix: IM-
+  errorQueue: im.error
+
+nacos:
+  enable: true
+  config:
+    name: im-connect
+    address: localhost
+    group: DEFAULT_GROUP
+    port: 8848
+    username: nacos
+    password: nacos
+    version: 1.0.0
+
+netty:
+  config:
+    heartBeatTime: 30000
+    bossThreadSize: 4
+    workThreadSize: 16
+    tcp:
+      enable: false
+      port:
+        - 9000
+        - 9001
+        - 9002
+    websocket:
+      enable: true
+      port:
+        - 19000
+        - 19001
+        - 19002
+
+
+redis:
+  host: localhost
+  port: 6379
+  password:
+  timeout: 10000

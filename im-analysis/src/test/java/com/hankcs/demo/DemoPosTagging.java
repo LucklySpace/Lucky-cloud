@@ -16,12 +16,11 @@ import com.hankcs.hanlp.seg.Segment;
 
 /**
  * 词性标注
+ *
  * @author hankcs
  */
-public class DemoPosTagging
-{
-    public static void main(String[] args)
-    {
+public class DemoPosTagging {
+    public static void main(String[] args) {
         String text = "教授正在教授自然语言处理课程";
         Segment segment = HanLP.newSegment();
 

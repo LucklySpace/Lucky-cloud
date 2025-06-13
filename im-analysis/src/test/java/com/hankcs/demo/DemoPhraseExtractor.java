@@ -17,12 +17,11 @@ import java.util.List;
 
 /**
  * 短语提取
+ *
  * @author hankcs
  */
-public class DemoPhraseExtractor
-{
-    public static void main(String[] args)
-    {
+public class DemoPhraseExtractor {
+    public static void main(String[] args) {
         String text = "算法工程师\n" +
                 "算法（Algorithm）是一系列解决问题的清晰指令，也就是说，能够对一定规范的输入，在有限时间内获得所要求的输出。" +
                 "如果一个算法有缺陷，或不适合于某个问题，执行这个算法将不会解决这个问题。不同的算法可能用不同的时间、" +

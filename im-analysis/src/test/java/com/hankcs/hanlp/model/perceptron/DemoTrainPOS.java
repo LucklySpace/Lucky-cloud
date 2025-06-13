@@ -15,10 +15,8 @@ import java.io.IOException;
 /**
  * @author hankcs
  */
-public class DemoTrainPOS
-{
-    public static void main(String[] args) throws IOException
-    {
+public class DemoTrainPOS {
+    public static void main(String[] args) throws IOException {
         PerceptronTrainer trainer = new POSTrainer();
         trainer.train("data/test/pku98/199801.txt", Config.POS_MODEL_FILE);
     }

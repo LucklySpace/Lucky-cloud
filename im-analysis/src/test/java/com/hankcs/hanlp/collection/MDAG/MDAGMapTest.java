@@ -1,56 +1,45 @@
 package com.hankcs.hanlp.collection.MDAG;
 
-import com.hankcs.hanlp.collection.MDAG.MDAGMap;
-import com.hankcs.hanlp.collection.trie.bintrie.BinTrie;
 import com.hankcs.hanlp.corpus.io.IOUtil;
 import junit.framework.TestCase;
 
 import java.util.Set;
 import java.util.TreeSet;
 
-public class MDAGMapTest extends TestCase
-{
+public class MDAGMapTest extends TestCase {
     MDAGMap<Integer> mdagMap = new MDAGMap<Integer>();
     Set<String> validKeySet;
 
-    public void setUp() throws Exception
-    {
+    public void setUp() throws Exception {
         IOUtil.LineIterator iterator = new IOUtil.LineIterator("data/dictionary/custom/CustomDictionary.txt");
         validKeySet = new TreeSet<String>();
-        while (iterator.hasNext())
-        {
+        while (iterator.hasNext()) {
             validKeySet.add(iterator.next().split("\\s")[0]);
         }
-        for (String word : validKeySet)
-        {
+        for (String word : validKeySet) {
             mdagMap.put(word, word.length());
         }
     }
 
-    public void testPut() throws Exception
-    {
+    public void testPut() throws Exception {
     }
 
-    public void testGet() throws Exception
-    {
+    public void testGet() throws Exception {
         testPut();
         mdagMap.simplify();
 //        mdagMap.unSimplify();
-        for (String word : validKeySet)
-        {
+        for (String word : validKeySet) {
             assertEquals(word.length(), (int) mdagMap.get(word));
         }
     }
 
-    public void testSingle() throws Exception
-    {
+    public void testSingle() throws Exception {
         testPut();
         mdagMap.simplify();
         assertEquals(null, mdagMap.get("齿轮厂"));
     }
 
-    public void testCommonPrefixSearch() throws Exception
-    {
+    public void testCommonPrefixSearch() throws Exception {
         testPut();
         assertEquals("[hankcs=6]", mdagMap.commonPrefixSearchWithValue("hankcs").toString());
     }

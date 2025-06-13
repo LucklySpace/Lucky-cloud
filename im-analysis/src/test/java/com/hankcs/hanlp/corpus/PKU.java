@@ -20,48 +20,39 @@ import java.util.ArrayList;
 /**
  * @author hankcs
  */
-public class PKU
-{
+public class PKU {
+    public static final String PKU_98 = TestUtility.ensureTestData("pku98", "http://file.hankcs.com/corpus/pku98.zip");
     public static String PKU199801;
     public static String PKU199801_TRAIN = "data/test/pku98/199801-train.txt";
     public static String PKU199801_TEST = "data/test/pku98/199801-test.txt";
     public static String POS_MODEL = "/pos.bin";
     public static String NER_MODEL = "/ner.bin";
-    public static final String PKU_98 = TestUtility.ensureTestData("pku98", "http://file.hankcs.com/corpus/pku98.zip");
 
-    static
-    {
+    static {
         PKU199801 = PKU_98 + "/199801.txt";
         POS_MODEL = PKU_98 + POS_MODEL;
-        NER_MODEL = PKU_98 +NER_MODEL;
-        if (!IOUtil.isFileExisted(PKU199801_TRAIN))
-        {
+        NER_MODEL = PKU_98 + NER_MODEL;
+        if (!IOUtil.isFileExisted(PKU199801_TRAIN)) {
             ArrayList<String> all = new ArrayList<String>();
             IOUtil.LineIterator lineIterator = new IOUtil.LineIterator(PKU199801);
-            while (lineIterator.hasNext())
-            {
+            while (lineIterator.hasNext()) {
                 all.add(lineIterator.next());
             }
-            try
-            {
+            try {
                 BufferedWriter bw = IOUtil.newBufferedWriter(PKU199801_TRAIN);
-                for (String line : all.subList(0, (int) (all.size() * 0.9)))
-                {
+                for (String line : all.subList(0, (int) (all.size() * 0.9))) {
                     bw.write(line);
                     bw.newLine();
                 }
                 bw.close();
 
                 bw = IOUtil.newBufferedWriter(PKU199801_TEST);
-                for (String line : all.subList((int) (all.size() * 0.9), all.size()))
-                {
+                for (String line : all.subList((int) (all.size() * 0.9), all.size())) {
                     bw.write(line);
                     bw.newLine();
                 }
                 bw.close();
-            }
-            catch (IOException e)
-            {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }

@@ -26,19 +26,15 @@ import java.util.TreeSet;
  *
  * @author hankcs
  */
-public class DemoPinyinToChinese
-{
-    public static void main(String[] args)
-    {
+public class DemoPinyinToChinese {
+    public static void main(String[] args) {
         StringDictionary dictionary = new StringDictionary("=");
         dictionary.load(HanLP.Config.PinyinDictionaryPath);
         TreeMap<String, Set<String>> map = new TreeMap<String, Set<String>>();
-        for (Map.Entry<String, String> entry : dictionary.entrySet())
-        {
+        for (Map.Entry<String, String> entry : dictionary.entrySet()) {
             String pinyins = entry.getValue().replaceAll("[\\d,]", "");
             Set<String> words = map.get(pinyins);
-            if (words == null)
-            {
+            if (words == null) {
                 words = new TreeSet<String>();
                 map.put(pinyins, words);
             }

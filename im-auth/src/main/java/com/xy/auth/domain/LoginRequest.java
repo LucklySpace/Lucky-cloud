@@ -1,5 +1,6 @@
 package com.xy.auth.domain;
 
+
 import lombok.*;
 
 @Data
@@ -17,4 +18,6 @@ public class LoginRequest {
 
     // 认证类型，例如 "form", "sms", "scan"
     private String authType;
+
+
 }

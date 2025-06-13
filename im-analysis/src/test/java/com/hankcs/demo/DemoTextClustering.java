@@ -15,10 +15,8 @@ import com.hankcs.hanlp.mining.cluster.ClusterAnalyzer;
 /**
  * @author hankcs
  */
-public class DemoTextClustering
-{
-    public static void main(String[] args)
-    {
+public class DemoTextClustering {
+    public static void main(String[] args) {
         ClusterAnalyzer<String> analyzer = new ClusterAnalyzer<String>();
         analyzer.addDocument("赵一", "流行, 流行, 流行, 流行, 流行, 流行, 流行, 流行, 流行, 流行, 蓝调, 蓝调, 蓝调, 蓝调, 蓝调, 蓝调, 摇滚, 摇滚, 摇滚, 摇滚");
         analyzer.addDocument("钱二", "爵士, 爵士, 爵士, 爵士, 爵士, 爵士, 爵士, 爵士, 舞曲, 舞曲, 舞曲, 舞曲, 舞曲, 舞曲, 舞曲, 舞曲, 舞曲");

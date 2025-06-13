@@ -14,10 +14,8 @@ package com.hankcs.hanlp.corpus;
 /**
  * @author hankcs
  */
-public class ZZGenerateNR
-{
-    public static void main(String[] strings)
-    {
+public class ZZGenerateNR {
+    public static void main(String[] strings) {
         String text = "B\tPf\t姓氏\t张华平先生\n" +
                 "C\tPm\t双名的首字\t张华平先生\n" +
                 "D\tPt\t双名的末字\t张华平先生\n" +
@@ -34,8 +32,7 @@ public class ZZGenerateNR
                 "Z\tPmt\t双名本身成词\t张朝阳\n" +
                 "A\tPo\t以上之外其他的角色\t\n";
 
-        for (String line : text.split("\n"))
-        {
+        for (String line : text.split("\n")) {
             System.out.printf("/**\n* %s\n*/\n%s,\n\n", line.substring(1, line.length()), line.substring(0, 1));
         }
     }

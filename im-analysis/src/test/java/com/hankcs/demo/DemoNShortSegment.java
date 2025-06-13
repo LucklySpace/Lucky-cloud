@@ -20,10 +20,8 @@ import com.hankcs.hanlp.seg.Viterbi.ViterbiSegment;
  *
  * @author hankcs
  */
-public class DemoNShortSegment
-{
-    public static void main(String[] args)
-    {
+public class DemoNShortSegment {
+    public static void main(String[] args) {
         Segment nShortSegment = new NShortSegment().enableCustomDictionary(false).enablePlaceRecognize(true).enableOrganizationRecognize(true);
         Segment shortestSegment = new ViterbiSegment().enableCustomDictionary(false).enablePlaceRecognize(true).enableOrganizationRecognize(true);
         String[] testCase = new String[]{
@@ -31,8 +29,7 @@ public class DemoNShortSegment
                 "江西省监狱管理局与中国太平洋财产保险股份有限公司南昌中心支公司保险合同纠纷案",
                 "新北商贸有限公司",
         };
-        for (String sentence : testCase)
-        {
+        for (String sentence : testCase) {
             System.out.println("N-最短分词：" + nShortSegment.seg(sentence) + "\n最短路分词：" + shortestSegment.seg(sentence));
         }
     }

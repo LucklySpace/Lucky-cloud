@@ -13,10 +13,7 @@ package com.hankcs.book.ch08;
 import com.hankcs.hanlp.corpus.PKU;
 import com.hankcs.hanlp.corpus.document.sentence.Sentence;
 import com.hankcs.hanlp.corpus.io.IOUtil;
-import com.hankcs.hanlp.model.hmm.HMMNERecognizer;
 import com.hankcs.hanlp.model.perceptron.*;
-import com.hankcs.hanlp.tokenizer.lexical.AbstractLexicalAnalyzer;
-import com.hankcs.hanlp.tokenizer.lexical.LexicalAnalyzer;
 import com.hankcs.hanlp.tokenizer.lexical.NERecognizer;
 
 import java.io.IOException;
@@ -32,11 +29,9 @@ import static com.hankcs.book.ch08.DemoHMMNER.test;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class DemoSPNER
-{
+public class DemoSPNER {
 
-    public static void main(String[] args) throws IOException
-    {
+    public static void main(String[] args) throws IOException {
         NERecognizer recognizer = train(PKU.PKU199801_TRAIN, PKU.NER_MODEL);
         test(recognizer);
         // 在线学习
@@ -46,8 +41,7 @@ public class DemoSPNER
             analyzer.learn(sentence);
     }
 
-    public static NERecognizer train(String corpus, String model) throws IOException
-    {
+    public static NERecognizer train(String corpus, String model) throws IOException {
         if (IOUtil.isFileExisted(model))
             return new PerceptronNERecognizer(model);
         PerceptronTrainer trainer = new NERTrainer();

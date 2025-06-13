@@ -11,14 +11,12 @@
  */
 package com.hankcs.hanlp.corpus;
 
-import com.hankcs.hanlp.corpus.tag.Nature;
 import junit.framework.TestCase;
 
 /**
  * @author hankcs
  */
-public class ZZGenerateNature extends TestCase
-{
+public class ZZGenerateNature extends TestCase {
 //    public void testGenerate() throws Exception
 //    {
 //        String text = "n 名词\n" +

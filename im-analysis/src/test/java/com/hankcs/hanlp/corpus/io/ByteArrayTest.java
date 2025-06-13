@@ -1,29 +1,23 @@
 package com.hankcs.hanlp.corpus.io;
 
-import com.hankcs.hanlp.HanLP;
-import com.hankcs.hanlp.model.maxent.MaxEntModel;
 import com.hankcs.hanlp.utility.ByteUtil;
-import com.hankcs.hanlp.utility.Predefine;
 import junit.framework.TestCase;
 
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 
-public class ByteArrayTest extends TestCase
-{
+public class ByteArrayTest extends TestCase {
     static String DATA_TEST_OUT_BIN;
     private File tempFile;
 
     @Override
-    public void setUp() throws Exception
-    {
+    public void setUp() throws Exception {
         tempFile = File.createTempFile("hanlp-", ".dat");
         DATA_TEST_OUT_BIN = tempFile.getAbsolutePath();
     }
 
-    public void testReadDouble() throws Exception
-    {
+    public void testReadDouble() throws Exception {
         DataOutputStream out = new DataOutputStream(new FileOutputStream(DATA_TEST_OUT_BIN));
         double d = 0.123456789;
         out.writeDouble(d);
@@ -34,8 +28,7 @@ public class ByteArrayTest extends TestCase
         assertEquals(i, byteArray.nextInt());
     }
 
-    public void testReadUTF() throws Exception
-    {
+    public void testReadUTF() throws Exception {
         DataOutputStream out = new DataOutputStream(new FileOutputStream(DATA_TEST_OUT_BIN));
         String utf = "hankcs你好123";
         out.writeUTF(utf);
@@ -43,8 +36,7 @@ public class ByteArrayTest extends TestCase
         assertEquals(utf, byteArray.nextUTF());
     }
 
-    public void testReadUnsignedShort() throws Exception
-    {
+    public void testReadUnsignedShort() throws Exception {
         DataOutputStream out = new DataOutputStream(new FileOutputStream(DATA_TEST_OUT_BIN));
         int utflen = 123;
         out.writeByte((byte) ((utflen >>> 8) & 0xFF));
@@ -53,19 +45,16 @@ public class ByteArrayTest extends TestCase
         assertEquals(utflen, byteArray.nextUnsignedShort());
     }
 
-    public void testConvertCharToInt() throws Exception
-    {
+    public void testConvertCharToInt() throws Exception {
 //        for (int i = 0; i < Integer.MAX_VALUE; ++i)
-        for (int i = 0; i < 1024; ++i)
-        {
+        for (int i = 0; i < 1024; ++i) {
             int n = i;
             char[] twoChar = ByteUtil.convertIntToTwoChar(n);
             assertEquals(n, ByteUtil.convertTwoCharToInt(twoChar[0], twoChar[1]));
         }
     }
 
-    public void testNextBoolean() throws Exception
-    {
+    public void testNextBoolean() throws Exception {
         DataOutputStream out = new DataOutputStream(new FileOutputStream(tempFile));
         out.writeBoolean(true);
         out.writeBoolean(false);
@@ -76,8 +65,7 @@ public class ByteArrayTest extends TestCase
         tempFile.deleteOnExit();
     }
 
-    public void testWriteAndRead() throws Exception
-    {
+    public void testWriteAndRead() throws Exception {
         DataOutputStream out = new DataOutputStream(new FileOutputStream(DATA_TEST_OUT_BIN));
         out.writeChar('H');
         out.writeChar('e');
@@ -86,28 +74,23 @@ public class ByteArrayTest extends TestCase
         out.writeChar('o');
         out.close();
         ByteArray byteArray = ByteArray.createByteArray(DATA_TEST_OUT_BIN);
-        while (byteArray.hasMore())
-        {
+        while (byteArray.hasMore()) {
             byteArray.nextChar();
 //            System.out.println(byteArray.nextChar());
         }
     }
 
-    public void testWriteBigFile() throws Exception
-    {
+    public void testWriteBigFile() throws Exception {
         DataOutputStream out = new DataOutputStream(new FileOutputStream(DATA_TEST_OUT_BIN));
-        for (int i = 0; i < 10000; i++)
-        {
+        for (int i = 0; i < 10000; i++) {
             out.writeInt(i);
         }
         out.close();
     }
 
-    public void testStream() throws Exception
-    {
+    public void testStream() throws Exception {
         ByteArray byteArray = ByteArrayFileStream.createByteArrayFileStream(DATA_TEST_OUT_BIN);
-        while (byteArray.hasMore())
-        {
+        while (byteArray.hasMore()) {
             System.out.println(byteArray.nextInt());
         }
     }

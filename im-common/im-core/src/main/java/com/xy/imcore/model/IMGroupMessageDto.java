@@ -4,7 +4,6 @@ package com.xy.imcore.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.xy.imcore.enums.IMessageType;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -35,7 +34,7 @@ public class IMGroupMessageDto extends IMessageDto implements Serializable {
      * group members
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    private List<String> to_List;
+    private List<String> toList;
 
     /**
      * message type

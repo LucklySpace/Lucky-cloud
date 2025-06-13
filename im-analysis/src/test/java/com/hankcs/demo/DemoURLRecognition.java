@@ -22,10 +22,8 @@ import java.util.List;
  *
  * @author hankcs
  */
-public class DemoURLRecognition
-{
-    public static void main(String[] args)
-    {
+public class DemoURLRecognition {
+    public static void main(String[] args) {
         String text =
                 "HanLP的项目地址是https://github.com/hankcs/HanLP，" +
                         "发布地址是https://github.com/hankcs/HanLP/releases，" +
@@ -34,8 +32,7 @@ public class DemoURLRecognition
                         "听说.中国域名开放申请了,但我并没有申请hankcs.中国,因为穷……";
         List<Term> termList = URLTokenizer.segment(text);
         System.out.println(termList);
-        for (Term term : termList)
-        {
+        for (Term term : termList) {
             if (term.nature == Nature.xu)
                 System.out.println(term.word);
         }

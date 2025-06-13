@@ -3,6 +3,7 @@ package com.xy.auth.security.filter;
 import com.xy.auth.security.SecurityProperties;
 import com.xy.auth.security.exception.AuthenticationFailException;
 import com.xy.imcore.utils.JwtUtil;
+import com.xy.response.domain.ResultCode;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebFilter;
@@ -19,7 +20,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-import static com.xy.auth.response.ResultCode.*;
 
 @Component
 @WebFilter
@@ -56,61 +56,45 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest servletRequest, @NonNull HttpServletResponse httpServletResponse, FilterChain filterChain) throws ServletException, IOException, ServletException {
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                    @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain filterChain)
+            throws ServletException, IOException {
 
-        // 获取token
-        String token = getToken(servletRequest);
+        String uri = request.getRequestURI();
 
-        // 如果没有token，跳过该过滤器
-        if (StringUtils.hasText(token)) {
+        // 1. 如果是忽略地址，直接放行
+        if (isIgnoredUrl(uri)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-            if (JwtUtil.validate(token)) {
+        // 2. 获取并校验 Token
+        String token = getToken(request);
+        if (!StringUtils.hasText(token)) {
+            throw new AuthenticationFailException(ResultCode.TOKEN_IS_NULL);
+        }
 
-                try {
-                    //从token中获取用户名
-                    String username = JwtUtil.getUsername(token);
+        if (!JwtUtil.validate(token)) {
+            throw new AuthenticationFailException(ResultCode.TOKEN_IS_INVALID);
+        }
 
-                    //根据用户名获取用户信息
-                    UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(username, null, null);
+        try {
+            String username = JwtUtil.getUsername(token);
 
-                    usernamePasswordAuthenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(servletRequest));
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(username, null, null);
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                    // 装入security 容器中
-                    SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                    // 进入过滤器链
-                    filterChain.doFilter(servletRequest, httpServletResponse);
+            filterChain.doFilter(request, response);
 
-                } catch (Exception e) {
-
-                    // 校验异常
-                    throw new AuthenticationFailException(AUTHENTICATION_FAILED);
-                }
-
-            } else {
-
-                //  校验过期 失效 异常
-                throw new AuthenticationFailException(TOKEN_IS_INVALID);
-
-            }
-
-        } else {
-
-            //获取url地址
-            String uri = servletRequest.getRequestURI();
-
-            // 根据请求地址判断是否放行
-            if (judgeIgnoreUrl(uri)) {
-
-                // 进入过滤器链
-                filterChain.doFilter(servletRequest, httpServletResponse);
-            } else {
-
-                // 不是放行地址 进入用户校验失败处理器
-                throw new AuthenticationFailException(TOKEN_IS_NULL);
-            }
+        } catch (Exception e) {
+            throw new AuthenticationFailException(ResultCode.AUTHENTICATION_FAILED);
         }
     }
+
 
     /**
      * 从请求中获取token
@@ -140,7 +124,7 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
      * @param IgnoreUrl 请求地址
      * @return true 存在  false不存在
      */
-    public boolean judgeIgnoreUrl(String IgnoreUrl) {
+    public boolean isIgnoredUrl(String IgnoreUrl) {
         //application.yml中忽略请求地址
         String[] ignoreUrls = securityProperties.getIgnoreUrl();
 

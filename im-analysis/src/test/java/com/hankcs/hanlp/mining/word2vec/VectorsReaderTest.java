@@ -6,17 +6,15 @@ import junit.framework.TestCase;
 import java.io.BufferedWriter;
 import java.io.File;
 
-public class VectorsReaderTest extends TestCase
-{
-    public void testReadVectorFile() throws Exception
-    {
+public class VectorsReaderTest extends TestCase {
+    public void testReadVectorFile() throws Exception {
         File tempFile = File.createTempFile("hanlp-vector", ".txt");
         tempFile.deleteOnExit();
         BufferedWriter bw = IOUtil.newBufferedWriter(tempFile.getAbsolutePath());
         bw.write("3 1\n" +
-                     "cat 1.1\n" +
-                     " 2.2\n" +
-                     "dog 3.3\n"
+                "cat 1.1\n" +
+                " 2.2\n" +
+                "dog 3.3\n"
         );
         bw.close();
 

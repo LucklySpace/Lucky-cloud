@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xy.database.mapper.ImGroupMapper">
+
+    <select id="selectNinePeople" resultType="java.lang.String">
+        SELECT avatar
+        FROM im_group_member igm
+                 JOIN im_user_data iud ON igm.member_id = iud.user_id
+        WHERE igm.group_id = #{groupId}
+        ORDER BY RAND() LIMIT 9;
+    </select>
+</mapper>

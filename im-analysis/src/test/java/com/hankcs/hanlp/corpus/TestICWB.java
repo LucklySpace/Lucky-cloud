@@ -11,27 +11,14 @@
  */
 package com.hankcs.hanlp.corpus;
 
-import com.hankcs.hanlp.corpus.document.CorpusLoader;
-import com.hankcs.hanlp.corpus.document.Document;
-import com.hankcs.hanlp.corpus.document.sentence.word.IWord;
-import com.hankcs.hanlp.corpus.document.sentence.word.Word;
-import com.hankcs.hanlp.corpus.io.IOUtil;
 import junit.framework.TestCase;
-
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.util.LinkedList;
-import java.util.List;
 
 /**
  * 玩玩ICWB的数据
  *
  * @author hankcs
  */
-public class TestICWB extends TestCase
-{
+public class TestICWB extends TestCase {
 
 //    public static final String PATH = "D:\\Doc\\语料库\\icwb2-data\\training\\msr_training.utf8";
 //

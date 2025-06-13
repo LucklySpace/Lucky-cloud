@@ -12,7 +12,6 @@
 package com.hankcs.demo;
 
 import com.hankcs.hanlp.HanLP;
-import com.hankcs.hanlp.seg.Segment;
 import com.hankcs.hanlp.seg.common.Term;
 
 import java.util.List;
@@ -22,10 +21,8 @@ import java.util.List;
  *
  * @author hankcs
  */
-public class DemoSegment
-{
-    public static void main(String[] args)
-    {
+public class DemoSegment {
+    public static void main(String[] args) {
         String[] testCase = new String[]{
                 "商品和服务",
                 "当下雨天地面积水分外严重",
@@ -36,8 +33,7 @@ public class DemoSegment
                 "工信处女干事每月经过下属科室都要亲口交代24口交换机等技术性器件的安装工作",
                 "随着页游兴起到现在的页游繁盛，依赖于存档进行逻辑判断的设计减少了，但这块也不能完全忽略掉。",
         };
-        for (String sentence : testCase)
-        {
+        for (String sentence : testCase) {
             List<Term> termList = HanLP.segment(sentence);
             System.out.println(termList);
         }

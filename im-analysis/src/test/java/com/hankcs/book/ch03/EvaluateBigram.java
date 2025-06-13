@@ -28,11 +28,9 @@ import static com.hankcs.hanlp.seg.common.CWSEvaluator.evaluate;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class EvaluateBigram
-{
+public class EvaluateBigram {
 
-    public static void main(String[] args) throws IOException
-    {
+    public static void main(String[] args) throws IOException {
         trainBigram(MSR.TRAIN_PATH, MSR_MODEL_PATH);
         Segment segment = loadBigram(MSR_MODEL_PATH);
         CWSEvaluator.Result result = evaluate(segment, MSR.TEST_PATH, MSR.OUTPUT_PATH, MSR.GOLD_PATH, MSR.TRAIN_WORDS);

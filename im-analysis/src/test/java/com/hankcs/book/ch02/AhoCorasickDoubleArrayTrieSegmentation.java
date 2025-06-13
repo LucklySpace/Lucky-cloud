@@ -30,20 +30,16 @@ import java.util.TreeMap;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class AhoCorasickDoubleArrayTrieSegmentation
-{
-    public static void main(String[] args) throws IOException
-    {
+public class AhoCorasickDoubleArrayTrieSegmentation {
+    public static void main(String[] args) throws IOException {
         classicDemo();
-        for (int i = 1; i <= 10; ++i)
-        {
+        for (int i = 1; i <= 10; ++i) {
             evaluateSpeed(i);
             System.gc();
         }
     }
 
-    private static void classicDemo()
-    {
+    private static void classicDemo() {
         String[] keyArray = new String[]{"hers", "his", "she", "he"};
         TreeMap<String, String> map = new TreeMap<String, String>();
         for (String key : keyArray)
@@ -57,15 +53,13 @@ public class AhoCorasickDoubleArrayTrieSegmentation
         acdat.parseText("ushers", new AhoCorasickDoubleArrayTrie.IHit<String>() // 及时处理查询结果
         {
             @Override
-            public void hit(int begin, int end, String value)
-            {
+            public void hit(int begin, int end, String value) {
                 System.out.printf("[%d:%d]=%s\n", begin, end, value);
             }
         });
     }
 
-    private static void evaluateSpeed(int wordLength) throws IOException
-    {
+    private static void evaluateSpeed(int wordLength) throws IOException {
         TreeMap<String, CoreDictionary.Attribute> dictionary = loadDictionary(wordLength);
 
         AhoCorasickDoubleArrayTrie<CoreDictionary.Attribute> acdat = new AhoCorasickDoubleArrayTrie<CoreDictionary.Attribute>(dictionary);
@@ -78,13 +72,10 @@ public class AhoCorasickDoubleArrayTrieSegmentation
         System.out.printf("长度%d：\n", wordLength);
 
         start = System.currentTimeMillis();
-        for (int i = 0; i < pressure; ++i)
-        {
-            acdat.parseText(text, new AhoCorasickDoubleArrayTrie.IHit<CoreDictionary.Attribute>()
-            {
+        for (int i = 0; i < pressure; ++i) {
+            acdat.parseText(text, new AhoCorasickDoubleArrayTrie.IHit<CoreDictionary.Attribute>() {
                 @Override
-                public void hit(int begin, int end, CoreDictionary.Attribute value)
-                {
+                public void hit(int begin, int end, CoreDictionary.Attribute value) {
 
                 }
             });
@@ -93,13 +84,10 @@ public class AhoCorasickDoubleArrayTrieSegmentation
         System.out.printf("ACDAT: %.2f万字/秒\n", text.length() * pressure / 10000 / costTime);
 
         start = System.currentTimeMillis();
-        for (int i = 0; i < pressure; ++i)
-        {
-            dat.parseText(text, new AhoCorasickDoubleArrayTrie.IHit<CoreDictionary.Attribute>()
-            {
+        for (int i = 0; i < pressure; ++i) {
+            dat.parseText(text, new AhoCorasickDoubleArrayTrie.IHit<CoreDictionary.Attribute>() {
                 @Override
-                public void hit(int begin, int end, CoreDictionary.Attribute value)
-                {
+                public void hit(int begin, int end, CoreDictionary.Attribute value) {
 
                 }
             });
@@ -115,14 +103,12 @@ public class AhoCorasickDoubleArrayTrieSegmentation
      * @return TreeMap形式的词典
      * @throws IOException
      */
-    public static TreeMap<String, CoreDictionary.Attribute> loadDictionary(int minLength) throws IOException
-    {
+    public static TreeMap<String, CoreDictionary.Attribute> loadDictionary(int minLength) throws IOException {
         TreeMap<String, CoreDictionary.Attribute> dictionary =
-            IOUtil.loadDictionary("data/dictionary/CoreNatureDictionary.mini.txt");
+                IOUtil.loadDictionary("data/dictionary/CoreNatureDictionary.mini.txt");
 
         Iterator<String> iterator = dictionary.keySet().iterator();
-        while (iterator.hasNext())
-        {
+        while (iterator.hasNext()) {
             if (iterator.next().length() < minLength)
                 iterator.remove();
         }
@@ -136,14 +122,11 @@ public class AhoCorasickDoubleArrayTrieSegmentation
      * @param acdat 词典
      * @return 单词列表
      */
-    public static List<String> segmentFully(final String text, AhoCorasickDoubleArrayTrie<CoreDictionary.Attribute> acdat)
-    {
+    public static List<String> segmentFully(final String text, AhoCorasickDoubleArrayTrie<CoreDictionary.Attribute> acdat) {
         final List<String> wordList = new LinkedList<String>();
-        acdat.parseText(text, new AhoCorasickDoubleArrayTrie.IHit<CoreDictionary.Attribute>()
-        {
+        acdat.parseText(text, new AhoCorasickDoubleArrayTrie.IHit<CoreDictionary.Attribute>() {
             @Override
-            public void hit(int begin, int end, CoreDictionary.Attribute value)
-            {
+            public void hit(int begin, int end, CoreDictionary.Attribute value) {
                 wordList.add(text.substring(begin, end));
             }
         });

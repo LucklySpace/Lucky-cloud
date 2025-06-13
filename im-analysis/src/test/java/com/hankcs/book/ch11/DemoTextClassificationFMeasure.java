@@ -34,10 +34,8 @@ import static com.hankcs.demo.DemoTextClassification.CORPUS_FOLDER;
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class DemoTextClassificationFMeasure
-{
-    public static void main(String[] args) throws IOException
-    {
+public class DemoTextClassificationFMeasure {
+    public static void main(String[] args) throws IOException {
         evaluate(new NaiveBayesClassifier(), new HanLPTokenizer());
         evaluate(new NaiveBayesClassifier(), new BigramTokenizer());
         // 需要引入 https://github.com/hankcs/text-classification-svm ，或者将下列代码复制到该项目运行
@@ -45,14 +43,13 @@ public class DemoTextClassificationFMeasure
         // evaluate(new NaiveBayesClassifier(), new BigramTokenizer());
     }
 
-    public static void evaluate(IClassifier classifier, ITokenizer tokenizer) throws IOException
-    {
+    public static void evaluate(IClassifier classifier, ITokenizer tokenizer) throws IOException {
         IDataSet trainingCorpus = new FileDataSet().                          // FileDataSet省内存，可加载大规模数据集
-            setTokenizer(tokenizer).                               // 支持不同的ITokenizer，详见源码中的文档
-            load(CORPUS_FOLDER, "UTF-8", 0.9);               // 前90%作为训练集
+                setTokenizer(tokenizer).                               // 支持不同的ITokenizer，详见源码中的文档
+                load(CORPUS_FOLDER, "UTF-8", 0.9);               // 前90%作为训练集
         classifier.train(trainingCorpus);
         IDataSet testingCorpus = new MemoryDataSet(classifier.getModel()).
-            load(CORPUS_FOLDER, "UTF-8", -0.1);        // 后10%作为测试集
+                load(CORPUS_FOLDER, "UTF-8", -0.1);        // 后10%作为测试集
         // 计算准确率
         FMeasure result = Evaluator.evaluate(classifier, testingCorpus);
         System.out.println(classifier.getClass().getSimpleName() + "+" + tokenizer.getClass().getSimpleName());

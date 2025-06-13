@@ -29,85 +29,70 @@ import static com.hankcs.book.ch02.NaiveDictionaryBasedSegmentation.evaluateSpee
  * @see <a href="http://nlp.hankcs.com/book.php">《自然语言处理入门》</a>
  * @see <a href="https://bbs.hankcs.com/">讨论答疑</a>
  */
-public class BinTrieBasedSegmentation
-{
-    public static void main(String[] args) throws IOException
-    {
+public class BinTrieBasedSegmentation {
+    public static void main(String[] args) throws IOException {
         // 加载词典
         TreeMap<String, CoreDictionary.Attribute> dictionary =
-            IOUtil.loadDictionary("data/dictionary/CoreNatureDictionary.mini.txt");
+                IOUtil.loadDictionary("data/dictionary/CoreNatureDictionary.mini.txt");
         final BinTrie<CoreDictionary.Attribute> binTrie = new BinTrie<CoreDictionary.Attribute>(dictionary);
-        Map<String, CoreDictionary.Attribute> binTrieMap = new Map<String, CoreDictionary.Attribute>()
-        {
+        Map<String, CoreDictionary.Attribute> binTrieMap = new Map<String, CoreDictionary.Attribute>() {
             @Override
-            public int size()
-            {
+            public int size() {
                 return binTrie.size();
             }
 
             @Override
-            public boolean isEmpty()
-            {
+            public boolean isEmpty() {
                 return binTrie.size() == 0;
             }
 
             @Override
-            public boolean containsKey(Object key)
-            {
+            public boolean containsKey(Object key) {
                 return binTrie.containsKey((String) key);
             }
 
             @Override
-            public boolean containsValue(Object value)
-            {
+            public boolean containsValue(Object value) {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public CoreDictionary.Attribute get(Object key)
-            {
+            public CoreDictionary.Attribute get(Object key) {
                 return binTrie.get((String) key);
             }
 
             @Override
-            public CoreDictionary.Attribute put(String key, CoreDictionary.Attribute value)
-            {
+            public CoreDictionary.Attribute put(String key, CoreDictionary.Attribute value) {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public CoreDictionary.Attribute remove(Object key)
-            {
+            public CoreDictionary.Attribute remove(Object key) {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public void putAll(Map<? extends String, ? extends CoreDictionary.Attribute> m)
-            {
+            public void putAll(Map<? extends String, ? extends CoreDictionary.Attribute> m) {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public void clear()
-            {
+            public void clear() {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public Set<String> keySet()
-            {
+            public Set<String> keySet() {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public Collection<CoreDictionary.Attribute> values()
-            {
+            public Collection<CoreDictionary.Attribute> values() {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public Set<Entry<String, CoreDictionary.Attribute>> entrySet()
-            {
+            public Set<Entry<String, CoreDictionary.Attribute>> entrySet() {
                 throw new UnsupportedOperationException();
 
             }
@@ -122,8 +107,7 @@ public class BinTrieBasedSegmentation
 
         System.out.println("完全切分");
         start = System.currentTimeMillis();
-        for (int i = 0; i < pressure; ++i)
-        {
+        for (int i = 0; i < pressure; ++i) {
             NaiveDictionaryBasedSegmentation.segmentFully(text, binTrieMap);
         }
         costTime = (System.currentTimeMillis() - start) / (double) 1000;
@@ -133,8 +117,7 @@ public class BinTrieBasedSegmentation
         System.out.println("===BinTrie接口===");
         System.out.println("完全切分");
         start = System.currentTimeMillis();
-        for (int i = 0; i < pressure; ++i)
-        {
+        for (int i = 0; i < pressure; ++i) {
             segmentFully(text, binTrie);
         }
         costTime = (System.currentTimeMillis() - start) / (double) 1000;
@@ -142,8 +125,7 @@ public class BinTrieBasedSegmentation
 
         System.out.println("正向最长");
         start = System.currentTimeMillis();
-        for (int i = 0; i < pressure; ++i)
-        {
+        for (int i = 0; i < pressure; ++i) {
             segmentForwardLongest(text, binTrie);
         }
         costTime = (System.currentTimeMillis() - start) / (double) 1000;
@@ -157,14 +139,11 @@ public class BinTrieBasedSegmentation
      * @param dictionary 词典
      * @return 单词列表
      */
-    public static List<String> segmentFully(final String text, BinTrie<CoreDictionary.Attribute> dictionary)
-    {
+    public static List<String> segmentFully(final String text, BinTrie<CoreDictionary.Attribute> dictionary) {
         final List<String> wordList = new LinkedList<String>();
-        dictionary.parseText(text, new AhoCorasickDoubleArrayTrie.IHit<CoreDictionary.Attribute>()
-        {
+        dictionary.parseText(text, new AhoCorasickDoubleArrayTrie.IHit<CoreDictionary.Attribute>() {
             @Override
-            public void hit(int begin, int end, CoreDictionary.Attribute value)
-            {
+            public void hit(int begin, int end, CoreDictionary.Attribute value) {
                 wordList.add(text.substring(begin, end));
             }
         });
@@ -178,14 +157,11 @@ public class BinTrieBasedSegmentation
      * @param dictionary 词典
      * @return 单词列表
      */
-    public static List<String> segmentForwardLongest(final String text, BinTrie<CoreDictionary.Attribute> dictionary)
-    {
+    public static List<String> segmentForwardLongest(final String text, BinTrie<CoreDictionary.Attribute> dictionary) {
         final List<String> wordList = new LinkedList<String>();
-        dictionary.parseLongestText(text, new AhoCorasickDoubleArrayTrie.IHit<CoreDictionary.Attribute>()
-        {
+        dictionary.parseLongestText(text, new AhoCorasickDoubleArrayTrie.IHit<CoreDictionary.Attribute>() {
             @Override
-            public void hit(int begin, int end, CoreDictionary.Attribute value)
-            {
+            public void hit(int begin, int end, CoreDictionary.Attribute value) {
                 wordList.add(text.substring(begin, end));
             }
         });

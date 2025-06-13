@@ -1,8 +1,8 @@
 package com.xy.auth.security.provider;
 
 
-import com.xy.auth.domain.dto.ImUserDto;
-import com.xy.auth.service.impl.ImUserServiceImpl;
+import com.xy.auth.service.ImUserService;
+import com.xy.domain.po.ImUserPo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -16,22 +16,22 @@ import org.springframework.security.core.AuthenticationException;
 public class UsernamePasswordAuthenticationProvider implements AuthenticationProvider {
 
     //自定义user对象
-    private ImUserServiceImpl userDetailsService;
+    private ImUserService userDetailsService;
 
-    public void setUserDetailsService(ImUserServiceImpl userDetailsService) {
+    public void setUserDetailsService(ImUserService userDetailsService) {
         this.userDetailsService = userDetailsService;
     }
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
 
-        String userId = (authentication.getPrincipal() == null) ? "NONE_PROVIDED" : authentication.getName();
+        String userId = (String) authentication.getPrincipal();
 
         String password = (String) authentication.getCredentials();
 
-        ImUserDto imUserDto = userDetailsService.verifyUserByUsername(userId, password);
+        ImUserPo imUserPo = userDetailsService.verifyUserByUsername(userId, password);
 
-        UsernamePasswordAuthenticationToken result = new UsernamePasswordAuthenticationToken(imUserDto.getUserId(), imUserDto.getPassword(), null);
+        UsernamePasswordAuthenticationToken result = new UsernamePasswordAuthenticationToken(imUserPo.getUserId(), imUserPo.getPassword(), null);
 
         result.setDetails(authentication.getDetails());
 

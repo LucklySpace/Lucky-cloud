@@ -1,0 +1,163 @@
+# 主要是配置，官网文档地址https://shardingsphere.apache.org/document/5.5.2/cn/user-manual/shardingsphere-jdbc/yaml-config/mode/
+mode:
+  type: Standalone
+dataSources:
+  ds_0: # 数据源名称317a_master
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource # 数据源完整类名
+    driverClassName: com.mysql.cj.jdbc.Driver # 数据库驱动类名，以数据库连接池自身配置为准
+    jdbcUrl: jdbc:mysql://192.168.3.17:33067/a_db_order?characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowMultiQueries=true # 数据库 URL 连接，以数据库连接池自身配置为
+    username: root # 数据库用户名，以数据库连接池自身配置为准
+    password: ****** # 数据库密码，以数据库连接池自身配置为准
+  ds_1: # 327a_master
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource # 数据源完整类名
+    driverClassName: com.mysql.cj.jdbc.Driver # 数据库驱动类名，以数据库连接池自身配置为准
+    jdbcUrl: jdbc:mysql://192.168.3.27:33067/a_db_order?characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowMultiQueries=true # 数据库 URL 连接，以数据库连接池自身配置为
+    username: root # 数据库用户名，以数据库连接池自身配置为准
+    password: ****** # 数据库密码，以数据库连接池自身配置为准
+  ds_2: #337a_master
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource # 数据源完整类名
+    driverClassName: com.mysql.cj.jdbc.Driver # 数据库驱动类名，以数据库连接池自身配置为准
+    jdbcUrl: jdbc:mysql://192.168.3.37:33067/a_db_order?characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowMultiQueries=true # 数据库 URL 连接，以数据库连接池自身配置为
+    username: root # 数据库用户名，以数据库连接池自身配置为准
+    password: ****** # 数据库密码，以数据库连接池自身配置为准
+  ds_3: # 数据源名称317b_slave-of-337a
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource # 数据源完整类名
+    driverClassName: com.mysql.cj.jdbc.Driver # 数据库驱动类名，以数据库连接池自身配置为准
+    jdbcUrl: jdbc:mysql://192.168.3.17:33068/a_db_order?characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowMultiQueries=true # 数据库 URL 连接，以数据库连接池自身配置为
+    username: root # 数据库用户名，以数据库连接池自身配置为准
+    password: ****** # 数据库密码，以数据库连接池自身配置为准
+  ds_4: # 数据源名称317c_slave-of-317a
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource # 数据源完整类名
+    driverClassName: com.mysql.cj.jdbc.Driver # 数据库驱动类名，以数据库连接池自身配置为准
+    jdbcUrl: jdbc:mysql://192.168.3.17:33069/a_db_order?characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowMultiQueries=true # 数据库 URL 连接，以数据库连接池自身配置为
+    username: root # 数据库用户名，以数据库连接池自身配置为准
+    password: ****** # 数据库密码，以数据库连接池自身配置为准
+  ds_5: # 数据源名称327b_slave-of-337a
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource # 数据源完整类名
+    driverClassName: com.mysql.cj.jdbc.Driver # 数据库驱动类名，以数据库连接池自身配置为准
+    jdbcUrl: jdbc:mysql://192.168.3.27:33068/a_db_order?characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowMultiQueries=true # 数据库 URL 连接，以数据库连接池自身配置为
+    username: root # 数据库用户名，以数据库连接池自身配置为准
+    password: ****** # 数据库密码，以数据库连接池自身配置为准
+  ds_6: # 数据源名称337b_slave-of-327a
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource # 数据源完整类名
+    driverClassName: com.mysql.cj.jdbc.Driver # 数据库驱动类名，以数据库连接池自身配置为准
+    jdbcUrl: jdbc:mysql://192.168.3.37:33068/a_db_order?characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowMultiQueries=true # 数据库 URL 连接，以数据库连接池自身配置为
+    username: root # 数据库用户名，以数据库连接池自身配置为准
+    password: ****** # 数据库密码，以数据库连接池自身配置为准
+
+
+rules:
+  #读写分离
+  - !READWRITE_SPLITTING
+    dataSourceGroups:
+      readwrite_ds_0: #第一个读写库 这个名字可以自己定义，数据分片的时候会用到，注意下，这一个配置卡我一天多
+        writeDataSourceName: ds_0 #写库数据源的名称，dataSources 下定义的数据源
+        readDataSourceNames:
+          - ds_5 #读库数据源的名称，ds_0 的读/从库，dataSources 下定义的数据源
+          - ds_4 #读库数据源的名称，ds_0 的读/从库，dataSources 下定义的数据源
+        transactionalReadQueryStrategy: PRIMARY
+        loadBalancerName: random
+      readwrite_ds_1: #第二个读写库
+        writeDataSourceName: ds_1
+        readDataSourceNames:
+          - ds_6
+        transactionalReadQueryStrategy: PRIMARY
+        loadBalancerName: random
+      readwrite_ds_2: #第三个读写库
+        writeDataSourceName: ds_2
+        readDataSourceNames:
+          - ds_3
+        transactionalReadQueryStrategy: PRIMARY
+        loadBalancerName: random # 算法名称，对应loadBalancers 下的random
+    # 负载均衡算法，配置的轮巡 自带有三种，可参考官网
+    # https://shardingsphere.apache.org/document/5.5.2/cn/user-manual/common-config/builtin-algorithm/load-balance/
+    loadBalancers:
+      random:
+        # 轮巡负载均衡
+        type: ROUND_ROBIN
+
+  # 数据分片，数据究竟写入/读取 哪个库，哪个表，按什么算法来确定
+  - !SHARDING
+    tables:
+      t_order: # 表名，数据库里是t_order0 ,t_order1 这里写 t_order
+        # 由数据源名 + 表名组成（参考 Inline 语法规则）
+        #这里的readwrite_ds_0/1/2 就是上边读写分离定义的 数据源
+        # 也可以写成readwrite_ds_0.t_order0，readwrite_ds_0.t_order1，readwrite_ds_1.t_order0.....
+        actualDataNodes: readwrite_ds_${0..2}.t_order${0..1}
+        databaseStrategy: # 数据库分片策略
+          # 有三种 standard，complex hint，官网还是比较详细的，就是太分散
+          # https://shardingsphere.apache.org/document/5.5.2/cn/user-manual/shardingsphere-jdbc/yaml-config/rules/sharding/
+          standard:
+            shardingColumn: user_id
+            shardingAlgorithmName: database_inline # 这是一个算法名称，在下面shardingAlgorithms 下定义的
+        tableStrategy: # 数据库表分片策略
+          standard:
+            shardingColumn: order_no
+            shardingAlgorithmName: t_order_inline  #这里是个名字，下边有定义
+        keyGenerateStrategy:
+          column: id #分布式id字段是哪个
+          keyGeneratorName: snowflake #这里是个名字，下边有定义
+      t_order_item:
+        actualDataNodes: readwrite_ds_${0..2}.t_order_item${0..1}
+        databaseStrategy:
+          standard:
+            shardingColumn: user_id # 分片字段
+            shardingAlgorithmName: database_inline #这里是个名字，下边有定义
+        tableStrategy:
+          standard:
+            shardingColumn: order_no # 分片字段
+            shardingAlgorithmName: t_order_item_inline #这里是个名字，下边有定义
+        keyGenerateStrategy:
+          column: id #分布式id字段是哪个
+          keyGeneratorName: snowflake #这里是个名字，下边有定义
+    # 这是什么意思？ 订单表拆分成订单主表，订单子表，都通过order_no 分片就需要绑定到一块，查询完整订单的时候好查询
+    bindingTables:
+      - t_order,t_order_item
+    defaultDatabaseStrategy: #没有默认的分库策略
+      none:
+    defaultTableStrategy: # 没有默认的分表策略
+      none:
+    #分片算法
+    shardingAlgorithms:
+      database_inline: # 自定义的算法名称，上边有用到
+        # 类型有多钟可参考官网 https://shardingsphere.apache.org/document/5.5.2/cn/user-manual/common-config/builtin-algorithm/sharding/
+        type: INLINE
+        props:
+          # 根据用户id 对3（因为有3个主/写数据库）取余数，type 为INLINE 的表达式写发可以找官网
+          algorithm-expression: readwrite_ds_${user_id % 3}
+      t_order_inline: # 自定义的算法名称，上边有用到
+        type: CLASS_BASED
+        props:
+          strategy: STANDARD
+          # 下边类是自己写的就是自定义分片算法，这个是shardingsphere 自带的
+          # 就是对分片字段（在使用t_order_inline的算法那里有定义） hash 在通过sharding-count的数量取余分片
+          algorithmClassName: org.apache.shardingsphere.sharding.algorithm.sharding.mod.HashModShardingAlgorithm
+          sharding-count: 2
+      t_order_item_inline: # 自定义的算法名称，上边有用到
+        type: CLASS_BASED
+        props:
+          strategy: STANDARD
+          # 下边类是自己写的就是自定义分片算法，这个是shardingsphere 自带的
+          # 就是对 分片字段（在使用t_order_item_inline的算法那里有定义） hash 在通过sharding-count的数量取余分片
+          algorithmClassName: org.apache.shardingsphere.sharding.algorithm.sharding.mod.HashModShardingAlgorithm
+          sharding-count: 2
+
+    keyGenerators: # # 分布式序列/id 算法配置
+      snowflake:
+        type: SNOWFLAKE
+        props:
+          worker-id: 123  # 工作节点 ID
+          max-tolerate-time-difference-milliseconds: 100
+  - !SINGLE
+    tables:
+      # MySQL 风格
+      - readwrite_ds_0.t_user # 加载指定单表 readwrite_ds_0为读写分离数据源
+    defaultDataSource: readwrite_ds_0
+
+  - !BROADCAST
+    tables: # 广播表规则列表，广播表就是在每一个分库上都有一份
+      - t_dict
+
+props:
+  sql-show: true # 日志显示sql
+  max-tolerate-time-difference-milliseconds: 10000

@@ -26,8 +26,7 @@ import java.io.IOException;
  *
  * @author hankcs
  */
-public class DemoTextClassification
-{
+public class DemoTextClassification {
     /**
      * 搜狗文本分类语料库5个类目，每个类目下1000篇文章，共计5000篇文章
      */
@@ -38,8 +37,7 @@ public class DemoTextClassification
     public static final String MODEL_PATH = "data/test/classification-model.ser";
 
 
-    public static void main(String[] args) throws IOException
-    {
+    public static void main(String[] args) throws IOException {
         IClassifier classifier = new NaiveBayesClassifier(trainOrLoadModel());
         predict(classifier, "C罗获2018环球足球奖最佳球员 德尚荣膺最佳教练");
         predict(classifier, "英国造航母耗时8年仍未服役 被中国速度远远甩在身后");
@@ -48,21 +46,18 @@ public class DemoTextClassification
         predict(classifier, "通用及其部分竞争对手目前正在考虑解决库存问题");
     }
 
-    private static void predict(IClassifier classifier, String text)
-    {
+    private static void predict(IClassifier classifier, String text) {
         System.out.printf("《%s》 属于分类 【%s】\n", text, classifier.classify(text));
     }
 
-    private static NaiveBayesModel trainOrLoadModel() throws IOException
-    {
+    private static NaiveBayesModel trainOrLoadModel() throws IOException {
         NaiveBayesModel model = (NaiveBayesModel) IOUtil.readObjectFrom(MODEL_PATH);
         if (model != null) return model;
 
         File corpusFolder = new File(CORPUS_FOLDER);
-        if (!corpusFolder.exists() || !corpusFolder.isDirectory())
-        {
+        if (!corpusFolder.exists() || !corpusFolder.isDirectory()) {
             System.err.println("没有文本分类语料，请阅读IClassifier.train(java.lang.String)中定义的语料格式与语料下载：" +
-                                   "https://github.com/hankcs/HanLP/wiki/%E6%96%87%E6%9C%AC%E5%88%86%E7%B1%BB%E4%B8%8E%E6%83%85%E6%84%9F%E5%88%86%E6%9E%90");
+                    "https://github.com/hankcs/HanLP/wiki/%E6%96%87%E6%9C%AC%E5%88%86%E7%B1%BB%E4%B8%8E%E6%83%85%E6%84%9F%E5%88%86%E6%9E%90");
             System.exit(1);
         }
 

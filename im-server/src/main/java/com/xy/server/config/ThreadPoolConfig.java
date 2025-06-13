@@ -1,9 +1,9 @@
 package com.xy.server.config;
 
-import org.springframework.boot.web.embedded.tomcat.TomcatProtocolHandlerCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 import java.util.concurrent.Executor;
@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 
 /**
  * 虚拟线程池
+ *
  * @author dense
  */
 @Configuration
@@ -22,5 +23,21 @@ public class ThreadPoolConfig {
     public Executor virtualThreadExecutor() {
         return Executors.newThreadPerTaskExecutor(Thread.ofVirtual().name("im-server-virtual-thread-", 1).factory());
     }
+
+    @Bean
+    public TaskExecutor taskExecutor() {
+        // 使用虚拟线程池
+        return new TaskExecutor() {
+
+            private final Executor executor = virtualThreadExecutor();
+
+            @Override
+            public void execute(Runnable task) {
+                executor.execute(task);
+            }
+
+        };
+    }
+
 
 } 

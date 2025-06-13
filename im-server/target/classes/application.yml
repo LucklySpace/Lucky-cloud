@@ -1,4 +1,0 @@
-spring: #springboot的配置
-  profiles:
-    active: ${APP_PROFILES_ACTIVE:dev}
-    include: undertow  # 引用其他的yml文件

@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 
+import java.lang.reflect.Method;
+
 @ToString
 @Data
 @Accessors(chain = true)
@@ -46,4 +48,17 @@ public class BeanDefinition {
     private ProxyType proxyType;
 
 
+    /**
+     * 方法
+     */
+    public Method factoryMethod;
+
+    /**
+     * 类
+     */
+    public Object factoryBean;
+
+    public boolean hasFactoryMethod() {
+        return this.factoryMethod != null;
+    }
 }

@@ -1,11 +1,14 @@
 package com.xy.generator.core.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xy.generator.core.IDGen;
 import com.xy.generator.model.IdMetaInfo;
 import com.xy.generator.model.Segment;
 import com.xy.generator.repository.IdMetaInfoRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
+import lombok.Data;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
@@ -15,9 +18,13 @@ import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+import java.io.File;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 /**
  * 基于 Redis 与数据库双 Buffer 机制的全局唯一 ID 生成器，
@@ -27,6 +34,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Component("redisSegmentIDGen")
 public class RedisSegmentIDGenImpl implements IDGen<Long> {
 
+    /**
+     * 持久化文件
+     */
+    private static final String CACHE_FILE = "idgen-segments.json";
     /**
      * 分布式锁前缀
      */
@@ -43,6 +54,7 @@ public class RedisSegmentIDGenImpl implements IDGen<Long> {
         t.setDaemon(true);
         return t;
     });
+    private final ObjectMapper objectMapper = new ObjectMapper();
     @Resource
     private ReactiveRedisTemplate<String, Object> reactiveRedisTemplate;
     @Resource
@@ -82,6 +94,7 @@ public class RedisSegmentIDGenImpl implements IDGen<Long> {
     @PostConstruct
     @Override
     public boolean init() {
+        loadCacheFromFile();
         String pong = reactiveRedisTemplate.getConnectionFactory()
                 .getReactiveConnection()
                 .ping().block();
@@ -94,6 +107,44 @@ public class RedisSegmentIDGenImpl implements IDGen<Long> {
     }
 
     /**
+     * 从本地文件加载 SegmentPair 缓存
+     */
+    private void loadCacheFromFile() {
+        try {
+            File file = Paths.get(CACHE_FILE).toFile();
+            if (!file.exists()) return;
+            Map<String, SegmentSnapshot> map = objectMapper.readValue(file,
+                    new TypeReference<Map<String, SegmentSnapshot>>() {
+                    });
+            map.forEach((k, snap) -> segmentCache.put(k, new SegmentPair(k, snap)));
+            log.info("从文件{}加载{}个号段缓存", CACHE_FILE, map.size());
+        } catch (Exception e) {
+            log.warn("加载号段缓存失败：{}", e.getMessage());
+        }
+    }
+
+    /**
+     * 同步持久化缓存到文件
+     */
+    private synchronized void persistCacheToFile() {
+        try {
+            Map<String, SegmentSnapshot> snapMap = segmentCache.entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().snapshot()));
+            objectMapper.writeValue(new File(CACHE_FILE), snapMap);
+            log.info("持久化{}个号段缓存到文件{}", snapMap.size(), CACHE_FILE);
+        } catch (Exception e) {
+            log.error("持久化号段缓存失败：{}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 异步持久化，提交到调度池执行
+     */
+    private void persistCacheToFileAsync() {
+        scheduler.submit(this::persistCacheToFile);
+    }
+
+    /**
      * 获取下一个 ID（响应式返回）
      */
     @Override
@@ -101,8 +152,25 @@ public class RedisSegmentIDGenImpl implements IDGen<Long> {
         // 取本地缓存 segmentPair，没有则初始化
         SegmentPair pair = segmentCache.computeIfAbsent(key, SegmentPair::new);
         Long nextId = pair.nextId();
+        persistCacheToFileAsync();
         return Mono.just(nextId);
     }
+
+    /**
+     * 号段快照，用于序列化
+     */
+    @Data
+    public static class SegmentSnapshot {
+        /**
+         * 当前号池
+         */
+        private Segment current;
+        /**
+         * 缓冲号池
+         */
+        private Segment next;
+    }
+
 
     /**
      * 本地缓存的号段容器，双缓冲结构
@@ -120,10 +188,18 @@ public class RedisSegmentIDGenImpl implements IDGen<Long> {
          */
         private volatile Segment next;
 
+        // 启动加载
         public SegmentPair(String key) {
             this.key = key;
             // 首次加载当前号段（阻塞）
             this.current = loadSegmentBlocking();
+        }
+
+        // 从快照加载
+        public SegmentPair(String key, SegmentSnapshot snap) {
+            this.key = key;
+            this.current = snap.current;
+            if (snap.next != null) this.next = snap.next;
         }
 
         /**
@@ -215,18 +291,21 @@ public class RedisSegmentIDGenImpl implements IDGen<Long> {
                     return m;
                 });
 
-                // === 2. Redis 中获取当前值（响应式操作，用 .get().toFuture().get() 转换为阻塞） ===
+                // 2. 从 Redis 获取当前值（可能为 null）
                 Object redisObj = reactiveRedisTemplate.opsForValue().get(key)
-                        .toFuture()
-                        .get(); // ⚠️ 安全阻塞，因本方法本就在线程池中
+                        .toFuture().get();
 
-                // redis 序列化会将long类型 序列成 int型
-                Long redisVal = (redisObj instanceof Integer) ? ((Integer) redisObj).longValue() : (Long) redisObj;
-
-                // === 3. 如果 Redis 中的值落后于 DB，强制设置 Redis 值 ===
-                if (redisVal < meta.getMaxId()) {
+                Long redisVal;
+                if (redisObj == null) {
+                    redisVal = meta.getMaxId();
+                    // 初始化 Redis 值为数据库 maxId
+                    reactiveRedisTemplate.opsForValue().set(key, redisVal).subscribe();
+                    log.warn("[{}] Redis 值为空，已初始化为 meta.maxId={}", key, redisVal);
+                } else {
                     long reset = meta.getMaxId();
-                    reactiveRedisTemplate.opsForValue().set(key, reset).subscribe();
+                    redisVal = (redisObj instanceof Integer)
+                            ? ((Integer) redisObj).longValue()
+                            : (Long) redisObj;
                     log.warn("[{}] Redis 值校准：{} -> {}", key, redisVal, reset);
                 }
 
@@ -258,6 +337,13 @@ public class RedisSegmentIDGenImpl implements IDGen<Long> {
                     log.debug("[{}] 释放分布式锁", key);
                 }
             }
+        }
+
+        public SegmentSnapshot snapshot() {
+            SegmentSnapshot snap = new SegmentSnapshot();
+            snap.current = current;
+            snap.next = next;
+            return snap;
         }
     }
 }

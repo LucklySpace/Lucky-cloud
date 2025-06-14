@@ -21,152 +21,126 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 
+
 /**
- * MybatisPlus sql 拦截器 输出日志
- * 参考url: https://blog.csdn.net/m0_64289188/article/details/145716521
+ * MyBatis-Plus SQL 日志拦截器
+ *
+ * <p>在 SQL 执行前拦截，打印完整的可执行 SQL，替换所有占位符。</p>
+ *
+ * 使用方式：在 MyBatis-Plus 配置中添加此拦截器。
  */
 @Slf4j
 public class MybatisPlusSqlLogger implements InnerInterceptor {
 
+    /**
+     * 在查询执行前拦截，打印 SQL
+     */
+    @Override
+    public void beforeQuery(Executor executor,
+                            MappedStatement ms,
+                            Object parameter,
+                            RowBounds rowBounds,
+                            ResultHandler resultHandler,
+                            BoundSql boundSql) throws SQLException {
+        logSql(boundSql, ms);
+    }
 
     /**
-     * 日志打印的核心逻辑
-     *
-     * @param boundSql  BoundSql实例
-     * @param ms        MappedStatement实例
-     * @param parameter 参数对象
+     * 在更新执行前拦截，打印 SQL
      */
-    private static void logInfo(BoundSql boundSql, MappedStatement ms, Object parameter) {
+    @Override
+    public void beforeUpdate(Executor executor,
+                             MappedStatement ms,
+                             Object parameter) throws SQLException {
+        BoundSql boundSql = ms.getBoundSql(parameter);
+        logSql(boundSql, ms);
+    }
 
-        // 获取SQL的ID
-        String sqlId = ms.getId();
-
-        String time = DateTimeUtils.getFormatDate(new Date(), "");
-
+    /**
+     * 统一的 SQL 日志打印方法
+     *
+     * @param boundSql SQL 与参数映射
+     * @param ms       MappedStatement 对象
+     */
+    private void logSql(BoundSql boundSql, MappedStatement ms) {
         try {
-            // 获取最终的SQL语句
-            String sql = getSql(ms.getConfiguration(), boundSql, sqlId);
-
-            String info = "[SQL_EXEC] time=" + time + " id=" + sqlId + "\n" + "  - [SQL] " + sql + "\n";
-
-            log.info(info);
-
+            // 获取完整 SQL
+            String sql = buildExecutableSql(ms.getConfiguration(), boundSql);
+            // 打印时间、ID 与 SQL
+            String logMessage = new StringBuilder()
+                    .append("[SQL_EXEC] id=")
+                    .append(ms.getId())
+                    .append("\n")
+                    .append(sql)
+                    .toString();
+            log.info(logMessage);
         } catch (Exception e) {
-            // 捕获异常并打印
-            log.error("[SQL_LOG_ERROR] time={} id={} + \n", time, sqlId, e);
+            log.error("[SQL_LOG_ERROR] id={} error=", ms.getId(), e);
         }
     }
 
     /**
-     * 封装SQL语句信息，返回SQL节点id和对应的SQL语句
+     * 将 BoundSql 与参数映射转换为可执行的完整 SQL 字符串
      *
-     * @param configuration 配置对象
-     * @param boundSql      BoundSql实例
-     * @param sqlId         SQL节点ID
-     * @return 完整的SQL信息
+     * @param configuration MyBatis 配置
+     * @param boundSql      封装后的 SQL 与参数
+     * @return 可执行的 SQL 字符串
      */
-    public static String getSql(Configuration configuration, BoundSql boundSql, String sqlId) {
-        // 返回完整的sql信息
-        return showSql(configuration, boundSql);
-    }
+    private String buildExecutableSql(org.apache.ibatis.session.Configuration configuration,
+                                      BoundSql boundSql) {
+        // 原始 SQL，规范空白
+        String sql = boundSql.getSql().replaceAll("\\s+", " ");
+        // 参数映射
+        List<ParameterMapping> mappings = boundSql.getParameterMappings();
+        Object paramObject = boundSql.getParameterObject();
 
-    /**
-     * 替换SQL语句中的占位符？为实际的参数值
-     *
-     * @param configuration 配置对象
-     * @param boundSql      BoundSql实例
-     * @return 替换后的SQL语句
-     */
-    public static String showSql(Configuration configuration, BoundSql boundSql) {
-        // 获取参数对象
-        Object parameterObject = boundSql.getParameterObject();
-        // 获取SQL中所有的参数映射
-        List<ParameterMapping> parameterMappings = boundSql.getParameterMappings();
+        if (CollectionUtils.isEmpty(mappings) || paramObject == null) {
+            return sql;
+        }
 
-        // 清除SQL中的多余空格
-        String sql = boundSql.getSql().replaceAll("[\\s]+", " ");
-
-        // 如果存在参数且参数对象不为空，则替换占位符
-        if (!CollectionUtils.isEmpty(parameterMappings) && parameterObject != null) {
-            // 获取类型处理器注册器
-            TypeHandlerRegistry typeHandlerRegistry = configuration.getTypeHandlerRegistry();
-            if (typeHandlerRegistry.hasTypeHandler(parameterObject.getClass())) {
-                sql = sql.replaceFirst("\\?", Matcher.quoteReplacement(getParameterValue(parameterObject)));
-            } else {
-                // 获取MetaObject，用于获取参数属性
-                MetaObject metaObject = configuration.newMetaObject(parameterObject);
-                for (ParameterMapping parameterMapping : parameterMappings) {
-                    String propertyName = parameterMapping.getProperty();
-                    if (metaObject.hasGetter(propertyName)) {
-                        Object obj = metaObject.getValue(propertyName);
-                        sql = sql.replaceFirst("\\?", Matcher.quoteReplacement(getParameterValue(obj)));
-                    } else if (boundSql.hasAdditionalParameter(propertyName)) {
-                        // 动态SQL中的额外参数
-                        Object obj = boundSql.getAdditionalParameter(propertyName);
-                        sql = sql.replaceFirst("\\?", Matcher.quoteReplacement(getParameterValue(obj)));
-                    } else {
-                        // 如果缺少参数，打印“缺失”
-                        sql = sql.replaceFirst("\\?", "缺失");
-                    }
-                }
-            }
+        TypeHandlerRegistry registry = configuration.getTypeHandlerRegistry();
+        for (ParameterMapping mapping : mappings) {
+            Object value = getParameterValue(boundSql, mapping, paramObject, configuration, registry);
+            // 按顺序替换第一个占位符
+            sql = sql.replaceFirst("\\?", Matcher.quoteReplacement(formatValue(value)));
         }
         return sql;
     }
 
     /**
-     * 将参数对象转化为对应的SQL表示形式（例如：字符串加引号，日期加引号等）
-     *
-     * @param obj 参数对象
-     * @return 转换后的参数值
+     * 获取每个占位符对应的参数值
      */
-    private static String getParameterValue(Object obj) {
-        if (obj == null) {
-            // 处理null情况
-            return "NULL";
+    private Object getParameterValue(BoundSql boundSql,
+                                     ParameterMapping mapping,
+                                     Object paramObject,
+                                     org.apache.ibatis.session.Configuration configuration,
+                                     TypeHandlerRegistry registry) {
+        String propName = mapping.getProperty();
+        if (registry.hasTypeHandler(paramObject.getClass())) {
+            return paramObject;
         }
+        MetaObject meta = configuration.newMetaObject(paramObject);
+        if (meta.hasGetter(propName)) {
+            return meta.getValue(propName);
+        } else if (boundSql.hasAdditionalParameter(propName)) {
+            return boundSql.getAdditionalParameter(propName);
+        }
+        return null;
+    }
 
-        if (obj instanceof String) {
-            // 字符串加单引号
-            return "'" + obj.toString() + "'";
+    /**
+     * 将参数转为 SQL 字面量形式
+     */
+    private String formatValue(Object obj) {
+        if (obj == null) {
+            return "NULL";
+        } else if (obj instanceof String) {
+            return "'" + obj + "'";
         } else if (obj instanceof Date) {
-
-            DateFormat formatter = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, Locale.CHINA);
-            // 日期格式化后加单引号
-            return "'" + formatter.format(obj) + "'";
-
+            DateFormat fmt = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, Locale.CHINA);
+            return "'" + fmt.format(obj) + "'";
         } else {
             return obj.toString();
         }
-    }
-
-    /**
-     * 查询前的拦截
-     *
-     * @param executor      Executor实例
-     * @param ms            MappedStatement实例
-     * @param parameter     查询参数
-     * @param rowBounds     分页信息
-     * @param resultHandler 结果处理器
-     * @param boundSql      BoundSql实例
-     * @throws SQLException SQL异常
-     */
-    @Override
-    public void beforeQuery(Executor executor, MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) throws SQLException {
-        logInfo(boundSql, ms, parameter);
-    }
-
-    /**
-     * 更新前的拦截
-     *
-     * @param executor  Executor实例
-     * @param ms        MappedStatement实例
-     * @param parameter 更新参数
-     * @throws SQLException SQL异常
-     */
-    @Override
-    public void beforeUpdate(Executor executor, MappedStatement ms, Object parameter) throws SQLException {
-        BoundSql boundSql = ms.getBoundSql(parameter);
-        logInfo(boundSql, ms, parameter);
     }
 }

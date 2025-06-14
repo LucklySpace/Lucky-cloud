@@ -18,6 +18,13 @@ public class Segment {
         this.current.set(start);
     }
 
+    public Segment(long start, long end, long step, long current) {
+        this.start = start;
+        this.end = end;
+        this.step = step;
+        this.current.set(current);
+    }
+
     public long next() {
         long val = current.getAndIncrement();
         return val <= end ? val : -1;

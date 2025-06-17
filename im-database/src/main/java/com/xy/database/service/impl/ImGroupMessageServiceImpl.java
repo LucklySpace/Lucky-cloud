@@ -4,7 +4,10 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.database.mapper.ImGroupMessageMapper;
 import com.xy.database.service.ImGroupMessageService;
 import com.xy.domain.po.ImGroupMessagePo;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * @author dense
@@ -13,6 +16,14 @@ import org.springframework.stereotype.Service;
 @Service
 public class ImGroupMessageServiceImpl extends ServiceImpl<ImGroupMessageMapper, ImGroupMessagePo>
         implements ImGroupMessageService {
+
+    @Resource
+    private ImGroupMessageMapper imGroupMessageMapper;
+
+    @Override
+    public List<ImGroupMessagePo> list(String userId, Long sequence) {
+        return imGroupMessageMapper.selectGroupMessage(userId, sequence);
+    }
 
 }
 

@@ -4,7 +4,10 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.database.mapper.ImFriendshipMapper;
 import com.xy.database.service.ImFriendshipService;
 import com.xy.domain.po.ImFriendshipPo;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * @author dense
@@ -14,6 +17,14 @@ import org.springframework.stereotype.Service;
 public class ImFriendshipServiceImpl extends ServiceImpl<ImFriendshipMapper, ImFriendshipPo>
         implements ImFriendshipService {
 
+
+    @Resource
+    private ImFriendshipMapper imFriendshipMapper;
+
+
+    public List<ImFriendshipPo> list(String ownerId, Long sequence){
+       return imFriendshipMapper.selectFriendList(ownerId,sequence);
+    }
 }
 
 

@@ -8,10 +8,7 @@ import com.xy.domain.po.ImGroupMessageStatusPo;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -25,6 +22,18 @@ public class ImGroupMessageController {
 
     private final ImGroupMessageService imGroupMessageService;
     private final ImGroupMessageStatusService imGroupMessageStatusService;
+
+    /**
+     * 获取用户私聊消息
+     *
+     * @param userId   用户id
+     * @param sequence 时间序列
+     * @return 用户私聊消息
+     */
+    @GetMapping("/list")
+    public List<ImGroupMessagePo> list(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
+        return imGroupMessageService.list(userId, sequence);
+    }
 
     /**
      * 插入群聊消息

@@ -3,6 +3,8 @@ package com.xy.database.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.xy.domain.po.ImPrivateMessagePo;
 
+import java.util.List;
+
 
 /**
  * @author dense
@@ -10,4 +12,6 @@ import com.xy.domain.po.ImPrivateMessagePo;
  * @createDate 2024-03-28 23:00:15
  */
 public interface ImPrivateMessageService extends IService<ImPrivateMessagePo> {
+
+    List<ImPrivateMessagePo> list(String userId, Long sequence);
 }

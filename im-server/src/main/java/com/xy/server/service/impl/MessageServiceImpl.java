@@ -2,6 +2,7 @@ package com.xy.server.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.ObjectUtil;
+import com.xy.domain.dto.ChatDto;
 import com.xy.domain.po.*;
 import com.xy.imcore.enums.IMStatus;
 import com.xy.imcore.enums.IMessageReadStatus;
@@ -30,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import static com.xy.imcore.constants.IMConstant.*;
@@ -480,32 +482,32 @@ public class MessageServiceImpl implements MessageService {
         return Result.failed("发送消息失败");
     }
 
-//    @Override
-//    public Map<Integer, Object> list(ChatDto chatDto) {
-//        String userId = chatDto.getFromId();
-//        Long sequence = chatDto.getSequence();
-//
-//        CompletableFuture<List<ImPrivateMessagePo>> singleMessageFuture = CompletableFuture.supplyAsync(() -> imPrivateMessageMapper.selectSingleMessage(userId, sequence));
-//        CompletableFuture<List<ImGroupMessagePo>> groupMessageFuture = CompletableFuture.supplyAsync(() -> imGroupMessageMapper.selectGroupMessage(userId, sequence));
-//
-//        Map<Integer, Object> map = new HashMap<>();
-//
-//        try {
-//            List<ImPrivateMessagePo> IMPrivateMessageDtoList = singleMessageFuture.get();
-//            if (ObjectUtil.isNotEmpty(IMPrivateMessageDtoList)) {
-//                map.put(IMessageType.SINGLE_MESSAGE.getCode(), IMPrivateMessageDtoList);
-//            }
-//
-//            List<ImGroupMessagePo> IMGroupMessagePoDtoList = groupMessageFuture.get();
-//            if (ObjectUtil.isNotEmpty(IMGroupMessagePoDtoList)) {
-//                map.put(IMessageType.GROUP_MESSAGE.getCode(), IMGroupMessagePoDtoList);
-//            }
-//        } catch (InterruptedException | ExecutionException e) {
-//            // 处理异常
-//        }
-//
-//        return map;
-//    }
+    @Override
+    public Map<Integer, Object> list(ChatDto chatDto) {
+        String userId = chatDto.getFromId();
+        Long sequence = chatDto.getSequence();
+
+        CompletableFuture<List<ImPrivateMessagePo>> singleMessageFuture = CompletableFuture.supplyAsync(() -> imMessageFeign.getPrivateMessageList(userId, sequence));
+        CompletableFuture<List<ImGroupMessagePo>> groupMessageFuture = CompletableFuture.supplyAsync(() -> imMessageFeign.getGroupMessageList(userId, sequence));
+
+        Map<Integer, Object> map = new HashMap<>();
+
+        try {
+            List<ImPrivateMessagePo> IMPrivateMessageDtoList = singleMessageFuture.get();
+            if (ObjectUtil.isNotEmpty(IMPrivateMessageDtoList)) {
+                map.put(IMessageType.SINGLE_MESSAGE.getCode(), IMPrivateMessageDtoList);
+            }
+
+            List<ImGroupMessagePo> IMGroupMessagePoDtoList = groupMessageFuture.get();
+            if (ObjectUtil.isNotEmpty(IMGroupMessagePoDtoList)) {
+                map.put(IMessageType.GROUP_MESSAGE.getCode(), IMGroupMessagePoDtoList);
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            // 处理异常
+        }
+
+        return map;
+    }
 //
 //    @Override
 //    public List singleCheck(ChatDto chatDto) {

@@ -22,7 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import static com.xy.auth.constant.QrcodeConstant.QRCODE_PREFIX;
+import static com.xy.auth.constant.AuthConstant.QRCODE_PREFIX;
 
 
 /**

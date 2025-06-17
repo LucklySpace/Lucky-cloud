@@ -1,9 +1,13 @@
 package com.xy.server.service;
 
 
+import com.xy.domain.vo.FriendVo;
+
+import java.util.List;
+
 public interface FriendService {
 
-//    List<FriendVo> list(String userId, String sequence);
+    List<FriendVo> list(String userId, Long sequence);
 //
 //    FriendVo findFriend(FriendDto friendDto);
 //

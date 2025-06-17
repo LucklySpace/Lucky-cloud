@@ -7,6 +7,13 @@
     <select id="selectFriendList" resultType="com.xy.domain.po.ImFriendshipPo">
         select *
         from im_friendship
-        where owner_id = #{userId}
+        <where>
+            <if test="userId != null and userId != ''">
+                AND owner_id = #{userId}
+            </if>
+            <if test="sequence != null and sequence != ''">
+                AND sequence = #{sequence}
+            </if>
+        </where>
     </select>
 </mapper>

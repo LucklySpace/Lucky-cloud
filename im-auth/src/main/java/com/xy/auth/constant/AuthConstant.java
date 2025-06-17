@@ -1,6 +1,6 @@
 package com.xy.auth.constant;
 
-public class QrcodeConstant {
+public class AuthConstant {
 
     // 登录二维码前缀
     public static final String QRCODE_PREFIX = "IM-LOGIN-QRCODE-";
@@ -17,5 +17,12 @@ public class QrcodeConstant {
     public static final String QRCODE_AUTHORIZED = "AUTHORIZED";
     // 错误状态
     public static final String QRCODE_ERROR = "ERROR";
+
+
+    public static final String AUTH_TOKEN = "Authorization";
+
+    public static final String ACCESS_TOKEN = "accessToken";
+
+    public static final String Bearer = "Bearer ";
 
 }

@@ -4,6 +4,9 @@ package com.xy.database.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xy.domain.po.ImFriendshipPo;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
  * @author dense
@@ -12,7 +15,7 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface ImFriendshipMapper extends BaseMapper<ImFriendshipPo> {
 
-    // List<FriendVo> selectFriendList(@Param("userId") String userId);
+    List<ImFriendshipPo> selectFriendList(@Param("userId") String userId,@Param("sequence") Long sequence);
 }
 
 

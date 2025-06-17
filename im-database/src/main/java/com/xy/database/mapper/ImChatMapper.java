@@ -1,7 +1,6 @@
 package com.xy.database.mapper;
 
 
-import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xy.domain.po.ImChatPo;
 import org.apache.ibatis.annotations.Mapper;

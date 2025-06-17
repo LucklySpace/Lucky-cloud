@@ -6,8 +6,8 @@ import com.xy.imcore.enums.IMessageType;
 import com.xy.imcore.model.IMConnectMessage;
 import com.xy.imcore.utils.JwtUtil;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.util.AttributeKey;
-import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.TimeUnit;
 
 
 public interface WebsocketProcess {
@@ -43,6 +43,17 @@ public interface WebsocketProcess {
             MessageUtils.sendError(ctx, IMessageType.ERROR.getCode(), "token有误");
             throw new IllegalArgumentException("token有误");
         }
+    }
+
+    /**
+     * 获取token有限期的剩余时间
+     *
+     * @param token
+     * @return
+     */
+    default long getRemaining(String token) {
+        // 获取剩余时间
+        return JwtUtil.getRemaining(token, TimeUnit.MINUTES);
     }
 
 }

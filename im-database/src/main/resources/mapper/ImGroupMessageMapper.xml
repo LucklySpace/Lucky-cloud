@@ -24,6 +24,7 @@
           and igms.to_id = #{userId}
         order by igm.message_time desc limit 1
     </select>
+
     <select id="selectGroupMessage" resultType="com.xy.domain.po.ImGroupMessagePo">
         SELECT *
         FROM im_group_message igm

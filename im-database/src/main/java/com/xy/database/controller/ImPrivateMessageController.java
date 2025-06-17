@@ -1,10 +1,8 @@
 package com.xy.database.controller;
 
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xy.database.security.SecurityInner;
 import com.xy.database.service.ImPrivateMessageService;
-import com.xy.domain.po.ImChatPo;
 import com.xy.domain.po.ImPrivateMessagePo;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -31,13 +29,8 @@ public class ImPrivateMessageController {
      * @return 用户私聊消息
      */
     @GetMapping("/list")
-    List<ImPrivateMessagePo> getPrivateMessageList(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
-        QueryWrapper<ImChatPo> query = new QueryWrapper<>();
-        query.eq("sequence", sequence)
-                .and(q -> q.eq("from_id", userId)
-                        .or()
-                        .eq("to_id", userId));
-        return imPrivateMessageService.list();
+    List<ImPrivateMessagePo> list(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
+        return imPrivateMessageService.list(userId, sequence);
     }
 
 

@@ -21,17 +21,16 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.xy.imcore.constants.IMConstant.IM_URL;
 import static com.xy.imcore.constants.IMConstant.IM_USER;
 
 
 /**
  * 认证成功则在通道添加聊天处理的 handler, 且需要修改 websocket 连接的 uri, 交由新引入的 handler 处理
  * 对 WebSocket 握手连接请求进行拦截与鉴权：
- *  - 校验 token 合法性
- *  - 将 userId 存入 Channel 属性
- *  - 修改 URI 并注入必要的处理器（如心跳检测、业务处理器）
- *  - 鉴权失败则关闭连接
+ * - 校验 token 合法性
+ * - 将 userId 存入 Channel 属性
+ * - 修改 URI 并注入必要的处理器（如心跳检测、业务处理器）
+ * - 鉴权失败则关闭连接
  * https://blog.csdn.net/qq_40264499/article/details/126070215#:~:text=Netty%E6%98%AF
  */
 @Slf4j(topic = LogConstant.Netty)

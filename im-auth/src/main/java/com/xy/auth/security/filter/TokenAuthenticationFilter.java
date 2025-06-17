@@ -4,6 +4,7 @@ import com.xy.auth.security.SecurityProperties;
 import com.xy.auth.security.exception.AuthenticationFailException;
 import com.xy.imcore.utils.JwtUtil;
 import com.xy.response.domain.ResultCode;
+import com.xy.auth.constant.AuthConstant;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebFilter;
@@ -25,9 +26,6 @@ import java.io.IOException;
 @WebFilter
 public class TokenAuthenticationFilter extends OncePerRequestFilter {
 
-    private final String AUTH_TOKEN = "Authorization";
-    private final String ACCESS_TOKEN = "accessToken";
-    private final String Bearer = "Bearer ";
 
     /**
      * 忽略url地址
@@ -104,15 +102,15 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
      */
     private String getToken(HttpServletRequest servletRequest) {
         //先从请求头中获取
-        String headerToken = servletRequest.getHeader(AUTH_TOKEN);
+        String headerToken = servletRequest.getHeader(AuthConstant.AUTH_TOKEN);
         if (StringUtils.hasText(headerToken)) {
-            headerToken = headerToken.replaceFirst(Bearer, "");
+            headerToken = headerToken.replaceFirst(AuthConstant.Bearer, "");
             return headerToken.trim();
         }
         //再从请求参数里获取
-        String paramToken = servletRequest.getParameter(ACCESS_TOKEN);
+        String paramToken = servletRequest.getParameter(AuthConstant.ACCESS_TOKEN);
         if (StringUtils.hasText(paramToken)) {
-            paramToken = paramToken.replaceFirst(Bearer, "");
+            paramToken = paramToken.replaceFirst(AuthConstant.Bearer, "");
             return paramToken.trim();
         }
         return null;

@@ -47,3 +47,7 @@ redis:
   port: 6379
   password:
   timeout: 10000
+
+
+auth:
+  tokenExpired: 3

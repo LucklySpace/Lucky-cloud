@@ -50,11 +50,11 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
 
     private final ObjectProvider<ServiceInstanceListSupplier> serviceInstanceListSupplierProvider;
 
-    private final ReactiveRedisTemplate<String, Object> redisTemplate;
+    private final ReactiveRedisTemplate<String, Object> reactiveRedisTemplate;
 
-    public NacosWebsocketClusterChooseRule(ObjectProvider<ServiceInstanceListSupplier> serviceInstanceListSupplierProvider, ReactiveRedisTemplate<String, Object> redisTemplate) {
+    public NacosWebsocketClusterChooseRule(ObjectProvider<ServiceInstanceListSupplier> serviceInstanceListSupplierProvider, ReactiveRedisTemplate<String, Object> reactiveRedisTemplate) {
         this.serviceInstanceListSupplierProvider = serviceInstanceListSupplierProvider;
-        this.redisTemplate = redisTemplate;
+        this.reactiveRedisTemplate = reactiveRedisTemplate;
     }
 
     @SneakyThrows
@@ -189,8 +189,8 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
      */
     private String getUserBroker(String uid) {
         try {
-            Object userObj = redisTemplate.opsForValue().get(IM_USER_PREFIX + uid).toFuture().get();
-            return userObj != null ? ((LinkedHashMap<?, ?>) userObj).get(IM_BROKER).toString() : null;
+            Object userObj = reactiveRedisTemplate.opsForValue().get(IM_USER_PREFIX + uid).toFuture().get();
+            return userObj == null ? null:((LinkedHashMap<?, ?>) userObj).get(IM_BROKER).toString() ;
         } catch (Exception e) {
             log.error("Redis 获取 broker 出错，UID: {}", uid, e);
             return null;

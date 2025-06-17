@@ -5,17 +5,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
+import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
-import org.mybatis.spring.SqlSessionTemplate;
+
 import java.util.List;
 import java.util.function.BiConsumer;
 
 /**
  * MyBatis 批量执行器，用于执行批量插入/更新操作。
- *
+ * <p>
  * 使用示例：  batchExecutor.batchSave(users, UserMapper.class, UserMapper::insert);
- *
  */
 @Slf4j
 @Component

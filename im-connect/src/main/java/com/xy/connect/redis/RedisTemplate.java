@@ -93,7 +93,7 @@ public class RedisTemplate {
     /**
      * 批量新增 key，如果不存在则 set，并设置过期时间
      */
-    public void setnxBatch(String prefix, Map<String,Object> objMap,  int expireSeconds) {
+    public void setnxBatch(String prefix, Map<String, Object> objMap, int expireSeconds) {
         executeVoid(jedis -> {
             Pipeline pipeline = jedis.pipelined();
             for (String key : objMap.keySet()) {
@@ -108,7 +108,7 @@ public class RedisTemplate {
      * 批量设置多个 key 的过期时间（使用 Pipeline）
      *
      * @param keyPrefix     键前缀（如 "user_route:"）
-     * @param keys       用户ID集合
+     * @param keys          用户ID集合
      * @param expireSeconds 过期时间（秒）
      */
     public void expireBatch(String keyPrefix, List<String> keys, long expireSeconds) {
@@ -124,8 +124,8 @@ public class RedisTemplate {
     /**
      * 批量删除多个 key （使用 Pipeline）
      *
-     * @param keyPrefix     键前缀（如 "user_route:"）
-     * @param keys       用户ID集合
+     * @param keyPrefix 键前缀（如 "user_route:"）
+     * @param keys      用户ID集合
      */
     public void deleteBatch(String keyPrefix, List<String> keys) {
         executeVoid(jedis -> {

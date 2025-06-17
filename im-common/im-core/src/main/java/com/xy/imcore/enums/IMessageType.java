@@ -4,6 +4,7 @@ public enum IMessageType {
 
     ERROR(-1, "信息异常"),
     LOGIN_OVER(900, "登录过期"),
+    REFRESHTOKEN(999,"刷新token"),
     LOGIN(1000, "登录"),
     HEART_BEAT(1001, "心跳"),
     FORCE_LOGOUT(1002, "强制下线"),

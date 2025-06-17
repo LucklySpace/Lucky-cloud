@@ -155,7 +155,7 @@
     <!-- 模块 logger 配置 -->
     <logger name="netty" level="INFO" additivity="false">
         <appender-ref ref="ASYNC_NETTY"/>
-<!--        <appender-ref ref="ASYNC_STDOUT"/>-->
+        <!--        <appender-ref ref="ASYNC_STDOUT"/>-->
     </logger>
 
     <logger name="rabbit" level="INFO" additivity="false">

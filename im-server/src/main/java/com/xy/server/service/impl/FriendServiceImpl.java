@@ -1,54 +1,65 @@
 package com.xy.server.service.impl;
 
+import cn.hutool.core.util.ObjectUtil;
+import com.xy.domain.po.ImFriendshipPo;
+import com.xy.domain.po.ImUserDataPo;
+import com.xy.domain.vo.FriendVo;
+import com.xy.server.api.database.friend.ImFriendFeign;
+import com.xy.server.api.database.user.ImUserFeign;
 import com.xy.server.service.FriendService;
+import jakarta.annotation.Resource;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
 public class FriendServiceImpl implements FriendService {
-//
-//    @Resource
-//    private ImFriendshipMapper imFriendshipMapper;
-//
-//    @Resource
-//    private ImFriendshipRequestMapper imFriendshipRequestMapper;
-//
-//    @Resource
-//    private ImUserDataMapper imUserDataMapper;
-//
-//
-//    @Override
-//    public List<FriendVo> list(String userId, String sequence) {
-//        // 查询用户的好友关系列表
-//        List<ImFriendshipPo> imFriendshipPoList = imFriendshipMapper.selectList(new QueryWrapper<ImFriendshipPo>().eq("owner_id", userId).gt("sequence", sequence));
-//
-//        List<FriendVo> friendVoList = new ArrayList<>();
-//
-//        if (ObjectUtil.isNotEmpty(imFriendshipPoList) && !imFriendshipPoList.isEmpty()) {
-//            // 查询好友的用户数据列表
-//            List<ImUserDataPo> imUserDataPoList = imUserDataMapper.selectBatchIds(imFriendshipPoList.stream()
-//                    .map(ImFriendshipPo::getToId)
-//                    .collect(Collectors.toList()));
-//
-//            // 将ImUserData转换为FriendVo并设置好友关系的序列
-//            friendVoList = imFriendshipPoList.stream()
-//                    .flatMap(imFriendshipPo -> imUserDataPoList.stream()
-//                            .filter(imUserData -> imUserData.getUserId().equals(imFriendshipPo.getToId()))
-//                            .map(imUserData -> {
-//                                FriendVo friendVo = new FriendVo();
-//                                BeanUtils.copyProperties(imUserData, friendVo);
-//                                friendVo.setUserId(userId);
-//                                friendVo.setFriendId(imUserData.getUserId());
-//                                friendVo.setBlack(imFriendshipPo.getBlack());
-//                                friendVo.setAlias(imFriendshipPo.getRemark());
-//                                friendVo.setSequence(imFriendshipPo.getSequence());
-//                                return friendVo;
-//                            }))
-//                    .collect(Collectors.toList());
-//        }
-//
-//        return friendVoList;
-//    }
+
+    @Resource
+    private ImFriendFeign imFriendFeign;
+
+    @Resource
+    private ImUserFeign imUserFeign;
+
+    @Override
+    public List<FriendVo> list(String userId, Long sequence) {
+        // 查询用户的好友关系列表
+        List<ImFriendshipPo> imFriendshipPoList = imFriendFeign.selectList(userId,sequence);
+
+        List<FriendVo> friendVoList = new ArrayList<>();
+
+        if (ObjectUtil.isNotEmpty(imFriendshipPoList) && !imFriendshipPoList.isEmpty()) {
+
+            List<String> friendIds = imFriendshipPoList.stream()
+                    .map(ImFriendshipPo::getToId)
+                    .collect(Collectors.toList());
+
+            // 查询好友的用户数据列表
+            List<ImUserDataPo> imUserDataPoList =   imUserFeign.getUserByIds(friendIds);
+
+            // 将ImUserData转换为FriendVo并设置好友关系的序列
+            friendVoList = imFriendshipPoList.stream()
+                    .flatMap(imFriendshipPo -> imUserDataPoList.stream()
+                            .filter(imUserData -> imUserData.getUserId().equals(imFriendshipPo.getToId()))
+                            .map(imUserData -> {
+                                FriendVo friendVo = new FriendVo();
+                                BeanUtils.copyProperties(imUserData, friendVo);
+                                friendVo.setUserId(userId);
+                                friendVo.setFriendId(imUserData.getUserId());
+                                friendVo.setBlack(imFriendshipPo.getBlack());
+                                friendVo.setAlias(imFriendshipPo.getRemark());
+                                friendVo.setSequence(imFriendshipPo.getSequence());
+                                return friendVo;
+                            }))
+                    .collect(Collectors.toList());
+        }
+
+        return friendVoList;
+    }
 //
 //    @Override
 //    public FriendVo findFriend(FriendDto friendDto) {

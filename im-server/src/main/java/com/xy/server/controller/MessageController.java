@@ -1,6 +1,7 @@
 package com.xy.server.controller;
 
 
+import com.xy.domain.dto.ChatDto;
 import com.xy.imcore.model.IMGroupMessageDto;
 import com.xy.imcore.model.IMPrivateMessageDto;
 import com.xy.imcore.model.IMVideoMessageDto;
@@ -20,6 +21,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -59,14 +62,14 @@ public class MessageController {
     }
 
 
-//    @PostMapping("/list")
-//    @Operation(summary = "拉取消息", tags = {"message"}, description = "请使用此接口拉取单聊群聊消息")
-//    @Parameters({
-//            @Parameter(name = "chatDto", description = "会话对象", required = true, in = ParameterIn.QUERY)
-//    })
-//    public Map<Integer, Object> list(@RequestBody ChatDto chatDto) {
-//        return messageService.list(chatDto);
-//    }
+    @PostMapping("/list")
+    @Operation(summary = "拉取消息", tags = {"message"}, description = "请使用此接口拉取单聊群聊消息")
+    @Parameters({
+            @Parameter(name = "chatDto", description = "会话对象", required = true, in = ParameterIn.QUERY)
+    })
+    public Map<Integer, Object> list(@RequestBody ChatDto chatDto) {
+        return messageService.list(chatDto);
+    }
 //
 //    @PostMapping("/singleCheck")
 //    @Operation(summary = "单聊消息检查", tags = {"message"}, description = "请使用此接口检查单聊消息")

@@ -6,7 +6,6 @@ import com.xy.connect.config.LogConstant;
 import com.xy.connect.netty.process.RedisBatchManager;
 import com.xy.connect.netty.process.WebsocketProcess;
 import com.xy.connect.redis.RedisTemplate;
-import com.xy.connect.utils.JacksonUtil;
 import com.xy.connect.utils.MessageUtils;
 import com.xy.imcore.enums.IMessageType;
 import com.xy.imcore.model.IMConnectMessage;
@@ -20,8 +19,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
-
-import static com.xy.imcore.constants.IMConstant.IM_USER_PREFIX;
 
 @Slf4j(topic = LogConstant.Netty)
 @Component

@@ -17,7 +17,7 @@
         from im_private_message ipm
         where ((ipm.from_id = #{fromId} AND ipm.to_id = #{toId})
         OR (ipm.from_id = #{toId} AND ipm.to_id = #{fromId}))
-        and ipm.message_time > #{messageTime}
+        and ipm.message_time > #{sequence}
         ORDER BY ipm.message_time;
 
     </select>
@@ -45,6 +45,6 @@
         im_private_message
         WHERE
         ( from_id = #{userId} OR to_id = #{userId} )
-        AND message_time > #{messageTime}
+        AND message_time > #{sequence}
     </select>
 </mapper>

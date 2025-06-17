@@ -40,41 +40,35 @@ public class RedisBatchManager implements DisposableBean {
     private static final String TASK_ADD = "ADD";
     private static final String TASK_EXPIRE = "EXPIRE";
     private static final String TASK_DELETE = "DELETE";
-
-    /**
-     * 心跳时间（秒），从配置中读取
-     * 实际 Redis key 的 TTL 设置为 heartBeatTime * 2
-     */
-    @Value("netty.config.heartBeatTime")
-    private Integer heartBeatTime;
-
-    /**
-     * Redis 操作工具类，封装了批量 setnx / expire / delete 方法
-     */
-    @Autowired
-    private RedisTemplate redisTemplate;
-
     /**
      * 等待新增用户连接的队列（包含 userId、token、机器信息等）
      */
     private final BlockingQueue<IMRegisterUser> addQueue = new LinkedBlockingQueue<>();
-
     /**
      * 等待续期的用户 userId 队列（接收到心跳）
      */
     private final BlockingQueue<String> expireQueue = new LinkedBlockingQueue<>();
-
     /**
      * 等待删除的用户 userId 队列（下线或断开连接）
      */
     private final BlockingQueue<String> deleteQueue = new LinkedBlockingQueue<>();
-
     /**
      * 三个独立线程池，分别处理 新增 / 续期 / 删除 操作，确保互不阻塞
      */
     private final ScheduledExecutorService addScheduler = Executors.newScheduledThreadPool(MAX_THREAD_POOL);
     private final ScheduledExecutorService expireScheduler = Executors.newScheduledThreadPool(MAX_THREAD_POOL);
     private final ScheduledExecutorService deleteScheduler = Executors.newScheduledThreadPool(MAX_THREAD_POOL);
+    /**
+     * 心跳时间（秒），从配置中读取
+     * 实际 Redis key 的 TTL 设置为 heartBeatTime * 2
+     */
+    @Value("netty.config.heartBeatTime")
+    private Integer heartBeatTime;
+    /**
+     * Redis 操作工具类，封装了批量 setnx / expire / delete 方法
+     */
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     /**
      * 初始化方法，在容器启动后自动执行

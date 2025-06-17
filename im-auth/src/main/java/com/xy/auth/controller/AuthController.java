@@ -3,8 +3,10 @@ package com.xy.auth.controller;
 
 import cn.hutool.core.date.DateField;
 import com.xy.auth.annotations.count.TakeCount;
+import com.xy.auth.constant.AuthConstant;
 import com.xy.auth.domain.LoginRequest;
 import com.xy.auth.security.RSAKeyProperties;
+import com.xy.auth.security.exception.AuthenticationFailException;
 import com.xy.auth.security.token.MobileAuthenticationToken;
 import com.xy.auth.security.token.QrScanAuthenticationToken;
 import com.xy.auth.service.ImUserService;
@@ -23,6 +25,8 @@ import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -31,6 +35,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
@@ -39,7 +44,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static com.xy.auth.constant.QrcodeConstant.*;
+import static com.xy.auth.constant.AuthConstant.*;
 
 
 /**
@@ -241,6 +246,18 @@ public class AuthController {
         return imUserService.info(userId);
     }
 
+    /**
+     * token 刷新token
+     * @param request  请求
+     */
+    @Operation(summary = "token 刷新", tags = {"auth"}, description = "请使用此接口验证手机号码并发送验证码")
+    @GetMapping(value = "/refresh/token")
+    public Map<String,Object> refreshToken(HttpServletRequest request) {
+        // 获取token
+        String token = getToken(request);
+        // 返回结果
+        return Map.of("token", JwtUtil.refreshToken(token, 24, DateField.HOUR), "userId", JwtUtil.getUsername(token));
+    }
 
     /**
      * 验证手机号码并发送验证码。
@@ -341,5 +358,28 @@ public class AuthController {
 
         //生成token
         return Map.of("token", JwtUtil.createToken(userId, 24, DateField.HOUR), "userId", userId);
+    }
+
+
+    /**
+     * 从请求中获取token
+     *
+     * @param servletRequest 请求对象
+     * @return 获取到的token值 可以为null
+     */
+    private String getToken(HttpServletRequest servletRequest) {
+        //先从请求头中获取
+        String headerToken = servletRequest.getHeader(AuthConstant.AUTH_TOKEN);
+        if (StringUtils.hasText(headerToken)) {
+            headerToken = headerToken.replaceFirst(AuthConstant.Bearer, "");
+            return headerToken.trim();
+        }
+        //再从请求参数里获取
+        String paramToken = servletRequest.getParameter(AuthConstant.ACCESS_TOKEN);
+        if (StringUtils.hasText(paramToken)) {
+            paramToken = paramToken.replaceFirst(AuthConstant.Bearer, "");
+            return paramToken.trim();
+        }
+        return null;
     }
 }

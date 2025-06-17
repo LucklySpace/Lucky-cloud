@@ -1,14 +1,12 @@
 package com.xy.database.config;
 
 import com.baomidou.mybatisplus.extension.plugins.inner.InnerInterceptor;
-import com.xy.database.utils.DateTimeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.ParameterMapping;
 import org.apache.ibatis.reflection.MetaObject;
-import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.type.TypeHandlerRegistry;
@@ -26,7 +24,7 @@ import java.util.regex.Matcher;
  * MyBatis-Plus SQL 日志拦截器
  *
  * <p>在 SQL 执行前拦截，打印完整的可执行 SQL，替换所有占位符。</p>
- *
+ * <p>
  * 使用方式：在 MyBatis-Plus 配置中添加此拦截器。
  */
 @Slf4j

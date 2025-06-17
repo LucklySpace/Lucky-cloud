@@ -20,6 +20,9 @@ public class HeartBeatProcess implements WebsocketProcess {
     @Value("netty.config.heartBeatTime")
     private Integer heartBeatTime;
 
+    @Value("auth.tokenExpired")
+    private Integer tokenExpired;
+
     @Autowired
     private RedisBatchManager redisBatchManager;
 
@@ -30,8 +33,11 @@ public class HeartBeatProcess implements WebsocketProcess {
 
         String userId = parseUsername(ctx, token);
 
+        // 如果token剩余时间小于有效时间，  则通知客户端刷新token
+        Integer code = getRemaining(token) <= tokenExpired ? IMessageType.REFRESHTOKEN.getCode() : IMessageType.HEART_BEAT.getCode();
+
         // 响应ws
-        MessageUtils.send(ctx, sendInfo.setCode(IMessageType.HEART_BEAT.getCode()));
+        MessageUtils.send(ctx, sendInfo.setCode(code));
 
         // 推入心跳处理队列（延迟批量续期）
         redisBatchManager.onUserHeartbeat(userId);

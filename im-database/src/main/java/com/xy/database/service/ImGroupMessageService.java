@@ -3,6 +3,8 @@ package com.xy.database.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.xy.domain.po.ImGroupMessagePo;
 
+import java.util.List;
+
 
 /**
  * @author dense
@@ -10,4 +12,5 @@ import com.xy.domain.po.ImGroupMessagePo;
  */
 public interface ImGroupMessageService extends IService<ImGroupMessagePo> {
 
+    List<ImGroupMessagePo> list(String userId, Long sequence);
 }

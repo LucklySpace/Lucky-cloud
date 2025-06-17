@@ -1,15 +1,12 @@
 package com.xy.connect.netty;
 
 import cn.hutool.core.date.DateUtil;
-import cn.hutool.core.util.ObjectUtil;
-import cn.hutool.core.util.StrUtil;
 import com.xy.connect.channel.UserChannelCtxMap;
 import com.xy.connect.config.LogConstant;
 import com.xy.connect.netty.process.RedisBatchManager;
 import com.xy.connect.netty.process.WebsocketProcess;
 import com.xy.connect.netty.process.impl.HeartBeatProcess;
 import com.xy.connect.netty.process.impl.LoginProcess;
-import com.xy.connect.redis.RedisTemplate;
 import com.xy.imcore.enums.IMessageType;
 import com.xy.imcore.model.IMConnectMessage;
 import com.xy.imcore.utils.StringUtils;
@@ -23,10 +20,6 @@ import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Optional;
-
-import static com.xy.imcore.constants.IMConstant.IM_USER_PREFIX;
 
 /**
  * WebSocket 消息处理器（Netty ChannelHandler）

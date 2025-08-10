@@ -2,7 +2,7 @@ package com.xy.connect.netty.service.websocket.codec.json;
 
 
 import com.xy.connect.utils.JacksonUtil;
-import com.xy.imcore.model.IMConnectMessage;
+import com.xy.core.model.IMConnectMessage;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;

@@ -4,6 +4,7 @@ package com.xy.server.api.database.user;
 import com.xy.domain.po.ImUserDataPo;
 import com.xy.server.api.FeignRequestInterceptor;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,7 +21,7 @@ public interface ImUserFeign {
      * @param userId 用户id
      * @return 用户信息集合
      */
-    @PostMapping("/data/getOne")
+    @GetMapping("/data/getOne")
     ImUserDataPo getOne(@RequestParam("userId") String userId);
 
     /**

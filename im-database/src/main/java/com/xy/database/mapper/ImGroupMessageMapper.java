@@ -21,6 +21,8 @@ public interface ImGroupMessageMapper extends BaseMapper<ImGroupMessagePo> {
 
     ImGroupMessagePo selectLastGroupMessage(@Param("userId") String userId, @Param("groupId") String groupId);
 
+    Integer selectReadStatus(@Param("groupId") String groupId, @Param("toId") String toId, @Param("status") Integer code);
+
 }
 
 

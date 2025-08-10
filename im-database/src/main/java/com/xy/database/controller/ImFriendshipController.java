@@ -1,9 +1,7 @@
 package com.xy.database.controller;
 
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xy.database.service.ImFriendshipService;
-import com.xy.domain.po.ImChatPo;
 import com.xy.domain.po.ImFriendshipPo;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Objects;
 
 @Slf4j
 @RestController
@@ -33,6 +30,11 @@ public class ImFriendshipController {
     @GetMapping("/list")
     public List<ImFriendshipPo> list(@RequestParam("ownerId") String ownerId, @RequestParam("sequence") Long sequence) {
         return imFriendshipService.list(ownerId,sequence);
+    }
+
+    @GetMapping("getOne")
+    public ImFriendshipPo getOne(@RequestParam("ownerId") String ownerId, @RequestParam("friendId") String friendId){
+        return imFriendshipService.getOne(ownerId,friendId);
     }
 
 }

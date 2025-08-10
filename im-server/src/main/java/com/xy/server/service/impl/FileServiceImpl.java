@@ -1,6 +1,7 @@
 package com.xy.server.service.impl;
 
-import com.xy.response.domain.ResultCode;
+import com.xy.domain.vo.FileVo;
+import com.xy.general.response.domain.ResultCode;
 import com.xy.server.exception.BusinessException;
 import com.xy.server.service.FileService;
 import com.xy.server.utils.MinioUtil;
@@ -84,7 +85,7 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public String uploadFile(MultipartFile file) {
+    public FileVo uploadFile(MultipartFile file) {
 
         // 大小校验
         if (file.getSize() > 1000 * 1024 * 1024) {
@@ -100,7 +101,11 @@ public class FileServiceImpl implements FileService {
             throw new BusinessException(ResultCode.FAIL);
         }
 
-        return generUrl(filePath, fileName);
+        FileVo fileVo = new FileVo()
+                .setName(file.getOriginalFilename())
+                .setPath(generUrl(filePath, fileName));
+
+        return fileVo;
 
     }
 

@@ -2,21 +2,21 @@ package com.xy.server.service;
 
 
 import com.xy.domain.dto.ChatDto;
-import com.xy.imcore.model.IMGroupMessageDto;
-import com.xy.imcore.model.IMPrivateMessageDto;
-import com.xy.imcore.model.IMVideoMessageDto;
-import com.xy.response.domain.Result;
+import com.xy.core.model.IMGroupMessage;
+import com.xy.core.model.IMPrivateMessage;
+import com.xy.core.model.IMVideoMessage;
+import com.xy.general.response.domain.Result;
 
 import java.util.Map;
 
 
 public interface MessageService {
 
-    Result sendPrivateMessage(IMPrivateMessageDto privateMessageDto);
+    Result sendPrivateMessage(IMPrivateMessage privateMessageDto);
 
-    Result sendGroupMessage(IMGroupMessageDto groupMessageDto);
+    Result sendGroupMessage(IMGroupMessage groupMessageDto);
 
-    Result sendVideoMessage(IMVideoMessageDto videoMessageDto);
+    Result sendVideoMessage(IMVideoMessage videoMessageDto);
 
 //    List<T> singleCheck(ChatDto chatDto);
 //

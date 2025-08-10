@@ -2,9 +2,9 @@ package com.xy.auth.security.filter;
 
 import com.xy.auth.security.SecurityProperties;
 import com.xy.auth.security.exception.AuthenticationFailException;
-import com.xy.imcore.utils.JwtUtil;
-import com.xy.response.domain.ResultCode;
-import com.xy.auth.constant.AuthConstant;
+import com.xy.core.constants.IMConstant;
+import com.xy.core.utils.JwtUtil;
+import com.xy.general.response.domain.ResultCode;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebFilter;
@@ -26,39 +26,47 @@ import java.io.IOException;
 @WebFilter
 public class TokenAuthenticationFilter extends OncePerRequestFilter {
 
-
     /**
-     * 忽略url地址
+     * 存储忽略的URL配置
      */
     private final SecurityProperties securityProperties;
 
-
     public TokenAuthenticationFilter(SecurityProperties securityProperties) {
-
         this.securityProperties = securityProperties;
     }
 
     /**
-     * 判断url是否与规则配置:
+     * 判断请求的 URL 是否与忽略规则匹配
      * ? 表示单个字符
-     * * 表示一层路径内的任意字符串，不可跨层级
+     * * 表示一层路径内的任意字符串
      * ** 表示任意层路径
      *
      * @param url     匹配规则
      * @param urlPath 需要匹配的url
-     * @return
+     * @return 是否匹配
      */
     public static boolean isMatch(String url, String urlPath) {
+        // 使用 AntPathMatcher 匹配 URL 模式
         AntPathMatcher matcher = new AntPathMatcher();
         return matcher.match(url, urlPath);
     }
 
+    /**
+     * 校验用户token
+     *
+     * @param request     请求
+     * @param response    返回
+     * @param filterChain 过滤链
+     * @throws ServletException servlet 异常
+     * @throws IOException      io 异常
+     */
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain)
             throws ServletException, IOException {
 
+        // 获取请求地址
         String uri = request.getRequestURI();
 
         // 1. 如果是忽略地址，直接放行
@@ -69,72 +77,84 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
 
         // 2. 获取并校验 Token
         String token = getToken(request);
+
+        // 3. 判断 token 是否为空
         if (!StringUtils.hasText(token)) {
             throw new AuthenticationFailException(ResultCode.TOKEN_IS_NULL);
         }
 
+        // 4. 验证 token 是否有效
         if (!JwtUtil.validate(token)) {
             throw new AuthenticationFailException(ResultCode.TOKEN_IS_INVALID);
         }
 
         try {
+            // 5. 从 token 中提取用户名
             String username = JwtUtil.getUsername(token);
 
+            // 6. 创建认证对象并设置到安全上下文
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(username, null, null);
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
+            // 7. 将认证对象设置到上下文中，供后续请求使用
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
+            // 8. 继续执行过滤器链
             filterChain.doFilter(request, response);
 
         } catch (Exception e) {
+            // 发生异常时，抛出认证失败异常
             throw new AuthenticationFailException(ResultCode.AUTHENTICATION_FAILED);
         }
+
     }
 
-
     /**
-     * 从请求中获取token
+     * 从请求中获取 token
      *
      * @param servletRequest 请求对象
-     * @return 获取到的token值 可以为null
+     * @return 获取到的 token 值，如果没有则返回 null
      */
     private String getToken(HttpServletRequest servletRequest) {
-        //先从请求头中获取
-        String headerToken = servletRequest.getHeader(AuthConstant.AUTH_TOKEN);
+        // 优先从请求头中获取 token
+        String headerToken = servletRequest.getHeader(IMConstant.AUTH_TOKEN_HEADER);
+
         if (StringUtils.hasText(headerToken)) {
-            headerToken = headerToken.replaceFirst(AuthConstant.Bearer, "");
-            return headerToken.trim();
+            return headerToken.replaceFirst(IMConstant.BEARER_PREFIX, "").trim();
         }
-        //再从请求参数里获取
-        String paramToken = servletRequest.getParameter(AuthConstant.ACCESS_TOKEN);
+
+        // 如果请求头没有，则从请求参数中获取 token
+        String paramToken = servletRequest.getParameter(IMConstant.ACCESS_TOKEN_PARAM);
         if (StringUtils.hasText(paramToken)) {
-            paramToken = paramToken.replaceFirst(AuthConstant.Bearer, "");
-            return paramToken.trim();
+            return paramToken.replaceFirst(IMConstant.BEARER_PREFIX, "").trim();
         }
+
+        // 如果两者都没有，则返回 null
         return null;
     }
 
     /**
-     * //判断忽略URL集合内是否包含请求url
+     * 判断请求 URL 是否在忽略的 URL 列表中
      *
-     * @param IgnoreUrl 请求地址
-     * @return true 存在  false不存在
+     * @param ignoreUrl 请求的 URL
+     * @return true: 忽略该请求, false: 不忽略
      */
-    public boolean isIgnoredUrl(String IgnoreUrl) {
-        //application.yml中忽略请求地址
-        String[] ignoreUrls = securityProperties.getIgnoreUrl();
+    public boolean isIgnoredUrl(String ignoreUrl) {
+        // 获取配置中的忽略 URL 列表
+        String[] ignoreUrls = securityProperties.getIgnore();
 
-        if (!StringUtils.hasText(IgnoreUrl) || ignoreUrls.length == 0) {
+        // 如果没有配置忽略 URL，或者传入的 URL 不符合任何规则，则返回 false
+        if (!StringUtils.hasText(ignoreUrl) || ignoreUrls.length == 0) {
             return false;
         }
+
+        // 检查传入的 URL 是否符合忽略规则
         for (String url : ignoreUrls) {
-            if (isMatch(url, IgnoreUrl)) {
+            if (isMatch(url, ignoreUrl)) {
                 return true;
             }
         }
         return false;
     }
-
 }

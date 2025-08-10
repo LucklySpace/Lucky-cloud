@@ -1,6 +1,7 @@
 package com.xy.server.controller;
 
 
+import com.xy.domain.vo.FileVo;
 import com.xy.server.service.FileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -32,7 +33,7 @@ public class FileController {
     @Parameters({
             @Parameter(name = "file", description = "文件对象", required = true, in = ParameterIn.DEFAULT)
     })
-    public String uploadFile(@RequestPart("file") MultipartFile file) {
+    public FileVo uploadFile(@RequestPart("file") MultipartFile file) {
         return fileService.uploadFile(file);
     }
 
@@ -40,7 +41,7 @@ public class FileController {
     // 文件上传接口
     @CrossOrigin(origins = "*") //重点
     @PostMapping("/upload")
-    public String upload(MultipartFile file) {
+    public FileVo upload(MultipartFile file) {
         return fileService.uploadFile(file);
     }
 

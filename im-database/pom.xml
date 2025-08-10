@@ -31,7 +31,6 @@
         <mysql.version>8.2.0</mysql.version>
         <postgresql.version>42.7.5</postgresql.version>
         <mybatis-plus-spring.version>3.5.11</mybatis-plus-spring.version>
-
     </properties>
     <dependencies>
 

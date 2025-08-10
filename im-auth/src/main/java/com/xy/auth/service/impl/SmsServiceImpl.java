@@ -2,8 +2,8 @@ package com.xy.auth.service.impl;
 
 import com.xy.auth.security.exception.AuthenticationFailException;
 import com.xy.auth.service.SmsService;
-import com.xy.auth.utils.RedisUtil;
-import com.xy.response.domain.ResultCode;
+import com.xy.auth.utils.RedisCache;
+import com.xy.general.response.domain.ResultCode;
 import com.zhenzi.sms.ZhenziSmsClient;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -36,13 +36,13 @@ public class SmsServiceImpl implements SmsService {
     private String appSecret;
 
     @Resource
-    private RedisUtil redisUtil;
+    private RedisCache redisCache;
 
     @Override
     public String sendMessage(String phone) throws Exception {
 
         // 检查手机号是否在 Redis 中存在，防止频繁请求
-        if (StringUtils.hasText(redisUtil.get(phone))) {
+        if (StringUtils.hasText(redisCache.get(phone))) {
             log.error("请求频繁，手机号: {}", phone);
             throw new AuthenticationFailException("请求频繁，请稍后再试");
         }
@@ -51,7 +51,7 @@ public class SmsServiceImpl implements SmsService {
         String randomCode = generateRandomCode();
 
         // 将验证码存入 Redis，设置过期时间为 EXPIRE_MINUTES 分钟
-        redisUtil.set("sms" + phone, randomCode, EXPIRE_MINUTES, TimeUnit.MINUTES);
+        redisCache.set("sms" + phone, randomCode, EXPIRE_MINUTES, TimeUnit.MINUTES);
         log.info("手机号: {} 生成六位随机验证码: {}", phone, randomCode);
 
         // 发送短信

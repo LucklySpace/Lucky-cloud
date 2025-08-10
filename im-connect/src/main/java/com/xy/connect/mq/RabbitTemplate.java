@@ -113,8 +113,7 @@ public class RabbitTemplate {
             channel.queueDeclare(queueName, true, true, true, null);
 
             // 将队列绑定到交换机
-            channel.queueBind(queueName, exchangeName, routingKeyPrefix + queueName);
-
+            channel.queueBind(queueName, exchangeName, queueName);
 
             // 创建消费者来处理消息
             Consumer consumer = new DefaultConsumer(channel) {

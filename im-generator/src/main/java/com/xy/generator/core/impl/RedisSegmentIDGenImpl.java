@@ -6,6 +6,7 @@ import com.xy.generator.core.IDGen;
 import com.xy.generator.model.IdMetaInfo;
 import com.xy.generator.model.Segment;
 import com.xy.generator.repository.IdMetaInfoRepository;
+import com.xy.core.model.IMetaId;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.Data;
@@ -32,7 +33,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Component("redisSegmentIDGen")
-public class RedisSegmentIDGenImpl implements IDGen<Long> {
+public class RedisSegmentIDGenImpl implements IDGen {
 
     /**
      * 持久化文件
@@ -148,12 +149,13 @@ public class RedisSegmentIDGenImpl implements IDGen<Long> {
      * 获取下一个 ID（响应式返回）
      */
     @Override
-    public Mono<Long> get(String key) {
+    public Mono<IMetaId> get(String key) {
         // 取本地缓存 segmentPair，没有则初始化
         SegmentPair pair = segmentCache.computeIfAbsent(key, SegmentPair::new);
         Long nextId = pair.nextId();
         persistCacheToFileAsync();
-        return Mono.just(nextId);
+        IMetaId build = IMetaId.builder().metaId(nextId).build();
+        return Mono.just(build);
     }
 
     /**

@@ -1,6 +1,6 @@
 package com.xy.auth.security.exception;
 
-import com.xy.response.domain.ResultCode;
+import com.xy.general.response.domain.ResultCode;
 import org.springframework.security.core.AuthenticationException;
 
 public class AuthenticationFailException extends AuthenticationException {

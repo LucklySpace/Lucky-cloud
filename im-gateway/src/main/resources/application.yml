@@ -71,6 +71,14 @@ spring:
           predicates:
             - Path=/gen/**
 
+        - id: im-update  # id生成服务
+          uri: lb://im-update
+          predicates:
+            - Path=/up/**
+          filters:
+            # 去除一个前缀
+            - StripPrefix=1
+
 
 # TODO: log settings
 logging:

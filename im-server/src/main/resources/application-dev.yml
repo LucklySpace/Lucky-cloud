@@ -86,6 +86,6 @@ minio:
   endpoint: http://127.0.0.1:9000 #内网地址
   public: http://127.0.0.1:9000  #外网访问地址
   #public: http://dns.kizhou.cn:11144  #外网访问地址
-  accesskey: minioadmin
-  secretkey: minioadmin
+  accesskey: admin
+  secretkey: admin123
   bucketName: box-im

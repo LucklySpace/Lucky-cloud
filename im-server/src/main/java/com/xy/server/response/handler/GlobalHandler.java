@@ -1,8 +1,8 @@
 package com.xy.server.response.handler;
 
 
-import com.xy.response.domain.Result;
-import com.xy.response.domain.ResultCode;
+import com.xy.general.response.domain.Result;
+import com.xy.general.response.domain.ResultCode;
 import com.xy.server.exception.BusinessException;
 import com.xy.server.exception.ForbiddenException;
 import com.xy.server.response.ResponseNotIntercept;

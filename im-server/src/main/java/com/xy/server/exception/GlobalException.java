@@ -1,6 +1,6 @@
 package com.xy.server.exception;
 
-import com.xy.response.domain.ResultCode;
+import com.xy.general.response.domain.ResultCode;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -11,6 +11,10 @@ public class GlobalException extends RuntimeException implements Serializable {
     private static final long serialVersionUID = 8134030011662574394L;
     private Integer code;
     private String message;
+
+    public GlobalException(String message) {
+        this.message = message;
+    }
 
     public GlobalException(Integer code, String message) {
         this.code = code;

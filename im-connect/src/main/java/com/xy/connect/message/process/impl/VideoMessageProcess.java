@@ -3,13 +3,13 @@ package com.xy.connect.message.process.impl;
 import com.xy.connect.channel.UserChannelCtxMap;
 import com.xy.connect.config.LogConstant;
 import com.xy.connect.message.process.MessageProcess;
-import com.xy.connect.utils.JacksonUtil;
-import com.xy.imcore.enums.IMessageType;
-import com.xy.imcore.model.IMConnectMessage;
-import com.xy.imcore.model.IMVideoMessageDto;
-import com.xy.imcore.model.IMessageWrap;
+import com.xy.core.enums.IMessageType;
+import com.xy.core.model.IMConnectMessage;
+import com.xy.core.model.IMessageWrap;
 import io.netty.channel.Channel;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
 
 /**
  * 视频消息处理
@@ -18,34 +18,33 @@ import lombok.extern.slf4j.Slf4j;
 public class VideoMessageProcess implements MessageProcess {
 
     @Override
-    public void dispose(IMessageWrap IMessageWrap) {
+    public void dispose(IMessageWrap<Object> messageWrap) {
 
-        IMVideoMessageDto messageDto = JacksonUtil.convertToActualObject(IMessageWrap.getData(), IMVideoMessageDto.class);
+        log.info("接收到视频消息，接收者:{}  内容:{}", messageWrap.getIds(), messageWrap.getData());
 
-        log.info("接收到视频消息，发送者:{},接收者:{}", messageDto.getFromId(), messageDto.getToId());
         try {
+            List<String> ids = messageWrap.getIds();
 
-            Channel ctx = UserChannelCtxMap.getChannel(messageDto.getToId());
+            for (String id : ids) {
 
-            if (ctx != null && ctx.isOpen()) {
+                Channel ctx = UserChannelCtxMap.getChannel(id);
 
-                // 推送消息到用户
-                IMConnectMessage wsConnMessage = IMConnectMessage.builder()
-                        .code(IMessageType.VIDEO_MESSAGE.getCode())
-                        .data(messageDto)
-                        .build();
-                ctx.writeAndFlush(wsConnMessage);
-                // 消息发送成功确认
+                if (ctx != null && ctx.isOpen()) {
 
-            } else {
-                // 消息推送失败确认
-                log.error("未找到WS连接，发送者:{},接收者:{}，内容:{}", messageDto.getFromId(), messageDto.getToId()
-                );
+                    // 推送消息到用户
+                    IMConnectMessage wsConnMessage = IMConnectMessage.builder()
+                            .code(IMessageType.VIDEO_MESSAGE.getCode())
+                            .data(messageWrap.getData())
+                            .build();
+                    ctx.writeAndFlush(wsConnMessage);
+                    // 消息发送成功确认
+                } else {
+                    // 消息推送失败确认
+                    log.error("未找到WS连接，接收者:{}，内容:{}", messageWrap.getIds(), messageWrap.getData());
+                }
             }
-
-
         } catch (Exception e) {
-            log.error("发送异常，发送者:{},接收者:{}，内容:{}", messageDto.getFromId(), messageDto.getToId());
+            log.error("发送异常，接收者:{}，内容:{}", messageWrap.getIds(), messageWrap.getData());
         }
 
     }

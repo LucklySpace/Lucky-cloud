@@ -29,19 +29,23 @@ public class IdGeneratorConstant {
 
 
     /**
-     * 私聊
+     * 私聊消息id
      */
-    public static final String private_id = "private:id";
+    public static final String private_message_id = "private:message:id";
 
     /**
-     * 群聊
+     * 群聊消息id
      */
-    public static final String group_id = "group:id";
+    public static final String group_message_id = "group:message:id";
+
 
     /**
      * 会话
      */
     public static final String chat_id = "chat:id";
+
+
+
 
 
 }

@@ -12,7 +12,7 @@
                 AND owner_id = #{userId}
             </if>
             <if test="sequence != null and sequence != ''">
-                AND sequence = #{sequence}
+                AND sequence > #{sequence}
             </if>
         </where>
     </select>

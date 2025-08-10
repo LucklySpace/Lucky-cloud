@@ -14,4 +14,8 @@ import java.util.List;
 public interface ImPrivateMessageService extends IService<ImPrivateMessagePo> {
 
     List<ImPrivateMessagePo> list(String userId, Long sequence);
+
+    ImPrivateMessagePo last(String fromId, String toId);
+
+    Integer selectReadStatus(String fromId, String toId, Integer code);
 }

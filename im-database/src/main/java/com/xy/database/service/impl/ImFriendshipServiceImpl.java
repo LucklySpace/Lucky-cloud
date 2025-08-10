@@ -1,5 +1,6 @@
 package com.xy.database.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.database.mapper.ImFriendshipMapper;
 import com.xy.database.service.ImFriendshipService;
@@ -17,13 +18,19 @@ import java.util.List;
 public class ImFriendshipServiceImpl extends ServiceImpl<ImFriendshipMapper, ImFriendshipPo>
         implements ImFriendshipService {
 
-
     @Resource
     private ImFriendshipMapper imFriendshipMapper;
 
-
+    @Override
     public List<ImFriendshipPo> list(String ownerId, Long sequence){
        return imFriendshipMapper.selectFriendList(ownerId,sequence);
+    }
+
+    @Override
+    public ImFriendshipPo getOne(String ownerId, String friendId) {
+        QueryWrapper<ImFriendshipPo> query = new QueryWrapper<>();
+        query.eq("owner_id", ownerId).eq("to_id",friendId);
+        return imFriendshipMapper.selectOne(query);
     }
 }
 

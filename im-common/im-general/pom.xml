@@ -22,6 +22,20 @@
             <version>${spring-boot.version}</version>
         </dependency>
 
+        <!--redisson 分布式锁-->
+<!--        <dependency>-->
+<!--            <groupId>org.redisson</groupId>-->
+<!--            <artifactId>redisson-spring-boot-starter</artifactId>-->
+<!--            <version>${redission.version}</version>-->
+<!--        </dependency>-->
+
+        <!--引入AOP依赖-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+            <version>${spring-boot.version}</version>
+        </dependency>
+
     </dependencies>
 
 </project>

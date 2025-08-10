@@ -22,7 +22,7 @@ public class ImGroupController {
      * @param groupId 成员id
      */
     @GetMapping("/getOne")
-    public ImGroupPo getOneGroup(@RequestParam("groupId") String groupId) {
+    public ImGroupPo getOne(@RequestParam("groupId") String groupId) {
         return imGroupService.getById(groupId);
     }
 

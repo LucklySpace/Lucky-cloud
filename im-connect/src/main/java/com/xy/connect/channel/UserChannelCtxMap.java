@@ -1,5 +1,6 @@
 package com.xy.connect.channel;
 
+import com.xy.core.constants.IMConstant;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.AttributeKey;
@@ -24,7 +25,7 @@ public class UserChannelCtxMap {
     /**
      * 通道属性键，用于将 userId 附加到 Channel 上，便于后续查找。
      */
-    private static final AttributeKey<String> USER_ID_ATTR_KEY = AttributeKey.valueOf("userId");
+    private static final AttributeKey<String> USER_ID_ATTR_KEY = AttributeKey.valueOf(IMConstant.IM_USER);
 
     /**
      * 用户 ID 与其 Channel 映射表。

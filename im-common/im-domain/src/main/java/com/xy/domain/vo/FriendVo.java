@@ -2,9 +2,11 @@ package com.xy.domain.vo;
 
 
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 
 @Data
+@Accessors(chain = true)
 public class FriendVo {
 
     private String userId;

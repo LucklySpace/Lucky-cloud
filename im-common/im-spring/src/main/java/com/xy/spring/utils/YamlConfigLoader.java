@@ -4,18 +4,10 @@ import com.xy.spring.context.ApplicationContext;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.yaml.snakeyaml.Yaml;
-
-import java.io.InputStream;
-import java.lang.reflect.*;
 import java.util.*;
 
 /**

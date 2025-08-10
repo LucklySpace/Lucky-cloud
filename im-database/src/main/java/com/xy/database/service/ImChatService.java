@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.xy.domain.dto.ChatDto;
 import com.xy.domain.po.ImChatPo;
 import com.xy.domain.vo.ChatVo;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -13,12 +14,12 @@ import java.util.List;
  */
 public interface ImChatService extends IService<ImChatPo> {
 
-    List<ChatVo> list(ChatDto chatDto);
+    List<ImChatPo> list(String ownerId, Long sequence);
 
-    void read(ChatDto chatDto);
-
-    ChatVo create(ChatDto ChatDto);
-
-    ChatVo one(String fromId, String toId);
+//    void read(ChatDto chatDto);
+//
+//    ChatVo create(ChatDto ChatDto);
+//
+//    ChatVo one(String fromId, String toId);
 }
 

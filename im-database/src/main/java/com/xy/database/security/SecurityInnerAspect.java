@@ -10,7 +10,7 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.springframework.http.HttpHeaders;
 
-import static com.xy.imcore.constants.IMConstant.IM_OPENFEIFN_INTER_CALL;
+import static com.xy.core.constants.IMConstant.INTERNAL_CALL_FLAG;
 
 @Slf4j
 @Aspect
@@ -25,7 +25,7 @@ public class SecurityInnerAspect {
 
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        if (inner.value() && !StrUtil.equals(IM_OPENFEIFN_INTER_CALL, header)) {
+        if (inner.value() && !StrUtil.equals(INTERNAL_CALL_FLAG, header)) {
             log.warn("访问接口 {} 没有权限", point.getSignature().getName());
             throw new Exception("Access is denied");
         } else {

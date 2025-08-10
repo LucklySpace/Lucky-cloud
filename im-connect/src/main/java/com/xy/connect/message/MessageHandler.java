@@ -8,8 +8,8 @@ import com.xy.connect.message.process.impl.GroupMessageProcess;
 import com.xy.connect.message.process.impl.SingleMessageProcess;
 import com.xy.connect.message.process.impl.VideoMessageProcess;
 import com.xy.connect.utils.JacksonUtil;
-import com.xy.imcore.enums.IMessageType;
-import com.xy.imcore.model.IMessageWrap;
+import com.xy.core.enums.IMessageType;
+import com.xy.core.model.IMessageWrap;
 import com.xy.spring.annotations.core.Component;
 import com.xy.spring.annotations.event.EventListener;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +45,7 @@ public class MessageHandler {
     @EventListener(MessageEvent.class)
     public void handleMessage(MessageEvent messageEvent) {
         // 将消息体解析为通用消息包装对象
-        IMessageWrap<?> messageWrap = JacksonUtil.fromJson(
+        IMessageWrap<Object> messageWrap = JacksonUtil.fromJson(
                 messageEvent.getBody(),
                 IMessageWrap.class
         );

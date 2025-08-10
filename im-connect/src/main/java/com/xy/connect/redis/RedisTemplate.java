@@ -2,7 +2,7 @@ package com.xy.connect.redis;
 
 
 import com.xy.connect.utils.JacksonUtil;
-import com.xy.imcore.utils.StringUtils;
+import com.xy.core.utils.StringUtils;
 import com.xy.spring.annotations.core.Component;
 import com.xy.spring.annotations.core.PostConstruct;
 import com.xy.spring.annotations.core.Value;
@@ -145,6 +145,8 @@ public class RedisTemplate {
     public void set(String key, String value) {
         executeVoid(jedis -> jedis.set(key, value));
     }
+
+
 
     /**
      * 设置字符串值（带过期时间）

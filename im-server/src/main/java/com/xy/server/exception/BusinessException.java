@@ -1,6 +1,6 @@
 package com.xy.server.exception;
 
-import com.xy.response.domain.ResultCode;
+import com.xy.general.response.domain.ResultCode;
 
 public class BusinessException extends RuntimeException {
 

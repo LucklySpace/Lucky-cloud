@@ -21,7 +21,7 @@ package com.xy.connect.channel;//package com.xy.connect.channel;
 //    // userId -> deviceType -> Channel
 //    private static final ConcurrentMap<String, ConcurrentMap<String, Channel>> USER_DEVICE_CHANNELS = new ConcurrentHashMap<>();
 //
-//    private static final AttributeKey<String> USER_ID_KEY = AttributeKey.valueOf("userId");
+//    private static final AttributeKey<String> USER_ID_KEY = AttributeKey.valueOf(IMConstant.IM_USER);
 //    private static final AttributeKey<String> DEVICE_TYPE_KEY = AttributeKey.valueOf("deviceType");
 //
 //    /**

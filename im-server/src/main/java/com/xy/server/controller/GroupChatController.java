@@ -3,7 +3,7 @@ package com.xy.server.controller;
 
 import com.xy.domain.dto.GroupDto;
 import com.xy.domain.dto.GroupInviteDto;
-import com.xy.response.domain.Result;
+import com.xy.general.response.domain.Result;
 import com.xy.server.service.GroupService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

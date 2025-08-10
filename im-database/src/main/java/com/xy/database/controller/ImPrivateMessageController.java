@@ -29,10 +29,34 @@ public class ImPrivateMessageController {
      * @return 用户私聊消息
      */
     @GetMapping("/list")
-    List<ImPrivateMessagePo> list(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
+    public List<ImPrivateMessagePo> list(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
         return imPrivateMessageService.list(userId, sequence);
     }
 
+    /**
+     * 获取最后一条消息
+     *
+     * @param fromId 发送者id
+     * @param toId   接受者id
+     * @return 私聊消息
+     */
+    @GetMapping("/last")
+    public ImPrivateMessagePo last(@RequestParam("fromId") String fromId, @RequestParam("toId") String toId) {
+        return imPrivateMessageService.last(fromId, toId);
+    }
+
+    /**
+     * 查询阅读状态
+     *
+     * @param fromId 发送者id
+     * @param toId   接受者id
+     * @param code   阅读状态码
+     * @return 未/已读消息数
+     */
+    @GetMapping("/selectReadStatus")
+    public Integer selectReadStatus(@RequestParam("fromId") String fromId, @RequestParam("toId") String toId, @RequestParam("code") Integer code) {
+        return imPrivateMessageService.selectReadStatus(fromId, toId, code);
+    }
 
     /**
      * 插入私聊消息

@@ -1,34 +1,37 @@
 package com.xy.server.service.impl;
 
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.core.util.RandomUtil;
 import com.xy.domain.dto.GroupDto;
 import com.xy.domain.dto.GroupInviteDto;
 import com.xy.domain.po.ImGroupMemberPo;
 import com.xy.domain.po.ImGroupPo;
 import com.xy.domain.po.ImUserDataPo;
 import com.xy.domain.vo.GroupMemberVo;
-import com.xy.imcore.enums.IMStatus;
-import com.xy.imcore.enums.IMemberStatus;
-import com.xy.imcore.enums.IMessageContentType;
-import com.xy.imcore.enums.IMessageType;
-import com.xy.imcore.model.IMGroupMessageDto;
-import com.xy.imcore.model.IMessageDto;
-import com.xy.response.domain.Result;
-import com.xy.response.domain.ResultCode;
+import com.xy.core.enums.IMStatus;
+import com.xy.core.enums.IMemberStatus;
+import com.xy.core.enums.IMessageContentType;
+import com.xy.core.enums.IMessageType;
+import com.xy.core.model.IMGroupMessage;
+import com.xy.core.model.IMessageDto;
+import com.xy.general.response.domain.Result;
+import com.xy.general.response.domain.ResultCode;
 import com.xy.server.api.database.group.ImGroupFeign;
 import com.xy.server.api.database.user.ImUserFeign;
+import com.xy.server.api.id.IdGeneratorConstant;
+import com.xy.server.api.id.ImIdGeneratorFeign;
 import com.xy.server.exception.GlobalException;
 import com.xy.server.service.FileService;
 import com.xy.server.service.GroupService;
+import com.xy.server.service.MessageService;
 import com.xy.server.utils.RedisUtil;
 import com.xy.utils.DateTimeUtil;
 import com.xy.utils.GroupHeadImageUtil;
 import jakarta.annotation.Resource;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -54,22 +57,14 @@ public class GroupServiceImpl implements GroupService {
     @Resource
     private ImUserFeign imUserFeign;
 
+    @Resource
+    private ImIdGeneratorFeign imIdGeneratorFeign;
 
-    //
-//
-//    @Resource
-//    private ImGroupMessageMapper imGroupMessageMapper;
-//    @Resource
-//    private ImGroupService imGroupService;
-//
-//    @Resource
-//    private ImGroupMemberService imGroupMemberService;
-//
-//    @Resource
-//    private ImUserDataMapper imUserDataMapper;
     @Resource
     private FileService fileService;
 
+    @Resource
+    private MessageService messageService;
 
     /**
      * 获取群成员信息
@@ -156,7 +151,6 @@ public class GroupServiceImpl implements GroupService {
      * @param groupInviteDto
      */
     @Override
-    @Transactional
     public Result inviteGroup(GroupInviteDto groupInviteDto) {
 
         Integer type = groupInviteDto.getType();
@@ -166,89 +160,187 @@ public class GroupServiceImpl implements GroupService {
             return createGroup(groupInviteDto);
         }
 
-        //
+        // 邀请入群
         if (type.equals(IMessageType.GROUP_MESSAGE.getCode())) {
             return groupInvite(groupInviteDto);
         }
+
         return null;
     }
 
-    public Result createGroup(GroupInviteDto groupInviteDto) {
-
-        // 群成员id
-        String groupId = UUID.randomUUID().toString();
-
-        //
-        String code = String.valueOf((int) ((Math.random() * 9 + 1) * Math.pow(10, 5)));
-
-        // 邀请人
-        String userId = groupInviteDto.getUserId();
-
-        // 被邀请人
-        List<String> friendIds = groupInviteDto.getMemberIds();
-
-        // 加入时间
-        Long joinTime = DateTimeUtil.getCurrentUTCTimestamp();
-
-        // 保存群成员关系
-        List<ImGroupMemberPo> imGroupMemberPoList = new ArrayList<>();
-
-        // 邀请者默认为群主
-        ImGroupMemberPo imGroupMemberPo = new ImGroupMemberPo().setGroupId(groupId)
-                .setGroupMemberId(String.valueOf(IdUtil.getSnowflakeNextId()))
-                .setMemberId(userId)
-                .setRole(IMemberStatus.GROUP_OWNER.getCode())
-                .setMute(IMStatus.YES.getCode())
-                .setJoinTime(joinTime);
-
-        imGroupMemberPoList.add(imGroupMemberPo);
-
-        // 被邀请者默认为普通成员
-        for (String friendId : friendIds) {
-            ImGroupMemberPo groupMember = new ImGroupMemberPo();
-            groupMember.setGroupId(groupId)
-                    .setGroupMemberId(String.valueOf(IdUtil.getSnowflakeNextId()))
-                    .setMemberId(friendId)
-                    .setRole(IMemberStatus.NORMAL.getCode())
-                    .setMute(IMStatus.YES.getCode())
-                    .setJoinTime(joinTime);
-
-            imGroupMemberPoList.add(groupMember);
+    /**
+     * 创建新群
+     *
+     * @param dto
+     * @return 群聊id
+     */
+    public Result<String> createGroup(@NonNull GroupInviteDto dto) {
+        // 1. 校验参数
+        if (dto.getMemberIds() == null || dto.getMemberIds().isEmpty()) {
+            throw new GlobalException(ResultCode.FAIL, "至少需要一个被邀请人");
         }
 
-        // 批量插入成员信息
-        if (imGroupFeign.groupMessageMemberBatchInsert(imGroupMemberPoList)) {
-            log.info("群成员信息插入成功, 群聊id:{},用户id:{},新成员id:{}", groupId, userId, friendIds.toString());
-        } else {
-            log.error("群成员信息插入失败, 群聊id:{},用户id:{},新成员id:{}", groupId, userId, friendIds.toString());
+        // 2. 生成群ID与默认群名称
+        String groupId = imIdGeneratorFeign.getId(
+                IdGeneratorConstant.uuid,
+                IdGeneratorConstant.group_message_id,
+                String.class
+        );
+
+        String groupName = "默认群聊-" + RandomUtil.randomNumbers(6);
+
+        // 3. 获取当前 UTC 时间戳
+        long now = DateTimeUtil.getCurrentUTCTimestamp();
+
+        String userId = dto.getUserId();
+        List<String> friendIds = dto.getMemberIds();
+
+        // 4. 构造群成员列表
+        List<ImGroupMemberPo> members = new ArrayList<>();
+
+        // 4.1 群主
+        members.add(buildMember(groupId, userId, IMemberStatus.GROUP_OWNER, now));
+
+        // 4.2 普通成员
+        friendIds.forEach(fid ->
+                members.add(buildMember(groupId, fid, IMemberStatus.NORMAL, now))
+        );
+
+        // 5. 批量插入成员关系
+        boolean membersOk = imGroupFeign.groupMessageMemberBatchInsert(members);
+
+        if (!membersOk) {
+            log.error("群成员插入失败, groupId={}, owner={}, members={}", groupId, userId, friendIds);
+            throw new GlobalException(ResultCode.FAIL, "群成员插入失败");
         }
 
-        // 保存群聊
-        ImGroupPo imGroupPo = new ImGroupPo();
-        imGroupPo.setGroupId(groupId)
+        // 6. 构造群信息并插入
+        ImGroupPo group = new ImGroupPo()
+                // 群id
+                .setGroupId(groupId)
+                // 群主
                 .setOwnerId(userId)
-                .setGroupName("默认群聊-" + code)
+                // 群类型
+                .setGroupType(1)
+                // 群名称
+                .setGroupName(groupName)
+                .setApplyJoinType(1)
+                // 群头像
                 .setAvatar(generateGroupAvatar(groupId))
+                // 群状态
                 .setStatus(IMStatus.YES.getCode())
-                .setCreateTime(joinTime);
+                // 创建时间
+                .setCreateTime(now)
+                // 删除标志
+                .setDelFlag(IMStatus.YES.getCode());
 
-        if (imGroupFeign.insert(imGroupPo)) {
-            log.info("群信息插入成功, 群聊id:{},用户id:{},新成员id:{}", groupId, userId, friendIds.toString());
-        } else {
-            log.error("群信息插入失败, 群聊id:{},用户id:{},新成员id:{}", groupId, userId, friendIds.toString());
+        boolean groupOk = imGroupFeign.insert(group);
+
+        if (!groupOk) {
+            log.error("群信息插入失败, groupId={}, owner={}, members={}", groupId, userId, friendIds);
+            throw new GlobalException(ResultCode.FAIL, "群信息插入失败");
         }
+        log.info("新建群聊成功, groupId={}, owner={}, members={}", groupId, userId, friendIds);
 
-//        // 发送系统群聊邀请消息,系统消息默认用户000000
-//        IMGroupMessageDto IMGroupMessageDto = (IMGroupMessageDto) systemMessage(groupId, "加入群聊,请尽情聊天吧");
-//
-//        // 发送群聊消息
-//        //groupSend(IMGroupMessageDto);
-
-        log.info("新建群聊，群聊id:{},用户id:{},新成员id:{}", groupId, userId, friendIds.toString());
+        // 发送系统群聊邀请消息,系统消息默认用户000000
+        //IMGroupMessage IMGroupMessageDto = systemMessage(groupId, "加入群聊,请尽情聊天吧");
+        // 发送群聊消息
+        messageService.sendGroupMessage(systemMessage(groupId, "加入群聊,请尽情聊天吧"));
 
         return Result.success(groupId);
     }
 
+    /**
+     * 群聊邀请
+     */
+    public Result<String> groupInvite(@NonNull GroupInviteDto dto) {
+
+        // 1. 确定群ID（允许新建群）
+        String groupId = StringUtils.hasText(dto.getGroupId())
+                ? dto.getGroupId()
+                : UUID.randomUUID().toString();
+
+        // 邀请者id
+        String inviter = dto.getUserId();
+
+        // 被邀请
+        List<String> invitees = Optional.ofNullable(dto.getMemberIds())
+                .orElseGet(Collections::emptyList);
+
+        // 2. 获取现有群成员
+        Set<String> existing = imGroupFeign.getGroupMemberList(groupId).stream()
+                .map(ImGroupMemberPo::getMemberId)
+                .collect(Collectors.toSet());
+
+        // 3. 校验邀请者必须已在群中
+        if (!existing.contains(inviter)) {
+            throw new GlobalException(ResultCode.FAIL, "用户不在该群组中，不可邀请新成员");
+        }
+
+        // 4. 过滤出真正的新成员
+        List<String> newMembers = invitees.stream()
+                .filter(id -> !existing.contains(id))
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 5. 如果有新成员则批量插入
+        if (!newMembers.isEmpty()) {
+            long now = DateTimeUtil.getCurrentUTCTimestamp();
+
+            List<ImGroupMemberPo> memberPos = newMembers.stream()
+                    .map(memberId -> buildMember(groupId, memberId, IMemberStatus.NORMAL, now))
+                    .collect(Collectors.toList());
+
+            boolean ok = imGroupFeign.groupMessageMemberBatchInsert(memberPos);
+            if (!ok) {
+                log.error("群成员插入失败，groupId={}, inviter={}, invitees={}", groupId, inviter, newMembers);
+                throw new GlobalException(ResultCode.FAIL, "新增群成员失败");
+            }
+            log.info("群成员插入成功，groupId={}, inviter={}, newMembers={}", groupId, inviter, newMembers);
+        }
+
+        // 6. 更新群信息，小于10人换重设头像
+        if (existing.size() < 10) {
+            ImGroupPo update = new ImGroupPo()
+                    .setGroupId(groupId)
+                    .setAvatar(generateGroupAvatar(groupId));
+
+            boolean updated = imGroupFeign.updateById(update);
+            if (updated) {
+                log.info("群信息更新成功，groupId={}", groupId);
+            } else {
+                log.warn("群信息更新失败，groupId={}", groupId);
+            }
+        }
+
+        return Result.success(groupId);
+    }
+
+    /**
+     * 构造一个群成员记录
+     */
+    private ImGroupMemberPo buildMember(
+            String groupId,
+            String memberId,
+            IMemberStatus role,
+            long joinTime
+    ) {
+        return new ImGroupMemberPo()
+                // 群id
+                .setGroupId(groupId)
+                // 成员表id
+                .setGroupMemberId(IdUtil.getSnowflakeNextIdStr())
+                // 成员id
+                .setMemberId(memberId)
+                // 角色
+                .setRole(role.getCode())
+                // 是否禁言
+                .setMute(IMStatus.YES.getCode())
+                // 删除标志
+                .setDelFlag(IMStatus.YES.getCode())
+                // 加入时间
+                .setJoinTime(joinTime);
+    }
 
     /**
      * 系统消息
@@ -257,106 +349,15 @@ public class GroupServiceImpl implements GroupService {
      * @param message 消息内容
      * @return
      */
-    public IMGroupMessageDto systemMessage(String groupId, String message) {
-        IMGroupMessageDto imGroupMessageDto = new IMGroupMessageDto();
-        imGroupMessageDto.setGroupId(groupId)
+    public IMGroupMessage systemMessage(String groupId, String message) {
+        IMGroupMessage imGroupMessage = new IMGroupMessage();
+        imGroupMessage.setGroupId(groupId)
                 .setFromId("000000") // 系统消息默认用户000000
                 .setMessageContentType(IMessageContentType.TIP.getCode()) // 系统消息
-                .setMessageBody(new IMessageDto.TextMessageBody().setMessage(message)); // 群聊邀请消息
-        return imGroupMessageDto;
+                .setMessageBody(new IMessageDto.TextMessageBody().setText(message)); // 群聊邀请消息
+        return imGroupMessage;
     }
 
-
-    /**
-     * 群聊邀请
-     *
-     * @param groupInviteDto
-     * @return
-     */
-    public Result groupInvite(GroupInviteDto groupInviteDto) {
-
-        // 群id
-        String groupId = groupInviteDto.getGroupId();
-
-        if (!StringUtils.hasText(groupInviteDto.getGroupId())) {
-            groupId = UUID.randomUUID().toString();
-        }
-
-        // 邀请人
-        String userId = groupInviteDto.getUserId();
-
-        // 被邀请人
-        List<String> friendIds = groupInviteDto.getMemberIds();
-
-        // 查询群成员列表并转换为 Set
-        Set<String> memberIdSet = imGroupFeign.getGroupMemberList(groupId)
-                .stream()
-                .map(ImGroupMemberPo::getMemberId)
-                .collect(Collectors.toSet());
-
-        if (!memberIdSet.contains(userId)) {
-            throw new GlobalException(ResultCode.FAIL, "用户不在该群组中，不可邀请");
-        }
-
-        // 过滤出不在群组中的新成员
-        List<String> newMemberList = friendIds.stream()
-                .filter(friendId -> !memberIdSet.contains(friendId))
-                .collect(Collectors.toList());
-
-        // 若有新成员，则添加到群组中
-        if (!CollectionUtils.isEmpty(newMemberList)) {
-
-            // 创建群成员信息
-            List<ImGroupMemberPo> newGroupMemberList = createNewGroupMembers(groupId, newMemberList);
-
-            if (imGroupFeign.groupMessageMemberBatchInsert(newGroupMemberList)) {
-
-                log.info("群成员信息插入成功, 群聊id:{},用户id:{},新成员id:{}", groupId, userId, friendIds.toString());
-            } else {
-
-                log.error("群成员信息插入失败, 群聊id:{},用户id:{},新成员id:{}", groupId, userId, friendIds.toString());
-            }
-
-        }
-
-        // 更新群信息
-        ImGroupPo imGroupPo = new ImGroupPo();
-        imGroupPo.setGroupId(groupId)
-                .setAvatar(generateGroupAvatar(groupId));
-
-        if (imGroupFeign.updateById(imGroupPo)) {
-
-        }
-
-        log.info("邀请成员，群聊id:{},用户id:{},新成员id:{}", groupId, userId, newMemberList.toString());
-
-        return Result.success(groupId);
-    }
-
-
-    /**
-     * 创建新成员信息集合
-     *
-     * @param groupId       群id
-     * @param newMemberList 新成员用户id
-     * @return 新成员信息集合
-     */
-    private List<ImGroupMemberPo> createNewGroupMembers(String groupId, List<String> newMemberList) {
-
-        Long joinTime = new Date().getTime();
-
-        return newMemberList.stream()
-                .map(memberId -> {
-                    ImGroupMemberPo imGroupMemberPo = new ImGroupMemberPo();
-                    imGroupMemberPo.setGroupId(groupId); // 群聊id
-                    imGroupMemberPo.setMemberId(memberId);  // 成员id
-                    imGroupMemberPo.setRole(IMemberStatus.NORMAL.getCode()); // 成员角色
-                    imGroupMemberPo.setMute(IMStatus.YES.getCode()); // 是否禁言
-                    imGroupMemberPo.setJoinTime(joinTime); // 加入时间
-                    return imGroupMemberPo;
-                })
-                .collect(Collectors.toList());
-    }
 
     /**
      * 获取群信息
@@ -365,12 +366,8 @@ public class GroupServiceImpl implements GroupService {
      * @return
      */
     @Override
-    public Result<?> groupInfo(GroupDto groupDto) {
-
-        // 群聊id
-        String groupId = groupDto.getGroupId();
-
-        return Result.success(imGroupFeign.getOneGroup(groupId));
+    public Result<?> groupInfo(@NonNull GroupDto groupDto) {
+        return Result.success(imGroupFeign.getOne(groupDto.getGroupId()));
     }
 
     /**
@@ -390,8 +387,8 @@ public class GroupServiceImpl implements GroupService {
         // 转化文件
         MultipartFile multipartFile = fileService.fileToImageMultipartFile(groupHead);
 
-        // 上传文件
-        return fileService.uploadFile(multipartFile);
+        // TODO  临时方案 后面要改 上传文件
+        return fileService.uploadFile(multipartFile).getPath();
     }
 
 }

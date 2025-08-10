@@ -2,9 +2,9 @@ package com.xy.connect.netty.process;
 
 import cn.hutool.core.util.StrUtil;
 import com.xy.connect.utils.MessageUtils;
-import com.xy.imcore.enums.IMessageType;
-import com.xy.imcore.model.IMConnectMessage;
-import com.xy.imcore.utils.JwtUtil;
+import com.xy.core.enums.IMessageType;
+import com.xy.core.model.IMConnectMessage;
+import com.xy.core.utils.JwtUtil;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.util.concurrent.TimeUnit;

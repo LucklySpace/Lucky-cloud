@@ -89,7 +89,7 @@ security:
     hd9834678yc98go34i7iifyh96784hfub78438bf7g8457yth79gychu857uy85gtfr883
   expiration: 30                                                      #JWT过期时间
   secret: 'dasfdffdsfgfadgfshfghfgdsfgxcxfdghhfh'                     #JWT盐值
-  ignore-url:
+  ignore:
     - '/api/auth/login'
     - '/api/auth/encrypt'
     - '/api/auth/publickey'

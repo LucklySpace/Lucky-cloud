@@ -25,6 +25,16 @@ public class ImGroupMessageServiceImpl extends ServiceImpl<ImGroupMessageMapper,
         return imGroupMessageMapper.selectGroupMessage(userId, sequence);
     }
 
+    @Override
+    public ImGroupMessagePo last(String userId, String groupId) {
+        return imGroupMessageMapper.selectLastGroupMessage(userId, groupId);
+    }
+
+    @Override
+    public Integer selectReadStatus(String groupId, String toId, Integer code) {
+        return imGroupMessageMapper.selectReadStatus(groupId, toId, code);
+    }
+
 }
 
 

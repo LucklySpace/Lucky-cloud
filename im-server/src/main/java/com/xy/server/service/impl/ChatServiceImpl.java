@@ -2,14 +2,14 @@ package com.xy.server.service.impl;
 
 import cn.hutool.core.util.ObjectUtil;
 import com.xy.domain.dto.ChatDto;
-import com.xy.domain.po.ImChatPo;
-import com.xy.domain.po.ImGroupPo;
-import com.xy.domain.po.ImUserDataPo;
+import com.xy.domain.po.*;
 import com.xy.domain.vo.ChatVo;
-import com.xy.imcore.enums.IMStatus;
-import com.xy.imcore.enums.IMessageType;
+import com.xy.core.enums.IMStatus;
+import com.xy.core.enums.IMessageReadStatus;
+import com.xy.core.enums.IMessageType;
 import com.xy.server.api.database.chat.ImChatFeign;
 import com.xy.server.api.database.group.ImGroupFeign;
+import com.xy.server.api.database.message.ImMessageFeign;
 import com.xy.server.api.database.user.ImUserFeign;
 import com.xy.server.service.ChatService;
 import jakarta.annotation.Resource;
@@ -34,6 +34,9 @@ public class ChatServiceImpl implements ChatService {
 
     @Resource
     private ImGroupFeign imGroupFeign;
+
+    @Resource
+    private ImMessageFeign imMessageFeign;
 
 
     /**
@@ -108,7 +111,7 @@ public class ChatServiceImpl implements ChatService {
         // 创建群聊会话
         if (chatDto.getChatType().equals(IMessageType.GROUP_MESSAGE.getCode())) {
 
-            ImGroupPo imGroupPo = imGroupFeign.getOneGroup(chatDto.getToId());
+            ImGroupPo imGroupPo = imGroupFeign.getOne(chatDto.getToId());
 
             chatVo.setName(imGroupPo.getGroupName());
 
@@ -147,7 +150,7 @@ public class ChatServiceImpl implements ChatService {
 
         List<CompletableFuture<ChatVo>> chatFutures = imChatPos.stream()
                 .map(e -> CompletableFuture.supplyAsync(() -> getChat(e)))
-                .collect(Collectors.toList());
+                .toList();
 
         return chatFutures.stream()
                 .map(CompletableFuture::join)
@@ -170,41 +173,41 @@ public class ChatServiceImpl implements ChatService {
 
         ChatVo chatVo = new ChatVo();
 
-//        BeanUtils.copyProperties(chatPo, chatVo);
-//
-//        String ownerId = chatVo.getOwnerId();
-//
-//        String toId = chatVo.getToId();
-//
-//        ImPrivateMessagePo privateMessageDto = imPrivateMessageMapper.selectLastSingleMessage(ownerId, toId);
-//
-//        chatVo.setMessageTime(0L);
-//
-//        if (ObjectUtil.isNotEmpty(privateMessageDto)) {
-//
-//            chatVo.setMessage(privateMessageDto.getMessageBody());
-//
-//            chatVo.setMessageContentType(privateMessageDto.getMessageContentType());
-//
-//            chatVo.setMessageTime(privateMessageDto.getMessageTime());
-//        }
-//
-//        Integer unread = imPrivateMessageMapper.selectReadStatus(toId, ownerId, IMessageReadStatus.UNREAD.code());
-//
-//        if (ObjectUtil.isNotEmpty(unread)) {
-//
-//            chatVo.setUnread(unread);
-//        }
-//
-//        String targetUserId = ownerId.equals(toId) ? chatVo.getOwnerId() : chatVo.getToId();
-//
-//        ImUserDataPo imUserDataPo = imUserFeign.getOne(targetUserId);
-//
-//        chatVo.setName(imUserDataPo.getName());
-//
-//        chatVo.setAvatar(imUserDataPo.getAvatar());
-//
-//        chatVo.setId(imUserDataPo.getUserId());
+        BeanUtils.copyProperties(chatPo, chatVo);
+
+        String ownerId = chatVo.getOwnerId();
+
+        String toId = chatVo.getToId();
+
+        ImPrivateMessagePo privateMessageDto = imMessageFeign.plast(ownerId, toId);
+
+        chatVo.setMessageTime(0L);
+
+        if (ObjectUtil.isNotEmpty(privateMessageDto)) {
+
+            chatVo.setMessage(privateMessageDto.getMessageBody());
+
+            chatVo.setMessageContentType(privateMessageDto.getMessageContentType());
+
+            chatVo.setMessageTime(privateMessageDto.getMessageTime());
+        }
+
+        Integer unread = imMessageFeign.pSelectReadStatus(toId, ownerId, IMessageReadStatus.UNREAD.getCode());
+
+        if (ObjectUtil.isNotEmpty(unread)) {
+
+            chatVo.setUnread(unread);
+        }
+
+        String targetUserId = ownerId.equals(toId) ? chatVo.getOwnerId() : chatVo.getToId();
+
+        ImUserDataPo imUserDataPo = imUserFeign.getOne(targetUserId);
+
+        chatVo.setName(imUserDataPo.getName());
+
+        chatVo.setAvatar(imUserDataPo.getAvatar());
+
+        chatVo.setId(imUserDataPo.getUserId());
 
         return chatVo;
     }
@@ -213,27 +216,27 @@ public class ChatServiceImpl implements ChatService {
 
         ChatVo chatVo = new ChatVo();
 
-//        BeanUtils.copyProperties(e, chatVo);
+        BeanUtils.copyProperties(e, chatVo);
+
+        String ownerId = chatVo.getOwnerId();
+
+        String groupId = chatVo.getToId();
+
+//        QueryWrapper<ImGroupMessage> messageQuery = new QueryWrapper<>();
 //
-//        String ownerId = chatVo.getOwnerId();
-//
-//        String groupId = chatVo.getToId();
-//
-////        QueryWrapper<ImGroupMessage> messageQuery = new QueryWrapper<>();
-////
-////        messageQuery.eq("groupId", groupId);
-//
-//        ImGroupMessagePo IMGroupMessagePoDto = imGroupMessageMapper.selectLastGroupMessage(ownerId, groupId);
-//
-//        chatVo.setMessageTime(0L);
-//
-//        if (ObjectUtil.isNotEmpty(IMGroupMessagePoDto)) {
-//
-//            chatVo.setMessage(IMGroupMessagePoDto.getMessageBody());
-//
-//            chatVo.setMessageTime(IMGroupMessagePoDto.getMessageTime());
-//        }
-//
+//        messageQuery.eq("groupId", groupId);
+
+        ImGroupMessagePo IMGroupMessagePoDto = imMessageFeign.glast(ownerId, groupId);
+
+        chatVo.setMessageTime(0L);
+
+        if (ObjectUtil.isNotEmpty(IMGroupMessagePoDto)) {
+
+            chatVo.setMessage(IMGroupMessagePoDto.getMessageBody());
+
+            chatVo.setMessageTime(IMGroupMessagePoDto.getMessageTime());
+        }
+
 //        QueryWrapper<ImGroupMessageStatusPo> messageStatusQuery = new QueryWrapper<>();
 //
 //        messageStatusQuery.eq("group_id", groupId);
@@ -241,20 +244,21 @@ public class ChatServiceImpl implements ChatService {
 //        messageStatusQuery.eq("to_id", ownerId);
 //
 //        messageStatusQuery.eq("read_status", IMessageReadStatus.UNREAD.code());
-//
-//        List<ImGroupMessageStatusPo> imGroupMessageStatusPoList = imGroupMessageStatusMapper.selectList(messageStatusQuery);
-//
-//        if (ObjectUtil.isNotEmpty(imGroupMessageStatusPoList)) {
-//
-//            chatVo.setUnread(imGroupMessageStatusPoList.size());
-//        }
-//        ImGroupPo imGroupPo = imGroupMapper.selectOne(new QueryWrapper<ImGroupPo>().eq("group_id", groupId));
-//
-//        chatVo.setName(imGroupPo.getGroupName());
-//
-//        chatVo.setAvatar(imGroupPo.getAvatar());
-//
-//        chatVo.setId(imGroupPo.getGroupId());
+
+        Integer unread = imMessageFeign.gSelectReadStatus(groupId, ownerId, IMessageReadStatus.UNREAD.getCode());
+
+        if (ObjectUtil.isNotEmpty(unread)) {
+
+            chatVo.setUnread(unread);
+        }
+
+        ImGroupPo imGroupPo = imGroupFeign.getOne(groupId);
+
+        chatVo.setName(imGroupPo.getGroupName());
+
+        chatVo.setAvatar(imGroupPo.getAvatar());
+
+        chatVo.setId(imGroupPo.getGroupId());
 
         return chatVo;
     }
@@ -274,7 +278,7 @@ public class ChatServiceImpl implements ChatService {
 //
 //        // 构造更新对象，将状态标记为已读
 //        ImPrivateMessagePo updateMessage = new ImPrivateMessagePo();
-//        updateMessage.setReadStatus(IMessageReadStatus.ALREADY_READ.code());
+//        updateMessage.setReadStatus(IMessageReadStatus.ALREADY_READ);
 //
 //        // 使用 LambdaUpdateWrapper 进行条件构造，字段名通过方法引用来保证类型安全
 //        LambdaUpdateWrapper<ImPrivateMessagePo> updateWrapper = new LambdaUpdateWrapper<>();
@@ -304,7 +308,7 @@ public class ChatServiceImpl implements ChatService {
 //
 //        // 构造更新对象，将状态标记为已读
 //        ImGroupMessageStatusPo updateStatus = new ImGroupMessageStatusPo();
-//        updateStatus.setReadStatus(IMessageReadStatus.ALREADY_READ.code());
+//        updateStatus.setReadStatus(IMessageReadStatus.ALREADY_READ);
 //
 //        // 使用 LambdaUpdateWrapper 构造条件，避免硬编码字段名
 //        LambdaUpdateWrapper<ImGroupMessageStatusPo> updateWrapper = new LambdaUpdateWrapper<>();

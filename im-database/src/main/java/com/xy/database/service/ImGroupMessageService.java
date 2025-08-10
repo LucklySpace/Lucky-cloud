@@ -13,4 +13,8 @@ import java.util.List;
 public interface ImGroupMessageService extends IService<ImGroupMessagePo> {
 
     List<ImGroupMessagePo> list(String userId, Long sequence);
+
+    ImGroupMessagePo last(String userId, String groupId);
+
+    Integer selectReadStatus(String groupId, String toId, Integer code);
 }

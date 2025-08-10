@@ -3,13 +3,18 @@ package com.xy.server.api;
 import feign.RequestInterceptor;
 import feign.RequestTemplate;
 import feign.Target;
+import feign.codec.Decoder;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectFactory;
+import org.springframework.boot.autoconfigure.http.HttpMessageConverters;
+import org.springframework.cloud.openfeign.support.SpringDecoder;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 
 import java.util.Objects;
 
-import static com.xy.imcore.constants.IMConstant.IM_OPENFEIFN_INTER_CALL;
+import static com.xy.core.constants.IMConstant.INTERNAL_CALL_FLAG;
 
 /**
  * 内部调用请求头
@@ -23,7 +28,7 @@ public class FeignRequestInterceptor implements RequestInterceptor {
     public void apply(RequestTemplate template) {
 
         // 添加请求头
-        template.header(HttpHeaders.AUTHORIZATION, IM_OPENFEIFN_INTER_CALL);
+        template.header(HttpHeaders.AUTHORIZATION, INTERNAL_CALL_FLAG);
 
         // 日志输出
         if (Objects.nonNull(template.feignTarget())) {
@@ -34,5 +39,14 @@ public class FeignRequestInterceptor implements RequestInterceptor {
         }
 
     }
+
+
+    @Bean
+    public Decoder feignDecoder() {
+        MyJackson2HttpMessageConverter converter = new MyJackson2HttpMessageConverter();
+        ObjectFactory<HttpMessageConverters> objectFactory = () -> new HttpMessageConverters(converter);
+        return new SpringDecoder(objectFactory);
+    }
+
 
 }

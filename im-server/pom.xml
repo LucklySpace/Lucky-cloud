@@ -25,7 +25,8 @@
 
         <jackson.version>2.15.2</jackson.version>
         <mysql.version>8.2.0</mysql.version>
-
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <openapi3.version>4.3.0</openapi3.version>
 
     </properties>
 
@@ -53,6 +54,13 @@
             <groupId>com.xy</groupId>
             <artifactId>im-general</artifactId>
             <version>0.0.1-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>${mapstruct.version}</version>
             <scope>compile</scope>
         </dependency>
 
@@ -123,7 +131,7 @@
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
             <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
-            <version>4.3.0</version>
+            <version>${openapi3.version}</version>
         </dependency>
 
         <!--        &lt;!&ndash; spring-jdbc 包含hikari连接池 &ndash;&gt;-->

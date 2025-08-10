@@ -19,7 +19,7 @@ public class SecurityProperties {
     /**
      * 过滤器忽略地址
      */
-    private String[] ignoreUrl;
+    private String[] ignore;
 
     /**
      * jwt 盐值

@@ -3,13 +3,14 @@ package com.xy.connect.netty;
 import cn.hutool.core.date.DateUtil;
 import com.xy.connect.channel.UserChannelCtxMap;
 import com.xy.connect.config.LogConstant;
-import com.xy.connect.netty.process.RedisBatchManager;
 import com.xy.connect.netty.process.WebsocketProcess;
 import com.xy.connect.netty.process.impl.HeartBeatProcess;
 import com.xy.connect.netty.process.impl.LoginProcess;
-import com.xy.imcore.enums.IMessageType;
-import com.xy.imcore.model.IMConnectMessage;
-import com.xy.imcore.utils.StringUtils;
+import com.xy.connect.redis.RedisTemplate;
+import com.xy.core.constants.IMConstant;
+import com.xy.core.enums.IMessageType;
+import com.xy.core.model.IMConnectMessage;
+import com.xy.core.utils.StringUtils;
 import com.xy.spring.annotations.core.Autowired;
 import com.xy.spring.annotations.core.Component;
 import io.netty.channel.Channel;
@@ -21,6 +22,8 @@ import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 
+import static com.xy.core.constants.IMConstant.USER_CACHE_PREFIX;
+
 /**
  * WebSocket 消息处理器（Netty ChannelHandler）
  * 负责处理连接、断开、异常、心跳、登录等业务逻辑。
@@ -31,16 +34,16 @@ import lombok.extern.slf4j.Slf4j;
 public class IMChannelHandler extends SimpleChannelInboundHandler<IMConnectMessage<?>> {
 
     // 用于绑定在 Channel 上的用户ID属性
-    private static final AttributeKey<String> USER_ID_ATTR_KEY = AttributeKey.valueOf("userId");
-
-    @Autowired
-    private RedisBatchManager redisBatchManager;
+    private static final AttributeKey<String> USER_ID_ATTR_KEY = AttributeKey.valueOf(IMConstant.IM_USER);
 
     @Autowired
     private LoginProcess loginProcess;
 
     @Autowired
     private HeartBeatProcess heartBeatProcess;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     /**
      * 接收到 WebSocket 消息时的回调方法
@@ -94,7 +97,7 @@ public class IMChannelHandler extends SimpleChannelInboundHandler<IMConnectMessa
             UserChannelCtxMap.removeChannel(userId);
 
             // 清除redis中的用户信息
-            redisBatchManager.onUserDelete(userId);
+            redisTemplate.del(USER_CACHE_PREFIX + userId);
 
             ctx.close();
 
@@ -139,7 +142,7 @@ public class IMChannelHandler extends SimpleChannelInboundHandler<IMConnectMessa
 
                 UserChannelCtxMap.removeChannel(userId);
 
-                redisBatchManager.onUserDelete(userId);
+                redisTemplate.del(USER_CACHE_PREFIX + userId);
 
                 ctx.close();
 

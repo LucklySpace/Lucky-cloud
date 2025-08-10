@@ -1,16 +1,12 @@
 package com.xy.auth;
 
 import cn.hutool.core.date.DateField;
-import cn.hutool.core.util.IdUtil;
-import com.xy.imcore.utils.JwtUtil;
+import com.xy.core.utils.JwtUtil;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.nio.file.Paths;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 
 //import org.springframework.boot.test.context.SpringBootTest;
 //

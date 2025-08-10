@@ -1,6 +1,6 @@
 package com.xy.connect.utils;
 
-import com.xy.imcore.model.IMConnectMessage;
+import com.xy.core.model.IMConnectMessage;
 import io.netty.channel.ChannelHandlerContext;
 
 public class MessageUtils {

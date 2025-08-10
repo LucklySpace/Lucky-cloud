@@ -3,6 +3,7 @@ package com.xy.generator.core.impl;
 import com.xy.generator.core.IDGen;
 import com.xy.generator.model.IdRingBuffer;
 import com.xy.generator.work.WorkerIdAssigner;
+import com.xy.core.model.IMetaId;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,7 +19,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @Slf4j
 @Component("uidIDGen")
-public class UIDGenImpl implements IDGen<Long> {
+public class UIDGenImpl implements IDGen {
 
     /**
      * 当前工作节点 ID
@@ -105,21 +106,21 @@ public class UIDGenImpl implements IDGen<Long> {
      * 在每次获取时自动判断缓存区余量是否需要补充
      */
     @Override
-    public Mono<Long> get(String key) {
-        return Mono.fromCallable(() -> {
+    public Mono<IMetaId> get(String key) {
 
-            loadWorkerId();
+        loadWorkerId();
 
-            if (ringBuffer.size() < (int) (bufferSize * paddingFactor)) {
-                fillBuffer(); // 剩余不足阈值时填充
-            }
+        if (ringBuffer.size() < (int) (bufferSize * paddingFactor)) {
+            fillBuffer(); // 剩余不足阈值时填充
+        }
 
-            Long id = ringBuffer.take();
+        Long nextId = ringBuffer.take();
 
-            log.info("[{}] 获取 ID：{}", key, id);
+        log.info("[{}] 获取 ID：{}", key, nextId);
 
-            return id;
-        });
+        IMetaId build = IMetaId.builder().metaId(nextId).build();
+
+        return Mono.just(build);
     }
 
     /**

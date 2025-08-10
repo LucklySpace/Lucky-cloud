@@ -35,4 +35,13 @@
           AND igm.message_time > #{sequence}
         ORDER BY igm.message_time
     </select>
+
+    <select id="selectReadStatus" resultType="java.lang.Integer">
+        SELECT count(1)
+        from im_group_message_status
+        where group_id = #{groupId}
+          and to_id = #{toId}
+          and read_status = #{status}
+    </select>
+
 </mapper>

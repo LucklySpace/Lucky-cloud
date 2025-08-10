@@ -1,7 +1,7 @@
 package com.xy.connect.netty.service.tcp.codec;
 
 import com.xy.connect.utils.JacksonUtil;
-import com.xy.imcore.model.IMConnectMessage;
+import com.xy.core.model.IMConnectMessage;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;

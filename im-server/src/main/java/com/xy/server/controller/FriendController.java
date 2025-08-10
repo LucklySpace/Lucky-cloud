@@ -1,6 +1,7 @@
 package com.xy.server.controller;
 
 
+import com.xy.domain.dto.FriendDto;
 import com.xy.domain.vo.FriendVo;
 import com.xy.server.service.FriendService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,10 +11,7 @@ import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -22,6 +20,7 @@ import java.util.List;
 @RequestMapping("/api/{version}/friend")
 @Tag(name = "friend", description = "用户好友")
 public class FriendController {
+
     @Resource
     private FriendService friendService;
 
@@ -34,6 +33,18 @@ public class FriendController {
     public List<FriendVo> list(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
         return friendService.list(userId, sequence);
     }
+
+    @GetMapping("/getFriendInfo")
+    @Operation(summary = "查询好友信息", tags = {"friend"}, description = "请使用此接口查询好友列表")
+    @Parameters({
+            @Parameter(name = "friendDto", description = "请求对象", required = true, in = ParameterIn.QUERY),
+    })
+    public FriendVo getFriendInfo(@RequestBody FriendDto friendDto) {
+        return friendService.getFriendInfo(friendDto);
+    }
+
+
+
 //
 //
 //    @PostMapping("/add")

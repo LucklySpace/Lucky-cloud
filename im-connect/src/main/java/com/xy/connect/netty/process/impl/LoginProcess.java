@@ -3,13 +3,14 @@ package com.xy.connect.netty.process.impl;
 
 import com.xy.connect.channel.UserChannelCtxMap;
 import com.xy.connect.config.LogConstant;
-import com.xy.connect.netty.process.RedisBatchManager;
 import com.xy.connect.netty.process.WebsocketProcess;
 import com.xy.connect.redis.RedisTemplate;
+import com.xy.connect.utils.JacksonUtil;
 import com.xy.connect.utils.MessageUtils;
-import com.xy.imcore.enums.IMessageType;
-import com.xy.imcore.model.IMConnectMessage;
-import com.xy.imcore.model.IMRegisterUser;
+import com.xy.core.constants.IMConstant;
+import com.xy.core.enums.IMessageType;
+import com.xy.core.model.IMConnectMessage;
+import com.xy.core.model.IMRegisterUser;
 import com.xy.spring.annotations.core.Autowired;
 import com.xy.spring.annotations.core.Component;
 import com.xy.spring.annotations.core.Value;
@@ -19,6 +20,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
+import static com.xy.core.constants.IMConstant.USER_CACHE_PREFIX;
 
 @Slf4j(topic = LogConstant.Netty)
 @Component
@@ -31,10 +34,14 @@ public class LoginProcess implements WebsocketProcess {
     private String brokerId;
 
     @Autowired
-    private RedisBatchManager redisBatchManager;
-
-    @Autowired
     private RedisTemplate redisTemplate;
+
+    /**
+     * 心跳时间（秒），从配置中读取
+     * 实际 Redis key 的 TTL 设置为 heartBeatTime * 2
+     */
+    @Value("netty.config.heartBeatTime")
+    private Integer heartBeatTime;
 
     /**
      * 用户登录时保存用户 token和 机器码 到 redis
@@ -62,7 +69,7 @@ public class LoginProcess implements WebsocketProcess {
                 // 用户token
                 .setToken(token);
 
-        redisBatchManager.onUserAdd(imRegisterUser);
+        redisTemplate.setEx(USER_CACHE_PREFIX + userId , JacksonUtil.toJson(imRegisterUser), heartBeatTime * 2);
 
         // 响应ws
         MessageUtils.send(ctx, sendInfo.setCode(IMessageType.LOGIN.getCode()));
@@ -79,7 +86,7 @@ public class LoginProcess implements WebsocketProcess {
      * 获取用户id
      */
     private String getUserIdFromChannel(ChannelHandlerContext ctx) {
-        AttributeKey<String> attr = AttributeKey.valueOf("userId");
+        AttributeKey<String> attr = AttributeKey.valueOf(IMConstant.IM_USER);
         return ctx.channel().attr(attr).get();
     }
 

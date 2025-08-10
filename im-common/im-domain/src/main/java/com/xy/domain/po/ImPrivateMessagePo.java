@@ -63,11 +63,14 @@ public class ImPrivateMessagePo implements Serializable {
      */
     @TableField(value = "extra")
     private String extra;
+
     /**
-     * 删除标识
+     * 删除标识（1正常，0删除）
      */
+    @TableLogic(value = "1", delval = "0")
     @TableField(value = "del_flag")
     private Integer delFlag;
+
     /**
      * 消息序列
      */
@@ -92,6 +95,7 @@ public class ImPrivateMessagePo implements Serializable {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @TableField(value = "update_time", fill = FieldFill.UPDATE)
     private Long updateTime;
+
     @Version
     private Integer version;
 }

@@ -13,4 +13,6 @@ public interface ImFriendshipService extends IService<ImFriendshipPo> {
 
     List<ImFriendshipPo> list(String ownerId, Long sequence);
 
+    ImFriendshipPo getOne(String ownerId, String friendId);
+
 }

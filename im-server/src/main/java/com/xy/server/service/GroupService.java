@@ -3,7 +3,7 @@ package com.xy.server.service;
 
 import com.xy.domain.dto.GroupDto;
 import com.xy.domain.dto.GroupInviteDto;
-import com.xy.response.domain.Result;
+import com.xy.general.response.domain.Result;
 
 /**
  * 单聊

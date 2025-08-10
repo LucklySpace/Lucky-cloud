@@ -1,6 +1,7 @@
 package com.xy.domain.po;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -44,8 +45,8 @@ public class ImGroupMessagePo implements Serializable {
     /**
      * 消息内容
      */
-    @TableField(value = "message_body")
-    private String messageBody;
+    @TableField(value = "message_body", typeHandler = JacksonTypeHandler.class)
+    private Object messageBody;
 
     /**
      * 发送时间
@@ -66,10 +67,11 @@ public class ImGroupMessagePo implements Serializable {
     private String extra;
 
     /**
-     * 删除标识
+     * 删除标识（1正常，0删除）
      */
+    @TableLogic(value = "1", delval = "0")
     @TableField(value = "del_flag")
-    private String delFlag;
+    private Integer delFlag;
 
     /**
      * 消息序列

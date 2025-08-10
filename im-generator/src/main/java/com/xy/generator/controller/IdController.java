@@ -2,6 +2,7 @@ package com.xy.generator.controller;
 
 import com.xy.generator.core.IDGen;
 import com.xy.generator.utils.StrategyContext;
+import com.xy.core.model.IMetaId;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,16 +21,16 @@ import java.util.stream.IntStream;
 @RequestMapping("/api/{version}/generator")
 public class IdController {
 
-    private final StrategyContext<IDGen<?>> strategyContext;
+    private final StrategyContext<IDGen> strategyContext;
 
     /**
      * 构造器注入：所有 IDGen 实现通过 Map 注入，key 对应请求参数 type
      */
     public IdController(
-            @Qualifier("snowflakeIDGen") IDGen<?> snowflakeGen,
-            @Qualifier("redisSegmentIDGen") IDGen<?> redisGen,
-            @Qualifier("uidIDGen") IDGen<?> uidGen,
-            @Qualifier("uuidIDGen") IDGen<?> uuidGen
+            @Qualifier("snowflakeIDGen") IDGen snowflakeGen,
+            @Qualifier("redisSegmentIDGen") IDGen redisGen,
+            @Qualifier("uidIDGen") IDGen uidGen,
+            @Qualifier("uuidIDGen") IDGen uuidGen
 
     ) {
         this.strategyContext = new StrategyContext<>();
@@ -51,10 +52,10 @@ public class IdController {
      * @param key  业务标识
      */
     @GetMapping("/id")
-    public Mono<?> getId(@RequestParam("type") String type,
-                         @RequestParam("key") String key) {
+    public Mono<IMetaId> getId(@RequestParam("type") String type,
+                               @RequestParam("key") String key) {
 
-        IDGen<?> strategy = strategyContext.getStrategy(type);
+        IDGen strategy = strategyContext.getStrategy(type);
         if (strategy == null) {
             return Mono.error(new IllegalArgumentException(
                     "Unknown IDGen type: " + type));

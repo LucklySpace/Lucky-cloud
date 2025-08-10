@@ -3,8 +3,8 @@ package com.xy.auth.response.handler;
 
 import com.xy.auth.response.ResponseNotIntercept;
 import com.xy.auth.security.exception.AuthenticationFailException;
-import com.xy.response.domain.Result;
-import com.xy.response.domain.ResultCode;
+import com.xy.general.response.domain.Result;
+import com.xy.general.response.domain.ResultCode;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.MethodParameter;

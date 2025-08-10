@@ -11,7 +11,7 @@ import com.xy.domain.po.ImUserDataPo;
 import com.xy.domain.po.ImUserPo;
 import com.xy.domain.vo.LoginVo;
 import com.xy.domain.vo.UserVo;
-import com.xy.imcore.utils.JwtUtil;
+import com.xy.core.utils.JwtUtil;
 import jakarta.annotation.Resource;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;

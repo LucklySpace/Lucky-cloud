@@ -2,6 +2,7 @@ package com.xy.generator.core.impl;
 
 import com.xy.generator.core.IDGen;
 import com.xy.generator.model.IdRingBuffer;
+import com.xy.core.model.IMetaId;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -13,7 +14,7 @@ import java.util.UUID;
  * 使用环形缓冲区预生成 UUID，按需补充，保证性能
  */
 @Component("uuidIDGen")
-public class UuidGenImpl implements IDGen<String> {
+public class UuidGenImpl implements IDGen {
 
     // 缓存区位数（2 的幂），默认 10 -> 大小 1024
     @Value("${uuid.buffer-size-bits:10}")
@@ -48,16 +49,18 @@ public class UuidGenImpl implements IDGen<String> {
      * @return Mono 包裹的 UUID 字符串
      */
     @Override
-    public Mono<String> get(String key) {
-        return Mono.fromCallable(() -> {
-            synchronized (this) {
-                // 检测剩余量
-                if (ringBuffer.size() < bufferSize * paddingFactor) {
-                    fillBuffer();
-                }
-                return ringBuffer.take();
-            }
-        });
+    public Mono<IMetaId> get(String key) {
+
+        // 检测剩余量
+        if (ringBuffer.size() < bufferSize * paddingFactor) {
+            fillBuffer();
+        }
+
+        String nextId = ringBuffer.take();
+
+        IMetaId build = IMetaId.builder().metaId(nextId).build();
+
+        return Mono.just(build);
     }
 
     /**

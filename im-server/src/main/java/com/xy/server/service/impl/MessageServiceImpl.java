@@ -4,12 +4,12 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.xy.domain.dto.ChatDto;
 import com.xy.domain.po.*;
-import com.xy.imcore.enums.IMStatus;
-import com.xy.imcore.enums.IMessageReadStatus;
-import com.xy.imcore.enums.IMessageType;
-import com.xy.imcore.model.*;
-import com.xy.response.domain.Result;
-import com.xy.response.domain.ResultCode;
+import com.xy.core.enums.IMStatus;
+import com.xy.core.enums.IMessageReadStatus;
+import com.xy.core.enums.IMessageType;
+import com.xy.core.model.*;
+import com.xy.general.response.domain.Result;
+import com.xy.general.response.domain.ResultCode;
 import com.xy.server.api.database.chat.ImChatFeign;
 import com.xy.server.api.database.group.ImGroupFeign;
 import com.xy.server.api.database.message.ImMessageFeign;
@@ -27,14 +27,13 @@ import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-import static com.xy.imcore.constants.IMConstant.*;
+import static com.xy.core.constants.IMConstant.*;
 
 @Slf4j
 @Service
@@ -87,28 +86,32 @@ public class MessageServiceImpl implements MessageService {
      */
     @Override
     //@Transactional
-    public Result<?> sendPrivateMessage(IMPrivateMessageDto dto) {
+    public Result<?> sendPrivateMessage(IMPrivateMessage dto) {
         try {
 
             // 消息id
-            Long messageId = imIdGeneratorFeign.getId(IdGeneratorConstant.snowflake, IdGeneratorConstant.private_id, Long.class);
+            Long messageId = imIdGeneratorFeign.getId(IdGeneratorConstant.snowflake, IdGeneratorConstant.private_message_id, Long.class);
 
             // 消息时间
             Long messageTime = DateTimeUtil.getCurrentUTCTimestamp();
             dto.setMessageId(String.valueOf(messageId))
                     .setMessageTime(messageTime)
-                    .setReadStatus(IMessageReadStatus.UNREAD.code());
+                    .setReadStatus(IMessageReadStatus.UNREAD.getCode())
+                    .setSequence(messageTime);
 
             // 插入消息
-            ImPrivateMessagePo messagePo = new ImPrivateMessagePo();
+            ImPrivateMessagePo messagePo = new ImPrivateMessagePo()
+                    .setDelFlag(IMStatus.YES.getCode());
+
             BeanUtils.copyProperties(dto, messagePo);
+
             insertImPrivateMessageAsync(messagePo);
 
             // 更新会话信息
             setChatAsync(dto.getFromId(), dto.getToId(), messageTime);
 
             // 通过redis查找接收者长连接信息
-            Object redisObj = redisUtil.get(IM_USER_PREFIX + dto.getToId());
+            Object redisObj = redisUtil.get(USER_CACHE_PREFIX + dto.getToId());
 
             ResultCode messageRes;
 
@@ -121,9 +124,11 @@ public class MessageServiceImpl implements MessageService {
                 // 获取机器码
                 String brokerId = registerUser.getBrokerId();
 
+                IMessageWrap<Object> imPrivateMessageIMessageWrap = new IMessageWrap<>().setCode(IMessageType.SINGLE_MESSAGE.getCode()).setData(dto).setIds(List.of(dto.getToId()));
+
                 // 发送消息到 mq 消息队列
-                rabbitTemplate.convertAndSend(IM_EXCHANGE_NAME, IM_ROUTERKEY_PREFIX + brokerId,
-                        Objects.requireNonNull(JsonUtil.toJSONString(new IMessageWrap<>(IMessageType.SINGLE_MESSAGE.getCode(), dto))), new CorrelationData(messageId.toString()));
+                rabbitTemplate.convertAndSend(MQ_EXCHANGE_NAME,  brokerId,
+                        Objects.requireNonNull(JsonUtil.toJSONString(imPrivateMessageIMessageWrap)), new CorrelationData(messageId.toString()));
 
                 messageRes = ResultCode.SUCCESS;
 
@@ -135,7 +140,7 @@ public class MessageServiceImpl implements MessageService {
                 log.info("单聊消息未发送   发送用户:{}  接收用户:{} 未登录", dto.getFromId(), dto.getToId());
             }
 
-            return Result.success( messageRes.getMessage(), dto);
+            return Result.success(messageRes.getMessage(), dto);
 
         } catch (Exception e) {
 
@@ -241,27 +246,27 @@ public class MessageServiceImpl implements MessageService {
     /**
      * 发送群聊消息
      *
-     * @param imGroupMessageDto 群消息对象
+     * @param imGroupMessage 群消息对象
      * @return 发送结果
      */
     @Override
-    @Transactional
-    public Result<?> sendGroupMessage(IMGroupMessageDto imGroupMessageDto) {
+    public Result<?> sendGroupMessage(IMGroupMessage imGroupMessage) {
         try {
             // 生成消息id
             //String messageId = IdUtil.getSnowflake().nextIdStr();
-            Long messageId = imIdGeneratorFeign.getId(IdGeneratorConstant.redis, IdGeneratorConstant.group_id, Long.class);
+            Long messageId = imIdGeneratorFeign.getId(IdGeneratorConstant.snowflake, IdGeneratorConstant.group_message_id, Long.class);
 
             // 获取群聊id
-            String groupId = imGroupMessageDto.getGroupId();
+            String groupId = imGroupMessage.getGroupId();
 
             Long messageTime = DateTimeUtil.getCurrentUTCTimestamp();
 
-            imGroupMessageDto.setMessageId(String.valueOf(messageId))
-                    .setMessageTime(messageTime);
+            imGroupMessage.setMessageId(String.valueOf(messageId))
+                    .setMessageTime(messageTime)
+                    .setSequence(messageTime);
 
             // 异步插入群消息
-            insertImGroupMessageAsync(imGroupMessageDto);
+            insertImGroupMessageAsync(imGroupMessage);
 
             // 获取群成员列表
             List<ImGroupMemberPo> imGroupMemberPos = imGroupFeign.getGroupMemberList(groupId);
@@ -273,8 +278,8 @@ public class MessageServiceImpl implements MessageService {
 
             // 过滤掉发送者，获取接收者ID列表
             List<String> toList = imGroupMemberPos.parallelStream()
-                    .filter(member -> !member.getMemberId().equals(imGroupMessageDto.getFromId()))
-                    .map(member -> IM_USER_PREFIX + member.getMemberId())
+                    .filter(member -> !member.getMemberId().equals(imGroupMessage.getFromId()))
+                    .map(member -> USER_CACHE_PREFIX + member.getMemberId())
                     .collect(Collectors.toList());
 
             // 异步设置消息读取状态
@@ -303,20 +308,20 @@ public class MessageServiceImpl implements MessageService {
                 // 机器码
                 String brokerId = entry.getKey();
                 // 群聊在线用户
-                imGroupMessageDto.setToList(entry.getValue());
+                imGroupMessage.setToList(entry.getValue());
 
-                IMessageWrap messageWrap = new IMessageWrap(IMessageType.GROUP_MESSAGE.getCode(), imGroupMessageDto);
+                IMessageWrap<Object> groupMessageIMessageWrap = new IMessageWrap<>().setCode(IMessageType.GROUP_MESSAGE.getCode()).setData(imGroupMessage).setIds(entry.getValue());
 
                 // 发送消息到 mq
-                rabbitTemplate.convertAndSend(IM_EXCHANGE_NAME, IM_ROUTERKEY_PREFIX + brokerId,
-                        Objects.requireNonNull(JsonUtil.toJSONString(messageWrap)), new CorrelationData(messageId.toString()));
+                rabbitTemplate.convertAndSend(MQ_EXCHANGE_NAME,  brokerId,
+                        Objects.requireNonNull(JsonUtil.toJSONString(groupMessageIMessageWrap)), new CorrelationData(messageId.toString()));
             }
 
-            return Result.success(imGroupMessageDto);
+            return Result.success(imGroupMessage);
 
         } catch (Exception e) {
             log.error("群消息发送失败, 群ID: {}, 发送者: {}, 错误: {}",
-                    imGroupMessageDto.getGroupId(), imGroupMessageDto.getFromId(), e.getMessage(), e);
+                    imGroupMessage.getGroupId(), imGroupMessage.getFromId(), e.getMessage(), e);
             return Result.failed("发送群消息失败");
         }
     }
@@ -324,13 +329,14 @@ public class MessageServiceImpl implements MessageService {
     /**
      * 异步插入群消息
      */
-    private void insertImGroupMessageAsync(IMGroupMessageDto imGroupMessageDto) {
+    private void insertImGroupMessageAsync(IMGroupMessage imGroupMessage) {
         CompletableFuture.runAsync(() -> {
             try {
 
-                ImGroupMessagePo imGroupMessagePo = new ImGroupMessagePo();
+                ImGroupMessagePo imGroupMessagePo = new ImGroupMessagePo()
+                        .setDelFlag(IMStatus.YES.getCode());
 
-                BeanUtils.copyProperties(imGroupMessageDto, imGroupMessagePo);
+                BeanUtils.copyProperties(imGroupMessage, imGroupMessagePo);
 
                 // 保存群消息
                 if (imMessageFeign.groupMessageInsert(imGroupMessagePo)) {
@@ -431,7 +437,6 @@ public class MessageServiceImpl implements MessageService {
      * @param groupId          群id
      * @param imGroupMemberPos 群成员
      */
-    @Transactional
     public void setReadStatus(String messageId, String groupId, List<ImGroupMemberPo> imGroupMemberPos) {
         try {
             // 设置所有群消息未读
@@ -439,7 +444,7 @@ public class MessageServiceImpl implements MessageService {
                     .map(member -> new ImGroupMessageStatusPo()
                             .setMessageId(messageId)
                             .setGroupId(groupId)
-                            .setReadStatus(IMessageReadStatus.UNREAD.code())
+                            .setReadStatus(IMessageReadStatus.UNREAD.getCode())
                             .setToId(member.getMemberId()))
                     .collect(Collectors.toList());
 
@@ -455,28 +460,28 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
-    @Transactional
-    public Result sendVideoMessage(IMVideoMessageDto IMVideoMessageDto) {
+    public Result sendVideoMessage(IMVideoMessage IMVideoMessage) {
 
         // 通过redis获取用户连接netty的机器码
-        Object redisObj = redisUtil.get(IM_USER_PREFIX + IMVideoMessageDto.getToId());
+        Object redisObj = redisUtil.get(USER_CACHE_PREFIX + IMVideoMessage.getToId());
 
         if (ObjectUtil.isNotEmpty(redisObj)) {
 
             IMRegisterUser IMRegisterUser = JsonUtil.parseObject(redisObj, IMRegisterUser.class);
 
             String brokerId = IMRegisterUser.getBrokerId();
+
             // 对发送消息进行包装
-            IMessageWrap IMessageWrap = new IMessageWrap(IMessageType.VIDEO_MESSAGE.getCode(), IMVideoMessageDto);
+            IMessageWrap<Object> videoMessageIMessageWrap = new IMessageWrap<>().setCode(IMessageType.VIDEO_MESSAGE.getCode()).setData(IMVideoMessage).setIds(List.of(IMVideoMessage.getToId()));
 
             // 发送到消息队列
-            rabbitTemplate.convertAndSend(IM_EXCHANGE_NAME, IM_ROUTERKEY_PREFIX + brokerId, JsonUtil.toJSONString(IMessageWrap));
+            rabbitTemplate.convertAndSend(MQ_EXCHANGE_NAME, MQ_ROUTERKEY_PREFIX + brokerId, JsonUtil.toJSONString(videoMessageIMessageWrap));
 
             Result.success("发送消息成功");
 
         } else {
 
-            log.info("用户:{} 未登录", IMVideoMessageDto.getToId());
+            log.info("用户:{} 未登录", IMVideoMessage.getToId());
         }
 
         return Result.failed("发送消息失败");
@@ -484,7 +489,9 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     public Map<Integer, Object> list(ChatDto chatDto) {
+
         String userId = chatDto.getFromId();
+
         Long sequence = chatDto.getSequence();
 
         CompletableFuture<List<ImPrivateMessagePo>> singleMessageFuture = CompletableFuture.supplyAsync(() -> imMessageFeign.getPrivateMessageList(userId, sequence));

@@ -9,7 +9,7 @@ import org.springframework.http.HttpHeaders;
 
 import java.util.Objects;
 
-import static com.xy.imcore.constants.IMConstant.IM_OPENFEIFN_INTER_CALL;
+import static com.xy.core.constants.IMConstant.INTERNAL_CALL_FLAG;
 
 /**
  * 内部调用请求头
@@ -23,7 +23,7 @@ public class FeignRequestInterceptor implements RequestInterceptor {
     public void apply(RequestTemplate template) {
 
         // 添加请求头
-        template.header(HttpHeaders.AUTHORIZATION, IM_OPENFEIFN_INTER_CALL);
+        template.header(HttpHeaders.AUTHORIZATION, INTERNAL_CALL_FLAG);
 
         // 日志输出
         if (Objects.nonNull(template.feignTarget())) {

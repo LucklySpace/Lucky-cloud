@@ -6,7 +6,6 @@ import com.xy.spring.annotations.core.*;
 import com.xy.spring.annotations.event.EventListener;
 import com.xy.spring.aop.BeanPostProcessor;
 import com.xy.spring.aop.ProxyBeanPostProcessor;
-import com.xy.spring.utils.YamlConfigLoader;
 import com.xy.spring.core.BeanDefinition;
 import com.xy.spring.core.InitializingBean;
 import com.xy.spring.core.ProxyType;
@@ -19,6 +18,7 @@ import com.xy.spring.exception.handler.ExceptionHandler;
 import com.xy.spring.exception.handler.GlobalExceptionHandler;
 import com.xy.spring.factory.BeanFactory;
 import com.xy.spring.utils.ClassUtils;
+import com.xy.spring.utils.YamlConfigLoader;
 import lombok.extern.slf4j.Slf4j;
 
 import java.beans.Introspector;

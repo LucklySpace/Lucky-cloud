@@ -25,6 +25,16 @@ public class ImPrivateMessageServiceImpl extends ServiceImpl<ImPrivateMessageMap
     public List<ImPrivateMessagePo> list(String userId, Long sequence) {
         return imPrivateMessageMapper.selectSingleMessage(userId, sequence);
     }
+
+    @Override
+    public ImPrivateMessagePo last(String fromId, String toId) {
+        return imPrivateMessageMapper.selectLastSingleMessage(fromId, toId);
+    }
+
+    @Override
+    public Integer selectReadStatus(String fromId, String toId, Integer code) {
+        return imPrivateMessageMapper.selectReadStatus(fromId, toId, code);
+    }
 }
 
 

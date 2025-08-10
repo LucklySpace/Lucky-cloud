@@ -105,7 +105,10 @@ public class ImGroupPo implements Serializable {
     @Version
     private Integer version;
 
-    @TableLogic(value = "0", delval = "1")
+    /**
+     * 删除标识（1正常，0删除）
+     */
+    @TableLogic(value = "1", delval = "0")
     @TableField(value = "del_flag")
     private Integer delFlag;
 }

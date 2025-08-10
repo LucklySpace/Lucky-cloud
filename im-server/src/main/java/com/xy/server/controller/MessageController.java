@@ -2,13 +2,12 @@ package com.xy.server.controller;
 
 
 import com.xy.domain.dto.ChatDto;
-import com.xy.imcore.model.IMGroupMessageDto;
-import com.xy.imcore.model.IMPrivateMessageDto;
-import com.xy.imcore.model.IMVideoMessageDto;
-import com.xy.request.annotations.ApiSign;
-import com.xy.response.domain.Result;
+import com.xy.core.model.IMGroupMessage;
+import com.xy.core.model.IMPrivateMessage;
+import com.xy.core.model.IMVideoMessage;
+import com.xy.general.request.annotations.ApiSign;
+import com.xy.general.response.domain.Result;
 import com.xy.server.service.MessageService;
-import com.xy.version.annotations.Version;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
@@ -39,7 +38,7 @@ public class MessageController {
     @Parameters({
             @Parameter(name = "privateMessageDto", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result sendPrivateMessage(@Valid @RequestBody IMPrivateMessageDto privateMessageDto) {
+    public Result sendPrivateMessage(@Valid @RequestBody IMPrivateMessage privateMessageDto) {
         return messageService.sendPrivateMessage(privateMessageDto);
     }
 
@@ -48,7 +47,7 @@ public class MessageController {
     @Parameters({
             @Parameter(name = "groupMessageDto", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result sendGroupMessage(@Valid @RequestBody IMGroupMessageDto groupMessageDto) {
+    public Result sendGroupMessage(@Valid @RequestBody IMGroupMessage groupMessageDto) {
         return messageService.sendGroupMessage(groupMessageDto);
     }
 
@@ -57,7 +56,7 @@ public class MessageController {
     @Parameters({
             @Parameter(name = "IMVideoMessageDto", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result sendVideoMessage(@RequestBody IMVideoMessageDto videoMessageDto) {
+    public Result sendVideoMessage(@RequestBody IMVideoMessage videoMessageDto) {
         return messageService.sendVideoMessage(videoMessageDto);
     }
 

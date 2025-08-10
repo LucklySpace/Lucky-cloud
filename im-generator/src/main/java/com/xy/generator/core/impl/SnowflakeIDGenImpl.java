@@ -1,5 +1,6 @@
 package com.xy.generator.core.impl;
 
+import com.xy.core.model.IMetaId;
 import com.xy.generator.core.IDGen;
 import com.xy.generator.work.WorkerIdAssigner;
 import jakarta.annotation.Resource;
@@ -7,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-import java.time.Duration;
+
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -20,7 +21,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @Slf4j
 @Component("snowflakeIDGen")
-public class SnowflakeIDGenImpl implements IDGen<Long> {
+public class SnowflakeIDGenImpl implements IDGen {
 
     /**
      * 起始时间戳：2021-06-01 00:00:00 UTC 毫秒数，可避免 2038 年问题
@@ -86,20 +87,21 @@ public class SnowflakeIDGenImpl implements IDGen<Long> {
      * @return Mono 包裹的 ID
      */
     @Override
-    public Mono<Long> get(String key) {
-        return Mono.defer(() -> {
-            // 确保 workerId 已加载并校验合法
-            loadWorkerId();
+    public Mono<IMetaId> get(String key) {
 
-            long ts = timeGen();
-            log.debug("[{}] 当前时间戳：{}，上次时间戳：{}", key, ts, lastTimestamp.get());
+        // 确保 workerId 已加载并校验合法
+        loadWorkerId();
 
-            // 处理时钟回拨
-            return handleClockBack(ts)
-                    // 生成最终 ID
-                    .map(this::generateId)
-                    .doOnNext(id -> log.info("[{}] 获取 ID：{}", key, id));
-        });
+        long ts = timeGen();
+
+        log.debug("[{}] 当前时间戳：{}，上次时间戳：{}", key, ts, lastTimestamp.get());
+
+        long nextId = generateId(handleClockBack(ts));
+
+        IMetaId build = IMetaId.builder().metaId(nextId).build();
+
+        // 处理时钟回拨
+        return Mono.just(build);
     }
 
     /**
@@ -110,32 +112,42 @@ public class SnowflakeIDGenImpl implements IDGen<Long> {
      * @param timestamp 初始采样时间
      * @return Mono 包裹的校正后时间戳
      */
-    private Mono<Long> handleClockBack(long timestamp) {
+    private long handleClockBack(long timestamp) {
         long lastTs = lastTimestamp.get();
         if (timestamp >= lastTs) {
-            return Mono.just(timestamp);
+            // 正常：时间未回拨
+            return timestamp;
         }
 
         long offset = lastTs - timestamp;
         log.warn("检测到时钟回拨，偏移：{} ms，允许阈值：5000 ms", offset);
+
         if (offset <= 5_000) {
-            // 小幅度回拨，非阻塞等待
+            // 小幅度回拨：同步阻塞等待
             long delayMs = offset << 1;
-            log.info("小幅度回拨：延迟 {} ms 后重试", delayMs);
-            return Mono.delay(Duration.ofMillis(delayMs))
-                    .map(ignored -> {
-                        long now = timeGen();
-                        if (now < lastTimestamp.get()) {
-                            log.error("回拨等待后仍未恢复，当前：{}，上次：{}", now, lastTimestamp.get());
-                            throw new IllegalStateException("系统时钟异常");
-                        }
-                        log.info("回拨已恢复，当前时间：{}", now);
-                        return now;
-                    });
+            log.info("小幅度回拨：阻塞等待 {} ms 后重试", delayMs);
+            try {
+                Thread.sleep(delayMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("回拨等待被中断", e);
+            }
+            long now = timeGen();
+            if (now < lastTimestamp.get()) {
+                log.error("回拨等待后仍未恢复，当前：{}，上次：{}", now, lastTimestamp.get());
+                throw new IllegalStateException(
+                        String.format("系统时钟异常：等待后时间仍未前进（%d < %d）", now, lastTimestamp.get())
+                );
+            }
+            log.info("回拨已恢复，当前时间：{}", now);
+            return now;
         }
 
+        // 严重回拨：超出阈值，拒绝生成
         log.error("严重时钟回拨：{} ms，超过阈值，终止生成", offset);
-        return Mono.error(new IllegalStateException("系统时钟异常超过阈值"));
+        throw new IllegalStateException(
+                String.format("系统时钟异常超过阈值：偏移 %d ms", offset)
+        );
     }
 
     /**

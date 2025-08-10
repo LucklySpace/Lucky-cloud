@@ -2,11 +2,11 @@ package com.xy.connect.netty.process.impl;
 
 
 import com.xy.connect.config.LogConstant;
-import com.xy.connect.netty.process.RedisBatchManager;
 import com.xy.connect.netty.process.WebsocketProcess;
+import com.xy.connect.redis.RedisTemplate;
 import com.xy.connect.utils.MessageUtils;
-import com.xy.imcore.enums.IMessageType;
-import com.xy.imcore.model.IMConnectMessage;
+import com.xy.core.enums.IMessageType;
+import com.xy.core.model.IMConnectMessage;
 import com.xy.spring.annotations.core.Autowired;
 import com.xy.spring.annotations.core.Component;
 import com.xy.spring.annotations.core.Value;
@@ -24,7 +24,7 @@ public class HeartBeatProcess implements WebsocketProcess {
     private Integer tokenExpired;
 
     @Autowired
-    private RedisBatchManager redisBatchManager;
+    private RedisTemplate redisTemplate;
 
     @Override
     public void process(ChannelHandlerContext ctx, IMConnectMessage sendInfo) {
@@ -39,8 +39,7 @@ public class HeartBeatProcess implements WebsocketProcess {
         // 响应ws
         MessageUtils.send(ctx, sendInfo.setCode(code));
 
-        // 推入心跳处理队列（延迟批量续期）
-        redisBatchManager.onUserHeartbeat(userId);
+        // redisTemplate.expire(IM_USER_PREFIX + userId , heartBeatTime * 2);
 
         log.info("用户:{} 心跳中...... ", userId);
     }

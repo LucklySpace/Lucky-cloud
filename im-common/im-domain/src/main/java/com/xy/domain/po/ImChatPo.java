@@ -79,7 +79,10 @@ public class ImChatPo implements Serializable {
     @TableField(value = "update_time", fill = FieldFill.UPDATE)
     private Long updateTime;
 
-    @TableLogic(value = "0", delval = "1")
+    /**
+     * 删除标识（1正常，0删除）
+     */
+    @TableLogic(value = "1", delval = "0")
     @TableField(value = "del_flag")
     private Integer delFlag;
 

@@ -1,13 +1,13 @@
 package com.xy.auth.security.config;
 
 
-import com.xy.auth.security.CustomAuthenticationEntryPoint;
 import com.xy.auth.security.SecurityProperties;
 import com.xy.auth.security.filter.TokenAuthenticationFilter;
+import com.xy.auth.security.handle.LoginAccessDefineHandler;
+import com.xy.auth.security.handle.LoginAuthenticationHandler;
 import com.xy.auth.security.provider.MobileAuthenticationProvider;
 import com.xy.auth.security.provider.QrScanAuthenticationProvider;
 import com.xy.auth.security.provider.UsernamePasswordAuthenticationProvider;
-import com.xy.auth.service.ImUserService;
 import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -37,10 +37,16 @@ import java.util.List;
 public class WebSecurityConfig {
 
     @Resource
-    private CustomAuthenticationEntryPoint myAuthenticationEntryPoint;
+    public UsernamePasswordAuthenticationProvider daoAuthenticationProvider;
 
     @Resource
-    private ImUserService customUserDetailsService;
+    public QrScanAuthenticationProvider qrScanAuthenticationProvider;
+
+    @Resource
+    private LoginAuthenticationHandler loginAuthenticationHandler;
+
+    @Resource
+    private LoginAccessDefineHandler loginAccessDefineHandler;
 
     @Resource
     private PasswordEncoder passwordEncoder;
@@ -51,105 +57,86 @@ public class WebSecurityConfig {
     @Resource
     private SecurityProperties securityProperties;
 
+    @Resource
+    private MobileAuthenticationProvider mobileAuthenticationProvider;
 
     /**
-     * 手机验证码登录
-     *
-     * @return
-     */
-    @Bean
-    public MobileAuthenticationProvider mobileAuthenticationProvider() {
-        MobileAuthenticationProvider mobileAuthenticationProvider = new MobileAuthenticationProvider();
-        mobileAuthenticationProvider.setUserDetailsService(customUserDetailsService);
-        return mobileAuthenticationProvider;
-    }
-
-    /**
-     * 用户名密码登录
-     *
-     * @return
-     */
-    @Bean
-    public UsernamePasswordAuthenticationProvider daoAuthenticationProvider() {
-        UsernamePasswordAuthenticationProvider daoAuthenticationProvider = new UsernamePasswordAuthenticationProvider();
-        daoAuthenticationProvider.setUserDetailsService(customUserDetailsService);
-        return daoAuthenticationProvider;
-    }
-
-    /**
-     * 扫码登录
-     *
-     * @return
-     */
-    @Bean
-    public QrScanAuthenticationProvider qrScanAuthenticationProvider() {
-        QrScanAuthenticationProvider qrScanAuthenticationProvider = new QrScanAuthenticationProvider();
-        qrScanAuthenticationProvider.setUserDetailsService(customUserDetailsService);
-        return qrScanAuthenticationProvider;
-    }
-
-    /**
-     * 定义认证管理器AuthenticationManager
+     * 定义认证管理器 AuthenticationManager
+     * 集成多种认证方式（如手机号、用户名密码、扫码登录等）
      *
      * @return AuthenticationManager
      */
     @Bean
     public AuthenticationManager authenticationManager() {
+        // 创建认证提供者列表，支持多种认证方式
         List<AuthenticationProvider> authenticationProviders = new ArrayList<>();
-        authenticationProviders.add(mobileAuthenticationProvider());
-        authenticationProviders.add(daoAuthenticationProvider());
-        authenticationProviders.add(qrScanAuthenticationProvider());
+        // 手机验证码认证
+        authenticationProviders.add(mobileAuthenticationProvider);
+        // 用户名密码认证
+        authenticationProviders.add(daoAuthenticationProvider);
+        // 二维码认证
+        authenticationProviders.add(qrScanAuthenticationProvider);
+
+        // 返回 ProviderManager，处理多种认证方式
         return new ProviderManager(authenticationProviders);
     }
 
+    /**
+     * 配置 HTTP 安全策略，包含认证、授权、跨域等配置
+     *
+     * @param http HttpSecurity 配置对象
+     * @return SecurityFilterChain 安全过滤链
+     */
     @Bean
-    @Order(2)
-    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http)
-            throws Exception {
-        http
-                // 添加过滤器
-                .addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                //.addFilterBefore(userAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+    @Order(2) // 设置过滤链的顺序，确保该配置在默认配置之后生效
+    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+        // 配置路径访问权限，忽略某些路径的认证
+        http.authorizeHttpRequests(requestMatcherRegistry ->
+                requestMatcherRegistry.requestMatchers(securityProperties.getIgnore()).permitAll() // 忽略的路径
+                        .anyRequest().authenticated() // 其他路径需认证
+        );
 
-                // 授权配置
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(securityProperties.getIgnoreUrl()).permitAll()
-                        .anyRequest().authenticated()
-                )
+        // 禁用 CSRF 防护，因为我们使用 JWT，不需要 CSRF 保护
+        http.csrf(AbstractHttpConfigurer::disable);
 
+        // 禁用会话管理，设置为无状态，防止 Spring Security 创建会话
+        http.sessionManagement(configurer ->
+                configurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+        );
 
-//                .authorizeHttpRequests((authorize) ->
-//                        authorize.requestMatchers(new AntPathRequestMatcher("/login/**")).permitAll()
-//                                .anyRequest().authenticated())
-                // 禁用 CSRF
-                .csrf(AbstractHttpConfigurer::disable)
+        // 配置未授权和未登录处理
+        http.exceptionHandling(customizer ->
+                customizer
+                        // 处理未授权访问
+                        .accessDeniedHandler(loginAccessDefineHandler)
+                        // 处理未登录状态（例如 JWT 校验失败）
+                        .authenticationEntryPoint(loginAuthenticationHandler)
+        );
 
-                // 会话管理策略为无状态
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        // 配置 JWT 校验过滤器，在用户名密码过滤器之前执行
+        http.addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-                // 异常处理
-                .exceptionHandling(
-                        configure -> {
-                            configure.authenticationEntryPoint(myAuthenticationEntryPoint);
-                        })
+        // 配置跨域支持
+        http.cors(cors -> cors.configurationSource(configurationSource()));
 
-                // 处理跨域配置
-                .cors(cors -> cors.configurationSource(configurationSource()));
-
-        return http.build();
+        return http.build(); // 返回构建后的安全过滤链
     }
 
-    // 跨域配置
+    /**
+     * 配置跨域支持，允许所有源访问 API
+     *
+     * @return CorsConfigurationSource 跨域配置源
+     */
     private CorsConfigurationSource configurationSource() {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
-        corsConfiguration.setAllowedHeaders(Collections.singletonList("*"));
-        corsConfiguration.setAllowedMethods(Collections.singletonList("*"));
-        corsConfiguration.setAllowedOrigins(Collections.singletonList("*"));
-        corsConfiguration.setMaxAge(3600L);
+        corsConfiguration.setAllowedHeaders(Collections.singletonList("*")); // 允许所有请求头
+        corsConfiguration.setAllowedMethods(Collections.singletonList("*")); // 允许所有请求方法
+        corsConfiguration.setAllowedOrigins(Collections.singletonList("*")); // 允许所有源
+        corsConfiguration.setMaxAge(3600L); // 设置预检请求的缓存时间为 1 小时
 
+        // 创建并注册跨域配置
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", corsConfiguration);
         return source;
     }
-
 }

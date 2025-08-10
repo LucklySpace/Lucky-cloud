@@ -49,11 +49,8 @@ public class ImChatController {
      * @param sequence 时序
      */
     @GetMapping("/list")
-    List<ImChatPo> getChatList(@RequestParam("ownerId") String ownerId, @RequestParam("sequence") Long sequence) {
-        QueryWrapper<ImChatPo> query = new QueryWrapper<>();
-        query.eq("owner_id", ownerId)
-                .eq("sequence", sequence);
-        return imChatService.list(query);
+    public List<ImChatPo> list(@RequestParam("ownerId") String ownerId, @RequestParam("sequence") Long sequence) {
+        return imChatService.list(ownerId, sequence);
     }
 
 

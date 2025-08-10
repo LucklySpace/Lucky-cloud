@@ -5,6 +5,7 @@ import com.xy.database.service.ImGroupMessageService;
 import com.xy.database.service.ImGroupMessageStatusService;
 import com.xy.domain.po.ImGroupMessagePo;
 import com.xy.domain.po.ImGroupMessageStatusPo;
+import com.xy.domain.po.ImPrivateMessagePo;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,31 @@ public class ImGroupMessageController {
     @GetMapping("/list")
     public List<ImGroupMessagePo> list(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
         return imGroupMessageService.list(userId, sequence);
+    }
+
+    /**
+     * 获取最后一条消息
+     * @param userId 用户id
+     * @param groupId 群聊id
+     * @return 私聊消息
+     */
+    @GetMapping("/last")
+    public ImGroupMessagePo last(@RequestParam("userId")String userId, @RequestParam("groupId")String groupId){
+        return imGroupMessageService.last(userId,groupId);
+    }
+
+    /**
+     * 查询阅读状态
+     *
+     * @param groupId 群id
+     * @param toId   接受者id
+     * @param code   阅读状态码
+     *
+     * @return 未/已读消息数
+     */
+    @GetMapping("/selectReadStatus")
+    public Integer selectReadStatus(@RequestParam("groupId")String groupId, @RequestParam("toId")String toId, @RequestParam("code")Integer code){
+        return imGroupMessageService.selectReadStatus(groupId, toId, code);
     }
 
     /**

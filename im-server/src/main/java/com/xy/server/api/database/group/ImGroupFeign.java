@@ -30,7 +30,7 @@ public interface ImGroupFeign {
      * @return
      */
     @GetMapping("/getOne")
-    ImGroupPo getOneGroup(@RequestParam("groupId") String groupId);
+    ImGroupPo getOne(@RequestParam("groupId") String groupId);
 
     /**
      * 插入群信息

@@ -72,6 +72,12 @@ public abstract class IMessageDto implements Serializable {
     private String extra;
 
     /**
+     * 被引用的消息 ID
+     */
+    private String replyTo;
+
+
+    /**
      * 消息实体
      */
     @NotNull(message = "消息体不能为空")

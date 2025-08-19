@@ -67,6 +67,12 @@ public class ImGroupMessagePo implements Serializable {
     private String extra;
 
     /**
+     * 被引用的消息 ID
+     */
+    @TableField(value = "reply_to")
+    private String replyTo;
+
+    /**
      * 删除标识（1正常，0删除）
      */
     @TableLogic(value = "1", delval = "0")

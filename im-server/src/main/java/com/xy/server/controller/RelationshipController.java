@@ -3,7 +3,9 @@ package com.xy.server.controller;
 
 import com.xy.domain.dto.FriendDto;
 import com.xy.domain.vo.FriendVo;
-import com.xy.server.service.FriendService;
+import com.xy.domain.vo.FriendshipRequestVo;
+import com.xy.domain.vo.GroupVo;
+import com.xy.server.service.RelationshipService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
@@ -15,32 +17,56 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+
+/**
+ * 用户关系
+ */
 @Slf4j
 @RestController
-@RequestMapping("/api/{version}/friend")
-@Tag(name = "friend", description = "用户好友")
-public class FriendController {
+@RequestMapping("/api/{version}/relationship")
+@Tag(name = "relationship", description = "用户关系")
+public class RelationshipController {
 
     @Resource
-    private FriendService friendService;
+    private RelationshipService relationshipService;
 
-    @GetMapping("/list")
+    @GetMapping("/contacts/list")
     @Operation(summary = "查询好友列表", tags = {"friend"}, description = "请使用此接口查询好友列表")
     @Parameters({
             @Parameter(name = "userId", description = "请求对象", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "sequence", description = "时序", required = true, in = ParameterIn.QUERY)
     })
-    public List<FriendVo> list(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
-        return friendService.list(userId, sequence);
+    public List<FriendVo> contacts(@RequestParam("userId") String userId) {
+        return relationshipService.contacts(userId);
     }
 
-    @GetMapping("/getFriendInfo")
+    @GetMapping("/groups/list")
+    @Operation(summary = "查询群列表", tags = {"group"}, description = "请使用此接口查询群列表")
+    @Parameters({
+            @Parameter(name = "userId", description = "请求对象", required = true, in = ParameterIn.QUERY),
+            @Parameter(name = "sequence", description = "时序", required = true, in = ParameterIn.QUERY)
+    })
+    public List<GroupVo> groups(@RequestParam("userId") String userId) {
+        return relationshipService.groups(userId);
+    }
+
+
+    @GetMapping("/newFriends/list")
+    @Operation(summary = "查询好友请求列表", tags = {"friend"}, description = "请使用此接口查询好友请求列表")
+    @Parameters({
+            @Parameter(name = "userId", description = "请求对象", required = true, in = ParameterIn.DEFAULT)
+    })
+    public List<FriendshipRequestVo> newFriends(@RequestParam("userId") String userId) {
+        return relationshipService.newFriends(userId);
+    }
+
+    @PostMapping("/friendInfo")
     @Operation(summary = "查询好友信息", tags = {"friend"}, description = "请使用此接口查询好友列表")
     @Parameters({
             @Parameter(name = "friendDto", description = "请求对象", required = true, in = ParameterIn.QUERY),
     })
     public FriendVo getFriendInfo(@RequestBody FriendDto friendDto) {
-        return friendService.getFriendInfo(friendDto);
+        return relationshipService.getFriendInfo(friendDto);
     }
 
 

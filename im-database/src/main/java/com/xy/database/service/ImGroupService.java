@@ -12,6 +12,8 @@ import java.util.List;
  */
 public interface ImGroupService extends IService<ImGroupPo> {
 
+    List<ImGroupPo> list(String userId);
+
     // 查询九人
     List<String> selectNinePeople(String groupId);
 }

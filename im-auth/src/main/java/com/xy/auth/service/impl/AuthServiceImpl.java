@@ -144,7 +144,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public Result<?> isOnline(String userId) {
 
-        boolean online = Objects.nonNull(redisCache.get(IMConstant.USER_CACHE_PREFIX + userId));
+        boolean online = redisCache.hasKey(IMConstant.USER_CACHE_PREFIX + userId);
 
         log.debug("用户在线检查：userId={}, online={}", userId, online);
 

@@ -1,10 +1,7 @@
 package com.xy.database.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xy.domain.dto.ChatDto;
 import com.xy.domain.po.ImChatPo;
-import com.xy.domain.vo.ChatVo;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 

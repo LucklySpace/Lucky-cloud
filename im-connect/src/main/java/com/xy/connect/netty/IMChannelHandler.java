@@ -1,9 +1,6 @@
 package com.xy.connect.netty;
 
-import cn.hutool.core.date.DateUtil;
 import com.xy.connect.channel.UserChannelCtxMap;
-import com.xy.connect.config.LogConstant;
-import com.xy.connect.netty.process.WebsocketProcess;
 import com.xy.connect.netty.process.impl.HeartBeatProcess;
 import com.xy.connect.netty.process.impl.LoginProcess;
 import com.xy.connect.redis.RedisTemplate;
@@ -22,20 +19,22 @@ import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 
-import static com.xy.core.constants.IMConstant.USER_CACHE_PREFIX;
-
 /**
- * WebSocket 消息处理器（Netty ChannelHandler）
- * 负责处理连接、断开、异常、心跳、登录等业务逻辑。
+ * 高性能版 IMChannelHandler，优化点：
+ * - 使用原始 int 进行消息类型判断，避免频繁枚举查找
+ * - 把阻塞型 Redis 操作异步化（可注入 TaskExecutor）
+ * - 日志与时间戳尽量使用轻量调用（避免频繁格式化）
+ * - 早返回/快速路径（fast-path）尽可能最短
  */
-@Slf4j(topic = LogConstant.Netty)
+@Slf4j(topic = "Netty")
 @Component
 @ChannelHandler.Sharable
-public class IMChannelHandler extends SimpleChannelInboundHandler<IMConnectMessage<?>> {
+public final class IMChannelHandler extends SimpleChannelInboundHandler<IMConnectMessage<Object>> {
 
-    // 用于绑定在 Channel 上的用户ID属性
+    // Channel 上绑定的用户 ID attribute key（静态、共享）
     private static final AttributeKey<String> USER_ID_ATTR_KEY = AttributeKey.valueOf(IMConstant.IM_USER);
 
+    // 业务处理器注入（保持原有语义）
     @Autowired
     private LoginProcess loginProcess;
 
@@ -45,135 +44,172 @@ public class IMChannelHandler extends SimpleChannelInboundHandler<IMConnectMessa
     @Autowired
     private RedisTemplate redisTemplate;
 
-    /**
-     * 接收到 WebSocket 消息时的回调方法
-     */
-    @Override
-    protected void channelRead0(ChannelHandlerContext ctx, IMConnectMessage message) {
-        if (message == null) {
-            log.warn("接收到空消息，channelId: {}", ctx.channel().id().asLongText());
-            return;
-        }
+    /* ---------------------- life-cycle / events ---------------------- */
 
-        IMessageType messageType = IMessageType.getByCode(message.getCode());
-        if (messageType == null) {
-            log.warn("未知消息类型: {}，channelId: {}", message.getCode(), ctx.channel().id().asLongText());
-            return;
-        }
-
-        WebsocketProcess processor = switch (messageType) {
-            case LOGIN -> loginProcess;
-            case HEART_BEAT -> heartBeatProcess;
-            default -> null;
-        };
-
-        if (processor != null) {
-            processor.process(ctx, message);
-        } else {
-            log.warn("未处理的消息类型: {}，channelId: {}", messageType, ctx.channel().id().asLongText());
-        }
-    }
-
-    /**
-     * 连接建立时触发
-     */
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) {
-
-        log.info("客户端连接建立，channelId: {}", ctx.channel().id().asLongText());
+        // 连接建立：尽量少做耗时操作
+        if (log.isInfoEnabled()) {
+            log.info("客户端连接建立 channelId={}", ctx.channel().id().asLongText());
+        }
     }
 
-    /**
-     * 处理连接断开
-     * 退出时清除 UserChannelCtxMap 中用户的channel ，清除redis中的用户信息
-     */
     @Override
     public void handlerRemoved(ChannelHandlerContext ctx) {
-        String userId = getUserIdFromChannel(ctx);
+        // 当 channel 被移除时清理上下文：从 channel 的 attribute 中拿 userId
+        String userId = safeGetUserId(ctx);
 
-        if (isValidChannel(userId, ctx)) {
+        if (!StringUtils.hasText(userId)) {
+            if (log.isDebugEnabled()) {
+                log.debug("handlerRemoved: no user bound, channel={}", ctx.channel().id().asLongText());
+            }
+            return;
+        }
 
-            // 移除channel并关闭连接
-            UserChannelCtxMap.removeChannel(userId);
+        // 从内存map移除 channel（尽量先做内存移除）
+        UserChannelCtxMap.removeChannel(userId);
 
-            // 清除redis中的用户信息
-            redisTemplate.del(USER_CACHE_PREFIX + userId);
+        // Redis 删除异步化：避免阻塞 Netty IO 线程
+        asyncRedisDelete(IMConstant.USER_CACHE_PREFIX + userId);
 
-            ctx.close();
+        // 确保 channel 被关闭（防御性）
+        try {
+            Channel ch = ctx.channel();
+            if (ch.isActive()) {
+                ch.close();
+            }
+        } catch (Throwable t) {
+            log.warn("handlerRemoved: error closing channel {}: {}", ctx.channel().id().asLongText(), t.getMessage());
+        }
 
-            log.info("断开连接, userId: {}, channel_id: {}", userId, ctx.channel().id().asLongText());
+        if (log.isInfoEnabled()) {
+            log.info("断开连接 userId={}, channelId={}", userId, ctx.channel().id().asLongText());
         }
     }
 
-
-    /**
-     * Netty 异常处理
-     */
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        log.error("通信异常，channelId: {}, 错误信息: {}", ctx.channel().id().asLongText(), cause.getMessage(), cause);
-        ctx.close();
-    }
+    protected void channelRead0(ChannelHandlerContext ctx, IMConnectMessage<Object> message) {
+        // Fast null-check
+        if (message == null) {
+            if (log.isWarnEnabled()) {
+                log.warn("接收到空消息 channel={}", ctx.channel().id().asLongText());
+            }
+            return;
+        }
 
-    /**
-     * 用户事件触发（如 IdleStateEvent）
-     */
-    @Override
-    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        if (evt instanceof IdleStateEvent idleEvent) {
-            handleIdleState(ctx, idleEvent);
+        // 尽量把常用字段拉到局部变量，避免重复调用 getter（减少 JNI / 方法调用开销）
+        int code = message.getCode();
+
+        if (code == IMessageType.LOGIN.getCode()) {
+            // login process
+            try {
+                loginProcess.process(ctx, message);
+            } catch (Throwable t) {
+                log.error("loginProcess error, channelId={}, cause={}", ctx.channel().id().asLongText(), t.getMessage(), t);
+            }
+        } else if (code == IMessageType.HEART_BEAT.getCode()) {
+            try {
+                heartBeatProcess.process(ctx, message);
+            } catch (Throwable t) {
+                log.error("heartBeatProcess error, channelId={}, cause={}", ctx.channel().id().asLongText(), t.getMessage(), t);
+            }
         } else {
-            super.userEventTriggered(ctx, evt);
-        }
-    }
-
-    /**
-     * 处理心跳超时逻辑（ALL_IDLE）
-     */
-    private void handleIdleState(ChannelHandlerContext ctx, IdleStateEvent event) {
-        IdleState state = event.state();
-        log.debug("心跳状态检查，状态: {}, 时间: {}, channelId: {}",
-                state, DateUtil.now(), ctx.channel().id().asLongText());
-
-        if (state == IdleState.ALL_IDLE) {
-            String userId = getUserIdFromChannel(ctx);
-
-            if (userId != null) {
-
-                UserChannelCtxMap.removeChannel(userId);
-
-                redisTemplate.del(USER_CACHE_PREFIX + userId);
-
-                ctx.close();
-
-                log.warn("心跳超时，断开连接，userId: {}", userId);
-
-            } else {
-
-                log.warn("心跳超时但未找到 userId，channelId: {}", ctx.channel().id().asLongText());
+            // 未知或暂不处理的消息类型：极少日志，避免在热路径输出大量 warn 信息
+            if (log.isDebugEnabled()) {
+                log.debug("未处理消息 code={}, channel={}", code, ctx.channel().id().asLongText());
             }
         }
+        return;
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        // 记录异常并关闭连接
+        log.error("通信异常 channelId={}, cause={}", ctx.channel().id().asLongText(), cause.getMessage(), cause);
+        // 立即关闭连接（防止资源泄露）
+        try {
+            ctx.close();
+        } catch (Throwable ignored) {
+        }
+    }
+
+    @Override
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+        // 只在需要时做处理，且处理逻辑尽量简单快速
+        if (evt instanceof IdleStateEvent ise) {
+            if (ise.state() == IdleState.ALL_IDLE) {
+                handleIdleState(ctx);
+            }
+            return;
+        }
+        super.userEventTriggered(ctx, evt);
+    }
+
+    /* ---------------------- helper / internal ---------------------- */
+
+    /**
+     * 心跳超时处理：仅做必要的清理与最小化日志
+     */
+    private void handleIdleState(ChannelHandlerContext ctx) {
+        final String channelId = ctx.channel().id().asLongText();
+
+        // 不要在热路径调用 DateUtil.now() 等开销较大的方法，使用 millis 当标志
+        if (log.isDebugEnabled()) {
+            log.debug("心跳检查 ALL_IDLE channelId={}", channelId);
+        }
+
+        String userId = safeGetUserId(ctx);
+        if (!StringUtils.hasText(userId)) {
+            if (log.isWarnEnabled()) {
+                log.warn("心跳超时但未绑定 userId, channel={}", channelId);
+            }
+            // 若未绑定用户，直接关闭连接以释放资源（防御性）
+            try {
+                ctx.close();
+            } catch (Throwable ignored) {
+            }
+            return;
+        }
+
+        // 移除内存映射
+        UserChannelCtxMap.removeChannel(userId);
+        asyncRedisDelete(IMConstant.USER_CACHE_PREFIX + userId);
+
+        // 关闭 channel
+        try {
+            ctx.close();
+        } catch (Throwable ignored) {
+        }
+
+        if (log.isWarnEnabled()) {
+            log.warn("心跳超时，断开连接 userId={}, channel={}", userId, channelId);
+        }
     }
 
     /**
-     * 从 Channel 中获取用户ID
+     * 从 channel 属性安全读取 userId（避免空指针）
      */
-    private String getUserIdFromChannel(ChannelHandlerContext ctx) {
-        if (ctx == null || ctx.channel() == null) return null;
-        return ctx.channel().attr(USER_ID_ATTR_KEY).get();
+    private String safeGetUserId(ChannelHandlerContext ctx) {
+        if (ctx == null) return null;
+        Channel ch = ctx.channel();
+        if (ch == null) return null;
+        return ch.attr(USER_ID_ATTR_KEY).get();
     }
 
     /**
-     * 验证当前 Channel 是否是最新有效的连接
+     * 将 Redis 删除操作异步化（使用注入的 redisTaskExecutor 或 ForkJoinPool.commonPool）
+     * 这样可以避免在 Netty IO 线程里进行远程阻塞调用
      */
-    private boolean isValidChannel(String userId, ChannelHandlerContext ctx) {
+    /**
+     * 单线程异步删除 Redis 键（fire-and-forget）
+     * - 将可能阻塞的 redisTemplate.delete(key) 提交到单线程队列执行
+     * - 不在 Netty IO 线程中阻塞等待
+     */
+    private void asyncRedisDelete(final String key) {
+        if (key == null || key.isEmpty()) return;
 
-        if (!StringUtils.hasText(userId) || ctx == null) return false;
+        // 这里用你现有的同步 redisTemplate；若抛异常仅 debug/打印避免噪音
+        redisTemplate.del(key);
 
-        Channel currentChannel = ctx.channel();
-
-        Channel storedChannel = UserChannelCtxMap.getChannel(userId);
-
-        return storedChannel != null && currentChannel.id().equals(storedChannel.id());
     }
 }

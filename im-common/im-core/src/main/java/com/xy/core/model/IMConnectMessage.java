@@ -1,50 +1,67 @@
 package com.xy.core.model;
 
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import lombok.*;
 import lombok.experimental.Accessors;
-
 import java.io.Serial;
 import java.io.Serializable;
-
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
 
 /**
- * websocket connection info
+ * WebSocket / IM connect message container
  *
- * @param <T>
+ * 泛型 T 用于承载任意业务 payload（配合 Jackson 的多态反序列化）
  */
 @Data
-@Accessors(chain = true)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonSubTypes({
-        @JsonSubTypes.Type(value = String.class),
-        // 你可以根据需要添加更多的子类型
-        // @JsonSubTypes.Type(value = AnotherClass.class, name = "anotherClass")
-})
+@Accessors(chain = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class IMConnectMessage<T> implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /**
-     * connection type
-     */
+    /** 连接/消息类型（使用枚举提高可读性） */
     private Integer code;
 
-    /**
-     * connection user's token
-     */
+    /** 用户 token（可为空） */
     private String token;
 
-    /**
-     * connection information
-     */
+    /** 业务数据（泛型，常用 JSON 多态来区分实际类型） */
     private T data;
+
+    /** 可选：附加元数据（路由/版本/平台等） */
+    private Map<String, String> metadata;
+
+    /** 请求 ID（用于链路追踪，默认可由客户端/服务器生成） */
+    @Builder.Default
+    private String requestId = UUID.randomUUID().toString();
+
+    /** 时间戳（毫秒） */
+    @Builder.Default
+    private Long timestamp = Instant.now().toEpochMilli();
+
+    /** 可选客户端信息（IP / UA）便于审计或路由决策 */
+    private String clientIp;
+    private String userAgent;
+
+    @Override
+    public String toString() {
+        // 避免打印 data 的全部内容（可能很大），可按需调整
+        return "IMConnectMessage{" +
+                "code=" + code +
+                ", token='" + token + '\'' +
+                ", dataType=" + (data != null ? data.getClass().getSimpleName() : "null") +
+                ", requestId=" + requestId +
+                ", timestamp=" + timestamp +
+                '}';
+    }
 
 }

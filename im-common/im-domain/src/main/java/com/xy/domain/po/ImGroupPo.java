@@ -96,6 +96,14 @@ public class ImGroupPo implements Serializable {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @TableField(value = "update_time", fill = FieldFill.UPDATE)
     private Long updateTime;
+
+    /**
+     * 成员数
+     */
+    //@TableField(value = "member_count")
+    @TableField(exist = false)
+    private Integer memberCount;
+
     /**
      * 扩展字段
      */

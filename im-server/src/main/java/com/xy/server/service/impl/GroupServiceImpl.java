@@ -245,7 +245,7 @@ public class GroupServiceImpl implements GroupService {
         // 发送系统群聊邀请消息,系统消息默认用户000000
         //IMGroupMessage IMGroupMessageDto = systemMessage(groupId, "加入群聊,请尽情聊天吧");
         // 发送群聊消息
-        messageService.sendGroupMessage(systemMessage(groupId, "加入群聊,请尽情聊天吧"));
+        messageService.sendGroupMessage(systemMessage(groupId, "已加入群聊,请尽情聊天吧"));
 
         return Result.success(groupId);
     }

@@ -69,7 +69,7 @@ public class LoginProcess implements WebsocketProcess {
                 // 用户token
                 .setToken(token);
 
-        redisTemplate.setEx(USER_CACHE_PREFIX + userId , JacksonUtil.toJson(imRegisterUser), heartBeatTime * 2);
+        redisTemplate.setEx(USER_CACHE_PREFIX + userId, JacksonUtil.toJson(imRegisterUser), heartBeatTime * 2);
 
         // 响应ws
         MessageUtils.send(ctx, sendInfo.setCode(IMessageType.LOGIN.getCode()));

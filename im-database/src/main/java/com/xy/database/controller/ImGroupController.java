@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Slf4j
 @RestController
 @RequestMapping("/api/{version}/database/group")
@@ -15,6 +17,14 @@ import org.springframework.web.bind.annotation.*;
 public class ImGroupController {
 
     private final ImGroupService imGroupService;
+
+    /**
+     * 查询所有好友
+     */
+    @GetMapping("/list")
+    public List<ImGroupPo> list(@RequestParam("userId") String userId) {
+        return imGroupService.list(userId);
+    }
 
     /**
      * 获取群信息

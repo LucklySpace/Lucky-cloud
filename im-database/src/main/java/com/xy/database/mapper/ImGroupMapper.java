@@ -16,6 +16,8 @@ import java.util.List;
 public interface ImGroupMapper extends BaseMapper<ImGroupPo> {
 
     List<String> selectNinePeople(@Param("groupId") String groupId);
+
+    List<ImGroupPo> selectGroupsByUserId(@Param("userId") String userId);
 }
 
 

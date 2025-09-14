@@ -12,7 +12,7 @@ import java.sql.Connection;
 
 /**
  * 数据库启动健康校验
- *
+ * <p>
  * 使用 ApplicationRunner，在应用启动后同步尝试连接数据库，
  * 手动实现重试逻辑
  */
@@ -20,18 +20,16 @@ import java.sql.Connection;
 @Component
 public class DatabaseInitializer implements ApplicationRunner {
 
-    @Resource
-    private DataSource dataSource;
-
     /**
      * 最大重试次数
      */
     private static final int MAX_ATTEMPTS = 5;
-
     /**
      * 重试间隔毫秒
      */
     private static final long RETRY_DELAY_MS = 5000L;
+    @Resource
+    private DataSource dataSource;
 
     /**
      * 应用启动后执行，尝试连接数据库，失败则按间隔重试，重试耗尽后抛出异常阻止应用继续启动

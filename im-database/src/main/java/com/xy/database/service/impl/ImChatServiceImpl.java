@@ -3,7 +3,7 @@ package com.xy.database.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.database.mapper.*;
 import com.xy.database.service.ImChatService;
-import com.xy.domain.po.*;
+import com.xy.domain.po.ImChatPo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

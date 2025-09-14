@@ -22,14 +22,14 @@ public class ImFriendshipServiceImpl extends ServiceImpl<ImFriendshipMapper, ImF
     private ImFriendshipMapper imFriendshipMapper;
 
     @Override
-    public List<ImFriendshipPo> list(String ownerId, Long sequence){
-       return imFriendshipMapper.selectFriendList(ownerId,sequence);
+    public List<ImFriendshipPo> list(String ownerId) {
+        return imFriendshipMapper.selectFriendList(ownerId);
     }
 
     @Override
     public ImFriendshipPo getOne(String ownerId, String friendId) {
         QueryWrapper<ImFriendshipPo> query = new QueryWrapper<>();
-        query.eq("owner_id", ownerId).eq("to_id",friendId);
+        query.eq("owner_id", ownerId).eq("to_id", friendId);
         return imFriendshipMapper.selectOne(query);
     }
 }

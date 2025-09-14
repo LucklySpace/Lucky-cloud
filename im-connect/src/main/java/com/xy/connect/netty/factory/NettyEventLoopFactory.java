@@ -20,11 +20,9 @@ public class NettyEventLoopFactory {
 
     // EPOLL 是否已启用
     private static final boolean IS_EPOLL_ENABLED;
+
     // 是否linux
     private static final boolean IS_LINUX;
-
-    // 虚拟线程池，用于 Offload 阻塞任务
-    private static final ExecutorService VIRTUAL_THREAD_POOL = Executors.newVirtualThreadPerTaskExecutor();
 
     static {
         String osName = System.getProperty(OS_NAME_KEY);

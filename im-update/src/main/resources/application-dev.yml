@@ -41,14 +41,6 @@ spring:
           max-wait: -1    # 最大阻塞等待时间（负数表示无限制）
           max-idle: 5     # 最大空闲连接数
           min-idle: 0     # 最小空闲连接数
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
-    virtualHost: /
-    publisher-returns: true #设置publisher-returns消息成功则会向发布者发送成功，失败时不会将消息丢弃，而是返回给发布者，发布者根据需求处理
-    publisher-confirm-type: correlated #开启发布确认模式，具体有三个值，具体的可以去百度
 
 
 # TODO: log settings

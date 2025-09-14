@@ -22,6 +22,8 @@ public class FriendshipRequestVo implements Serializable {
 
     private String message;
 
+    private Long createTime;
+
     private Integer approveStatus;
 
 }

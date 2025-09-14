@@ -17,6 +17,7 @@ public class MybatisPlusConfig implements MetaObjectHandler {
 
     /**
      * 动态识别 JDBC 数据库类型
+     *
      * @return
      */
     @Bean

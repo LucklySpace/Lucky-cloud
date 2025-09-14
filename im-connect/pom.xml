@@ -32,6 +32,7 @@
         <snakeyaml.version>2.2</snakeyaml.version>
         <logback.version>1.1.11</logback.version>
         <nacos.version>2.4.2</nacos.version>
+        <google.protobuf.version>4.29.5</google.protobuf.version>
     </properties>
 
 
@@ -48,13 +49,6 @@
             <artifactId>im-spring</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
-
-        <!--        <dependency>-->
-        <!--            <groupId>cglib</groupId>-->
-        <!--            <artifactId>cglib</artifactId>-->
-        <!--            <version>3.3.0</version>-->
-        <!--        </dependency>-->
-
         <!--  lombok-->
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -138,6 +132,18 @@
             <artifactId>sentinel-core</artifactId>
             <version>1.8.8</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${google.protobuf.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java-util</artifactId>
+            <version>${google.protobuf.version}</version>
         </dependency>
 
     </dependencies>

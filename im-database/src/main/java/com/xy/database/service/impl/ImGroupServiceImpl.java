@@ -22,6 +22,11 @@ public class ImGroupServiceImpl extends ServiceImpl<ImGroupMapper, ImGroupPo>
 
 
     @Override
+    public List<ImGroupPo> list(String userId) {
+        return imGroupMapper.selectGroupsByUserId(userId);
+    }
+
+    @Override
     public List<String> selectNinePeople(String groupId) {
         return imGroupMapper.selectNinePeople(groupId);
     }

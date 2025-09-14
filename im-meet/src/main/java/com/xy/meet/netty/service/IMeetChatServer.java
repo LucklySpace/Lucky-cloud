@@ -1,16 +1,14 @@
 package com.xy.meet.netty.service;
 
-import com.alibaba.nacos.api.naming.NamingFactory;
-import com.alibaba.nacos.api.naming.NamingService;
-import com.alibaba.nacos.api.naming.pojo.Instance;
-import com.xy.meet.config.ConfigCenter;
-import com.xy.meet.config.IMNacosConfig;
-import com.xy.meet.config.IMNettyConfig;
-import com.xy.meet.config.LogConstant;
+import com.xy.meet.constant.LogConstant;
+import com.xy.meet.nacos.NacosTemplate;
 import com.xy.meet.netty.IMeetChatServerHandler;
 import com.xy.meet.netty.service.codec.MessageDecoder;
 import com.xy.meet.netty.service.codec.MessageEncoder;
-import com.xy.meet.utils.IPAddressUtil;
+import com.xy.spring.annotations.core.Autowired;
+import com.xy.spring.annotations.core.Component;
+import com.xy.spring.annotations.core.PostConstruct;
+import com.xy.spring.annotations.core.Value;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -30,15 +28,27 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j(topic = LogConstant.NETTY)
+@Component
 public class IMeetChatServer {
 
-    IMNettyConfig.NettyConfig nettyConfig;
-    IMNacosConfig.NacosConfig nacosConfig;
+    @Value("netty.config.websocket.port")
+    protected List<Integer> webSocketPort;
 
-    public IMeetChatServer() {
-        this.nettyConfig = ConfigCenter.nettyConfig.getNettyConfig();
-        this.nacosConfig = ConfigCenter.nacosConfig.getNacosConfig();
+    @Value("netty.config.heartBeatTime")
+    protected Integer heartBeatTime;
+
+    @Autowired
+    private NacosTemplate nacosTemplate;
+
+    @Autowired
+    private IMeetChatServerHandler iMeetChatServerHandler;
+
+
+    @PostConstruct
+    private void startNetty() {
+        this.start();
     }
+
 
     public void start() {
         EventLoopGroup bossGroup = new NioEventLoopGroup();
@@ -66,16 +76,14 @@ public class IMeetChatServer {
                             pipeline.addLast("decode", new MessageDecoder());
 
                             // 添加心跳检测
-                            pipeline.addLast(new IdleStateHandler(0, 0, nettyConfig.getHeartBeatTime(), TimeUnit.MILLISECONDS));
+                            pipeline.addLast(new IdleStateHandler(0, 0, heartBeatTime, TimeUnit.MILLISECONDS));
 
-                            pipeline.addLast(new IMeetChatServerHandler());
+                            pipeline.addLast(iMeetChatServerHandler);
                         }
                     });
 
-            List<Integer> portList = nettyConfig.getWebSocketConfig().getPort();
-
-            for (Integer port : portList) {
-                registerNacos(port);
+            for (Integer port : webSocketPort) {
+                nacosTemplate.registerNacos(port);
                 ChannelFuture future = bootstrap.bind(port).sync();
                 System.out.println("Server started on port: " + port);
                 future.channel().closeFuture().sync();
@@ -89,43 +97,4 @@ public class IMeetChatServer {
         }
     }
 
-
-    /**
-     * 注册服务到nacos
-     * https://juejin.cn/post/6844903782086606861
-     *
-     * @param port 端口
-     */
-    public void registerNacos(Integer port) {
-        try {
-
-            // 获取Nacos服务地址
-            String serverIp = nacosConfig.getAddress();
-            Integer serverPort = nacosConfig.getPort();
-            String serviceName = nacosConfig.getName();
-            String version = nacosConfig.getVersion();
-            String serverAddr = serverIp + ":" + serverPort;
-
-            // 获取本机IP地址
-            String ip = IPAddressUtil.getLocalIp4Address();
-
-            // 创建Nacos实例
-            Instance instance = new Instance();
-            instance.setIp(ip); // IP地址
-            instance.setPort(port); // 端口
-            instance.setServiceName(serviceName); // 服务名
-            instance.setEnabled(true); // 是否启用
-            instance.setHealthy(true); // 健康状态
-            instance.setWeight(1.0); // 权重
-            //instance.addMetadata("brokerId", BROKERID); // 机器码
-            instance.addMetadata("version", version); // 版本号
-            instance.addMetadata("protocol", "websocket"); // 协议
-            // 注册服务到Nacos
-            NamingService namingService = NamingFactory.createNamingService(serverAddr);
-            namingService.registerInstance(serviceName, instance);
-            log.info("Service registered to Nacos successfully, port: {}", port);
-        } catch (Exception e) {
-            log.error("Failed to register service to Nacos, port: {}", port, e);
-        }
-    }
 }

@@ -67,15 +67,28 @@ public abstract class IMessageDto implements Serializable {
     private Long sequence;
 
     /**
-     * 额外信息
+     * 额外信息（扩展字段，JSON 格式存储）
      */
     private String extra;
 
-    /**
-     * 被引用的消息 ID
-     */
-    private String replyTo;
+    /* ------------------- 引用消息 & @人 扩展 ------------------- */
 
+    /**
+     * 引用的消息（被回复的消息）
+     */
+    private ReplyMessageInfo replyMessage;
+
+    /**
+     * 被 @ 的用户 ID 列表
+     */
+    private List<String> mentionedUserIds = Collections.emptyList();
+
+    /**
+     * 是否 @ 所有人
+     */
+    private Boolean mentionAll = false;
+
+    /* ------------------- 消息体 ------------------- */
 
     /**
      * 消息实体
@@ -92,6 +105,20 @@ public abstract class IMessageDto implements Serializable {
     })
     private MessageBody messageBody;
 
+    /* ------------------- 嵌套类 ------------------- */
+
+    // 引用消息信息
+    @Getter
+    @Setter
+    @ToString
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ReplyMessageInfo implements Serializable {
+        private String messageId;   // 被引用消息ID
+        private String fromId;      // 被引用消息的发送者
+        private String previewText; // 摘要（如文本前30字、文件名、[图片]等）
+        private Integer messageContentType;
+    }
 
     // 基类
     public static abstract class MessageBody {
@@ -108,10 +135,8 @@ public abstract class IMessageDto implements Serializable {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class TextMessageBody extends MessageBody {
-
         @NotBlank(message = "消息内容不能为空")
         private String text;
-
     }
 
     /**
@@ -124,12 +149,9 @@ public abstract class IMessageDto implements Serializable {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ImageMessageBody extends MessageBody {
-
         @NotBlank(message = "图片 path 不能为空")
         private String path;
-
         private String name;
-
         private Integer size;
     }
 
@@ -146,13 +168,11 @@ public abstract class IMessageDto implements Serializable {
 
         @NotBlank(message = "视频 URL 不能为空")
         private String path;
-
         private String name;
         // 单位：秒
         private Integer duration;
 
         private Integer size;
-
     }
 
     /**
@@ -173,9 +193,7 @@ public abstract class IMessageDto implements Serializable {
         private Integer duration;
 
         private Integer size;
-
     }
-
 
     /**
      * 文件消息体
@@ -190,15 +208,10 @@ public abstract class IMessageDto implements Serializable {
 
         @NotBlank(message = "视频 URL 不能为空")
         private String path;
-
         private String name;
-
         private String suffix;
-
         private Integer size;
-
     }
-
 
     /**
      * 系统消息体
@@ -210,10 +223,8 @@ public abstract class IMessageDto implements Serializable {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class SystemMessageBody extends MessageBody {
-
         @NotBlank(message = "系统消息不能为空")
         private String text;
-
     }
 
     /**

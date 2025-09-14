@@ -1,0 +1,29 @@
+app:
+  name: im-meet
+
+nacos:
+  enable: true
+  config:
+    name: im-meet
+    address: localhost
+    group: DEFAULT_GROUP
+    port: 8848
+    username: nacos
+    password: nacos
+    version: 1.0.0
+
+netty:
+  config:
+    heartBeatTime: 30000
+    bossThreadSize: 4
+    workThreadSize: 16
+    tcp:
+      enable: false
+      port:
+        - 9000
+        - 9001
+        - 9002
+    websocket:
+      enable: true
+      port:
+        - 19100

@@ -73,6 +73,12 @@ public class ImGroupMessagePo implements Serializable {
     private String replyTo;
 
     /**
+     * 阅读状态（1已读）
+     */
+    @TableField(exist = false)
+    private Integer readStatus;
+
+    /**
      * 删除标识（1正常，0删除）
      */
     @TableLogic(value = "1", delval = "0")
@@ -83,7 +89,7 @@ public class ImGroupMessagePo implements Serializable {
      * 消息序列
      */
     @TableField(value = "sequence")
-    private String sequence;
+    private Long sequence;
 
     /**
      * 随机标识

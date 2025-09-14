@@ -1,4 +1,4 @@
-package com.xy.meet.config;
+package com.xy.meet.constant;
 
 
 /**

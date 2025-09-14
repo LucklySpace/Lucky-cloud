@@ -217,6 +217,7 @@ public class MessageServiceImpl implements MessageService {
                         .setSequence(messageTime)
                         .setIsMute(IMStatus.NO.getCode())
                         .setIsTop(IMStatus.NO.getCode())
+                        .setDelFlag(IMStatus.YES.getCode())
                         .setChatType(IMessageType.SINGLE_MESSAGE.getCode());
 
                 if (imChatFeign.insert(chatPo)) {
@@ -388,6 +389,7 @@ public class MessageServiceImpl implements MessageService {
                             .setSequence(messageTime)
                             .setIsMute(IMStatus.NO.getCode())
                             .setIsTop(IMStatus.NO.getCode())
+                            .setDelFlag(IMStatus.YES.getCode())
                             .setChatType(IMessageType.GROUP_MESSAGE.getCode());
 
                     if (imChatFeign.insert(chatPo)) {
@@ -460,31 +462,40 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
-    public Result sendVideoMessage(IMVideoMessage IMVideoMessage) {
-
-        // 通过redis获取用户连接netty的机器码
-        Object redisObj = redisUtil.get(USER_CACHE_PREFIX + IMVideoMessage.getToId());
-
-        if (ObjectUtil.isNotEmpty(redisObj)) {
-
-            IMRegisterUser IMRegisterUser = JsonUtil.parseObject(redisObj, IMRegisterUser.class);
-
-            String brokerId = IMRegisterUser.getBrokerId();
-
-            // 对发送消息进行包装
-            IMessageWrap<Object> videoMessageIMessageWrap = new IMessageWrap<>().setCode(IMessageType.VIDEO_MESSAGE.getCode()).setData(IMVideoMessage).setIds(List.of(IMVideoMessage.getToId()));
-
-            // 发送到消息队列
-            rabbitTemplate.convertAndSend(MQ_EXCHANGE_NAME, MQ_ROUTERKEY_PREFIX + brokerId, JsonUtil.toJSONString(videoMessageIMessageWrap));
-
-            Result.success("发送消息成功");
-
-        } else {
-
-            log.info("用户:{} 未登录", IMVideoMessage.getToId());
+    public Result sendVideoMessage(IMVideoMessage videoMessage) {
+        if (videoMessage == null || videoMessage.getToId() == null) {
+            return Result.failed("参数无效，消息或接收方为空");
         }
 
-        return Result.failed("发送消息失败");
+        // 从 Redis 获取用户连接信息
+        Object redisObj = redisUtil.get(USER_CACHE_PREFIX + videoMessage.getToId());
+        if (ObjectUtil.isEmpty(redisObj)) {
+            log.info("用户 [{}] 未登录，消息发送失败", videoMessage.getToId());
+            return Result.failed("用户未登录");
+        }
+
+        try {
+            // 解析用户连接信息
+            IMRegisterUser targetUser = JsonUtil.parseObject(redisObj, IMRegisterUser.class);
+            String brokerId = targetUser.getBrokerId();
+
+            // 包装消息
+            IMessageWrap<Object> wrapMsg = new IMessageWrap<>()
+                    .setCode(IMessageType.VIDEO_MESSAGE.getCode())
+                    .setData(videoMessage)
+                    .setIds(List.of(videoMessage.getToId()));
+
+            // 发送消息到 MQ
+            rabbitTemplate.convertAndSend(MQ_EXCHANGE_NAME, brokerId, JsonUtil.toJSONString(wrapMsg));
+
+            log.info("视频消息发送成功，from={} → to={} via broker={}",
+                    videoMessage.getFromId(), videoMessage.getToId(), brokerId);
+
+            return Result.success("消息发送成功");
+        } catch (Exception e) {
+            log.error("发送视频消息异常，toId={}", videoMessage.getToId(), e);
+            return Result.failed("消息发送异常");
+        }
     }
 
     @Override
@@ -515,47 +526,5 @@ public class MessageServiceImpl implements MessageService {
 
         return map;
     }
-//
-//    @Override
-//    public List singleCheck(ChatDto chatDto) {
-//        List list = new ArrayList();
-//        switch (IMessageType.getByCode(chatDto.getChatType())) {
-//            case SINGLE_MESSAGE:
-//                list = getSingleMessageChat(chatDto);
-//                break;
-//            case GROUP_MESSAGE:
-//                list = getGroupMessageChat(chatDto);
-//                break;
-//            default:
-//                //chatVo = new ChatSetVo(); // 处理未知类型的对话
-//        }
-//        return list;
-//    }
-//
-//    private List getSingleMessageChat(ChatDto chatDto) {
-//
-//        String fromId = chatDto.getFromId();
-//
-//        String toId = chatDto.getToId();
-//
-//        Long sequence = chatDto.getSequence();
-//
-//        List<ImPrivateMessagePo> messageHistoryList = imPrivateMessageMapper.selectSingleMessageByToId(fromId, toId, sequence);
-//
-//        return messageHistoryList;
-//    }
-//
-//    private List getGroupMessageChat(ChatDto chatDto) {
-//
-//        String groupId = chatDto.getFromId();
-//
-//        String userId = chatDto.getToId();
-//
-//        Long sequence = chatDto.getSequence();
-//
-//        List<ImGroupMessagePo> messageHistoryList = imGroupMessageMapper.selectGroupMessageByGroupId(userId, groupId, sequence);
-//
-//        return messageHistoryList;
-//    }
 
 }

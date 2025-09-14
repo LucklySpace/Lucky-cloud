@@ -61,7 +61,6 @@ public final class RedisCache {
         try {
             return redisTemplate.hasKey(key);
         } catch (Exception e) {
-            e.printStackTrace();
             return false;
         }
     }

@@ -11,7 +11,7 @@ import java.util.List;
  */
 public interface ImFriendshipService extends IService<ImFriendshipPo> {
 
-    List<ImFriendshipPo> list(String ownerId, Long sequence);
+    List<ImFriendshipPo> list(String ownerId);
 
     ImFriendshipPo getOne(String ownerId, String friendId);
 

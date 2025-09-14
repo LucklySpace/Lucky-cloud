@@ -96,6 +96,7 @@ public final class IMConstant {
 
     // 用户名称
     public static final String IM_USER = "userId";
+
 }
 
 

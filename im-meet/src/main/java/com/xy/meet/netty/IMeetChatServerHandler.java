@@ -1,19 +1,25 @@
 package com.xy.meet.netty;
 
 
+import com.xy.meet.constant.Constants;
 import com.xy.meet.entity.Message;
 import com.xy.meet.entity.Room;
 import com.xy.meet.entity.User;
+import com.xy.spring.annotations.core.Component;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Slf4j
+@Component
+@ChannelHandler.Sharable
 public class IMeetChatServerHandler extends SimpleChannelInboundHandler<Message> {
 
     private static final Map<String, Room> rooms = new ConcurrentHashMap<>();
@@ -24,21 +30,29 @@ public class IMeetChatServerHandler extends SimpleChannelInboundHandler<Message>
     }
 
     private void handleMessage(ChannelHandlerContext ctx, Message message) {
+        if (message == null || message.getType() == null) {
+            sendError(ctx, "invalid message");
+            return;
+        }
+
         String type = message.getType();
         String roomId = message.getRoomId();
         String userId = message.getUserId();
 
         switch (type) {
-            case "join":
-                joinRoom(ctx, roomId, userId);
+            case Constants.MSG_JOIN:
+                joinRoom(ctx, roomId, userId, message);
                 break;
-            case "leave":
+            case Constants.MSG_LEAVE:
                 leaveRoom(ctx, roomId, userId);
                 break;
-            case "signal":
+            case Constants.MSG_SIGNAL:
                 forwardSignal(roomId, message);
                 break;
-            case "heartbeat":
+            case Constants.MSG_UPDATE:
+                userUpdate(roomId, userId, message);
+                break;
+            case Constants.MSG_HEARTBEAT:
                 sendHeartbeatAck(ctx, roomId, userId);
                 break;
             default:
@@ -47,14 +61,33 @@ public class IMeetChatServerHandler extends SimpleChannelInboundHandler<Message>
         }
     }
 
-    private void joinRoom(ChannelHandlerContext ctx, String roomId, String userId) {
+    private void userUpdate(String roomId, String userId, Message message) {
+
+        Room room = rooms.get(roomId);
+
+        if (room != null) {
+
+            log.info("房间 {} 用户 {} 更新状态 ",roomId, userId);
+            // 将客户端原始 message 的内容注入到广播消息中（保留 body/stream/user 等）
+            Message m = createRoomMessage(Constants.MSG_UPDATE, roomId, userId, null, room, message);
+
+            broadcastToRoom(room, m, userId, false);
+        }
+    }
+
+    private void joinRoom(ChannelHandlerContext ctx, String roomId, String userId, Message message) {
         Room room = rooms.computeIfAbsent(roomId, Room::new);
+
         User user = new User(userId, ctx.channel());
+
+        user.updateFrom(message.getUser());
+
         room.addUser(user);
 
         log.info("用户 {} 加入房间 {}", userId, roomId);
 
-        Message joinMessage = createRoomMessage("join", roomId, userId, "joined", room);
+        // 包装并广播：将客户端原始 message 合并到广播消息中（如果原始包含额外字段，会被保留下来）
+        Message joinMessage = createRoomMessage(Constants.MSG_JOIN, roomId, userId, null, room, message);
         // 广播加入消息
         broadcastToRoom(room, joinMessage, userId, true);
     }
@@ -63,7 +96,7 @@ public class IMeetChatServerHandler extends SimpleChannelInboundHandler<Message>
         Room room = rooms.get(roomId);
         if (room != null) {
             // 移除用户
-            room.removeUser(userId);
+            room.removeUserById(userId);
             log.info("用户 {} 离开房间 {}", userId, roomId);
             // 创建离开消息
             Message leaveMessage = createRoomMessage("leave", roomId, userId, "leaved", room);
@@ -116,24 +149,96 @@ public class IMeetChatServerHandler extends SimpleChannelInboundHandler<Message>
     }
 
     /**
-     * 创建房间消息
-     *
-     * @param type   消息类型
-     * @param roomId 房间ID
-     * @param userId 用户ID
-     * @param body   消息内容
-     * @param room   房间信息
-     * @return 消息对象
+     * 更稳健的 createRoomMessage：优先合并 original 中的字段（body/stream/user），
+     * 并安全复制 room.users 为副本（避免并发修改问题）。
      */
-    private Message createRoomMessage(String type, String roomId, String userId, String body, Room room) {
+    private Message createRoomMessage(String type, String roomId, String userId, String body, Room room, Message original) {
         Message message = new Message();
-        message.setType(type);
+
+        // 基本字段
+        message.setType(type != null ? type : "unknown");
         message.setRoomId(roomId);
         message.setUserId(userId);
-        message.setUsers(room.getUsers());
-        message.setBody(body);
+
+        // 安全复制 users（返回副本或空集合）
+        Set<User> safeUsers = safeUsersOf(room);
+        message.setUsers(safeUsers);
+
+        // 如果 original 存在且包含 user/body/stream，则优先保留
+        if (original != null) {
+            if (original.getUser() != null) {
+                message.setUser(original.getUser());
+            }
+            if (original.getBody() != null) {
+                message.setBody(original.getBody());
+            }
+            if (original.getStream() != null) {
+                message.setStream(original.getStream());
+            }
+        }
+
+        // 否则使用传入 body 或根据 type 填充默认 body
+        if (message.getBody() == null) {
+            if (body != null) {
+                message.setBody(body);
+            } else {
+                switch (message.getType()) {
+                    case Constants.MSG_JOIN:
+
+                        message.setBody("joined");
+                        break;
+                    case Constants.MSG_LEAVE:
+
+                        message.setBody("leaved");
+                        break;
+                    case Constants.MSG_SIGNAL:
+
+                        message.setBody("signal");
+                        break;
+                    case Constants.MSG_UPDATE:
+
+                        message.setBody("updated");
+                        break;
+                    case Constants.MSG_HEARTBEAT:
+                        message.setBody("heartbeat_ack");
+                        break;
+                    default:
+                        message.setBody("unknown_type");
+                        break;
+                }
+            }
+        }
+
+        // 附加：提供一个简洁的 userId 列表（放入 stream 字段，避免将 Channel 等不可序列化对象发去客户端）
+        if ("join".equals(message.getType()) || "leave".equals(message.getType()) || "update".equals(message.getType())) {
+            LinkedHashSet<String> userIds = safeUsers.stream()
+                    .map(User::getUserId)
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            // 使用 JSON 更好，但为简单起见，此处用逗号分隔
+            message.setStream(String.join(",", userIds));
+        }
+
         return message;
     }
+
+    /**
+     * 兼容原签名的重载：不传 original
+     */
+    private Message createRoomMessage(String type, String roomId, String userId, String body, Room room) {
+        return createRoomMessage(type, roomId, userId, body, room, null);
+    }
+
+    /**
+     * 安全复制 room.users 到副本集合（若 null/空则返回空集合）
+     */
+    private Set<User> safeUsersOf(Room room) {
+        if (room == null || room.getUsers() == null || room.getUsers().isEmpty()) {
+            return Collections.emptySet();
+        }
+        // 返回 HashSet 副本，避免外部修改影响 Message.users
+        return new HashSet<>(room.getUsers());
+    }
+
 
     /**
      * 向房间内的其他用户广播消息
@@ -176,6 +281,12 @@ public class IMeetChatServerHandler extends SimpleChannelInboundHandler<Message>
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         cause.printStackTrace();
         ctx.close();
+    }
+
+    private void sendError(ChannelHandlerContext ctx, String body) {
+        Message m = new Message();
+        m.setBody(body);
+        ctx.writeAndFlush(m);
     }
 }
 

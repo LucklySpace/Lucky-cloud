@@ -81,6 +81,7 @@ public class ChatServiceImpl implements ChatService {
                     .setToId(chatDto.getToId())
                     .setIsMute(IMStatus.NO.getCode())
                     .setIsTop(IMStatus.NO.getCode())
+                    .setDelFlag(IMStatus.YES.getCode())
                     .setChatType(IMessageType.SINGLE_MESSAGE.getCode());
 
             if (imChatFeign.insert(imChatPO)) {

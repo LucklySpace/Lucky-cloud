@@ -22,19 +22,17 @@ public class ImFriendshipController {
 
     private final ImFriendshipService imFriendshipService;
 
-
     /**
      * 查询所有好友
-     *
      */
     @GetMapping("/list")
-    public List<ImFriendshipPo> list(@RequestParam("ownerId") String ownerId, @RequestParam("sequence") Long sequence) {
-        return imFriendshipService.list(ownerId,sequence);
+    public List<ImFriendshipPo> list(@RequestParam("ownerId") String ownerId) {
+        return imFriendshipService.list(ownerId);
     }
 
     @GetMapping("getOne")
-    public ImFriendshipPo getOne(@RequestParam("ownerId") String ownerId, @RequestParam("friendId") String friendId){
-        return imFriendshipService.getOne(ownerId,friendId);
+    public ImFriendshipPo getOne(@RequestParam("ownerId") String ownerId, @RequestParam("friendId") String friendId) {
+        return imFriendshipService.getOne(ownerId, friendId);
     }
 
 }

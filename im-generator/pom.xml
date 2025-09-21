@@ -2,18 +2,16 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <artifactId>im-generator</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>im-generator</name>
+    <description>im-generator</description>
 
     <parent>
         <groupId>com.xy</groupId>
         <artifactId>IM</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
-
-    <groupId>com.xy</groupId>
-    <artifactId>im-generator</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>im-generator</name>
-    <description>im-generator</description>
 
     <properties>
         <java.version>21</java.version>

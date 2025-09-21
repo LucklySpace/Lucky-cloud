@@ -55,7 +55,6 @@ public class ChatConfig {
     }
 
     /**
-     *
      * 配置 ChatClient Bean，并添加日志记录
      * https://blog.csdn.net/cjdlx123456789/article/details/144133837?fromshare=blogdetail&sharetype=blogdetail&sharerId=144133837&sharerefer=PC&sharesource=weixin_45357745&sharefrom=from_link
      * <p>
@@ -103,7 +102,7 @@ public class ChatConfig {
         ChatClient client = builder
                 .defaultSystem(systemPrompt)
                 .defaultAdvisors(advisors)
-                 // 注册所有通过 ToolCallbackProvider 提供的工具
+                // 注册所有通过 ToolCallbackProvider 提供的工具
                 .defaultTools(toolCallbackProvider.getToolCallbacks())
                 .defaultOptions(ChatOptions.builder()
                         .topP(0.7)

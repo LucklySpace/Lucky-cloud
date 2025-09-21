@@ -38,7 +38,7 @@ public class NacosTemplate {
      */
     public void registerNacos() {
 
-        Integer port =2222;
+        Integer port = 2222;
 
         try {
 
@@ -91,12 +91,12 @@ public class NacosTemplate {
     }
 
     @SneakyThrows
-    public List<Instance> getAllInstances(String name){
+    public List<Instance> getAllInstances(String name) {
         return namingService.getAllInstances(name);
     }
 
 
-    public NamingService getNamingService(){
+    public NamingService getNamingService() {
         return this.namingService;
     }
 

@@ -14,7 +14,6 @@ import java.nio.file.Paths;
 class ImAuthApplicationTests {
 
 
-
     /**
      * JWT 过期时间（单位：小时）
      */
@@ -42,7 +41,7 @@ class ImAuthApplicationTests {
 
             writer.newLine();
 
-            Integer startId =  10000;
+            Integer startId = 10000;
 
             for (int i = 0; i < COUNT; i++) {
                 // 生成 UID

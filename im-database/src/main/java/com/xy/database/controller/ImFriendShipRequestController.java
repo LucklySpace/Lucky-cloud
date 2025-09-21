@@ -26,6 +26,7 @@ public class ImFriendShipRequestController {
 
     /**
      * 查询添加好友请求
+     *
      * @param userId
      * @return
      */

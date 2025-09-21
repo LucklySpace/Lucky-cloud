@@ -11,9 +11,9 @@
             <if test="ownerId != null and ownerId != ''">
                 AND owner_id = #{ownerId}
             </if>
-<!--            <if test="sequence != null and sequence != ''">-->
-<!--                AND sequence > #{sequence}-->
-<!--            </if>-->
+            <!--            <if test="sequence != null and sequence != ''">-->
+            <!--                AND sequence > #{sequence}-->
+            <!--            </if>-->
         </where>
     </select>
 </mapper>

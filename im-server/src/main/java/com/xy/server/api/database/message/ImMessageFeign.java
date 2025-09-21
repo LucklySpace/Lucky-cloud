@@ -42,21 +42,23 @@ public interface ImMessageFeign {
 
     /**
      * 获取最后一条消息
+     *
      * @param fromId 发送者id
-     * @param toId 接受者id
+     * @param toId   接受者id
      * @return 私聊消息
      */
     @GetMapping("/private/message/last")
-    ImPrivateMessagePo plast(@RequestParam("fromId")String fromId, @RequestParam("toId")String toId);
+    ImPrivateMessagePo plast(@RequestParam("fromId") String fromId, @RequestParam("toId") String toId);
 
     /**
      * 获取最后一条消息
-     * @param userId 用户id
+     *
+     * @param userId  用户id
      * @param groupId 群聊id
      * @return 私聊消息
      */
     @GetMapping("/group/message/last")
-    ImGroupMessagePo glast(@RequestParam("userId")String userId, @RequestParam("groupId")String groupId);
+    ImGroupMessagePo glast(@RequestParam("userId") String userId, @RequestParam("groupId") String groupId);
 
     /**
      * 插入私聊消息
@@ -86,14 +88,15 @@ public interface ImMessageFeign {
 
     /**
      * 查询阅读状态
+     *
      * @param fromId 发送者id
-     * @param toId 接受者id
-     * @param code 状态码
+     * @param toId   接受者id
+     * @param code   状态码
      * @return 未读条数
      */
     @GetMapping("/private/message/selectReadStatus")
     Integer pSelectReadStatus(@RequestParam("fromId") String fromId, @RequestParam("toId") String toId, @RequestParam("code") Integer code);
 
     @GetMapping("/group/message/selectReadStatus")
-    Integer gSelectReadStatus(@RequestParam("groupId")String groupId, @RequestParam("toId")String toId, @RequestParam("code")Integer code);
+    Integer gSelectReadStatus(@RequestParam("groupId") String groupId, @RequestParam("toId") String toId, @RequestParam("code") Integer code);
 }

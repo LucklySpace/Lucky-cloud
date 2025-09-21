@@ -6,7 +6,7 @@ option java_outer_classname = "ImConnectProto";
 
 import "google/protobuf/any.proto";
 
-
+// 生成命令: protoc --java_out=./ im_connect_message.proto
 message IMConnectMessage {
 
   int32 code = 1;
@@ -20,13 +20,18 @@ message IMConnectMessage {
   // 可选元数据（路由/版本/平台等）
   map<string, string> metadata = 4;
 
+  // 信息
+  string message = 5;
+
   // 请求 ID（链路追踪）
-  string request_id = 5;
+  string request_id = 6;
 
   // 时间戳（毫秒）
-  int64 timestamp = 6;
+  int64 timestamp = 7;
 
   // 客户端信息
-  string client_ip = 7;
-  string user_agent = 8;
+  string client_ip = 8;
+  string user_agent = 9;
+  string device_name = 10;
+  string device_type = 11;
 }

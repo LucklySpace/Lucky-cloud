@@ -27,11 +27,11 @@ public class TraceFilter implements GlobalFilter, Ordered {
 
         List<String> traceIds = request.getHeaders().get(TRACEID);
 
-        if(traceIds == null){
+        if (traceIds == null) {
 
             String traceid = UUID.randomUUID().toString();
 
-            log.debug("没有traceId，生成一个{}",traceid);
+            log.debug("没有traceId，生成一个{}", traceid);
 
             final ServerHttpRequest finalRequest = exchange.getRequest()
                     .mutate()
@@ -40,7 +40,7 @@ public class TraceFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange.mutate().request(finalRequest).build());
 
         }
-        log.debug("traceId,已经存在{}",traceIds.getFirst());
+        log.debug("traceId,已经存在{}", traceIds.getFirst());
 
         return chain.filter(exchange);
     }

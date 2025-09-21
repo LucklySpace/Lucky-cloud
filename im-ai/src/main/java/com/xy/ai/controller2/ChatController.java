@@ -18,7 +18,7 @@
 //
 //import java.util.List;
 //
-///**
+/// **
 // * ChatController 提供与 AI 聊天的所有接口：
 // * - 单轮问答
 // * - 多轮对话（带上下文）

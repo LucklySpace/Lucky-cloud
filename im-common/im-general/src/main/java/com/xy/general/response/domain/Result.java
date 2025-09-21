@@ -42,7 +42,6 @@ public class Result<T> {
     private T data;
 
 
-
     /**
      * @param code    状态码
      * @param message 消息

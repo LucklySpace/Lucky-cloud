@@ -7,28 +7,28 @@
 
     <resultMap id="ImGroupMessageResultMap" type="com.xy.domain.po.ImGroupMessagePo">
         <!-- 主键 -->
-        <id column="message_id" property="messageId" />
+        <id column="message_id" property="messageId"/>
 
         <!-- 基本字段（列名 -> 属性名）-->
-        <result column="group_id" property="groupId" />
-        <result column="from_id" property="fromId" />
+        <result column="group_id" property="groupId"/>
+        <result column="from_id" property="fromId"/>
         <!-- message_body 使用 JacksonTypeHandler 反序列化为 Object -->
         <result column="message_body" property="messageBody"
                 javaType="java.lang.Object"
-                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler" />
-        <result column="message_time" property="messageTime" javaType="java.lang.Long" />
-        <result column="message_content_type" property="messageContentType" javaType="java.lang.Integer" />
-        <result column="extra" property="extra" />
-        <result column="reply_to" property="replyTo" />
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result column="message_time" property="messageTime" javaType="java.lang.Long"/>
+        <result column="message_content_type" property="messageContentType" javaType="java.lang.Integer"/>
+        <result column="extra" property="extra"/>
+        <result column="reply_to" property="replyTo"/>
         <result column="sequence" property="sequence" javaType="java.lang.Long"/>
-        <result column="message_random" property="messageRandom" />
-        <result column="create_time" property="createTime" javaType="java.lang.Long" />
-        <result column="update_time" property="updateTime" javaType="java.lang.Long" />
-        <result column="del_flag" property="delFlag" javaType="java.lang.Integer" />
-        <result column="version" property="version" javaType="java.lang.Integer" />
+        <result column="message_random" property="messageRandom"/>
+        <result column="create_time" property="createTime" javaType="java.lang.Long"/>
+        <result column="update_time" property="updateTime" javaType="java.lang.Long"/>
+        <result column="del_flag" property="delFlag" javaType="java.lang.Integer"/>
+        <result column="version" property="version" javaType="java.lang.Integer"/>
 
         <!-- 来自关联表的字段，映射到实体中 exist=false 的属性 readStatus -->
-        <result column="read_status" property="readStatus" javaType="java.lang.Integer" />
+        <result column="read_status" property="readStatus" javaType="java.lang.Integer"/>
     </resultMap>
 
 

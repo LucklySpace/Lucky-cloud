@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit;
  * - 确保引用计数严格管理，防止泄漏。
  * - 恢复关键日志输出以便调试，同时避免性能敏感路径过多日志。
  */
-@Slf4j(topic = "Netty")
+@Slf4j(topic = "Auth")
 @Component
 @ChannelHandler.Sharable
 public class AuthHandler extends ChannelInboundHandlerAdapter {
@@ -49,14 +49,17 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    @Value("netty.config.heartBeatTime")
+    @Value("${netty.config.heartBeatTime}")
     private Integer heartBeatTime;
 
     @Value("${netty.config.protocol}")
     private String protocolType;
 
     @Autowired
-    private IMChannelHandler imChannelHandler;
+    private IMLoginHandler imLoginHandler;
+
+    @Autowired
+    private IMHeartBeatHandler imHeartBeatHandler;
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
@@ -84,6 +87,25 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
             closeOnFailure(ctx);
         }
     }
+
+    /**
+     * 认证通过添加处理器
+     */
+    private void ensurePostAuthPipeline(ChannelHandlerContext ctx) {
+        ChannelPipeline p = ctx.pipeline();
+        if (p.get(IMLoginHandler.class) == null) {
+            p.addLast("idle", new IdleStateHandler(0, 0, heartBeatTime, TimeUnit.MILLISECONDS));
+            p.addLast("heartBeat", imHeartBeatHandler);
+            p.addLast("login", imLoginHandler);
+            log.info("已为 channel 注入 IdleStateHandler 与 IMChannelHandler");
+        }
+        try {
+            p.remove(this);
+            log.debug("AuthHandler 已从 pipeline 中移除");
+        } catch (NoSuchElementException ignored) {
+        }
+    }
+
 
     private void handleHttpHandshake(ChannelHandlerContext ctx, FullHttpRequest request) {
         log.info("拦截到 HTTP 握手请求: {}", request.uri());
@@ -238,20 +260,6 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
         } catch (Exception ignored) {
         }
         return null;
-    }
-
-    private void ensurePostAuthPipeline(ChannelHandlerContext ctx) {
-        ChannelPipeline p = ctx.pipeline();
-        if (p.get(IMChannelHandler.class) == null) {
-            p.addLast("idle", new IdleStateHandler(0, 0, heartBeatTime, TimeUnit.MILLISECONDS));
-            p.addLast("imHandler", imChannelHandler);
-            log.info("已为 channel 注入 IdleStateHandler 与 IMChannelHandler");
-        }
-        try {
-            p.remove(this);
-            log.debug("AuthHandler 已从 pipeline 中移除");
-        } catch (NoSuchElementException ignored) {
-        }
     }
 
     private void closeOnFailure(ChannelHandlerContext ctx) {

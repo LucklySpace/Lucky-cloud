@@ -32,6 +32,7 @@ public interface BeanPostProcessor {
         return bean;
     }
 
+    Object getEarlyBeanReference(Object early, String name);
 }
 
 

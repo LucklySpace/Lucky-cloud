@@ -51,6 +51,11 @@ public class ProxyBeanPostProcessor implements BeanPostProcessor {
         return bean;
     }
 
+    @Override
+    public Object getEarlyBeanReference(Object early, String name) {
+        return null;
+    }
+
     /**
      * 示例拦截器：记录方法调用日志
      */

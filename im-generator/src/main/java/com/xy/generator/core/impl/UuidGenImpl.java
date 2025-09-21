@@ -1,8 +1,8 @@
 package com.xy.generator.core.impl;
 
+import com.xy.core.model.IMetaId;
 import com.xy.generator.core.IDGen;
 import com.xy.generator.model.IdRingBuffer;
-import com.xy.core.model.IMetaId;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;

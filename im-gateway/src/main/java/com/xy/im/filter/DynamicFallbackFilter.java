@@ -8,7 +8,7 @@
 //import org.springframework.web.reactive.function.client.WebClient;
 //import reactor.core.publisher.Mono;
 //
-///**
+/// **
 // * 错误处理：当下游服务调用出错时，该过滤器捕获异常，并启动降级逻辑。
 // * 动态选择备用服务：它首先从请求的查询参数中获取 fallbackService 参数，如果没有则使用配置中默认的备用服务名称。然后，通过服务发现（ReactiveDiscoveryClient）获取对应服务的实例。
 // * 请求转发：拿到备用服务实例后，过滤器会构造一个新的请求，利用 WebClient 将原始请求转发到备用服务对应的 URI 上，从而实现降级响应。

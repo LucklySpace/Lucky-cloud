@@ -94,7 +94,6 @@ public class ClassUtils {
     }
 
 
-
     /**
      * 处理文件系统中的类扫描
      *
@@ -196,15 +195,33 @@ public class ClassUtils {
 
         Class<?> component;
         switch (name) {
-            case "byte":    component = byte.class;    break;
-            case "short":   component = short.class;   break;
-            case "int":     component = int.class;     break;
-            case "long":    component = long.class;    break;
-            case "float":   component = float.class;   break;
-            case "double":  component = double.class;  break;
-            case "boolean": component = boolean.class; break;
-            case "char":    component = char.class;    break;
-            case "void":    component = void.class;    break;
+            case "byte":
+                component = byte.class;
+                break;
+            case "short":
+                component = short.class;
+                break;
+            case "int":
+                component = int.class;
+                break;
+            case "long":
+                component = long.class;
+                break;
+            case "float":
+                component = float.class;
+                break;
+            case "double":
+                component = double.class;
+                break;
+            case "boolean":
+                component = boolean.class;
+                break;
+            case "char":
+                component = char.class;
+                break;
+            case "void":
+                component = void.class;
+                break;
             default:
                 component = Class.forName(name, false, loader);
         }

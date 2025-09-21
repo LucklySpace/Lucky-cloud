@@ -31,7 +31,6 @@ public class EmbeddingServiceImpl implements EmbeddingService {
     }
 
     /**
-     *
      * 存入向量数据库，这个过程会自动调用embeddingModel,将文本变成向量再存入。
      * 解析指定的 PDF 文件，并返回封装后的 Document 对象
      *
@@ -69,7 +68,7 @@ public class EmbeddingServiceImpl implements EmbeddingService {
             log.error("{} 解析失败", file.getName());
         }
 
-        if(!documents.isEmpty()){
+        if (!documents.isEmpty()) {
             pgVectorStore.add(documents);
         }
     }

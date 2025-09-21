@@ -1,26 +1,14 @@
 package com.xy.meet.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.netty.channel.Channel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-import io.netty.channel.Channel;
-import lombok.*;
-// User.java - 优化版
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
-import lombok.*;
-
 import io.netty.channel.Channel;
-import java.util.Objects;
+import lombok.*;
 
 /**
  * 参加者实体（优化版）
- *
+ * <p>
  * - channel 为 transient 且 @JsonIgnore，避免序列化 Channel
  * - Role 枚举支持大小写兼容的反序列化
  * - 提供安全的更新与快照方法（toUserInfo）
@@ -43,25 +31,37 @@ public class User {
     @JsonIgnore
     private transient Channel channel;
 
-    /** 显示名 */
+    /**
+     * 显示名
+     */
     private String name;
 
-    /** 头像 URL */
+    /**
+     * 头像 URL
+     */
     private String avatar;
 
-    /** 是否为本地用户（当前设备） */
+    /**
+     * 是否为本地用户（当前设备）
+     */
     @Builder.Default
     private boolean isLocal = false;
 
-    /** 是否静音 */
+    /**
+     * 是否静音
+     */
     @Builder.Default
     private boolean muted = false;
 
-    /** 摄像头开启 */
+    /**
+     * 摄像头开启
+     */
     @Builder.Default
     private boolean cameraOn = false;
 
-    /** 是否共享屏幕 */
+    /**
+     * 是否共享屏幕
+     */
     @Builder.Default
     private boolean screenShareOn = false;
 
@@ -75,7 +75,9 @@ public class User {
      */
     private ConnectionState connectionState;
 
-    /** 媒体流占位（可能为流 id / url 等） */
+    /**
+     * 媒体流占位（可能为流 id / url 等）
+     */
     private String stream;
 
     /**
@@ -94,56 +96,6 @@ public class User {
 
     /* ----------------- 枚举定义（带 JSON 兼容） ----------------- */
 
-    public enum Role {
-        HOST, PARTICIPANT;
-
-        /**
-         * Jackson 反序列化支持大小写及常见别名（如 "host","Host","HOST"）
-         */
-        @JsonCreator
-        public static Role fromString(String key) {
-            if (key == null) return null;
-            switch (key.trim().toLowerCase()) {
-                case "host":
-                    return HOST;
-                case "participant":
-                    return PARTICIPANT;
-                default:
-                    return null; // 或者抛异常，根据业务决定
-            }
-        }
-
-        /**
-         * JSON 序列化输出（这里使用小写），便于前端统一显示/比较
-         */
-        @JsonValue
-        public String toValue() {
-            return this.name().toLowerCase();
-        }
-    }
-
-    public enum ConnectionState {
-        CONNECTED, RECONNECTING, DISCONNECTED;
-
-        @JsonCreator
-        public static ConnectionState fromString(String key) {
-            if (key == null) return null;
-            switch (key.trim().toLowerCase()) {
-                case "connected": return CONNECTED;
-                case "reconnecting": return RECONNECTING;
-                case "disconnected": return DISCONNECTED;
-                default: return null;
-            }
-        }
-
-        @JsonValue
-        public String toValue() {
-            return this.name().toLowerCase();
-        }
-    }
-
-    /* ----------------- 常用方法 ----------------- */
-
     /**
      * 刷新心跳时间并设置为 CONNECTED
      */
@@ -158,6 +110,8 @@ public class User {
     public void markDisconnected() {
         this.connectionState = ConnectionState.DISCONNECTED;
     }
+
+    /* ----------------- 常用方法 ----------------- */
 
     public void markReconnecting() {
         this.connectionState = ConnectionState.RECONNECTING;
@@ -198,6 +152,58 @@ public class User {
      */
     public boolean isOnline() {
         return this.connectionState == ConnectionState.CONNECTED;
+    }
+
+    public enum Role {
+        HOST, PARTICIPANT;
+
+        /**
+         * Jackson 反序列化支持大小写及常见别名（如 "host","Host","HOST"）
+         */
+        @JsonCreator
+        public static Role fromString(String key) {
+            if (key == null) return null;
+            switch (key.trim().toLowerCase()) {
+                case "host":
+                    return HOST;
+                case "participant":
+                    return PARTICIPANT;
+                default:
+                    return null; // 或者抛异常，根据业务决定
+            }
+        }
+
+        /**
+         * JSON 序列化输出（这里使用小写），便于前端统一显示/比较
+         */
+        @JsonValue
+        public String toValue() {
+            return this.name().toLowerCase();
+        }
+    }
+
+    public enum ConnectionState {
+        CONNECTED, RECONNECTING, DISCONNECTED;
+
+        @JsonCreator
+        public static ConnectionState fromString(String key) {
+            if (key == null) return null;
+            switch (key.trim().toLowerCase()) {
+                case "connected":
+                    return CONNECTED;
+                case "reconnecting":
+                    return RECONNECTING;
+                case "disconnected":
+                    return DISCONNECTED;
+                default:
+                    return null;
+            }
+        }
+
+        @JsonValue
+        public String toValue() {
+            return this.name().toLowerCase();
+        }
     }
 
 }

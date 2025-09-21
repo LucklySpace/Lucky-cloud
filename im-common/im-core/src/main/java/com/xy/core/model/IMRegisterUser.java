@@ -7,6 +7,7 @@ import lombok.experimental.Accessors;
 
 import java.io.Serial;
 import java.io.Serializable;
+
 /**
  * IM 用户注册/登录请求实体，用于客户端连接 Netty 时的身份认证。
  * 支持多端登录，每个设备需唯一标识。

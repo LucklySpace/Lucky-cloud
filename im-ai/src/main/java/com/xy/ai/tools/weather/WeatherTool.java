@@ -17,7 +17,6 @@ public class WeatherTool {
     private WebClient webClient;
 
 
-
     @Tool(description = "使用 api.weather 获取天的预报和天气情况.")
     public String getWeatherServiceMethod(@ToolParam(description = "城市名称") String city,
                                           @ToolParam(description = "天气预报的天数。值的范围为1到14") int days) {
@@ -50,6 +49,7 @@ public class WeatherTool {
 
     /**
      * 处理中文地名
+     *
      * @param location
      * @return
      */
@@ -62,6 +62,7 @@ public class WeatherTool {
 
     /**
      * 判断是否包含中文
+     *
      * @param str
      * @return
      */

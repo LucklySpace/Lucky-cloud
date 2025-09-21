@@ -16,7 +16,7 @@
 //import java.util.HashMap;
 //import java.util.Map;
 //
-///**
+/// **
 // * 签名验证过滤器：用于统一验证接口请求的签名合法性，防止伪造和重放攻击。
 // * 建议仅对部分接口生效（如 /api/**），可结合 URL 路径或注解处理。
 // */
@@ -31,13 +31,13 @@
 //        HttpServletRequest request = (HttpServletRequest) req;
 //        HttpServletResponse response = (HttpServletResponse) res;
 //
-////        // 非 JSON 请求或非 POST 请求跳过验证（你也可以基于 URL 控制是否校验）
-////        if (!"POST".equalsIgnoreCase(request.getMethod())
-////                || request.getContentType() == null
-////                || !request.getContentType().toLowerCase().contains("application/json")) {
-////            chain.doFilter(req, res);
-////            return;
-////        }
+/// /        // 非 JSON 请求或非 POST 请求跳过验证（你也可以基于 URL 控制是否校验）
+/// /        if (!"POST".equalsIgnoreCase(request.getMethod())
+/// /                || request.getContentType() == null
+/// /                || !request.getContentType().toLowerCase().contains("application/json")) {
+/// /            chain.doFilter(req, res);
+/// /            return;
+/// /        }
 //
 //        // 只拦截指定路径（例如 /api/ 开头的）
 //        String uri = request.getRequestURI();

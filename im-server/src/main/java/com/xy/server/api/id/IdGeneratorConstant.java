@@ -45,7 +45,4 @@ public class IdGeneratorConstant {
     public static final String chat_id = "chat:id";
 
 
-
-
-
 }

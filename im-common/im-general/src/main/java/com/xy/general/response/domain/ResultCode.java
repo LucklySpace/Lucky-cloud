@@ -47,7 +47,7 @@ public enum ResultCode implements IResult {
     // ========== 服务相关 ==========
     SERVICE_EXCEPTION(3000, "service.exception"),           // 服务异常
     REQUEST_DATA_TOO_LARGE(3001, "request.data_too_large"), // 请求数据过大，被拒绝处理
-    TOO_MANY_REQUESTS(3002,"request.too_many")  // 请求次数过多
+    TOO_MANY_REQUESTS(3002, "request.too_many")  // 请求次数过多
 
     ;
 

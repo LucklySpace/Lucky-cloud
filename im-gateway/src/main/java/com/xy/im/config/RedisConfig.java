@@ -33,7 +33,6 @@ public class RedisConfig {
     }
 
 
-
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory redisConnectionFactory) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
@@ -42,7 +41,7 @@ public class RedisConfig {
         // 设置objectMapper:转换java对象的时候使用
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-        objectMapper.activateDefaultTyping( LaissezFaireSubTypeValidator.instance, ObjectMapper.DefaultTyping.NON_FINAL,  JsonTypeInfo.As.WRAPPER_ARRAY);
+        objectMapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance, ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.WRAPPER_ARRAY);
         Jackson2JsonRedisSerializer<Object> jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
         StringRedisSerializer stringRedisSerializer = new StringRedisSerializer();
 
@@ -55,8 +54,6 @@ public class RedisConfig {
         template.afterPropertiesSet();
         return template;
     }
-
-
 
 
 //    @Bean

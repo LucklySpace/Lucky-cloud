@@ -19,4 +19,12 @@ public class LogConstant {
 
     public final static String Message = "message";
 
+    public final static String HeartBeat = "heartBeat";
+
+    public final static String Auth = "auth";
+
+    public final static String Login = "login";
+
+    public final static String Channel = "channel";
+
 }

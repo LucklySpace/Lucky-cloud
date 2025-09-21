@@ -1,7 +1,6 @@
 package com.xy.spring.utils;
 
 
-
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -26,28 +25,47 @@ import java.util.function.Function;
  * @param <V> 缓存值类型
  */
 public final class ConcurrentLruCache<K, V> {
-    /** 缓存最大容量 */
+    /**
+     * 缓存最大容量
+     */
     private final int capacity;
-    /** 当前缓存大小计数 */
+    /**
+     * 当前缓存大小计数
+     */
     private final AtomicInteger currentSize;
-    /** 主存储：从 key 到 Node 的映射 */
+    /**
+     * 主存储：从 key 到 Node 的映射
+     */
     private final ConcurrentMap<K, Node<K, V>> cache;
-    /** 缓存缺失时，用于生成值的函数 */
+    /**
+     * 缓存缺失时，用于生成值的函数
+     */
     private final Function<K, V> generator;
-    /** 读操作缓冲，用于延迟更新访问顺序 */
+    /**
+     * 读操作缓冲，用于延迟更新访问顺序
+     */
     private final ReadOperations<K, V> readOperations;
-    /** 写操作缓冲，用于延迟执行增加/删除任务 */
+    /**
+     * 写操作缓冲，用于延迟执行增加/删除任务
+     */
     private final WriteOperations writeOperations;
-    /** 驱逐锁，保护批量清理流程 */
+    /**
+     * 驱逐锁，保护批量清理流程
+     */
     private final Lock evictionLock;
-    /** 双向链表，维护 LRU 驱逐顺序 */
+    /**
+     * 双向链表，维护 LRU 驱逐顺序
+     */
     private final EvictionQueue<K, V> evictionQueue;
-    /** 缓冲区状态，防止重复触发清理 */
+    /**
+     * 缓冲区状态，防止重复触发清理
+     */
     private final AtomicReference<DrainStatus> drainStatus;
 
     /**
      * 构造方法：指定缓存容量和生成函数。
-     * @param capacity 最大条目数，必须 >= 0
+     *
+     * @param capacity  最大条目数，必须 >= 0
      * @param generator 当 key 不存在时，用于创建新值的函数
      */
     public ConcurrentLruCache(int capacity, Function<K, V> generator) {
@@ -145,10 +163,19 @@ public final class ConcurrentLruCache<K, V> {
         }
     }
 
-    /** 返回缓存容量 */
-    public int capacity() { return capacity; }
-    /** 返回当前缓存大小 */
-    public int size() { return cache.size(); }
+    /**
+     * 返回缓存容量
+     */
+    public int capacity() {
+        return capacity;
+    }
+
+    /**
+     * 返回当前缓存大小
+     */
+    public int size() {
+        return cache.size();
+    }
 
     /**
      * 清空缓存：锁住后依次移除所有条目并重置缓冲区。
@@ -179,7 +206,9 @@ public final class ConcurrentLruCache<K, V> {
         return true;
     }
 
-    /** 标记节点为待删除状态 */
+    /**
+     * 标记节点为待删除状态
+     */
     private void markForRemoval(Node<K, V> node) {
         CacheEntry<V> cur;
         CacheEntry<V> pending;
@@ -189,7 +218,10 @@ public final class ConcurrentLruCache<K, V> {
             pending = new CacheEntry<>(cur.value, CacheEntryState.PENDING_REMOVAL);
         } while (!node.compareAndSet(cur, pending));
     }
-    /** 将节点真正标记为已删除，并更新大小计数 */
+
+    /**
+     * 将节点真正标记为已删除，并更新大小计数
+     */
     private void markAsRemoved(Node<K, V> node) {
         CacheEntry<V> cur;
         CacheEntry<V> rem;
@@ -201,54 +233,40 @@ public final class ConcurrentLruCache<K, V> {
     }
 
     /**
-     * 写入任务：新增条目并在超出容量时驱逐最旧条目。
+     * 枚举：缓冲区状态，控制何时触发真正的清理
      */
-    private final class AddTask implements Runnable {
-        private final Node<K, V> node;
-        AddTask(Node<K, V> node) { this.node = node; }
-        public void run() {
-            currentSize.incrementAndGet();
-            if (node.get().isActive()) {
-                evictionQueue.add(node);
-                evictIfNeeded();
-            }
-        }
-        private void evictIfNeeded() {
-            while (currentSize.get() > capacity) {
-                Node<K, V> oldest = evictionQueue.poll();
-                if (oldest == null) return;
-                cache.remove(oldest.key, oldest);
-                markAsRemoved(oldest);
-            }
-        }
-    }
-
-    /**
-     * 写入任务：从驱逐队列移除指定节点。
-     */
-    private final class RemovalTask implements Runnable {
-        private final Node<K, V> node;
-        RemovalTask(Node<K, V> node) { this.node = node; }
-        public void run() {
-            evictionQueue.remove(node);
-            markAsRemoved(node);
-        }
-    }
-
-    /** 枚举：缓冲区状态，控制何时触发真正的清理 */
     private static enum DrainStatus {
-        IDLE    { boolean shouldDrainBuffers(boolean buf) { return !buf; }},
-        REQUIRED{ boolean shouldDrainBuffers(boolean buf) { return true; }},
-        PROCESSING{ boolean shouldDrainBuffers(boolean buf) { return false; }};
+        IDLE {
+            boolean shouldDrainBuffers(boolean buf) {
+                return !buf;
+            }
+        },
+        REQUIRED {
+            boolean shouldDrainBuffers(boolean buf) {
+                return true;
+            }
+        },
+        PROCESSING {
+            boolean shouldDrainBuffers(boolean buf) {
+                return false;
+            }
+        };
+
         abstract boolean shouldDrainBuffers(boolean bufferNotFull);
     }
 
-    /** 枚举：缓存实体生命周期 */
-    private static enum CacheEntryState { ACTIVE, PENDING_REMOVAL, REMOVED }
+    /**
+     * 枚举：缓存实体生命周期
+     */
+    private static enum CacheEntryState {ACTIVE, PENDING_REMOVAL, REMOVED}
 
-    /** 缓存条目：值加状态的不可变记录 */
+    /**
+     * 缓存条目：值加状态的不可变记录
+     */
     private static record CacheEntry<V>(V value, CacheEntryState state) {
-        boolean isActive() { return state == CacheEntryState.ACTIVE; }
+        boolean isActive() {
+            return state == CacheEntryState.ACTIVE;
+        }
     }
 
     /**
@@ -277,35 +295,44 @@ public final class ConcurrentLruCache<K, V> {
                 this.buffers[i] = new AtomicReferenceArray<>(BUFFER_SIZE);
             }
         }
+
         private static int detectNumberOfBuffers() {
             int procs = Runtime.getRuntime().availableProcessors();
             int pow2 = 1 << (32 - Integer.numberOfLeadingZeros(procs - 1));
             return Math.min(4, pow2);
         }
+
         private static int getBufferIndex() {
-            return (int)Thread.currentThread().getId() & BUFFERS_MASK;
+            return (int) Thread.currentThread().getId() & BUFFERS_MASK;
         }
-        /** 记录一次读取，返回是否继续缓冲 */
+
+        /**
+         * 记录一次读取，返回是否继续缓冲
+         */
         boolean recordRead(Node<K, V> node) {
             int idx = getBufferIndex();
             long wcount = recordedCount.get(idx);
             recordedCount.lazySet(idx, wcount + 1);
-            buffers[idx].lazySet((int)(wcount & (BUFFER_SIZE-1)), node);
+            buffers[idx].lazySet((int) (wcount & (BUFFER_SIZE - 1)), node);
             long pending = wcount - processedCount.get(idx);
             return pending < MAX_DRAIN;
         }
-        /** drain 所有线程缓冲，移动节点至队尾 */
+
+        /**
+         * drain 所有线程缓冲，移动节点至队尾
+         */
         void drain() {
-            int start = (int)Thread.currentThread().getId();
+            int start = (int) Thread.currentThread().getId();
             for (int i = start; i < start + BUFFER_COUNT; i++) {
                 drainBuffer(i & BUFFERS_MASK);
             }
         }
+
         private void drainBuffer(int idx) {
             long wcount = recordedCount.get(idx);
             for (int i = 0; i < MAX_DRAIN; i++) {
                 long rcount = readCount[idx]++;
-                int pos = (int)(rcount & (BUFFER_SIZE-1));
+                int pos = (int) (rcount & (BUFFER_SIZE - 1));
                 Node<K, V> node = buffers[idx].get(pos);
                 if (node == null) break;
                 buffers[idx].lazySet(pos, null);
@@ -313,6 +340,7 @@ public final class ConcurrentLruCache<K, V> {
             }
             processedCount.lazySet(idx, wcount);
         }
+
         void clear() {
             for (var buf : buffers) {
                 for (int j = 0; j < BUFFER_SIZE; j++) buf.lazySet(j, null);
@@ -326,7 +354,11 @@ public final class ConcurrentLruCache<K, V> {
     private static final class WriteOperations {
         private static final int THRESHOLD = 16;
         private final Queue<Runnable> ops = new ConcurrentLinkedQueue<>();
-        void add(Runnable r) { ops.add(r); }
+
+        void add(Runnable r) {
+            ops.add(r);
+        }
+
         void drain() {
             for (int i = 0; i < THRESHOLD; i++) {
                 Runnable r = ops.poll();
@@ -334,7 +366,11 @@ public final class ConcurrentLruCache<K, V> {
                 r.run();
             }
         }
-        void drainAll() { Runnable r; while ((r = ops.poll()) != null) r.run(); }
+
+        void drainAll() {
+            Runnable r;
+            while ((r = ops.poll()) != null) r.run();
+        }
     }
 
     /**
@@ -342,9 +378,16 @@ public final class ConcurrentLruCache<K, V> {
      */
     private static final class Node<K, V> extends AtomicReference<CacheEntry<V>> {
         final K key;
-         Node<K, V> prev, next;
-        Node(K k, CacheEntry<V> e) { super(e); this.key = k; }
-        V getValue() { return get().value; }
+        Node<K, V> prev, next;
+
+        Node(K k, CacheEntry<V> e) {
+            super(e);
+            this.key = k;
+        }
+
+        V getValue() {
+            return get().value;
+        }
     }
 
     /**
@@ -355,33 +398,95 @@ public final class ConcurrentLruCache<K, V> {
 
         Node<K, V> poll() {
             if (first == null) return null;
-            Node<K, V> f = first; Node<K, V> n = f.next;
+            Node<K, V> f = first;
+            Node<K, V> n = f.next;
             first = n;
-            if (n == null) last = null; else n.prev = null;
-            f.next = null; return f;
+            if (n == null) last = null;
+            else n.prev = null;
+            f.next = null;
+            return f;
         }
+
         void add(Node<K, V> e) {
             if (!contains(e)) linkLast(e);
         }
+
         private boolean contains(Node<K, V> e) {
             return e.prev != null || e.next != null || e == first;
         }
+
         private void linkLast(Node<K, V> e) {
-            Node<K, V> l = last; last = e;
+            Node<K, V> l = last;
+            last = e;
             if (l == null) first = e;
-            else { l.next = e; e.prev = l; }
+            else {
+                l.next = e;
+                e.prev = l;
+            }
         }
+
         void moveToBack(Node<K, V> e) {
-            if (contains(e) && e != last) { unlink(e); linkLast(e); }
+            if (contains(e) && e != last) {
+                unlink(e);
+                linkLast(e);
+            }
         }
+
         void remove(Node<K, V> e) {
             if (contains(e)) unlink(e);
         }
+
         private void unlink(Node<K, V> e) {
             Node<K, V> p = e.prev, n = e.next;
-            if (p == null) first = n; else p.next = n;
-            if (n == null) last = p; else n.prev = p;
+            if (p == null) first = n;
+            else p.next = n;
+            if (n == null) last = p;
+            else n.prev = p;
             e.prev = e.next = null;
+        }
+    }
+
+    /**
+     * 写入任务：新增条目并在超出容量时驱逐最旧条目。
+     */
+    private final class AddTask implements Runnable {
+        private final Node<K, V> node;
+
+        AddTask(Node<K, V> node) {
+            this.node = node;
+        }
+
+        public void run() {
+            currentSize.incrementAndGet();
+            if (node.get().isActive()) {
+                evictionQueue.add(node);
+                evictIfNeeded();
+            }
+        }
+
+        private void evictIfNeeded() {
+            while (currentSize.get() > capacity) {
+                Node<K, V> oldest = evictionQueue.poll();
+                if (oldest == null) return;
+                cache.remove(oldest.key, oldest);
+                markAsRemoved(oldest);
+            }
+        }
+    }
+
+    /**
+     * 写入任务：从驱逐队列移除指定节点。
+     */
+    private final class RemovalTask implements Runnable {
+        private final Node<K, V> node;
+
+        RemovalTask(Node<K, V> node) {
+            this.node = node;
+        }
+
+        public void run() {
+            evictionQueue.remove(node);
+            markAsRemoved(node);
         }
     }
 }

@@ -2,11 +2,11 @@ package com.xy.generator.core.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.xy.core.model.IMetaId;
 import com.xy.generator.core.IDGen;
 import com.xy.generator.model.IdMetaInfo;
 import com.xy.generator.model.Segment;
 import com.xy.generator.repository.IdMetaInfoRepository;
-import com.xy.core.model.IMetaId;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.Data;

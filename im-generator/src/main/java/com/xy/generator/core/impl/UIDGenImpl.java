@@ -1,9 +1,9 @@
 package com.xy.generator.core.impl;
 
+import com.xy.core.model.IMetaId;
 import com.xy.generator.core.IDGen;
 import com.xy.generator.model.IdRingBuffer;
 import com.xy.generator.work.WorkerIdAssigner;
-import com.xy.core.model.IMetaId;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

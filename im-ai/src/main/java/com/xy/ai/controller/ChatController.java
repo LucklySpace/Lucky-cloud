@@ -27,12 +27,12 @@ import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvis
 public class ChatController {
 
     @Resource
-    private  ChatClient chatClient;
+    private ChatClient chatClient;
 
 
     @Resource
     @Qualifier("chatPostgresMemory")
-    private  ChatMemory chatPostgresMemory;
+    private ChatMemory chatPostgresMemory;
 
 
     /**
@@ -66,7 +66,7 @@ public class ChatController {
          *
          */
         // 输出消息
-        return chatClient. prompt(text).tools(new DateTimeTool())
+        return chatClient.prompt(text).tools(new DateTimeTool())
                 .advisors(advisorSpec -> advisorSpec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, sessionId).param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 100))
                 .stream().content()
                 .map(content ->

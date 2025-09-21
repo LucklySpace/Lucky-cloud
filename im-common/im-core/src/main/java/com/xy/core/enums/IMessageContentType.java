@@ -17,7 +17,7 @@ public enum IMessageContentType {
     AUDIO(4, "语音"),
     FILE(5, "文件"),
     LOCAL(6, "位置"),
-    COMPLEX(7,"混合"),
+    COMPLEX(7, "混合"),
     TIP(10, "系统提示"),
 
 

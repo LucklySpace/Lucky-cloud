@@ -1,8 +1,8 @@
 package com.xy.generator.controller;
 
+import com.xy.core.model.IMetaId;
 import com.xy.generator.core.IDGen;
 import com.xy.generator.utils.StrategyContext;
-import com.xy.core.model.IMetaId;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

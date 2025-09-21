@@ -13,7 +13,7 @@
 //import java.util.concurrent.TimeUnit;
 //
 //
-///**
+/// **
 // * ChatRedisMemory 是基于 Redis 的聊天上下文记忆实现。
 // * 它负责将用户与 AI 的对话内容缓存到 Redis，支持添加、获取和清除历史。
 // */
@@ -38,22 +38,22 @@
 //    @Override
 //    public void add(String conversationId, List<Message> messages) {
 //        String key = KEY_PREFIX + conversationId;
-////        List<AiSession> listIn = new ArrayList<>();
-////
-////        for (Message msg : messages) {
-////            String[] strs = msg.getText().split("</think>");
-////            String text = strs.length == 2 ? strs[1] : strs[0];
-////
-////            AiSession ent = new AiSession();
-////            ent.setSessionId(conversationId);
-////            ent.setType(msg.getMessageType().getValue());
-////            ent.setText(text);
-////            listIn.add(ent);
-////        }
+/// /        List<AiSession> listIn = new ArrayList<>();
+/// /
+/// /        for (Message msg : messages) {
+/// /            String[] strs = msg.getText().split("</think>");
+/// /            String text = strs.length == 2 ? strs[1] : strs[0];
+/// /
+/// /            AiSession ent = new AiSession();
+/// /            ent.setSessionId(conversationId);
+/// /            ent.setType(msg.getMessageType().getValue());
+/// /            ent.setText(text);
+/// /            listIn.add(ent);
+/// /        }
 //
-////        redisTemplate.opsForList().rightPushAll(key, listIn.toArray());
-////        redisTemplate.expire(key, 30, TimeUnit.MINUTES);
-////        log.debug("[add] 会话 {} 存储 {} 条消息到 Redis。", conversationId, listIn.size());
+/// /        redisTemplate.opsForList().rightPushAll(key, listIn.toArray());
+/// /        redisTemplate.expire(key, 30, TimeUnit.MINUTES);
+/// /        log.debug("[add] 会话 {} 存储 {} 条消息到 Redis。", conversationId, listIn.size());
 //    }
 //
 //    /**

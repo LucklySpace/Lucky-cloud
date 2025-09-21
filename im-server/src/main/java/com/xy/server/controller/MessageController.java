@@ -1,10 +1,10 @@
 package com.xy.server.controller;
 
 
-import com.xy.domain.dto.ChatDto;
 import com.xy.core.model.IMGroupMessage;
 import com.xy.core.model.IMPrivateMessage;
 import com.xy.core.model.IMVideoMessage;
+import com.xy.domain.dto.ChatDto;
 import com.xy.general.request.annotations.ApiSign;
 import com.xy.general.response.domain.Result;
 import com.xy.server.service.MessageService;

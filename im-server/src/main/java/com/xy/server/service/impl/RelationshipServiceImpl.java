@@ -1,6 +1,5 @@
 package com.xy.server.service.impl;
 
-import cn.hutool.core.collection.CollUtil;
 import com.xy.domain.dto.FriendDto;
 import com.xy.domain.po.ImFriendshipPo;
 import com.xy.domain.po.ImFriendshipRequestPo;
@@ -25,13 +24,11 @@ import java.util.stream.Collectors;
 @Service
 public class RelationshipServiceImpl implements RelationshipService {
 
+    private static final int BATCH_SIZE = 500;
     @Resource
     private ImRelationshipFeign imRelationshipFeign;
-
     @Resource
     private ImUserFeign imUserFeign;
-
-    private static final int BATCH_SIZE = 500;
 
     @Override
     public List<FriendVo> contacts(String ownerId) {
@@ -161,6 +158,7 @@ public class RelationshipServiceImpl implements RelationshipService {
             return Collections.emptyList();
         }
     }
+
     @Override
     public List<FriendshipRequestVo> newFriends(String userId) {
 
@@ -262,7 +260,7 @@ public class RelationshipServiceImpl implements RelationshipService {
                 .setFriendId(userDataPo.getUserId());
 //                .setBlack(friendshipPo.getBlack())
 //                .setAlias(friendshipPo.getRemark())
-                //.setSequence(friendshipPo.getSequence());
+        //.setSequence(friendshipPo.getSequence());
     }
 
     //

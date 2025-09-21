@@ -5,15 +5,14 @@ import com.rabbitmq.client.*;
 import com.rabbitmq.client.impl.DefaultExceptionHandler;
 import com.xy.connect.config.LogConstant;
 import com.xy.connect.domain.MessageEvent;
-import com.xy.spring.XSpringApplication;
-import com.xy.spring.annotations.core.Component;
-import com.xy.spring.annotations.core.PostConstruct;
-import com.xy.spring.annotations.core.Value;
+import com.xy.spring.annotations.core.*;
+import com.xy.spring.event.ApplicationEventBus;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * RabbitMQ连接客户端工具类
@@ -26,30 +25,44 @@ import java.util.concurrent.TimeoutException;
 public class RabbitTemplate {
 
     // -------------------- 配置注入 --------------------
-    @Value("rabbitmq.address")
+    @Value("${rabbitmq.address}")
     private String host;
-    @Value("rabbitmq.port")
+    @Value("${rabbitmq.port}")
     private int port;
-    @Value("rabbitmq.username")
+    @Value("${rabbitmq.username:}")
     private String userName;
-    @Value("rabbitmq.password")
+    @Value("${rabbitmq.password:}")
     private String password;
-    @Value("rabbitmq.virtual")
+    @Value("${rabbitmq.virtual:/}")
     private String virtualHost;
-    @Value("brokerId")
+    @Value("${brokerId}")
     private String queueName;
-    // 可配置交换机、路由键前缀和错误队列名称
-    @Value("rabbitmq.exchange")
-    private String exchangeName = "im.exchange";
-    @Value("rabbitmq.routingKeyPrefix")
-    private String routingKeyPrefix = "im.router.";
-    @Value("rabbitmq.errorQueue")
-    private String errorQueue = "error.queue";
+
+    @Value("${rabbitmq.exchange:im.exchange}")
+    private String exchangeName;
+
+    @Value("${rabbitmq.routingKeyPrefix:im.router.}")
+    private String routingKeyPrefix;
+
+    @Value("${rabbitmq.errorQueue:error.queue}")
+    private String errorQueue;
+
+    @Value("${rabbitmq.prefetch:50}")
+    private Integer prefetch = 50;
+
+
     private ConnectionFactory factory;
     private Connection connection;
-    private Channel channel;
+    // 用于消费（ack/nack）
+    private volatile Channel consumerChannel;
+    // 用于发送错误消息等
+    private volatile Channel publishChannel;
 
-    private volatile boolean ready = false;
+    // 状态
+    private final AtomicBoolean running = new AtomicBoolean(false);
+
+    @Autowired
+    private ApplicationEventBus applicationEventBus;
 
 
     /**
@@ -73,14 +86,27 @@ public class RabbitTemplate {
         if (StrUtil.isNotBlank(password)) factory.setPassword(password);
         if (StrUtil.isNotBlank(virtualHost)) factory.setVirtualHost(virtualHost);
 
+        // 启用自动重连（client 端自动恢复连接与通道拓扑）
+        factory.setAutomaticRecoveryEnabled(true);
+        factory.setTopologyRecoveryEnabled(true);
+        // 客户端自动恢复间隔
+        factory.setNetworkRecoveryInterval(5000);
+
         // 设置连接异常处理器
         factory.setExceptionHandler(new DefaultExceptionHandler() {
             @Override
             public void handleConnectionRecoveryException(Connection conn, Throwable exception) {
-                log.warn("检测到 RabbitMQ 连接丢失，准备重连...", exception);
-                ready = false;
-                closeResources(); // 关闭资源
-                startConsumer();  // 尝试重连
+                log.warn("RabbitMQ 连接丢失，准备重连...", exception);
+                running.set(false);
+                // 关闭资源
+                closeResourcesSafely();
+                // 尝试重连
+                startConsumer();
+            }
+
+            @Override
+            public void handleChannelRecoveryException(Channel ch, Throwable exception) {
+                log.warn("RabbitMQ channel 异常...", exception);
             }
         });
         log.info("RabbitMQ ConnectionFactory 构建完成 -> {}:{}", host, port);
@@ -90,17 +116,22 @@ public class RabbitTemplate {
      * 启动消费者监听队列
      */
     private synchronized void startConsumer() {
-        if (ready) {
+        if (running.get()) {
             log.debug("RabbitMQ 已在运行，跳过启动");
             return;
         }
         try {
             // 创建连接与通道
             connection = factory.newConnection();
-            channel = connection.createChannel();
 
-            // 声明交换机，如果不存在则自动创建
-            channel.exchangeDeclare(exchangeName, BuiltinExchangeType.DIRECT, true);
+            // consumerChannel 专用于消费、ack/nack
+            consumerChannel = connection.createChannel();
+
+            // publishChannel 专用于发布（error queue 等）
+            publishChannel = connection.createChannel();
+
+            // declare exchange & queues（持久、非独占、非自动删除）声明交换机，如果不存在则自动创建
+            consumerChannel.exchangeDeclare(exchangeName, BuiltinExchangeType.DIRECT, true);
 
             /**
              * 创建队列并绑定到交换机 （如果不存在则自动创建）
@@ -110,24 +141,72 @@ public class RabbitTemplate {
              * 4. autoDelete： 是否自动删除,当没有消费者时,队列自动删除,确保队列唯一性
              * 5. arguments： 其他参数
              */
-            channel.queueDeclare(queueName, true, true, true, null);
+            consumerChannel.queueDeclare(queueName, true, true, true, null);
+            consumerChannel.queueBind(queueName, exchangeName, queueName);
 
-            // 将队列绑定到交换机
-            channel.queueBind(queueName, exchangeName, queueName);
+            // declare error queue & bind (durable)
+            publishChannel.queueDeclare(errorQueue, true, false, false, null);
+            publishChannel.queueBind(errorQueue, exchangeName, errorQueue);
 
-            // 创建消费者来处理消息
-            Consumer consumer = new DefaultConsumer(channel) {
-                @Override
-                public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
-                    handleDeliveryClient(consumerTag, envelope, properties, body);
+            // QoS 控制
+            consumerChannel.basicQos(prefetch);
+
+            /**
+             * 消息处理回调逻辑 创建消费者来处理消息
+             *
+             * @param consumerTag 消费者标签
+             * @param envelope    消息信封，含路由信息
+             * @param properties  消息属性
+             * @param body        消息体字节数组
+             */
+            DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+                final long deliveryTag = delivery.getEnvelope().getDeliveryTag();
+                final byte[] body = delivery.getBody();
+
+                // 业务处理提交到 workerPool，处理结束后再 ack/nack
+                boolean success = false;
+                try {
+
+                    String context = new String(body, StandardCharsets.UTF_8);
+
+                    // 发布事件（可被同步或异步处理）
+                    applicationEventBus.publishEvent(new MessageEvent(context));
+
+                    success = true;
+                } catch (Throwable t) {
+                    log.error("Failed to process message", t);
+                    // 发送错误信息到 errorQueue
+                    try {
+                        sendErrorMessageSynchronized(delivery.getEnvelope(), body, t.getMessage());
+                    } catch (Exception ex) {
+                        log.error("Failed to send error message", ex);
+                    }
+                } finally {
+                    // ack/nack 需要在对 consumerChannel 的同步保护下执行（channel 线程不安全）
+                    synchronized (consumerChannel) {
+                        try {
+                            if (success) {
+                                consumerChannel.basicAck(deliveryTag, false);
+                            } else {
+                                // nack 不重入队
+                                consumerChannel.basicNack(deliveryTag, false, false);
+                            }
+                        } catch (IOException e) {
+                            log.error("Failed to ack/nack message", e);
+                        }
+                    }
                 }
             };
 
-            // 开始消费消息，自动确认  autoAck 设置为 false
-            channel.basicConsume(queueName, false, consumer);
+            CancelCallback cancelCallback = consumerTag -> log.warn("Consumer cancelled: {}", consumerTag);
 
-            ready = true;
+            // 开始消费消息，自动确认 (autoAck = false)
+            consumerChannel.basicConsume(queueName, false, deliverCallback, cancelCallback);
+
+            running.set(true);
+
             log.info("RabbitMQ 队列 {} 监听启动成功", queueName);
+
         } catch (Exception e) {
             log.error("RabbitMQ 启动监听失败，稍后重试", e);
             safeSleep(5000);
@@ -135,102 +214,81 @@ public class RabbitTemplate {
         }
     }
 
-    /**
-     * 消息处理回调逻辑
-     *
-     * @param consumerTag 消费者标签
-     * @param envelope    消息信封，含路由信息
-     * @param properties  消息属性
-     * @param body        消息体字节数组
-     */
-    private void handleDeliveryClient(String consumerTag,
-                                      Envelope envelope,
-                                      AMQP.BasicProperties properties,
-                                      byte[] body) throws IOException {
-        // 通用执行模板，捕获异常并自动确认/拒绝消息
-        executeWithChannel(ch -> {
-
-            // 消息转换
-            String context = new String(body, StandardCharsets.UTF_8);
-
-            log.info("rabbitmq收到消息 {} exchange={}, routingKey={}", context, envelope.getExchange(), envelope.getRoutingKey());
-
-            try {
-
-                // 事件发布
-                XSpringApplication.getContext().getEventPublisher().publishEvent(new MessageEvent(context));
-
-                // 成功处理后手动 ack
-                ch.basicAck(envelope.getDeliveryTag(), false);
-
-            } catch (Exception procEx) {
-
-                log.error("消息处理失败", procEx);
-
-                // 发送错误信息到错误队列
-                sendErrorMessage(envelope, body, procEx.getMessage());
-
-                // 拒绝此消息，不重新入队
-                ch.basicNack(envelope.getDeliveryTag(), false, false);
-            }
-        });
-    }
 
     /**
-     * 通用执行模板：执行操作前校验通道可用，并处理异常
+     * 关闭并清理资源（safe）
      */
-    private void executeWithChannel(ChannelConsumer consumer) {
+    private synchronized void closeResourcesSafely() {
+        running.set(false);
         try {
-            // 若 channel 不可用则重新启动监听
-            if (!ready || channel == null || !channel.isOpen()) {
-                startConsumer();
+            if (consumerChannel != null) {
+                try {
+                    consumerChannel.close();
+                    log.info("Consumer channel closed");
+                } catch (Exception ignored) {
+                }
+                consumerChannel = null;
             }
-            consumer.accept(channel); // 执行实际逻辑
-        } catch (IOException | TimeoutException e) {
-            log.error("Channel 操作异常，准备重连", e);
-            ready = false;
-            closeResources();
-            startConsumer(); // 自动重连
+        } finally {
+            try {
+                if (publishChannel != null) {
+                    try {
+                        publishChannel.close();
+                        log.info("Publish channel closed");
+                    } catch (Exception ignored) {
+                    }
+                    publishChannel = null;
+                }
+            } finally {
+                try {
+                    if (connection != null) {
+                        try {
+                            connection.close();
+                            log.info("Connection closed");
+                        } catch (Exception ignored) {
+                        }
+                        connection = null;
+                    }
+                } catch (Throwable t) {
+                    log.warn("Error while closing connection", t);
+                }
+            }
         }
     }
 
     /**
-     * 发送错误消息到预定义错误队列
+     * 优雅关闭（容器销毁时调用）
      */
-    private void sendErrorMessage(Envelope env, byte[] body, String errorMsg) {
+    @PreDestroy
+    public void shutdown() {
+        log.info("Shutting down RabbitTemplate");
+
+        //
+        closeResourcesSafely();
+
+        log.info("RabbitTemplate shutdown complete");
+    }
+
+    /**
+     * 发送错误消息到 errorQueue，使用 publishChannel（同步保护）
+     */
+    private void sendErrorMessageSynchronized(Envelope env, byte[] body, String errorMsg) {
+        if (publishChannel == null) {
+            log.warn("publishChannel is null, cannot send error message");
+            return;
+        }
         String fullMsg = String.format("msgId=%d, error=%s, payload=%s",
                 env.getDeliveryTag(), errorMsg, new String(body, StandardCharsets.UTF_8));
+        byte[] bytes = fullMsg.getBytes(StandardCharsets.UTF_8);
 
-        executeWithChannel(ch -> {
-            ch.basicPublish(exchangeName, errorQueue, null, fullMsg.getBytes(StandardCharsets.UTF_8));
-            log.info("错误消息已发送到队列 {}", errorQueue);
-        });
-    }
-
-    /**
-     * 安全关闭连接与通道资源
-     */
-    private void closeResources() {
-        try {
-            if (channel != null && channel.isOpen()) {
-                channel.close();
-                log.info("RabbitMQ Channel 已关闭");
+        synchronized (publishChannel) {
+            try {
+                // 通过 exchange + routingKey（errorQueue）
+                publishChannel.basicPublish(exchangeName, errorQueue, null, bytes);
+                log.info("Error message published to queue {}", errorQueue);
+            } catch (IOException e) {
+                log.error("Failed to publish error message", e);
             }
-        } catch (Exception e) {
-            log.warn("关闭 Channel 失败", e);
-        } finally {
-            channel = null;
-        }
-
-        try {
-            if (connection != null && connection.isOpen()) {
-                connection.close();
-                log.info("RabbitMQ Connection 已关闭");
-            }
-        } catch (Exception e) {
-            log.warn("关闭 Connection 失败", e);
-        } finally {
-            connection = null;
         }
     }
 

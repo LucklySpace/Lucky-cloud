@@ -31,7 +31,8 @@ public class YamlConfigLoader {
     /**
      * 私有构造，禁止实例化
      */
-    private YamlConfigLoader() {}
+    private YamlConfigLoader() {
+    }
 
     /**
      * 加载并解析 application.yml
@@ -83,14 +84,14 @@ public class YamlConfigLoader {
     /**
      * 获取配置值并转换为指定类型
      *
-     * @param key  配置项路径，例如 "redis.host"
+     * @param key  配置项路径路径或占位符，如 "${redis.host:localhost}"
      * @param type 目标返回类型，例如 Integer.class、List.class
      * @param <T>  类型泛型
      * @return 转换后的值，若不存在或转换失败返回 null
      */
     @SuppressWarnings("unchecked")
     public static <T> T get(String key, Class<T> type) {
-        Object raw = properties.get(key);
+        Object raw = resolvePlaceholder(key);
         if (raw == null) {
             return null;
         }
@@ -106,17 +107,43 @@ public class YamlConfigLoader {
     /**
      * 获取配置值并转换为字段类型，支持泛型推断
      *
-     * @param key   配置项路径
+     * @param key   配置项路径或占位符，如 "${redis.host:localhost}"
      * @param field 目标字段，用于获取泛型信息
-     * @return 转换后的值，若不存在或转换错误抛异常
+     * @return 转换后的值，若不存在或转换错误返回 null
      */
     public static Object get(String key, Field field) {
-        Object raw = properties.get(key);
+        Object raw = resolvePlaceholder(key);
         if (raw == null) {
             return null;
         }
         String val = raw.toString().trim();
         return convertValue(field.getType(), val, field);
+    }
+
+    /**
+     * 解析占位符并获取值
+     *
+     * @param key 可能包含占位符的键，如 "${netty.tcp.nodelay:true}"
+     * @return 解析后的原始值，若无占位符直接从 properties 获取
+     */
+    private static Object resolvePlaceholder(String key) {
+        if (key.startsWith("${") && key.endsWith("}")) {
+            String inner = key.substring(2, key.length() - 1).trim();
+            String actualKey;
+            String defaultValue = null;
+            int colonIndex = inner.indexOf(':');
+            if (colonIndex != -1) {
+                actualKey = inner.substring(0, colonIndex).trim();
+                defaultValue = inner.substring(colonIndex + 1).trim();
+            } else {
+                actualKey = inner;
+            }
+            Object value = properties.get(actualKey);
+            return (value != null) ? value : defaultValue;
+        } else {
+            // 无占位符，直接获取
+            return properties.get(key);
+        }
     }
 
     /**

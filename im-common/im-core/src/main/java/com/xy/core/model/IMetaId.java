@@ -1,7 +1,6 @@
 package com.xy.core.model;
 
 
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

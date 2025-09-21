@@ -13,7 +13,7 @@ import com.xy.spring.annotations.core.Value;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.extern.slf4j.Slf4j;
 
-@Slf4j(topic = LogConstant.Netty)
+@Slf4j(topic = LogConstant.HeartBeat)
 @Component
 public class HeartBeatProcess implements WebsocketProcess {
 
@@ -39,7 +39,7 @@ public class HeartBeatProcess implements WebsocketProcess {
         // 响应ws
         MessageUtils.send(ctx, sendInfo.setCode(code));
 
-        // redisTemplate.expire(IM_USER_PREFIX + userId , heartBeatTime * 2);
+        //redisTemplate.expire(USER_CACHE_PREFIX + userId , heartBeatTime * 2);
 
         log.info("用户:{} 心跳中...... ", userId);
     }

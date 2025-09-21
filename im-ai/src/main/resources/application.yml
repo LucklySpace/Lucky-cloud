@@ -33,12 +33,12 @@ spring:
           model: deepseek-chat
           temperature: 0.5
     #    #调用矢量化模型
-#    embedding:
-#      transformer:
-#        onnx:
-#          modelUri: classpath:/text2vec-base-chinese/onnx/model.onnx
-#        tokenizer:
-#          uri: classpath:/text2vec-base-chinese/onnx/tokenizer.json
+    #    embedding:
+    #      transformer:
+    #        onnx:
+    #          modelUri: classpath:/text2vec-base-chinese/onnx/model.onnx
+    #        tokenizer:
+    #          uri: classpath:/text2vec-base-chinese/onnx/tokenizer.json
     #矢量化配置
     vectorstore:
       pgvector:

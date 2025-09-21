@@ -11,17 +11,16 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class MyRedisSerializationContext implements RedisSerializationContext {
+    Jackson2JsonRedisSerializer<Object> Jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer<Object>(Object.class);
+    ObjectMapper mp = new ObjectMapper();
     private StringRedisSerializer stringRedisSerializer = new StringRedisSerializer();
     private GenericJackson2JsonRedisSerializer genericJackson2JsonRedisSerializer = new GenericJackson2JsonRedisSerializer();
 
-    Jackson2JsonRedisSerializer<Object> Jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer<Object>(Object.class);
-    ObjectMapper mp = new ObjectMapper();
-
-   public MyRedisSerializationContext(){
-       mp.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-       mp.activateDefaultTyping(mp.getPolymorphicTypeValidator());
-       Jackson2JsonRedisSerializer.serialize(mp);
-   }
+    public MyRedisSerializationContext() {
+        mp.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+        mp.activateDefaultTyping(mp.getPolymorphicTypeValidator());
+        Jackson2JsonRedisSerializer.serialize(mp);
+    }
 
     //设置key的序列化方式
     @Override

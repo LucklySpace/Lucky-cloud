@@ -20,6 +20,7 @@ public interface ImRelationshipFeign {
 
     /**
      * 根据时间序列查询好友
+     *
      * @param ownerId 用户id
      * @return 用户好友信息列表
      */
@@ -29,6 +30,7 @@ public interface ImRelationshipFeign {
 
     /**
      * 根据时间序列查询好友
+     *
      * @param userId 用户id
      * @return 用户好友信息列表
      */
@@ -38,6 +40,7 @@ public interface ImRelationshipFeign {
 
     /**
      * 根据用户和好友id查询
+     *
      * @param ownerId
      * @param friendId
      * @return

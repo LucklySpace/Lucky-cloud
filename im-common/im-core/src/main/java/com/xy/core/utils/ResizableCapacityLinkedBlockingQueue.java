@@ -7,6 +7,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 可调整容量的任务队列
+ *
  * @param <E>
  */
 public class ResizableCapacityLinkedBlockingQueue<E> extends LinkedBlockingQueue<E> {

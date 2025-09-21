@@ -40,10 +40,10 @@ spring:
           url: jdbc:postgresql://127.0.0.1:5432/im-core
           username: postgres # 数据库账号
           password: 123456 # 数据库密码
-#          driver-class-name: com.mysql.cj.jdbc.Driver
-#          url: jdbc:mysql://localhost:3306/im-core?useSSL=false&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true # MySQL Connector/J 8.X 连接的示例
-#          username: root # 数据库账号
-#          password: 19940806 # 数据库密码
+        #          driver-class-name: com.mysql.cj.jdbc.Driver
+        #          url: jdbc:mysql://localhost:3306/im-core?useSSL=false&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true # MySQL Connector/J 8.X 连接的示例
+        #          username: root # 数据库账号
+        #          password: 19940806 # 数据库密码
         # 需要和sharding.yml--->databaseName的值要一致,不然无法识别数据源
   #                ds_0:
   #                    #  sharding-jdbc 驱动

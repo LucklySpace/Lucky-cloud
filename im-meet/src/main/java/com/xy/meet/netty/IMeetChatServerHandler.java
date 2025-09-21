@@ -67,7 +67,7 @@ public class IMeetChatServerHandler extends SimpleChannelInboundHandler<Message>
 
         if (room != null) {
 
-            log.info("房间 {} 用户 {} 更新状态 ",roomId, userId);
+            log.info("房间 {} 用户 {} 更新状态 ", roomId, userId);
             // 将客户端原始 message 的内容注入到广播消息中（保留 body/stream/user 等）
             Message m = createRoomMessage(Constants.MSG_UPDATE, roomId, userId, null, room, message);
 

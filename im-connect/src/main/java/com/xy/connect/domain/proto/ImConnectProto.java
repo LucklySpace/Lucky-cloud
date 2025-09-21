@@ -30,17 +30,19 @@ public final class ImConnectProto {
     }
 
     static {
-        String[] descriptorData = {
+        java.lang.String[] descriptorData = {
                 "\n\030im_connect_message.proto\022\nim.connect\032\031" +
-                        "google/protobuf/any.proto\"\220\002\n\020IMConnectM" +
+                        "google/protobuf/any.proto\"\313\002\n\020IMConnectM" +
                         "essage\022\014\n\004code\030\001 \001(\005\022\r\n\005token\030\002 \001(\t\022\"\n\004d" +
                         "ata\030\003 \001(\0132\024.google.protobuf.Any\022<\n\010metad" +
                         "ata\030\004 \003(\0132*.im.connect.IMConnectMessage." +
-                        "MetadataEntry\022\022\n\nrequest_id\030\005 \001(\t\022\021\n\ttim" +
-                        "estamp\030\006 \001(\003\022\021\n\tclient_ip\030\007 \001(\t\022\022\n\nuser_" +
-                        "agent\030\010 \001(\t\032/\n\rMetadataEntry\022\013\n\003key\030\001 \001(" +
-                        "\t\022\r\n\005value\030\002 \001(\t:\0028\001B-\n\033com.xy.connect.d" +
-                        "omain.protoB\016ImConnectProtob\006proto3"
+                        "MetadataEntry\022\017\n\007message\030\005 \001(\t\022\022\n\nreques" +
+                        "t_id\030\006 \001(\t\022\021\n\ttimestamp\030\007 \001(\003\022\021\n\tclient_" +
+                        "ip\030\010 \001(\t\022\022\n\nuser_agent\030\t \001(\t\022\023\n\013device_n" +
+                        "ame\030\n \001(\t\022\023\n\013device_type\030\013 \001(\t\032/\n\rMetada" +
+                        "taEntry\022\013\n\003key\030\001 \001(\t\022\r\n\005value\030\002 \001(\t:\0028\001B" +
+                        "-\n\033com.xy.connect.domain.protoB\016ImConnec" +
+                        "tProtob\006proto3"
         };
         descriptor = com.google.protobuf.Descriptors.FileDescriptor
                 .internalBuildGeneratedFileFrom(descriptorData,
@@ -52,13 +54,13 @@ public final class ImConnectProto {
         internal_static_im_connect_IMConnectMessage_fieldAccessorTable = new
                 com.google.protobuf.GeneratedMessage.FieldAccessorTable(
                 internal_static_im_connect_IMConnectMessage_descriptor,
-                new String[]{"Code", "Token", "Data", "Metadata", "RequestId", "Timestamp", "ClientIp", "UserAgent",});
+                new java.lang.String[]{"Code", "Token", "Data", "Metadata", "Message", "RequestId", "Timestamp", "ClientIp", "UserAgent", "DeviceName", "DeviceType",});
         internal_static_im_connect_IMConnectMessage_MetadataEntry_descriptor =
                 internal_static_im_connect_IMConnectMessage_descriptor.getNestedTypes().get(0);
         internal_static_im_connect_IMConnectMessage_MetadataEntry_fieldAccessorTable = new
                 com.google.protobuf.GeneratedMessage.FieldAccessorTable(
                 internal_static_im_connect_IMConnectMessage_MetadataEntry_descriptor,
-                new String[]{"Key", "Value",});
+                new java.lang.String[]{"Key", "Value",});
         descriptor.resolveAllFeaturesImmutable();
         com.google.protobuf.AnyProto.getDescriptor();
     }
@@ -97,7 +99,7 @@ public final class ImConnectProto {
          *
          * @return The token.
          */
-        String getToken();
+        java.lang.String getToken();
 
         /**
          * <code>string token = 2;</code>
@@ -158,13 +160,13 @@ public final class ImConnectProto {
          * <code>map&lt;string, string&gt; metadata = 4;</code>
          */
         boolean containsMetadata(
-                String key);
+                java.lang.String key);
 
         /**
          * Use {@link #getMetadataMap()} instead.
          */
-        @Deprecated
-        java.util.Map<String, String>
+        @java.lang.Deprecated
+        java.util.Map<java.lang.String, java.lang.String>
         getMetadata();
 
         /**
@@ -174,7 +176,7 @@ public final class ImConnectProto {
          *
          * <code>map&lt;string, string&gt; metadata = 4;</code>
          */
-        java.util.Map<String, String>
+        java.util.Map<java.lang.String, java.lang.String>
         getMetadataMap();
 
         /**
@@ -185,10 +187,10 @@ public final class ImConnectProto {
          * <code>map&lt;string, string&gt; metadata = 4;</code>
          */
         /* nullable */
-        String getMetadataOrDefault(
-                String key,
+        java.lang.String getMetadataOrDefault(
+                java.lang.String key,
                 /* nullable */
-                String defaultValue);
+                java.lang.String defaultValue);
 
         /**
          * <pre>
@@ -197,26 +199,49 @@ public final class ImConnectProto {
          *
          * <code>map&lt;string, string&gt; metadata = 4;</code>
          */
-        String getMetadataOrThrow(
-                String key);
+        java.lang.String getMetadataOrThrow(
+                java.lang.String key);
+
+        /**
+         * <pre>
+         * 信息
+         * </pre>
+         *
+         * <code>string message = 5;</code>
+         *
+         * @return The message.
+         */
+        java.lang.String getMessage();
+
+        /**
+         * <pre>
+         * 信息
+         * </pre>
+         *
+         * <code>string message = 5;</code>
+         *
+         * @return The bytes for message.
+         */
+        com.google.protobuf.ByteString
+        getMessageBytes();
 
         /**
          * <pre>
          * 请求 ID（链路追踪）
          * </pre>
          *
-         * <code>string request_id = 5;</code>
+         * <code>string request_id = 6;</code>
          *
          * @return The requestId.
          */
-        String getRequestId();
+        java.lang.String getRequestId();
 
         /**
          * <pre>
          * 请求 ID（链路追踪）
          * </pre>
          *
-         * <code>string request_id = 5;</code>
+         * <code>string request_id = 6;</code>
          *
          * @return The bytes for requestId.
          */
@@ -228,7 +253,7 @@ public final class ImConnectProto {
          * 时间戳（毫秒）
          * </pre>
          *
-         * <code>int64 timestamp = 6;</code>
+         * <code>int64 timestamp = 7;</code>
          *
          * @return The timestamp.
          */
@@ -239,18 +264,18 @@ public final class ImConnectProto {
          * 客户端信息
          * </pre>
          *
-         * <code>string client_ip = 7;</code>
+         * <code>string client_ip = 8;</code>
          *
          * @return The clientIp.
          */
-        String getClientIp();
+        java.lang.String getClientIp();
 
         /**
          * <pre>
          * 客户端信息
          * </pre>
          *
-         * <code>string client_ip = 7;</code>
+         * <code>string client_ip = 8;</code>
          *
          * @return The bytes for clientIp.
          */
@@ -258,22 +283,56 @@ public final class ImConnectProto {
         getClientIpBytes();
 
         /**
-         * <code>string user_agent = 8;</code>
+         * <code>string user_agent = 9;</code>
          *
          * @return The userAgent.
          */
-        String getUserAgent();
+        java.lang.String getUserAgent();
 
         /**
-         * <code>string user_agent = 8;</code>
+         * <code>string user_agent = 9;</code>
          *
          * @return The bytes for userAgent.
          */
         com.google.protobuf.ByteString
         getUserAgentBytes();
+
+        /**
+         * <code>string device_name = 10;</code>
+         *
+         * @return The deviceName.
+         */
+        java.lang.String getDeviceName();
+
+        /**
+         * <code>string device_name = 10;</code>
+         *
+         * @return The bytes for deviceName.
+         */
+        com.google.protobuf.ByteString
+        getDeviceNameBytes();
+
+        /**
+         * <code>string device_type = 11;</code>
+         *
+         * @return The deviceType.
+         */
+        java.lang.String getDeviceType();
+
+        /**
+         * <code>string device_type = 11;</code>
+         *
+         * @return The bytes for deviceType.
+         */
+        com.google.protobuf.ByteString
+        getDeviceTypeBytes();
     }
 
     /**
+     * <pre>
+     * 生成命令: protoc --java_out=./ im_connect_message.proto
+     * </pre>
+     * <p>
      * Protobuf type {@code im.connect.IMConnectMessage}
      */
     public static final class IMConnectMessage extends
@@ -284,16 +343,19 @@ public final class ImConnectProto {
         public static final int TOKEN_FIELD_NUMBER = 2;
         public static final int DATA_FIELD_NUMBER = 3;
         public static final int METADATA_FIELD_NUMBER = 4;
-        public static final int REQUEST_ID_FIELD_NUMBER = 5;
-        public static final int TIMESTAMP_FIELD_NUMBER = 6;
-        public static final int CLIENT_IP_FIELD_NUMBER = 7;
-        public static final int USER_AGENT_FIELD_NUMBER = 8;
+        public static final int MESSAGE_FIELD_NUMBER = 5;
+        public static final int REQUEST_ID_FIELD_NUMBER = 6;
+        public static final int TIMESTAMP_FIELD_NUMBER = 7;
+        public static final int CLIENT_IP_FIELD_NUMBER = 8;
+        public static final int USER_AGENT_FIELD_NUMBER = 9;
+        public static final int DEVICE_NAME_FIELD_NUMBER = 10;
+        public static final int DEVICE_TYPE_FIELD_NUMBER = 11;
         private static final long serialVersionUID = 0L;
         // @@protoc_insertion_point(class_scope:im.connect.IMConnectMessage)
-        private static final IMConnectMessage DEFAULT_INSTANCE;
+        private static final com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage DEFAULT_INSTANCE;
         private static final com.google.protobuf.Parser<IMConnectMessage>
                 PARSER = new com.google.protobuf.AbstractParser<IMConnectMessage>() {
-            @Override
+            @java.lang.Override
             public IMConnectMessage parsePartialFrom(
                     com.google.protobuf.CodedInputStream input,
                     com.google.protobuf.ExtensionRegistryLite extensionRegistry)
@@ -324,24 +386,30 @@ public final class ImConnectProto {
         }
 
         static {
-            DEFAULT_INSTANCE = new IMConnectMessage();
+            DEFAULT_INSTANCE = new com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage();
         }
 
         private int bitField0_;
         private int code_ = 0;
         @SuppressWarnings("serial")
-        private volatile Object token_ = "";
+        private volatile java.lang.Object token_ = "";
         private com.google.protobuf.Any data_;
         @SuppressWarnings("serial")
         private com.google.protobuf.MapField<
-                String, String> metadata_;
+                java.lang.String, java.lang.String> metadata_;
         @SuppressWarnings("serial")
-        private volatile Object requestId_ = "";
+        private volatile java.lang.Object message_ = "";
+        @SuppressWarnings("serial")
+        private volatile java.lang.Object requestId_ = "";
         private long timestamp_ = 0L;
         @SuppressWarnings("serial")
-        private volatile Object clientIp_ = "";
+        private volatile java.lang.Object clientIp_ = "";
         @SuppressWarnings("serial")
-        private volatile Object userAgent_ = "";
+        private volatile java.lang.Object userAgent_ = "";
+        @SuppressWarnings("serial")
+        private volatile java.lang.Object deviceName_ = "";
+        @SuppressWarnings("serial")
+        private volatile java.lang.Object deviceType_ = "";
         private byte memoizedIsInitialized = -1;
 
         // Use IMConnectMessage.newBuilder() to construct.
@@ -351,61 +419,64 @@ public final class ImConnectProto {
 
         private IMConnectMessage() {
             token_ = "";
+            message_ = "";
             requestId_ = "";
             clientIp_ = "";
             userAgent_ = "";
+            deviceName_ = "";
+            deviceType_ = "";
         }
 
         public static final com.google.protobuf.Descriptors.Descriptor
         getDescriptor() {
-            return ImConnectProto.internal_static_im_connect_IMConnectMessage_descriptor;
+            return com.xy.connect.domain.proto.ImConnectProto.internal_static_im_connect_IMConnectMessage_descriptor;
         }
 
-        public static IMConnectMessage parseFrom(
+        public static com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage parseFrom(
                 java.nio.ByteBuffer data)
                 throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data);
         }
 
-        public static IMConnectMessage parseFrom(
+        public static com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage parseFrom(
                 java.nio.ByteBuffer data,
                 com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                 throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data, extensionRegistry);
         }
 
-        public static IMConnectMessage parseFrom(
+        public static com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage parseFrom(
                 com.google.protobuf.ByteString data)
                 throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data);
         }
 
-        public static IMConnectMessage parseFrom(
+        public static com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage parseFrom(
                 com.google.protobuf.ByteString data,
                 com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                 throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data, extensionRegistry);
         }
 
-        public static IMConnectMessage parseFrom(byte[] data)
+        public static com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage parseFrom(byte[] data)
                 throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data);
         }
 
-        public static IMConnectMessage parseFrom(
+        public static com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage parseFrom(
                 byte[] data,
                 com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                 throws com.google.protobuf.InvalidProtocolBufferException {
             return PARSER.parseFrom(data, extensionRegistry);
         }
 
-        public static IMConnectMessage parseFrom(java.io.InputStream input)
+        public static com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage parseFrom(java.io.InputStream input)
                 throws java.io.IOException {
             return com.google.protobuf.GeneratedMessage
                     .parseWithIOException(PARSER, input);
         }
 
-        public static IMConnectMessage parseFrom(
+        public static com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage parseFrom(
                 java.io.InputStream input,
                 com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                 throws java.io.IOException {
@@ -413,13 +484,13 @@ public final class ImConnectProto {
                     .parseWithIOException(PARSER, input, extensionRegistry);
         }
 
-        public static IMConnectMessage parseDelimitedFrom(java.io.InputStream input)
+        public static com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage parseDelimitedFrom(java.io.InputStream input)
                 throws java.io.IOException {
             return com.google.protobuf.GeneratedMessage
                     .parseDelimitedWithIOException(PARSER, input);
         }
 
-        public static IMConnectMessage parseDelimitedFrom(
+        public static com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage parseDelimitedFrom(
                 java.io.InputStream input,
                 com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                 throws java.io.IOException {
@@ -427,14 +498,14 @@ public final class ImConnectProto {
                     .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
         }
 
-        public static IMConnectMessage parseFrom(
+        public static com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage parseFrom(
                 com.google.protobuf.CodedInputStream input)
                 throws java.io.IOException {
             return com.google.protobuf.GeneratedMessage
                     .parseWithIOException(PARSER, input);
         }
 
-        public static IMConnectMessage parseFrom(
+        public static com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage parseFrom(
                 com.google.protobuf.CodedInputStream input,
                 com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                 throws java.io.IOException {
@@ -446,11 +517,11 @@ public final class ImConnectProto {
             return DEFAULT_INSTANCE.toBuilder();
         }
 
-        public static Builder newBuilder(IMConnectMessage prototype) {
+        public static Builder newBuilder(com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage prototype) {
             return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
         }
 
-        public static IMConnectMessage getDefaultInstance() {
+        public static com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage getDefaultInstance() {
             return DEFAULT_INSTANCE;
         }
 
@@ -459,7 +530,7 @@ public final class ImConnectProto {
         }
 
         @SuppressWarnings({"rawtypes"})
-        @Override
+        @java.lang.Override
         protected com.google.protobuf.MapFieldReflectionAccessor internalGetMapFieldReflection(
                 int number) {
             switch (number) {
@@ -471,12 +542,12 @@ public final class ImConnectProto {
             }
         }
 
-        @Override
-        protected FieldAccessorTable
+        @java.lang.Override
+        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
-            return ImConnectProto.internal_static_im_connect_IMConnectMessage_fieldAccessorTable
+            return com.xy.connect.domain.proto.ImConnectProto.internal_static_im_connect_IMConnectMessage_fieldAccessorTable
                     .ensureFieldAccessorsInitialized(
-                            IMConnectMessage.class, Builder.class);
+                            com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage.class, com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage.Builder.class);
         }
 
         /**
@@ -484,7 +555,7 @@ public final class ImConnectProto {
          *
          * @return The code.
          */
-        @Override
+        @java.lang.Override
         public int getCode() {
             return code_;
         }
@@ -494,15 +565,15 @@ public final class ImConnectProto {
          *
          * @return The token.
          */
-        @Override
-        public String getToken() {
-            Object ref = token_;
-            if (ref instanceof String) {
-                return (String) ref;
+        @java.lang.Override
+        public java.lang.String getToken() {
+            java.lang.Object ref = token_;
+            if (ref instanceof java.lang.String) {
+                return (java.lang.String) ref;
             } else {
                 com.google.protobuf.ByteString bs =
                         (com.google.protobuf.ByteString) ref;
-                String s = bs.toStringUtf8();
+                java.lang.String s = bs.toStringUtf8();
                 token_ = s;
                 return s;
             }
@@ -513,14 +584,14 @@ public final class ImConnectProto {
          *
          * @return The bytes for token.
          */
-        @Override
+        @java.lang.Override
         public com.google.protobuf.ByteString
         getTokenBytes() {
-            Object ref = token_;
-            if (ref instanceof String) {
+            java.lang.Object ref = token_;
+            if (ref instanceof java.lang.String) {
                 com.google.protobuf.ByteString b =
                         com.google.protobuf.ByteString.copyFromUtf8(
-                                (String) ref);
+                                (java.lang.String) ref);
                 token_ = b;
                 return b;
             } else {
@@ -538,7 +609,7 @@ public final class ImConnectProto {
          *
          * @return Whether the data field is set.
          */
-        @Override
+        @java.lang.Override
         public boolean hasData() {
             return ((bitField0_ & 0x00000001) != 0);
         }
@@ -553,7 +624,7 @@ public final class ImConnectProto {
          *
          * @return The data.
          */
-        @Override
+        @java.lang.Override
         public com.google.protobuf.Any getData() {
             return data_ == null ? com.google.protobuf.Any.getDefaultInstance() : data_;
         }
@@ -566,12 +637,12 @@ public final class ImConnectProto {
          *
          * <code>.google.protobuf.Any data = 3;</code>
          */
-        @Override
+        @java.lang.Override
         public com.google.protobuf.AnyOrBuilder getDataOrBuilder() {
             return data_ == null ? com.google.protobuf.Any.getDefaultInstance() : data_;
         }
 
-        private com.google.protobuf.MapField<String, String>
+        private com.google.protobuf.MapField<java.lang.String, java.lang.String>
         internalGetMetadata() {
             if (metadata_ == null) {
                 return com.google.protobuf.MapField.emptyMapField(
@@ -591,9 +662,9 @@ public final class ImConnectProto {
          *
          * <code>map&lt;string, string&gt; metadata = 4;</code>
          */
-        @Override
+        @java.lang.Override
         public boolean containsMetadata(
-                String key) {
+                java.lang.String key) {
             if (key == null) {
                 throw new NullPointerException("map key");
             }
@@ -603,9 +674,9 @@ public final class ImConnectProto {
         /**
          * Use {@link #getMetadataMap()} instead.
          */
-        @Override
-        @Deprecated
-        public java.util.Map<String, String> getMetadata() {
+        @java.lang.Override
+        @java.lang.Deprecated
+        public java.util.Map<java.lang.String, java.lang.String> getMetadata() {
             return getMetadataMap();
         }
 
@@ -616,8 +687,8 @@ public final class ImConnectProto {
          *
          * <code>map&lt;string, string&gt; metadata = 4;</code>
          */
-        @Override
-        public java.util.Map<String, String> getMetadataMap() {
+        @java.lang.Override
+        public java.util.Map<java.lang.String, java.lang.String> getMetadataMap() {
             return internalGetMetadata().getMap();
         }
 
@@ -628,16 +699,16 @@ public final class ImConnectProto {
          *
          * <code>map&lt;string, string&gt; metadata = 4;</code>
          */
-        @Override
+        @java.lang.Override
         public /* nullable */
-        String getMetadataOrDefault(
-                String key,
+        java.lang.String getMetadataOrDefault(
+                java.lang.String key,
                 /* nullable */
-                String defaultValue) {
+                java.lang.String defaultValue) {
             if (key == null) {
                 throw new NullPointerException("map key");
             }
-            java.util.Map<String, String> map =
+            java.util.Map<java.lang.String, java.lang.String> map =
                     internalGetMetadata().getMap();
             return map.containsKey(key) ? map.get(key) : defaultValue;
         }
@@ -649,18 +720,65 @@ public final class ImConnectProto {
          *
          * <code>map&lt;string, string&gt; metadata = 4;</code>
          */
-        @Override
-        public String getMetadataOrThrow(
-                String key) {
+        @java.lang.Override
+        public java.lang.String getMetadataOrThrow(
+                java.lang.String key) {
             if (key == null) {
                 throw new NullPointerException("map key");
             }
-            java.util.Map<String, String> map =
+            java.util.Map<java.lang.String, java.lang.String> map =
                     internalGetMetadata().getMap();
             if (!map.containsKey(key)) {
-                throw new IllegalArgumentException();
+                throw new java.lang.IllegalArgumentException();
             }
             return map.get(key);
+        }
+
+        /**
+         * <pre>
+         * 信息
+         * </pre>
+         *
+         * <code>string message = 5;</code>
+         *
+         * @return The message.
+         */
+        @java.lang.Override
+        public java.lang.String getMessage() {
+            java.lang.Object ref = message_;
+            if (ref instanceof java.lang.String) {
+                return (java.lang.String) ref;
+            } else {
+                com.google.protobuf.ByteString bs =
+                        (com.google.protobuf.ByteString) ref;
+                java.lang.String s = bs.toStringUtf8();
+                message_ = s;
+                return s;
+            }
+        }
+
+        /**
+         * <pre>
+         * 信息
+         * </pre>
+         *
+         * <code>string message = 5;</code>
+         *
+         * @return The bytes for message.
+         */
+        @java.lang.Override
+        public com.google.protobuf.ByteString
+        getMessageBytes() {
+            java.lang.Object ref = message_;
+            if (ref instanceof java.lang.String) {
+                com.google.protobuf.ByteString b =
+                        com.google.protobuf.ByteString.copyFromUtf8(
+                                (java.lang.String) ref);
+                message_ = b;
+                return b;
+            } else {
+                return (com.google.protobuf.ByteString) ref;
+            }
         }
 
         /**
@@ -668,19 +786,19 @@ public final class ImConnectProto {
          * 请求 ID（链路追踪）
          * </pre>
          *
-         * <code>string request_id = 5;</code>
+         * <code>string request_id = 6;</code>
          *
          * @return The requestId.
          */
-        @Override
-        public String getRequestId() {
-            Object ref = requestId_;
-            if (ref instanceof String) {
-                return (String) ref;
+        @java.lang.Override
+        public java.lang.String getRequestId() {
+            java.lang.Object ref = requestId_;
+            if (ref instanceof java.lang.String) {
+                return (java.lang.String) ref;
             } else {
                 com.google.protobuf.ByteString bs =
                         (com.google.protobuf.ByteString) ref;
-                String s = bs.toStringUtf8();
+                java.lang.String s = bs.toStringUtf8();
                 requestId_ = s;
                 return s;
             }
@@ -691,18 +809,18 @@ public final class ImConnectProto {
          * 请求 ID（链路追踪）
          * </pre>
          *
-         * <code>string request_id = 5;</code>
+         * <code>string request_id = 6;</code>
          *
          * @return The bytes for requestId.
          */
-        @Override
+        @java.lang.Override
         public com.google.protobuf.ByteString
         getRequestIdBytes() {
-            Object ref = requestId_;
-            if (ref instanceof String) {
+            java.lang.Object ref = requestId_;
+            if (ref instanceof java.lang.String) {
                 com.google.protobuf.ByteString b =
                         com.google.protobuf.ByteString.copyFromUtf8(
-                                (String) ref);
+                                (java.lang.String) ref);
                 requestId_ = b;
                 return b;
             } else {
@@ -715,11 +833,11 @@ public final class ImConnectProto {
          * 时间戳（毫秒）
          * </pre>
          *
-         * <code>int64 timestamp = 6;</code>
+         * <code>int64 timestamp = 7;</code>
          *
          * @return The timestamp.
          */
-        @Override
+        @java.lang.Override
         public long getTimestamp() {
             return timestamp_;
         }
@@ -729,19 +847,19 @@ public final class ImConnectProto {
          * 客户端信息
          * </pre>
          *
-         * <code>string client_ip = 7;</code>
+         * <code>string client_ip = 8;</code>
          *
          * @return The clientIp.
          */
-        @Override
-        public String getClientIp() {
-            Object ref = clientIp_;
-            if (ref instanceof String) {
-                return (String) ref;
+        @java.lang.Override
+        public java.lang.String getClientIp() {
+            java.lang.Object ref = clientIp_;
+            if (ref instanceof java.lang.String) {
+                return (java.lang.String) ref;
             } else {
                 com.google.protobuf.ByteString bs =
                         (com.google.protobuf.ByteString) ref;
-                String s = bs.toStringUtf8();
+                java.lang.String s = bs.toStringUtf8();
                 clientIp_ = s;
                 return s;
             }
@@ -752,18 +870,18 @@ public final class ImConnectProto {
          * 客户端信息
          * </pre>
          *
-         * <code>string client_ip = 7;</code>
+         * <code>string client_ip = 8;</code>
          *
          * @return The bytes for clientIp.
          */
-        @Override
+        @java.lang.Override
         public com.google.protobuf.ByteString
         getClientIpBytes() {
-            Object ref = clientIp_;
-            if (ref instanceof String) {
+            java.lang.Object ref = clientIp_;
+            if (ref instanceof java.lang.String) {
                 com.google.protobuf.ByteString b =
                         com.google.protobuf.ByteString.copyFromUtf8(
-                                (String) ref);
+                                (java.lang.String) ref);
                 clientIp_ = b;
                 return b;
             } else {
@@ -772,37 +890,37 @@ public final class ImConnectProto {
         }
 
         /**
-         * <code>string user_agent = 8;</code>
+         * <code>string user_agent = 9;</code>
          *
          * @return The userAgent.
          */
-        @Override
-        public String getUserAgent() {
-            Object ref = userAgent_;
-            if (ref instanceof String) {
-                return (String) ref;
+        @java.lang.Override
+        public java.lang.String getUserAgent() {
+            java.lang.Object ref = userAgent_;
+            if (ref instanceof java.lang.String) {
+                return (java.lang.String) ref;
             } else {
                 com.google.protobuf.ByteString bs =
                         (com.google.protobuf.ByteString) ref;
-                String s = bs.toStringUtf8();
+                java.lang.String s = bs.toStringUtf8();
                 userAgent_ = s;
                 return s;
             }
         }
 
         /**
-         * <code>string user_agent = 8;</code>
+         * <code>string user_agent = 9;</code>
          *
          * @return The bytes for userAgent.
          */
-        @Override
+        @java.lang.Override
         public com.google.protobuf.ByteString
         getUserAgentBytes() {
-            Object ref = userAgent_;
-            if (ref instanceof String) {
+            java.lang.Object ref = userAgent_;
+            if (ref instanceof java.lang.String) {
                 com.google.protobuf.ByteString b =
                         com.google.protobuf.ByteString.copyFromUtf8(
-                                (String) ref);
+                                (java.lang.String) ref);
                 userAgent_ = b;
                 return b;
             } else {
@@ -810,7 +928,85 @@ public final class ImConnectProto {
             }
         }
 
-        @Override
+        /**
+         * <code>string device_name = 10;</code>
+         *
+         * @return The deviceName.
+         */
+        @java.lang.Override
+        public java.lang.String getDeviceName() {
+            java.lang.Object ref = deviceName_;
+            if (ref instanceof java.lang.String) {
+                return (java.lang.String) ref;
+            } else {
+                com.google.protobuf.ByteString bs =
+                        (com.google.protobuf.ByteString) ref;
+                java.lang.String s = bs.toStringUtf8();
+                deviceName_ = s;
+                return s;
+            }
+        }
+
+        /**
+         * <code>string device_name = 10;</code>
+         *
+         * @return The bytes for deviceName.
+         */
+        @java.lang.Override
+        public com.google.protobuf.ByteString
+        getDeviceNameBytes() {
+            java.lang.Object ref = deviceName_;
+            if (ref instanceof java.lang.String) {
+                com.google.protobuf.ByteString b =
+                        com.google.protobuf.ByteString.copyFromUtf8(
+                                (java.lang.String) ref);
+                deviceName_ = b;
+                return b;
+            } else {
+                return (com.google.protobuf.ByteString) ref;
+            }
+        }
+
+        /**
+         * <code>string device_type = 11;</code>
+         *
+         * @return The deviceType.
+         */
+        @java.lang.Override
+        public java.lang.String getDeviceType() {
+            java.lang.Object ref = deviceType_;
+            if (ref instanceof java.lang.String) {
+                return (java.lang.String) ref;
+            } else {
+                com.google.protobuf.ByteString bs =
+                        (com.google.protobuf.ByteString) ref;
+                java.lang.String s = bs.toStringUtf8();
+                deviceType_ = s;
+                return s;
+            }
+        }
+
+        /**
+         * <code>string device_type = 11;</code>
+         *
+         * @return The bytes for deviceType.
+         */
+        @java.lang.Override
+        public com.google.protobuf.ByteString
+        getDeviceTypeBytes() {
+            java.lang.Object ref = deviceType_;
+            if (ref instanceof java.lang.String) {
+                com.google.protobuf.ByteString b =
+                        com.google.protobuf.ByteString.copyFromUtf8(
+                                (java.lang.String) ref);
+                deviceType_ = b;
+                return b;
+            } else {
+                return (com.google.protobuf.ByteString) ref;
+            }
+        }
+
+        @java.lang.Override
         public final boolean isInitialized() {
             byte isInitialized = memoizedIsInitialized;
             if (isInitialized == 1) return true;
@@ -820,7 +1016,7 @@ public final class ImConnectProto {
             return true;
         }
 
-        @Override
+        @java.lang.Override
         public void writeTo(com.google.protobuf.CodedOutputStream output)
                 throws java.io.IOException {
             if (code_ != 0) {
@@ -838,22 +1034,31 @@ public final class ImConnectProto {
                             internalGetMetadata(),
                             MetadataDefaultEntryHolder.defaultEntry,
                             4);
+            if (!com.google.protobuf.GeneratedMessage.isStringEmpty(message_)) {
+                com.google.protobuf.GeneratedMessage.writeString(output, 5, message_);
+            }
             if (!com.google.protobuf.GeneratedMessage.isStringEmpty(requestId_)) {
-                com.google.protobuf.GeneratedMessage.writeString(output, 5, requestId_);
+                com.google.protobuf.GeneratedMessage.writeString(output, 6, requestId_);
             }
             if (timestamp_ != 0L) {
-                output.writeInt64(6, timestamp_);
+                output.writeInt64(7, timestamp_);
             }
             if (!com.google.protobuf.GeneratedMessage.isStringEmpty(clientIp_)) {
-                com.google.protobuf.GeneratedMessage.writeString(output, 7, clientIp_);
+                com.google.protobuf.GeneratedMessage.writeString(output, 8, clientIp_);
             }
             if (!com.google.protobuf.GeneratedMessage.isStringEmpty(userAgent_)) {
-                com.google.protobuf.GeneratedMessage.writeString(output, 8, userAgent_);
+                com.google.protobuf.GeneratedMessage.writeString(output, 9, userAgent_);
+            }
+            if (!com.google.protobuf.GeneratedMessage.isStringEmpty(deviceName_)) {
+                com.google.protobuf.GeneratedMessage.writeString(output, 10, deviceName_);
+            }
+            if (!com.google.protobuf.GeneratedMessage.isStringEmpty(deviceType_)) {
+                com.google.protobuf.GeneratedMessage.writeString(output, 11, deviceType_);
             }
             getUnknownFields().writeTo(output);
         }
 
-        @Override
+        @java.lang.Override
         public int getSerializedSize() {
             int size = memoizedSize;
             if (size != -1) return size;
@@ -870,9 +1075,9 @@ public final class ImConnectProto {
                 size += com.google.protobuf.CodedOutputStream
                         .computeMessageSize(3, getData());
             }
-            for (java.util.Map.Entry<String, String> entry
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> entry
                     : internalGetMetadata().getMap().entrySet()) {
-                com.google.protobuf.MapEntry<String, String>
+                com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
                         metadata__ = MetadataDefaultEntryHolder.defaultEntry.newBuilderForType()
                         .setKey(entry.getKey())
                         .setValue(entry.getValue())
@@ -880,33 +1085,42 @@ public final class ImConnectProto {
                 size += com.google.protobuf.CodedOutputStream
                         .computeMessageSize(4, metadata__);
             }
+            if (!com.google.protobuf.GeneratedMessage.isStringEmpty(message_)) {
+                size += com.google.protobuf.GeneratedMessage.computeStringSize(5, message_);
+            }
             if (!com.google.protobuf.GeneratedMessage.isStringEmpty(requestId_)) {
-                size += com.google.protobuf.GeneratedMessage.computeStringSize(5, requestId_);
+                size += com.google.protobuf.GeneratedMessage.computeStringSize(6, requestId_);
             }
             if (timestamp_ != 0L) {
                 size += com.google.protobuf.CodedOutputStream
-                        .computeInt64Size(6, timestamp_);
+                        .computeInt64Size(7, timestamp_);
             }
             if (!com.google.protobuf.GeneratedMessage.isStringEmpty(clientIp_)) {
-                size += com.google.protobuf.GeneratedMessage.computeStringSize(7, clientIp_);
+                size += com.google.protobuf.GeneratedMessage.computeStringSize(8, clientIp_);
             }
             if (!com.google.protobuf.GeneratedMessage.isStringEmpty(userAgent_)) {
-                size += com.google.protobuf.GeneratedMessage.computeStringSize(8, userAgent_);
+                size += com.google.protobuf.GeneratedMessage.computeStringSize(9, userAgent_);
+            }
+            if (!com.google.protobuf.GeneratedMessage.isStringEmpty(deviceName_)) {
+                size += com.google.protobuf.GeneratedMessage.computeStringSize(10, deviceName_);
+            }
+            if (!com.google.protobuf.GeneratedMessage.isStringEmpty(deviceType_)) {
+                size += com.google.protobuf.GeneratedMessage.computeStringSize(11, deviceType_);
             }
             size += getUnknownFields().getSerializedSize();
             memoizedSize = size;
             return size;
         }
 
-        @Override
-        public boolean equals(final Object obj) {
+        @java.lang.Override
+        public boolean equals(final java.lang.Object obj) {
             if (obj == this) {
                 return true;
             }
-            if (!(obj instanceof IMConnectMessage)) {
+            if (!(obj instanceof com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage)) {
                 return super.equals(obj);
             }
-            IMConnectMessage other = (IMConnectMessage) obj;
+            com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage other = (com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage) obj;
 
             if (getCode()
                     != other.getCode()) return false;
@@ -919,6 +1133,8 @@ public final class ImConnectProto {
             }
             if (!internalGetMetadata().equals(
                     other.internalGetMetadata())) return false;
+            if (!getMessage()
+                    .equals(other.getMessage())) return false;
             if (!getRequestId()
                     .equals(other.getRequestId())) return false;
             if (getTimestamp()
@@ -927,11 +1143,15 @@ public final class ImConnectProto {
                     .equals(other.getClientIp())) return false;
             if (!getUserAgent()
                     .equals(other.getUserAgent())) return false;
+            if (!getDeviceName()
+                    .equals(other.getDeviceName())) return false;
+            if (!getDeviceType()
+                    .equals(other.getDeviceType())) return false;
             if (!getUnknownFields().equals(other.getUnknownFields())) return false;
             return true;
         }
 
-        @Override
+        @java.lang.Override
         public int hashCode() {
             if (memoizedHashCode != 0) {
                 return memoizedHashCode;
@@ -950,6 +1170,8 @@ public final class ImConnectProto {
                 hash = (37 * hash) + METADATA_FIELD_NUMBER;
                 hash = (53 * hash) + internalGetMetadata().hashCode();
             }
+            hash = (37 * hash) + MESSAGE_FIELD_NUMBER;
+            hash = (53 * hash) + getMessage().hashCode();
             hash = (37 * hash) + REQUEST_ID_FIELD_NUMBER;
             hash = (53 * hash) + getRequestId().hashCode();
             hash = (37 * hash) + TIMESTAMP_FIELD_NUMBER;
@@ -959,45 +1181,49 @@ public final class ImConnectProto {
             hash = (53 * hash) + getClientIp().hashCode();
             hash = (37 * hash) + USER_AGENT_FIELD_NUMBER;
             hash = (53 * hash) + getUserAgent().hashCode();
+            hash = (37 * hash) + DEVICE_NAME_FIELD_NUMBER;
+            hash = (53 * hash) + getDeviceName().hashCode();
+            hash = (37 * hash) + DEVICE_TYPE_FIELD_NUMBER;
+            hash = (53 * hash) + getDeviceType().hashCode();
             hash = (29 * hash) + getUnknownFields().hashCode();
             memoizedHashCode = hash;
             return hash;
         }
 
-        @Override
+        @java.lang.Override
         public Builder newBuilderForType() {
             return newBuilder();
         }
 
-        @Override
+        @java.lang.Override
         public Builder toBuilder() {
             return this == DEFAULT_INSTANCE
                     ? new Builder() : new Builder().mergeFrom(this);
         }
 
-        @Override
+        @java.lang.Override
         protected Builder newBuilderForType(
-                BuilderParent parent) {
+                com.google.protobuf.GeneratedMessage.BuilderParent parent) {
             Builder builder = new Builder(parent);
             return builder;
         }
 
-        @Override
+        @java.lang.Override
         public com.google.protobuf.Parser<IMConnectMessage> getParserForType() {
             return PARSER;
         }
 
-        @Override
-        public IMConnectMessage getDefaultInstanceForType() {
+        @java.lang.Override
+        public com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage getDefaultInstanceForType() {
             return DEFAULT_INSTANCE;
         }
 
         private static final class MetadataDefaultEntryHolder {
             static final com.google.protobuf.MapEntry<
-                    String, String> defaultEntry =
+                    java.lang.String, java.lang.String> defaultEntry =
                     com.google.protobuf.MapEntry
-                            .<String, String>newDefaultInstance(
-                                    ImConnectProto.internal_static_im_connect_IMConnectMessage_MetadataEntry_descriptor,
+                            .<java.lang.String, java.lang.String>newDefaultInstance(
+                                    com.xy.connect.domain.proto.ImConnectProto.internal_static_im_connect_IMConnectMessage_MetadataEntry_descriptor,
                                     com.google.protobuf.WireFormat.FieldType.STRING,
                                     "",
                                     com.google.protobuf.WireFormat.FieldType.STRING,
@@ -1005,24 +1231,31 @@ public final class ImConnectProto {
         }
 
         /**
+         * <pre>
+         * 生成命令: protoc --java_out=./ im_connect_message.proto
+         * </pre>
+         * <p>
          * Protobuf type {@code im.connect.IMConnectMessage}
          */
         public static final class Builder extends
                 com.google.protobuf.GeneratedMessage.Builder<Builder> implements
                 // @@protoc_insertion_point(builder_implements:im.connect.IMConnectMessage)
-                IMConnectMessageOrBuilder {
+                com.xy.connect.domain.proto.ImConnectProto.IMConnectMessageOrBuilder {
             private int bitField0_;
             private int code_;
-            private Object token_ = "";
+            private java.lang.Object token_ = "";
             private com.google.protobuf.Any data_;
             private com.google.protobuf.SingleFieldBuilder<
                     com.google.protobuf.Any, com.google.protobuf.Any.Builder, com.google.protobuf.AnyOrBuilder> dataBuilder_;
             private com.google.protobuf.MapField<
-                    String, String> metadata_;
-            private Object requestId_ = "";
+                    java.lang.String, java.lang.String> metadata_;
+            private java.lang.Object message_ = "";
+            private java.lang.Object requestId_ = "";
             private long timestamp_;
-            private Object clientIp_ = "";
-            private Object userAgent_ = "";
+            private java.lang.Object clientIp_ = "";
+            private java.lang.Object userAgent_ = "";
+            private java.lang.Object deviceName_ = "";
+            private java.lang.Object deviceType_ = "";
 
             // Construct using com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage.newBuilder()
             private Builder() {
@@ -1030,14 +1263,14 @@ public final class ImConnectProto {
             }
 
             private Builder(
-                    BuilderParent parent) {
+                    com.google.protobuf.GeneratedMessage.BuilderParent parent) {
                 super(parent);
                 maybeForceBuilderInitialization();
             }
 
             public static final com.google.protobuf.Descriptors.Descriptor
             getDescriptor() {
-                return ImConnectProto.internal_static_im_connect_IMConnectMessage_descriptor;
+                return com.xy.connect.domain.proto.ImConnectProto.internal_static_im_connect_IMConnectMessage_descriptor;
             }
 
             @SuppressWarnings({"rawtypes"})
@@ -1064,12 +1297,12 @@ public final class ImConnectProto {
                 }
             }
 
-            @Override
-            protected FieldAccessorTable
+            @java.lang.Override
+            protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
             internalGetFieldAccessorTable() {
-                return ImConnectProto.internal_static_im_connect_IMConnectMessage_fieldAccessorTable
+                return com.xy.connect.domain.proto.ImConnectProto.internal_static_im_connect_IMConnectMessage_fieldAccessorTable
                         .ensureFieldAccessorsInitialized(
-                                IMConnectMessage.class, Builder.class);
+                                com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage.class, com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage.Builder.class);
             }
 
             private void maybeForceBuilderInitialization() {
@@ -1079,7 +1312,7 @@ public final class ImConnectProto {
                 }
             }
 
-            @Override
+            @java.lang.Override
             public Builder clear() {
                 super.clear();
                 bitField0_ = 0;
@@ -1091,36 +1324,39 @@ public final class ImConnectProto {
                     dataBuilder_ = null;
                 }
                 internalGetMutableMetadata().clear();
+                message_ = "";
                 requestId_ = "";
                 timestamp_ = 0L;
                 clientIp_ = "";
                 userAgent_ = "";
+                deviceName_ = "";
+                deviceType_ = "";
                 return this;
             }
 
-            @Override
+            @java.lang.Override
             public com.google.protobuf.Descriptors.Descriptor
             getDescriptorForType() {
-                return ImConnectProto.internal_static_im_connect_IMConnectMessage_descriptor;
+                return com.xy.connect.domain.proto.ImConnectProto.internal_static_im_connect_IMConnectMessage_descriptor;
             }
 
-            @Override
-            public IMConnectMessage getDefaultInstanceForType() {
-                return IMConnectMessage.getDefaultInstance();
+            @java.lang.Override
+            public com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage getDefaultInstanceForType() {
+                return com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage.getDefaultInstance();
             }
 
-            @Override
-            public IMConnectMessage build() {
-                IMConnectMessage result = buildPartial();
+            @java.lang.Override
+            public com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage build() {
+                com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage result = buildPartial();
                 if (!result.isInitialized()) {
                     throw newUninitializedMessageException(result);
                 }
                 return result;
             }
 
-            @Override
-            public IMConnectMessage buildPartial() {
-                IMConnectMessage result = new IMConnectMessage(this);
+            @java.lang.Override
+            public com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage buildPartial() {
+                com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage result = new com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage(this);
                 if (bitField0_ != 0) {
                     buildPartial0(result);
                 }
@@ -1128,7 +1364,7 @@ public final class ImConnectProto {
                 return result;
             }
 
-            private void buildPartial0(IMConnectMessage result) {
+            private void buildPartial0(com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage result) {
                 int from_bitField0_ = bitField0_;
                 if (((from_bitField0_ & 0x00000001) != 0)) {
                     result.code_ = code_;
@@ -1148,32 +1384,42 @@ public final class ImConnectProto {
                     result.metadata_.makeImmutable();
                 }
                 if (((from_bitField0_ & 0x00000010) != 0)) {
-                    result.requestId_ = requestId_;
+                    result.message_ = message_;
                 }
                 if (((from_bitField0_ & 0x00000020) != 0)) {
-                    result.timestamp_ = timestamp_;
+                    result.requestId_ = requestId_;
                 }
                 if (((from_bitField0_ & 0x00000040) != 0)) {
-                    result.clientIp_ = clientIp_;
+                    result.timestamp_ = timestamp_;
                 }
                 if (((from_bitField0_ & 0x00000080) != 0)) {
+                    result.clientIp_ = clientIp_;
+                }
+                if (((from_bitField0_ & 0x00000100) != 0)) {
                     result.userAgent_ = userAgent_;
+                }
+                if (((from_bitField0_ & 0x00000200) != 0)) {
+                    result.deviceName_ = deviceName_;
+                }
+                if (((from_bitField0_ & 0x00000400) != 0)) {
+                    result.deviceType_ = deviceType_;
                 }
                 result.bitField0_ |= to_bitField0_;
             }
 
-            @Override
+            @java.lang.Override
             public Builder mergeFrom(com.google.protobuf.Message other) {
-                if (other instanceof IMConnectMessage) {
-                    return mergeFrom((IMConnectMessage) other);
+                if (other instanceof com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage) {
+                    return mergeFrom((com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage) other);
                 } else {
                     super.mergeFrom(other);
                     return this;
                 }
             }
 
-            public Builder mergeFrom(IMConnectMessage other) {
-                if (other == IMConnectMessage.getDefaultInstance()) return this;
+            public Builder mergeFrom(com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage other) {
+                if (other == com.xy.connect.domain.proto.ImConnectProto.IMConnectMessage.getDefaultInstance())
+                    return this;
                 if (other.getCode() != 0) {
                     setCode(other.getCode());
                 }
@@ -1188,9 +1434,14 @@ public final class ImConnectProto {
                 internalGetMutableMetadata().mergeFrom(
                         other.internalGetMetadata());
                 bitField0_ |= 0x00000008;
+                if (!other.getMessage().isEmpty()) {
+                    message_ = other.message_;
+                    bitField0_ |= 0x00000010;
+                    onChanged();
+                }
                 if (!other.getRequestId().isEmpty()) {
                     requestId_ = other.requestId_;
-                    bitField0_ |= 0x00000010;
+                    bitField0_ |= 0x00000020;
                     onChanged();
                 }
                 if (other.getTimestamp() != 0L) {
@@ -1198,12 +1449,22 @@ public final class ImConnectProto {
                 }
                 if (!other.getClientIp().isEmpty()) {
                     clientIp_ = other.clientIp_;
-                    bitField0_ |= 0x00000040;
+                    bitField0_ |= 0x00000080;
                     onChanged();
                 }
                 if (!other.getUserAgent().isEmpty()) {
                     userAgent_ = other.userAgent_;
-                    bitField0_ |= 0x00000080;
+                    bitField0_ |= 0x00000100;
+                    onChanged();
+                }
+                if (!other.getDeviceName().isEmpty()) {
+                    deviceName_ = other.deviceName_;
+                    bitField0_ |= 0x00000200;
+                    onChanged();
+                }
+                if (!other.getDeviceType().isEmpty()) {
+                    deviceType_ = other.deviceType_;
+                    bitField0_ |= 0x00000400;
                     onChanged();
                 }
                 this.mergeUnknownFields(other.getUnknownFields());
@@ -1211,18 +1472,18 @@ public final class ImConnectProto {
                 return this;
             }
 
-            @Override
+            @java.lang.Override
             public final boolean isInitialized() {
                 return true;
             }
 
-            @Override
+            @java.lang.Override
             public Builder mergeFrom(
                     com.google.protobuf.CodedInputStream input,
                     com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                     throws java.io.IOException {
                 if (extensionRegistry == null) {
-                    throw new NullPointerException();
+                    throw new java.lang.NullPointerException();
                 }
                 try {
                     boolean done = false;
@@ -1250,7 +1511,7 @@ public final class ImConnectProto {
                                 break;
                             } // case 26
                             case 34: {
-                                com.google.protobuf.MapEntry<String, String>
+                                com.google.protobuf.MapEntry<java.lang.String, java.lang.String>
                                         metadata__ = input.readMessage(
                                         MetadataDefaultEntryHolder.defaultEntry.getParserForType(), extensionRegistry);
                                 internalGetMutableMetadata().getMutableMap().put(
@@ -1259,25 +1520,40 @@ public final class ImConnectProto {
                                 break;
                             } // case 34
                             case 42: {
-                                requestId_ = input.readStringRequireUtf8();
+                                message_ = input.readStringRequireUtf8();
                                 bitField0_ |= 0x00000010;
                                 break;
                             } // case 42
-                            case 48: {
-                                timestamp_ = input.readInt64();
+                            case 50: {
+                                requestId_ = input.readStringRequireUtf8();
                                 bitField0_ |= 0x00000020;
                                 break;
-                            } // case 48
-                            case 58: {
-                                clientIp_ = input.readStringRequireUtf8();
+                            } // case 50
+                            case 56: {
+                                timestamp_ = input.readInt64();
                                 bitField0_ |= 0x00000040;
                                 break;
-                            } // case 58
+                            } // case 56
                             case 66: {
-                                userAgent_ = input.readStringRequireUtf8();
+                                clientIp_ = input.readStringRequireUtf8();
                                 bitField0_ |= 0x00000080;
                                 break;
                             } // case 66
+                            case 74: {
+                                userAgent_ = input.readStringRequireUtf8();
+                                bitField0_ |= 0x00000100;
+                                break;
+                            } // case 74
+                            case 82: {
+                                deviceName_ = input.readStringRequireUtf8();
+                                bitField0_ |= 0x00000200;
+                                break;
+                            } // case 82
+                            case 90: {
+                                deviceType_ = input.readStringRequireUtf8();
+                                bitField0_ |= 0x00000400;
+                                break;
+                            } // case 90
                             default: {
                                 if (!super.parseUnknownField(input, extensionRegistry, tag)) {
                                     done = true; // was an endgroup tag
@@ -1299,7 +1575,7 @@ public final class ImConnectProto {
              *
              * @return The code.
              */
-            @Override
+            @java.lang.Override
             public int getCode() {
                 return code_;
             }
@@ -1335,16 +1611,16 @@ public final class ImConnectProto {
              *
              * @return The token.
              */
-            public String getToken() {
-                Object ref = token_;
-                if (!(ref instanceof String)) {
+            public java.lang.String getToken() {
+                java.lang.Object ref = token_;
+                if (!(ref instanceof java.lang.String)) {
                     com.google.protobuf.ByteString bs =
                             (com.google.protobuf.ByteString) ref;
-                    String s = bs.toStringUtf8();
+                    java.lang.String s = bs.toStringUtf8();
                     token_ = s;
                     return s;
                 } else {
-                    return (String) ref;
+                    return (java.lang.String) ref;
                 }
             }
 
@@ -1355,7 +1631,7 @@ public final class ImConnectProto {
              * @return This builder for chaining.
              */
             public Builder setToken(
-                    String value) {
+                    java.lang.String value) {
                 if (value == null) {
                     throw new NullPointerException();
                 }
@@ -1372,11 +1648,11 @@ public final class ImConnectProto {
              */
             public com.google.protobuf.ByteString
             getTokenBytes() {
-                Object ref = token_;
+                java.lang.Object ref = token_;
                 if (ref instanceof String) {
                     com.google.protobuf.ByteString b =
                             com.google.protobuf.ByteString.copyFromUtf8(
-                                    (String) ref);
+                                    (java.lang.String) ref);
                     token_ = b;
                     return b;
                 } else {
@@ -1587,7 +1863,7 @@ public final class ImConnectProto {
                 return dataBuilder_;
             }
 
-            private com.google.protobuf.MapField<String, String>
+            private com.google.protobuf.MapField<java.lang.String, java.lang.String>
             internalGetMetadata() {
                 if (metadata_ == null) {
                     return com.google.protobuf.MapField.emptyMapField(
@@ -1596,7 +1872,7 @@ public final class ImConnectProto {
                 return metadata_;
             }
 
-            private com.google.protobuf.MapField<String, String>
+            private com.google.protobuf.MapField<java.lang.String, java.lang.String>
             internalGetMutableMetadata() {
                 if (metadata_ == null) {
                     metadata_ = com.google.protobuf.MapField.newMapField(
@@ -1621,9 +1897,9 @@ public final class ImConnectProto {
              *
              * <code>map&lt;string, string&gt; metadata = 4;</code>
              */
-            @Override
+            @java.lang.Override
             public boolean containsMetadata(
-                    String key) {
+                    java.lang.String key) {
                 if (key == null) {
                     throw new NullPointerException("map key");
                 }
@@ -1633,9 +1909,9 @@ public final class ImConnectProto {
             /**
              * Use {@link #getMetadataMap()} instead.
              */
-            @Override
-            @Deprecated
-            public java.util.Map<String, String> getMetadata() {
+            @java.lang.Override
+            @java.lang.Deprecated
+            public java.util.Map<java.lang.String, java.lang.String> getMetadata() {
                 return getMetadataMap();
             }
 
@@ -1646,8 +1922,8 @@ public final class ImConnectProto {
              *
              * <code>map&lt;string, string&gt; metadata = 4;</code>
              */
-            @Override
-            public java.util.Map<String, String> getMetadataMap() {
+            @java.lang.Override
+            public java.util.Map<java.lang.String, java.lang.String> getMetadataMap() {
                 return internalGetMetadata().getMap();
             }
 
@@ -1658,16 +1934,16 @@ public final class ImConnectProto {
              *
              * <code>map&lt;string, string&gt; metadata = 4;</code>
              */
-            @Override
+            @java.lang.Override
             public /* nullable */
-            String getMetadataOrDefault(
-                    String key,
+            java.lang.String getMetadataOrDefault(
+                    java.lang.String key,
                     /* nullable */
-                    String defaultValue) {
+                    java.lang.String defaultValue) {
                 if (key == null) {
                     throw new NullPointerException("map key");
                 }
-                java.util.Map<String, String> map =
+                java.util.Map<java.lang.String, java.lang.String> map =
                         internalGetMetadata().getMap();
                 return map.containsKey(key) ? map.get(key) : defaultValue;
             }
@@ -1679,16 +1955,16 @@ public final class ImConnectProto {
              *
              * <code>map&lt;string, string&gt; metadata = 4;</code>
              */
-            @Override
-            public String getMetadataOrThrow(
-                    String key) {
+            @java.lang.Override
+            public java.lang.String getMetadataOrThrow(
+                    java.lang.String key) {
                 if (key == null) {
                     throw new NullPointerException("map key");
                 }
-                java.util.Map<String, String> map =
+                java.util.Map<java.lang.String, java.lang.String> map =
                         internalGetMetadata().getMap();
                 if (!map.containsKey(key)) {
-                    throw new IllegalArgumentException();
+                    throw new java.lang.IllegalArgumentException();
                 }
                 return map.get(key);
             }
@@ -1708,7 +1984,7 @@ public final class ImConnectProto {
              * <code>map&lt;string, string&gt; metadata = 4;</code>
              */
             public Builder removeMetadata(
-                    String key) {
+                    java.lang.String key) {
                 if (key == null) {
                     throw new NullPointerException("map key");
                 }
@@ -1720,8 +1996,8 @@ public final class ImConnectProto {
             /**
              * Use alternate mutation accessors instead.
              */
-            @Deprecated
-            public java.util.Map<String, String>
+            @java.lang.Deprecated
+            public java.util.Map<java.lang.String, java.lang.String>
             getMutableMetadata() {
                 bitField0_ |= 0x00000008;
                 return internalGetMutableMetadata().getMutableMap();
@@ -1735,8 +2011,8 @@ public final class ImConnectProto {
              * <code>map&lt;string, string&gt; metadata = 4;</code>
              */
             public Builder putMetadata(
-                    String key,
-                    String value) {
+                    java.lang.String key,
+                    java.lang.String value) {
                 if (key == null) {
                     throw new NullPointerException("map key");
                 }
@@ -1757,7 +2033,7 @@ public final class ImConnectProto {
              * <code>map&lt;string, string&gt; metadata = 4;</code>
              */
             public Builder putAllMetadata(
-                    java.util.Map<String, String> values) {
+                    java.util.Map<java.lang.String, java.lang.String> values) {
                 internalGetMutableMetadata().getMutableMap()
                         .putAll(values);
                 bitField0_ |= 0x00000008;
@@ -1766,43 +2042,104 @@ public final class ImConnectProto {
 
             /**
              * <pre>
-             * 请求 ID（链路追踪）
+             * 信息
              * </pre>
              *
-             * <code>string request_id = 5;</code>
+             * <code>string message = 5;</code>
              *
-             * @return The requestId.
+             * @return The message.
              */
-            public String getRequestId() {
-                Object ref = requestId_;
-                if (!(ref instanceof String)) {
+            public java.lang.String getMessage() {
+                java.lang.Object ref = message_;
+                if (!(ref instanceof java.lang.String)) {
                     com.google.protobuf.ByteString bs =
                             (com.google.protobuf.ByteString) ref;
-                    String s = bs.toStringUtf8();
-                    requestId_ = s;
+                    java.lang.String s = bs.toStringUtf8();
+                    message_ = s;
                     return s;
                 } else {
-                    return (String) ref;
+                    return (java.lang.String) ref;
                 }
             }
 
             /**
              * <pre>
-             * 请求 ID（链路追踪）
+             * 信息
              * </pre>
              *
-             * <code>string request_id = 5;</code>
+             * <code>string message = 5;</code>
              *
-             * @param value The requestId to set.
+             * @param value The message to set.
              * @return This builder for chaining.
              */
-            public Builder setRequestId(
-                    String value) {
+            public Builder setMessage(
+                    java.lang.String value) {
                 if (value == null) {
                     throw new NullPointerException();
                 }
-                requestId_ = value;
+                message_ = value;
                 bitField0_ |= 0x00000010;
+                onChanged();
+                return this;
+            }
+
+            /**
+             * <pre>
+             * 信息
+             * </pre>
+             *
+             * <code>string message = 5;</code>
+             *
+             * @return The bytes for message.
+             */
+            public com.google.protobuf.ByteString
+            getMessageBytes() {
+                java.lang.Object ref = message_;
+                if (ref instanceof String) {
+                    com.google.protobuf.ByteString b =
+                            com.google.protobuf.ByteString.copyFromUtf8(
+                                    (java.lang.String) ref);
+                    message_ = b;
+                    return b;
+                } else {
+                    return (com.google.protobuf.ByteString) ref;
+                }
+            }
+
+            /**
+             * <pre>
+             * 信息
+             * </pre>
+             *
+             * <code>string message = 5;</code>
+             *
+             * @param value The bytes for message to set.
+             * @return This builder for chaining.
+             */
+            public Builder setMessageBytes(
+                    com.google.protobuf.ByteString value) {
+                if (value == null) {
+                    throw new NullPointerException();
+                }
+                checkByteStringIsUtf8(value);
+                message_ = value;
+                bitField0_ |= 0x00000010;
+                onChanged();
+                return this;
+            }
+
+            /**
+             * <pre>
+             * 信息
+             * </pre>
+             *
+             * <code>string message = 5;</code>
+             *
+             * @return This builder for chaining.
+             */
+            public Builder clearMessage() {
+                message_ = getDefaultInstance().getMessage();
+                bitField0_ = (bitField0_ & ~0x00000010);
                 onChanged();
                 return this;
             }
@@ -1812,17 +2149,60 @@ public final class ImConnectProto {
              * 请求 ID（链路追踪）
              * </pre>
              *
-             * <code>string request_id = 5;</code>
+             * <code>string request_id = 6;</code>
+             *
+             * @return The requestId.
+             */
+            public java.lang.String getRequestId() {
+                java.lang.Object ref = requestId_;
+                if (!(ref instanceof java.lang.String)) {
+                    com.google.protobuf.ByteString bs =
+                            (com.google.protobuf.ByteString) ref;
+                    java.lang.String s = bs.toStringUtf8();
+                    requestId_ = s;
+                    return s;
+                } else {
+                    return (java.lang.String) ref;
+                }
+            }
+
+            /**
+             * <pre>
+             * 请求 ID（链路追踪）
+             * </pre>
+             *
+             * <code>string request_id = 6;</code>
+             *
+             * @param value The requestId to set.
+             * @return This builder for chaining.
+             */
+            public Builder setRequestId(
+                    java.lang.String value) {
+                if (value == null) {
+                    throw new NullPointerException();
+                }
+                requestId_ = value;
+                bitField0_ |= 0x00000020;
+                onChanged();
+                return this;
+            }
+
+            /**
+             * <pre>
+             * 请求 ID（链路追踪）
+             * </pre>
+             *
+             * <code>string request_id = 6;</code>
              *
              * @return The bytes for requestId.
              */
             public com.google.protobuf.ByteString
             getRequestIdBytes() {
-                Object ref = requestId_;
+                java.lang.Object ref = requestId_;
                 if (ref instanceof String) {
                     com.google.protobuf.ByteString b =
                             com.google.protobuf.ByteString.copyFromUtf8(
-                                    (String) ref);
+                                    (java.lang.String) ref);
                     requestId_ = b;
                     return b;
                 } else {
@@ -1835,7 +2215,7 @@ public final class ImConnectProto {
              * 请求 ID（链路追踪）
              * </pre>
              *
-             * <code>string request_id = 5;</code>
+             * <code>string request_id = 6;</code>
              *
              * @param value The bytes for requestId to set.
              * @return This builder for chaining.
@@ -1847,7 +2227,7 @@ public final class ImConnectProto {
                 }
                 checkByteStringIsUtf8(value);
                 requestId_ = value;
-                bitField0_ |= 0x00000010;
+                bitField0_ |= 0x00000020;
                 onChanged();
                 return this;
             }
@@ -1857,13 +2237,13 @@ public final class ImConnectProto {
              * 请求 ID（链路追踪）
              * </pre>
              *
-             * <code>string request_id = 5;</code>
+             * <code>string request_id = 6;</code>
              *
              * @return This builder for chaining.
              */
             public Builder clearRequestId() {
                 requestId_ = getDefaultInstance().getRequestId();
-                bitField0_ = (bitField0_ & ~0x00000010);
+                bitField0_ = (bitField0_ & ~0x00000020);
                 onChanged();
                 return this;
             }
@@ -1873,11 +2253,11 @@ public final class ImConnectProto {
              * 时间戳（毫秒）
              * </pre>
              *
-             * <code>int64 timestamp = 6;</code>
+             * <code>int64 timestamp = 7;</code>
              *
              * @return The timestamp.
              */
-            @Override
+            @java.lang.Override
             public long getTimestamp() {
                 return timestamp_;
             }
@@ -1887,7 +2267,7 @@ public final class ImConnectProto {
              * 时间戳（毫秒）
              * </pre>
              *
-             * <code>int64 timestamp = 6;</code>
+             * <code>int64 timestamp = 7;</code>
              *
              * @param value The timestamp to set.
              * @return This builder for chaining.
@@ -1895,7 +2275,7 @@ public final class ImConnectProto {
             public Builder setTimestamp(long value) {
 
                 timestamp_ = value;
-                bitField0_ |= 0x00000020;
+                bitField0_ |= 0x00000040;
                 onChanged();
                 return this;
             }
@@ -1905,12 +2285,12 @@ public final class ImConnectProto {
              * 时间戳（毫秒）
              * </pre>
              *
-             * <code>int64 timestamp = 6;</code>
+             * <code>int64 timestamp = 7;</code>
              *
              * @return This builder for chaining.
              */
             public Builder clearTimestamp() {
-                bitField0_ = (bitField0_ & ~0x00000020);
+                bitField0_ = (bitField0_ & ~0x00000040);
                 timestamp_ = 0L;
                 onChanged();
                 return this;
@@ -1921,20 +2301,20 @@ public final class ImConnectProto {
              * 客户端信息
              * </pre>
              *
-             * <code>string client_ip = 7;</code>
+             * <code>string client_ip = 8;</code>
              *
              * @return The clientIp.
              */
-            public String getClientIp() {
-                Object ref = clientIp_;
-                if (!(ref instanceof String)) {
+            public java.lang.String getClientIp() {
+                java.lang.Object ref = clientIp_;
+                if (!(ref instanceof java.lang.String)) {
                     com.google.protobuf.ByteString bs =
                             (com.google.protobuf.ByteString) ref;
-                    String s = bs.toStringUtf8();
+                    java.lang.String s = bs.toStringUtf8();
                     clientIp_ = s;
                     return s;
                 } else {
-                    return (String) ref;
+                    return (java.lang.String) ref;
                 }
             }
 
@@ -1943,18 +2323,18 @@ public final class ImConnectProto {
              * 客户端信息
              * </pre>
              *
-             * <code>string client_ip = 7;</code>
+             * <code>string client_ip = 8;</code>
              *
              * @param value The clientIp to set.
              * @return This builder for chaining.
              */
             public Builder setClientIp(
-                    String value) {
+                    java.lang.String value) {
                 if (value == null) {
                     throw new NullPointerException();
                 }
                 clientIp_ = value;
-                bitField0_ |= 0x00000040;
+                bitField0_ |= 0x00000080;
                 onChanged();
                 return this;
             }
@@ -1964,17 +2344,17 @@ public final class ImConnectProto {
              * 客户端信息
              * </pre>
              *
-             * <code>string client_ip = 7;</code>
+             * <code>string client_ip = 8;</code>
              *
              * @return The bytes for clientIp.
              */
             public com.google.protobuf.ByteString
             getClientIpBytes() {
-                Object ref = clientIp_;
+                java.lang.Object ref = clientIp_;
                 if (ref instanceof String) {
                     com.google.protobuf.ByteString b =
                             com.google.protobuf.ByteString.copyFromUtf8(
-                                    (String) ref);
+                                    (java.lang.String) ref);
                     clientIp_ = b;
                     return b;
                 } else {
@@ -1987,7 +2367,7 @@ public final class ImConnectProto {
              * 客户端信息
              * </pre>
              *
-             * <code>string client_ip = 7;</code>
+             * <code>string client_ip = 8;</code>
              *
              * @param value The bytes for clientIp to set.
              * @return This builder for chaining.
@@ -1999,7 +2379,7 @@ public final class ImConnectProto {
                 }
                 checkByteStringIsUtf8(value);
                 clientIp_ = value;
-                bitField0_ |= 0x00000040;
+                bitField0_ |= 0x00000080;
                 onChanged();
                 return this;
             }
@@ -2009,64 +2389,64 @@ public final class ImConnectProto {
              * 客户端信息
              * </pre>
              *
-             * <code>string client_ip = 7;</code>
+             * <code>string client_ip = 8;</code>
              *
              * @return This builder for chaining.
              */
             public Builder clearClientIp() {
                 clientIp_ = getDefaultInstance().getClientIp();
-                bitField0_ = (bitField0_ & ~0x00000040);
+                bitField0_ = (bitField0_ & ~0x00000080);
                 onChanged();
                 return this;
             }
 
             /**
-             * <code>string user_agent = 8;</code>
+             * <code>string user_agent = 9;</code>
              *
              * @return The userAgent.
              */
-            public String getUserAgent() {
-                Object ref = userAgent_;
-                if (!(ref instanceof String)) {
+            public java.lang.String getUserAgent() {
+                java.lang.Object ref = userAgent_;
+                if (!(ref instanceof java.lang.String)) {
                     com.google.protobuf.ByteString bs =
                             (com.google.protobuf.ByteString) ref;
-                    String s = bs.toStringUtf8();
+                    java.lang.String s = bs.toStringUtf8();
                     userAgent_ = s;
                     return s;
                 } else {
-                    return (String) ref;
+                    return (java.lang.String) ref;
                 }
             }
 
             /**
-             * <code>string user_agent = 8;</code>
+             * <code>string user_agent = 9;</code>
              *
              * @param value The userAgent to set.
              * @return This builder for chaining.
              */
             public Builder setUserAgent(
-                    String value) {
+                    java.lang.String value) {
                 if (value == null) {
                     throw new NullPointerException();
                 }
                 userAgent_ = value;
-                bitField0_ |= 0x00000080;
+                bitField0_ |= 0x00000100;
                 onChanged();
                 return this;
             }
 
             /**
-             * <code>string user_agent = 8;</code>
+             * <code>string user_agent = 9;</code>
              *
              * @return The bytes for userAgent.
              */
             public com.google.protobuf.ByteString
             getUserAgentBytes() {
-                Object ref = userAgent_;
+                java.lang.Object ref = userAgent_;
                 if (ref instanceof String) {
                     com.google.protobuf.ByteString b =
                             com.google.protobuf.ByteString.copyFromUtf8(
-                                    (String) ref);
+                                    (java.lang.String) ref);
                     userAgent_ = b;
                     return b;
                 } else {
@@ -2075,7 +2455,7 @@ public final class ImConnectProto {
             }
 
             /**
-             * <code>string user_agent = 8;</code>
+             * <code>string user_agent = 9;</code>
              *
              * @param value The bytes for userAgent to set.
              * @return This builder for chaining.
@@ -2087,19 +2467,187 @@ public final class ImConnectProto {
                 }
                 checkByteStringIsUtf8(value);
                 userAgent_ = value;
-                bitField0_ |= 0x00000080;
+                bitField0_ |= 0x00000100;
                 onChanged();
                 return this;
             }
 
             /**
-             * <code>string user_agent = 8;</code>
+             * <code>string user_agent = 9;</code>
              *
              * @return This builder for chaining.
              */
             public Builder clearUserAgent() {
                 userAgent_ = getDefaultInstance().getUserAgent();
-                bitField0_ = (bitField0_ & ~0x00000080);
+                bitField0_ = (bitField0_ & ~0x00000100);
+                onChanged();
+                return this;
+            }
+
+            /**
+             * <code>string device_name = 10;</code>
+             *
+             * @return The deviceName.
+             */
+            public java.lang.String getDeviceName() {
+                java.lang.Object ref = deviceName_;
+                if (!(ref instanceof java.lang.String)) {
+                    com.google.protobuf.ByteString bs =
+                            (com.google.protobuf.ByteString) ref;
+                    java.lang.String s = bs.toStringUtf8();
+                    deviceName_ = s;
+                    return s;
+                } else {
+                    return (java.lang.String) ref;
+                }
+            }
+
+            /**
+             * <code>string device_name = 10;</code>
+             *
+             * @param value The deviceName to set.
+             * @return This builder for chaining.
+             */
+            public Builder setDeviceName(
+                    java.lang.String value) {
+                if (value == null) {
+                    throw new NullPointerException();
+                }
+                deviceName_ = value;
+                bitField0_ |= 0x00000200;
+                onChanged();
+                return this;
+            }
+
+            /**
+             * <code>string device_name = 10;</code>
+             *
+             * @return The bytes for deviceName.
+             */
+            public com.google.protobuf.ByteString
+            getDeviceNameBytes() {
+                java.lang.Object ref = deviceName_;
+                if (ref instanceof String) {
+                    com.google.protobuf.ByteString b =
+                            com.google.protobuf.ByteString.copyFromUtf8(
+                                    (java.lang.String) ref);
+                    deviceName_ = b;
+                    return b;
+                } else {
+                    return (com.google.protobuf.ByteString) ref;
+                }
+            }
+
+            /**
+             * <code>string device_name = 10;</code>
+             *
+             * @param value The bytes for deviceName to set.
+             * @return This builder for chaining.
+             */
+            public Builder setDeviceNameBytes(
+                    com.google.protobuf.ByteString value) {
+                if (value == null) {
+                    throw new NullPointerException();
+                }
+                checkByteStringIsUtf8(value);
+                deviceName_ = value;
+                bitField0_ |= 0x00000200;
+                onChanged();
+                return this;
+            }
+
+            /**
+             * <code>string device_name = 10;</code>
+             *
+             * @return This builder for chaining.
+             */
+            public Builder clearDeviceName() {
+                deviceName_ = getDefaultInstance().getDeviceName();
+                bitField0_ = (bitField0_ & ~0x00000200);
+                onChanged();
+                return this;
+            }
+
+            /**
+             * <code>string device_type = 11;</code>
+             *
+             * @return The deviceType.
+             */
+            public java.lang.String getDeviceType() {
+                java.lang.Object ref = deviceType_;
+                if (!(ref instanceof java.lang.String)) {
+                    com.google.protobuf.ByteString bs =
+                            (com.google.protobuf.ByteString) ref;
+                    java.lang.String s = bs.toStringUtf8();
+                    deviceType_ = s;
+                    return s;
+                } else {
+                    return (java.lang.String) ref;
+                }
+            }
+
+            /**
+             * <code>string device_type = 11;</code>
+             *
+             * @param value The deviceType to set.
+             * @return This builder for chaining.
+             */
+            public Builder setDeviceType(
+                    java.lang.String value) {
+                if (value == null) {
+                    throw new NullPointerException();
+                }
+                deviceType_ = value;
+                bitField0_ |= 0x00000400;
+                onChanged();
+                return this;
+            }
+
+            /**
+             * <code>string device_type = 11;</code>
+             *
+             * @return The bytes for deviceType.
+             */
+            public com.google.protobuf.ByteString
+            getDeviceTypeBytes() {
+                java.lang.Object ref = deviceType_;
+                if (ref instanceof String) {
+                    com.google.protobuf.ByteString b =
+                            com.google.protobuf.ByteString.copyFromUtf8(
+                                    (java.lang.String) ref);
+                    deviceType_ = b;
+                    return b;
+                } else {
+                    return (com.google.protobuf.ByteString) ref;
+                }
+            }
+
+            /**
+             * <code>string device_type = 11;</code>
+             *
+             * @param value The bytes for deviceType to set.
+             * @return This builder for chaining.
+             */
+            public Builder setDeviceTypeBytes(
+                    com.google.protobuf.ByteString value) {
+                if (value == null) {
+                    throw new NullPointerException();
+                }
+                checkByteStringIsUtf8(value);
+                deviceType_ = value;
+                bitField0_ |= 0x00000400;
+                onChanged();
+                return this;
+            }
+
+            /**
+             * <code>string device_type = 11;</code>
+             *
+             * @return This builder for chaining.
+             */
+            public Builder clearDeviceType() {
+                deviceType_ = getDefaultInstance().getDeviceType();
+                bitField0_ = (bitField0_ & ~0x00000400);
                 onChanged();
                 return this;
             }

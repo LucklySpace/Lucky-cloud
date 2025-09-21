@@ -8,6 +8,7 @@ import reactor.core.publisher.Flux;
 
 /**
  * 自定义日志Advisor
+ *
  * @author ricejson
  */
 public class LoggingAdvisor implements CallAroundAdvisor, StreamAroundAdvisor {
@@ -58,7 +59,7 @@ public class LoggingAdvisor implements CallAroundAdvisor, StreamAroundAdvisor {
 //import reactor.core.publisher.Flux;
 //
 //
-///**
+/// **
 // * LoggingAdvisor 提供对 AI 调用的前置和后置日志记录功能，
 // * 支持同步调用（Call）和流式调用（Stream）。
 // */

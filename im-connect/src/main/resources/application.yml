@@ -25,7 +25,7 @@ nacos:
 
 netty:
   config:
-    protocol: json
+    protocol: proto
     heartBeatTime: 30000
     bossThreadSize: 4
     workThreadSize: 16

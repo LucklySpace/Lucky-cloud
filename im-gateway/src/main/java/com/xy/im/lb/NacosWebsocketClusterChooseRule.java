@@ -189,7 +189,7 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
     private String getUserBroker(String uid) {
         try {
             Object userObj = reactiveRedisTemplate.opsForValue().get(IM_USER_PREFIX + uid).toFuture().get();
-            return userObj == null ? null:((LinkedHashMap<?, ?>) userObj).get(IM_BROKER).toString() ;
+            return userObj == null ? null : ((LinkedHashMap<?, ?>) userObj).get(IM_BROKER).toString();
         } catch (Exception e) {
             log.error("Redis 获取 broker 出错，UID: {}", uid, e);
             return null;

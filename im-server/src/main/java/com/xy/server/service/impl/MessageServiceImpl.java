@@ -2,12 +2,12 @@ package com.xy.server.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.ObjectUtil;
-import com.xy.domain.dto.ChatDto;
-import com.xy.domain.po.*;
 import com.xy.core.enums.IMStatus;
 import com.xy.core.enums.IMessageReadStatus;
 import com.xy.core.enums.IMessageType;
 import com.xy.core.model.*;
+import com.xy.domain.dto.ChatDto;
+import com.xy.domain.po.*;
 import com.xy.general.response.domain.Result;
 import com.xy.general.response.domain.ResultCode;
 import com.xy.server.api.database.chat.ImChatFeign;
@@ -33,7 +33,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-import static com.xy.core.constants.IMConstant.*;
+import static com.xy.core.constants.IMConstant.MQ_EXCHANGE_NAME;
+import static com.xy.core.constants.IMConstant.USER_CACHE_PREFIX;
 
 @Slf4j
 @Service
@@ -127,7 +128,7 @@ public class MessageServiceImpl implements MessageService {
                 IMessageWrap<Object> imPrivateMessageIMessageWrap = new IMessageWrap<>().setCode(IMessageType.SINGLE_MESSAGE.getCode()).setData(dto).setIds(List.of(dto.getToId()));
 
                 // 发送消息到 mq 消息队列
-                rabbitTemplate.convertAndSend(MQ_EXCHANGE_NAME,  brokerId,
+                rabbitTemplate.convertAndSend(MQ_EXCHANGE_NAME, brokerId,
                         Objects.requireNonNull(JsonUtil.toJSONString(imPrivateMessageIMessageWrap)), new CorrelationData(messageId.toString()));
 
                 messageRes = ResultCode.SUCCESS;
@@ -314,7 +315,7 @@ public class MessageServiceImpl implements MessageService {
                 IMessageWrap<Object> groupMessageIMessageWrap = new IMessageWrap<>().setCode(IMessageType.GROUP_MESSAGE.getCode()).setData(imGroupMessage).setIds(entry.getValue());
 
                 // 发送消息到 mq
-                rabbitTemplate.convertAndSend(MQ_EXCHANGE_NAME,  brokerId,
+                rabbitTemplate.convertAndSend(MQ_EXCHANGE_NAME, brokerId,
                         Objects.requireNonNull(JsonUtil.toJSONString(groupMessageIMessageWrap)), new CorrelationData(messageId.toString()));
             }
 

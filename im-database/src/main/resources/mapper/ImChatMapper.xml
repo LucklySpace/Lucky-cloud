@@ -5,12 +5,9 @@
 <mapper namespace="com.xy.database.mapper.ImChatMapper">
 
     <select id="list" resultType="com.xy.domain.po.ImChatPo">
-        SELECT
-         *
-        FROM
-        im_chat
-        WHERE
-        owner_id = #{ownerId}
-        AND sequence > #{sequence}
+        SELECT *
+        FROM im_chat
+        WHERE owner_id = #{ownerId}
+          AND sequence > #{sequence}
     </select>
 </mapper>

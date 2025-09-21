@@ -33,40 +33,30 @@ import java.util.zip.ZipInputStream;
 @Component
 public class NginxTemplate {
 
-    @Autowired
-    private NacosTemplate nacosTemplate;
-
     // 长连接服务名
     private static final String SERVICE_NAME = "im-connect";
-
     // 节点配置文件名称
     private static final String UPSTREAM_NAME = "netty_upstream";
-
     // nginx健康状态监测地址
     private static final String STATUS_URL = "http://127.0.0.1:81/status";
-
     // 定时任务检查时间
     private static final int CHECK_INTERVAL_SEC = 30;
-
     //判断系统类型
     private final boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
-
     //nginx地址
     private final Path nginxHome = isWindows
             ? Paths.get("D:/Program Files/Nginx/nginx-1.27.4")
             : Paths.get("/usr/local/nginx");
-
     // 执行运行程序名称
     private final Path nginxExe = nginxHome.resolve(isWindows ? "nginx.exe" : "sbin/nginx");
-
     // 节点配置文件地址
     private final Path upstreamConf = nginxHome.resolve("conf/conf.d/netty_upstream.conf");
-
-    // 上次记录节点列表
-    private List<String> lastNodeConfig = new ArrayList<>();
-
     // 定时任务
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    @Autowired
+    private NacosTemplate nacosTemplate;
+    // 上次记录节点列表
+    private List<String> lastNodeConfig = new ArrayList<>();
 
     @PostConstruct
     public void init() {
@@ -151,11 +141,11 @@ public class NginxTemplate {
             return;
         }
 
-        if(!lastNodeConfig.isEmpty()&&lastNodeConfig.equals(nodes)){
+        if (!lastNodeConfig.isEmpty() && lastNodeConfig.equals(nodes)) {
             log.warn("节点无变化，无需更新配置");
             return;
-        }else{
-            log.info("节点列表：{}",nodes);
+        } else {
+            log.info("节点列表：{}", nodes);
         }
 
         // 记录当前节点列表  用于下次比对

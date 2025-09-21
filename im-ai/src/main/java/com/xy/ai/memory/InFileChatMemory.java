@@ -16,8 +16,6 @@ import java.util.List;
 
 public class InFileChatMemory implements ChatMemory {
 
-    private final String BASE_DIR;
-
     private static final Kryo kryo = new Kryo();
 
     // 静态初始化块，在类被加载时只执行一次，用来初始化类的静态字段或做一些静态配置
@@ -28,6 +26,8 @@ public class InFileChatMemory implements ChatMemory {
         // Kryo 默认有时不能创建没有无参构造器的对象，会抛异常。这行设置了一种“宽松”的策略，可以“跳过构造函数”创建对象，从而支持序列化像 JPA 实体等没有显式构造函数的类
         kryo.setInstantiatorStrategy(new StdInstantiatorStrategy());  // 设置标准的实例化策略
     }
+
+    private final String BASE_DIR;
 
     /**
      * 构造对象时，指定文件保存目录

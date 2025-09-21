@@ -31,16 +31,16 @@ public class RedisTemplate {
     private JedisPool jedisPool;
 
     // 以下配置通过自定义 @Value 注解注入
-    @Value("redis.host")
+    @Value("${redis.host}")
     private String host;
 
-    @Value("redis.port")
+    @Value("${redis.port}")
     private Integer port;
 
-    @Value("redis.password")
+    @Value("${redis.password}")
     private String password;
 
-    @Value("redis.timeout")
+    @Value("${redis.timeout}")
     private Integer timeout = 10000; // 默认超时为10秒
 
     /**
@@ -55,7 +55,7 @@ public class RedisTemplate {
         config.setTestOnBorrow(true);         // 获取连接前是否测试有效性
 
         // 创建连接池（是否使用密码）
-        if (StringUtils.hasLength(password)) {
+        if (StringUtils.hasText(password)) {
             this.jedisPool = new JedisPool(config, host, port, timeout, password);
         } else {
             this.jedisPool = new JedisPool(config, host, port, timeout);

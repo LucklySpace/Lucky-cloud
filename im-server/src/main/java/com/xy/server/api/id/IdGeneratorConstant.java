@@ -38,6 +38,10 @@ public class IdGeneratorConstant {
      */
     public static final String group_message_id = "group:message:id";
 
+    /**
+     * 群邀请id
+     */
+    public static final String group_invite_id = "group:invite:id";
 
     /**
      * 会话

@@ -56,7 +56,7 @@ public class WebSocketTemplate extends AbstractRemoteServer {
     protected Integer workThreadSize;
     // 协议类型配置: json 或 proto
     @Value("${netty.config.protocol:proto}")
-    protected String protocolType = "proto";
+    protected String protocolType;
     @Value("${brokerId:}")
     private String brokerId;
     @Autowired

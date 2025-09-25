@@ -3,6 +3,7 @@ package com.xy.database.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xy.core.utils.StringUtils;
 import com.xy.database.mapper.ImFriendshipRequestMapper;
 import com.xy.database.service.ImFriendshipRequestService;
 import com.xy.domain.po.ImFriendshipRequestPo;
@@ -26,6 +27,21 @@ public class ImFriendshipRequestServiceImpl extends ServiceImpl<ImFriendshipRequ
         QueryWrapper<ImFriendshipRequestPo> imFriendshipRequestQuery = new QueryWrapper<>();
         imFriendshipRequestQuery.eq("to_id", userId);
         return this.list(imFriendshipRequestQuery);
+    }
+
+    @Override
+    public ImFriendshipRequestPo getOne(ImFriendshipRequestPo requestPo) {
+
+        QueryWrapper<ImFriendshipRequestPo> imFriendshipRequestQuery = new QueryWrapper<>();
+
+        if (StringUtils.hasText(requestPo.getId())) {
+            imFriendshipRequestQuery.eq("id", requestPo.getId());
+        }
+        if (StringUtils.hasText(requestPo.getFromId()) && StringUtils.hasText(requestPo.getToId())) {
+            imFriendshipRequestQuery.eq("from_id", requestPo.getFromId()).and(wrapper -> wrapper.eq("to_id", requestPo.getToId()));
+        }
+
+        return this.getOne(imFriendshipRequestQuery);
     }
 
 }

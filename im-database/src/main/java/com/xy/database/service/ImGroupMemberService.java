@@ -14,4 +14,8 @@ public interface ImGroupMemberService extends IService<ImGroupMemberPo> {
 
     List<String> getNinePeopleAvatar(String groupId);
 
+    List<ImGroupMemberPo> getGroupMemberList(String groupId);
+
+    ImGroupMemberPo getGroupMember(String groupId, String memberId);
+
 }

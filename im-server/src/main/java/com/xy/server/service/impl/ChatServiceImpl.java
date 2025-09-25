@@ -112,7 +112,7 @@ public class ChatServiceImpl implements ChatService {
         // 创建群聊会话
         if (chatDto.getChatType().equals(IMessageType.GROUP_MESSAGE.getCode())) {
 
-            ImGroupPo imGroupPo = imGroupFeign.getOne(chatDto.getToId());
+            ImGroupPo imGroupPo = imGroupFeign.getOneGroup(chatDto.getToId());
 
             chatVo.setName(imGroupPo.getGroupName());
 
@@ -253,7 +253,7 @@ public class ChatServiceImpl implements ChatService {
             chatVo.setUnread(unread);
         }
 
-        ImGroupPo imGroupPo = imGroupFeign.getOne(groupId);
+        ImGroupPo imGroupPo = imGroupFeign.getOneGroup(groupId);
 
         chatVo.setName(imGroupPo.getGroupName());
 

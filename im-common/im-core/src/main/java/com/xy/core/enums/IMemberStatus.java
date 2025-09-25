@@ -1,8 +1,13 @@
 package com.xy.core.enums;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
 /**
  * 群成员角色枚举
  */
+@Getter
+@NoArgsConstructor
 public enum IMemberStatus {
 
     NORMAL(0, "普通成员"),
@@ -11,8 +16,8 @@ public enum IMemberStatus {
     MUTED(3, "禁言成员"),
     REMOVED(4, "已移除成员");
 
-    private final Integer code;
-    private final String desc;
+    private Integer code;
+    private String desc;
 
     IMemberStatus(Integer status, String desc) {
         this.desc = desc;
@@ -28,12 +33,4 @@ public enum IMemberStatus {
         return null;
     }
 
-
-    public String getDesc() {
-        return desc;
-    }
-
-    public Integer getCode() {
-        return code;
-    }
 }

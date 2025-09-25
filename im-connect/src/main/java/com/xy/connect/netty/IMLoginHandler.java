@@ -2,6 +2,7 @@ package com.xy.connect.netty;
 
 
 import com.xy.connect.channel.UserChannelMap;
+import com.xy.connect.config.LogConstant;
 import com.xy.connect.netty.process.impl.LoginProcess;
 import com.xy.connect.redis.RedisTemplate;
 import com.xy.core.constants.IMConstant;
@@ -18,7 +19,7 @@ import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 
 
-@Slf4j(topic = "Netty")
+@Slf4j(topic = LogConstant.Login)
 @Component
 @ChannelHandler.Sharable
 public class IMLoginHandler extends SimpleChannelInboundHandler<IMConnectMessage<Object>> {
@@ -51,7 +52,7 @@ public class IMLoginHandler extends SimpleChannelInboundHandler<IMConnectMessage
     }
 
     @Override
-    public void handlerRemoved(ChannelHandlerContext ctx) {
+    public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
         String userId = safeGetUserId(ctx);
 
         if (!StringUtils.hasText(userId)) {
@@ -90,7 +91,7 @@ public class IMLoginHandler extends SimpleChannelInboundHandler<IMConnectMessage
         return ctx.channel().attr(USER_ID_ATTR_KEY).get();
     }
 
-    private void asyncRedisDelete(final String key) {
+    private void asyncRedisDelete(final String key) throws Exception {
         if (key == null || key.isEmpty()) return;
         redisTemplate.del(key);
     }

@@ -1,6 +1,7 @@
 package com.xy.server.service.impl;
 
 import com.xy.domain.dto.FriendDto;
+import com.xy.domain.dto.FriendRequestDto;
 import com.xy.domain.po.ImFriendshipPo;
 import com.xy.domain.po.ImFriendshipRequestPo;
 import com.xy.domain.po.ImGroupPo;
@@ -8,6 +9,7 @@ import com.xy.domain.po.ImUserDataPo;
 import com.xy.domain.vo.FriendVo;
 import com.xy.domain.vo.FriendshipRequestVo;
 import com.xy.domain.vo.GroupVo;
+import com.xy.general.response.domain.Result;
 import com.xy.server.api.database.friend.ImRelationshipFeign;
 import com.xy.server.api.database.user.ImUserFeign;
 import com.xy.server.service.RelationshipService;
@@ -31,57 +33,43 @@ public class RelationshipServiceImpl implements RelationshipService {
     private ImUserFeign imUserFeign;
 
     @Override
-    public List<FriendVo> contacts(String ownerId) {
+    public Result contacts(String ownerId) {
         long start = System.currentTimeMillis();
         log.debug("contacts() 开始 -> ownerId={}", ownerId);
 
         try {
-            // 1. 查询好友关系（可能返回 null）
+            // 1. 查询好友关系
             List<ImFriendshipPo> friendships = imRelationshipFeign.contacts(ownerId);
-
-            if (friendships == null || friendships.isEmpty()) {
+            if (isEmpty(friendships)) {
                 log.debug("没有好友关系 -> ownerId={}, 耗时 {} ms", ownerId, System.currentTimeMillis() - start);
-                return Collections.emptyList();
+                return Result.success(Collections.emptyList());
             }
 
             log.info("查询到好友关系数量: {} -> ownerId={}", friendships.size(), ownerId);
 
-            // 2. 提取 friendId 列表（这里使用 getToId，遵循原代码语义），并去重且保留顺序
+            // 2. 提取 friendId 列表并去重
             List<String> ids = friendships.stream()
                     .map(ImFriendshipPo::getToId)
-                    .filter(Objects::nonNull).distinct().collect(Collectors.toList());
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.toList());
 
             if (ids.isEmpty()) {
                 log.warn("所有 friendship 的 toId 都为 null -> ownerId={}, friendshipsCount={}", ownerId, friendships.size());
-                return Collections.emptyList();
+                return Result.success(Collections.emptyList());
             }
 
             log.debug("待查询用户 id 数量（去重后）: {}", ids.size());
 
-            // 3. 批量分片查询用户数据（分片以防 URL 过长 / 参数过多 / 单次响应过大）
-            List<ImUserDataPo> userDataAll = new ArrayList<>();
-            for (int i = 0; i < ids.size(); i += BATCH_SIZE) {
-                int end = Math.min(i + BATCH_SIZE, ids.size());
-                List<String> batch = ids.subList(i, end);
-                try {
-                    List<ImUserDataPo> part = imUserFeign.getUserByIds(batch);
-                    if (part != null && !part.isEmpty()) {
-                        userDataAll.addAll(part);
-                    } else {
-                        log.debug("分片查询没有返回数据 -> batchSize={}, startIndex={}", batch.size(), i);
-                    }
-                } catch (Exception ex) {
-                    // 单片错误不应阻断整体流程，记录后继续下一片
-                    log.error("分片查询用户失败 -> startIndex={}, batchSize={}", i, batch.size(), ex);
-                }
-            }
+            // 3. 批量分片查询用户数据
+            List<ImUserDataPo> userDataAll = batchQueryUsers(ids);
             if (userDataAll.isEmpty()) {
                 log.warn("未从用户服务中查询到任何用户数据 -> ownerId={}, queriedIdsCount={}", ownerId, ids.size());
-                return Collections.emptyList();
+                return Result.success(Collections.emptyList());
             }
             log.debug("从用户服务累计查询到用户数据条数: {}", userDataAll.size());
 
-            // 4. 转为 Map 便于按 friendId 查找。遇到重复 userId 保留首个（可按需求改）。
+            // 4. 构造 FriendVo 列表
             Map<String, ImUserDataPo> userMap = userDataAll.stream()
                     .filter(Objects::nonNull)
                     .collect(Collectors.toMap(
@@ -90,57 +78,32 @@ public class RelationshipServiceImpl implements RelationshipService {
                             (existing, replacement) -> existing
                     ));
 
-            // 5. 构造 FriendVo 列表，保留原 friendships 的顺序（如果需要）
-            List<FriendVo> result = friendships.stream()
-                    .map(friendship -> {
-                        ImUserDataPo user = userMap.get(friendship.getToId());
-
-                        if (Objects.isNull(user)) {
-                            // 找不到用户数据则记录并在最终结果中过滤掉（与原实现相同）
-                            log.warn("找不到好友对应的用户数据 -> ownerId={}, friendToId={}",
-                                    ownerId, friendship.getToId());
-                            return null;
-                        }
-
-                        FriendVo vo = new FriendVo();
-                        // 通常我们希望把用户基本信息（昵称、头像等）拷贝到 VO
-                        BeanUtils.copyProperties(user, vo);
-                        // 补充好友关系相关字段（ownerId 固定为当前用户）
-                        vo.setUserId(ownerId)
-                                .setFriendId(user.getUserId())     // 好友的 userId
-                                .setBlack(friendship.getBlack())   // 黑名单标识
-                                .setAlias(friendship.getRemark())  // 备注/别名
-                                .setSequence(friendship.getSequence()); // 顺序/序列号
-
-                        return vo;
-                    })
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+            List<FriendVo> result = buildFriendVoList(friendships, userMap, ownerId);
 
             log.info("contacts() 完成 -> ownerId={}, 返回 {} 条，耗时 {} ms",
                     ownerId, result.size(), System.currentTimeMillis() - start);
-            return result;
+            return Result.success(result);
         } catch (Exception ex) {
             log.error("contacts() 处理失败 -> ownerId={}, 耗时 {} ms", ownerId, System.currentTimeMillis() - start, ex);
-            return Collections.emptyList();
+            return Result.success(Collections.emptyList());
         }
     }
 
     @Override
-    public List<GroupVo> groups(String userId) {
+    public Result groups(String userId) {
         long start = System.currentTimeMillis();
         log.debug("groups() 开始 -> userId={}", userId);
 
         try {
-            // 1. 查询群组（可能为 null）
+            // 1. 查询群组
             List<ImGroupPo> groups = imRelationshipFeign.group(userId);
-            if (groups == null || groups.isEmpty()) {
+            if (isEmpty(groups)) {
                 log.debug("未查询到任何群组 -> userId={}, 耗时 {} ms", userId, System.currentTimeMillis() - start);
-                return Collections.emptyList();
+                return Result.success(Collections.emptyList());
             }
             log.info("查询到群组数: {} -> userId={}", groups.size(), userId);
 
-            // 2. 转换为 GroupVo。若需要后续丰富群信息（成员数、在线数等），可以在这里批量调用群服务继续填充。
+            // 2. 转换为 GroupVo
             List<GroupVo> result = groups.stream()
                     .filter(Objects::nonNull)
                     .map(group -> {
@@ -152,291 +115,440 @@ public class RelationshipServiceImpl implements RelationshipService {
 
             log.info("groups() 完成 -> userId={}, 返回 {} 条，耗时 {} ms",
                     userId, result.size(), System.currentTimeMillis() - start);
-            return result;
+            return Result.success(result);
         } catch (Exception ex) {
             log.error("groups() 处理失败 -> userId={}, 耗时 {} ms", userId, System.currentTimeMillis() - start, ex);
-            return Collections.emptyList();
+            return Result.success(Collections.emptyList());
         }
     }
 
     @Override
-    public List<FriendshipRequestVo> newFriends(String userId) {
-
+    public Result newFriends(String userId) {
         long startMs = System.currentTimeMillis();
-
         log.debug("开始获取用户的新的好友请求 -> userId={}", userId);
 
         try {
-            // 1) 从关系服务获取好友请求列表（可能为 null）
+            // 1) 获取好友请求列表
             List<ImFriendshipRequestPo> requests = imRelationshipFeign.newFriends(userId);
-
-            if (requests == null || requests.isEmpty()) {
+            if (isEmpty(requests)) {
                 log.debug("未查询到任何好友请求 -> userId={}，耗时 {} ms", userId, System.currentTimeMillis() - startMs);
-                return Collections.emptyList();
+                return Result.success(Collections.emptyList());
             }
 
             log.info("查询到 {} 条好友请求 -> userId={}", requests.size(), userId);
 
-            // 2) 提取所有请求者的 fromId（请求发送方）并去重
-            //    注意：原始实现提取的是 getToId，但随后按 getFromId 查找用户，存在逻辑不一致（已修正为 getFromId）。
+            // 2) 提取所有请求者的 fromId 并去重
             Set<String> requesterIds = requests.stream()
-                    .map(ImFriendshipRequestPo::getFromId)  // 取请求发起人 ID
-                    .filter(Objects::nonNull)               // 过滤 null
-                    .collect(Collectors.toCollection(LinkedHashSet::new)); // 保持插入顺序且去重
+                    .map(ImFriendshipRequestPo::getFromId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
 
             if (requesterIds.isEmpty()) {
                 log.warn("所有好友请求的 fromId 都为空 -> userId={}, 请求数={}", userId, requests.size());
-                return Collections.emptyList();
+                return Result.success(Collections.emptyList());
             }
 
             log.debug("待查询的唯一用户 ID 数量：{} -> ids={}", requesterIds.size(), requesterIds);
 
-            // 3) 批量查询用户数据（imUserFeign.getUserByIds 应该支持批量查询）
+            // 3) 批量查询用户数据
             List<ImUserDataPo> userDataList = imUserFeign.getUserByIds(new ArrayList<>(requesterIds));
-
             if (userDataList == null) userDataList = Collections.emptyList();
             log.info("从用户服务查询到 {} 条用户数据", userDataList.size());
 
-            // 4) 将用户列表转为 Map 以便快速查找：userId -> ImUserDataPo
-            //    如果存在重复 userId，保留第一个（可按需求改为最后一个）
+            // 4) 构建结果
             Map<String, ImUserDataPo> userDataMap = userDataList.stream()
                     .filter(Objects::nonNull)
                     .collect(Collectors.toMap(
                             ImUserDataPo::getUserId,
                             Function.identity(),
-                            (existing, replacement) -> existing // 遇到重复 key 时保留 existing
+                            (existing, replacement) -> existing
                     ));
 
-            // 5) 构建结果，保留原请求信息并填充 user 昵称、头像等
-            List<FriendshipRequestVo> result = requests.stream()
-                    .map(req -> {
-
-                        FriendshipRequestVo vo = new FriendshipRequestVo();
-                        // 复制基本字段（request -> VO）
-                        BeanUtils.copyProperties(req, vo);
-
-                        // 用 fromId 去查找对应的用户信息
-                        ImUserDataPo userData = userDataMap.get(req.getFromId());
-
-                        if (Objects.nonNull(userData)) {
-                            // 仅覆盖需要显示的用户字段（避免覆盖 request 的其他字段）
-                            vo.setName(userData.getName());
-                            vo.setAvatar(userData.getAvatar());
-                        } else {
-                            // 记录警告：有请求但没有找到对应用户信息
-                            log.warn("无法找到请求者用户数据 -> fromId={}, requestId={}", req.getFromId(), req.getId());
-                        }
-
-                        return vo;
-                    }).collect(Collectors.toList());
+            List<FriendshipRequestVo> result = buildFriendshipRequestVoList(requests, userDataMap);
 
             log.info("newFriends 处理完成 -> userId={}, 返回 {} 条，耗时 {} ms",
                     userId, result.size(), System.currentTimeMillis() - startMs);
-            return result;
+            return Result.success(result);
         } catch (Exception ex) {
-            // 友好降级：记录错误并返回空列表，避免上层直接因异常失败（视业务需要也可以抛出自定义异常）
             log.error("获取新的好友请求失败 -> userId={}, 耗时 {} ms", userId, System.currentTimeMillis() - startMs, ex);
-            return Collections.emptyList();
+            return Result.success(Collections.emptyList());
         }
     }
 
     @Override
-    public FriendVo getFriendInfo(FriendDto friendDto) {
+    public Result getFriendInfo(FriendDto friendDto) {
+        // 入参校验
+        if (friendDto == null) {
+            throw new IllegalArgumentException("friendDto cannot be null");
+        }
 
         String ownerId = friendDto.getFromId();
-
         String friendId = friendDto.getToId();
 
-        // 查询好友关系信息
-        ImFriendshipPo friendshipPo = imRelationshipFeign.getOne(ownerId, friendId);
-
-        // 查询好友用户信息
-        ImUserDataPo userDataPo = imUserFeign.getOne(friendId);
-
         FriendVo vo = new FriendVo();
-        BeanUtils.copyProperties(userDataPo, vo);
 
-        return vo.setUserId(ownerId)
-                .setFriendId(userDataPo.getUserId());
-//                .setBlack(friendshipPo.getBlack())
-//                .setAlias(friendshipPo.getRemark())
-        //.setSequence(friendshipPo.getSequence());
+        try {
+            // 1. 查询用户信息
+            ImUserDataPo userDataPo = imUserFeign.getOne(friendId);
+            if (userDataPo == null) {
+                vo.setUserId(ownerId).setFriendId(friendId).setFlag(2);
+                log.warn("getFriendInfo: user not found for friendId={}", friendId);
+                return Result.success(vo);
+            }
+
+            // 复制用户信息到 VO
+            BeanUtils.copyProperties(userDataPo, vo);
+            vo.setUserId(ownerId).setFriendId(userDataPo.getUserId());
+
+            // 2. 查询好友关系
+            ImFriendshipPo friendshipPo = imRelationshipFeign.getOne(ownerId, friendId);
+            if (friendshipPo != null) {
+                vo.setFlag(1);
+                Optional.ofNullable(friendshipPo.getBlack()).ifPresent(vo::setBlack);
+                Optional.ofNullable(friendshipPo.getRemark()).ifPresent(vo::setAlias);
+                Optional.ofNullable(friendshipPo.getSequence()).ifPresent(vo::setSequence);
+            } else {
+                vo.setFlag(2);
+            }
+
+            return Result.success(vo);
+        } catch (Exception ex) {
+            log.error("getFriendInfo failed for ownerId={} friendId={}", ownerId, friendId, ex);
+            vo.setUserId(ownerId).setFriendId(friendId).setFlag(2);
+            return Result.success(vo);
+        }
     }
 
-    //
-//    @Override
-//    public FriendVo findFriend(FriendDto friendDto) {
-//
-//        QueryWrapper<ImFriendshipPo> imFriendshipQuery = new QueryWrapper<>();
-//        imFriendshipQuery.eq("owner_id", friendDto.getFromId());
-//        imFriendshipQuery.eq("to_id", friendDto.getToId());
-//        ImFriendshipPo imFriendshipPo = imFriendshipMapper.selectOne(imFriendshipQuery);
-//
-//        FriendVo friendVo = new FriendVo();
-//
-//        QueryWrapper<ImUserDataPo> imUserDataQuery = new QueryWrapper<>();
-//        imUserDataQuery.eq("user_id", friendDto.getToId());
-//        ImUserDataPo imUserDataPo = imUserDataMapper.selectOne(imUserDataQuery);
-//
-//        if (ObjectUtil.isNotEmpty(imUserDataPo)) {
-//            BeanUtils.copyProperties(imUserDataPo, friendVo);
-//        } else {
-//           return null;
-//        }
-//
-//        if (ObjectUtil.isNotEmpty(imFriendshipPo)) {
-//            friendVo.setFlag(IMStatus.YES.getCode());
-//        } else {
-//            friendVo.setFlag(IMStatus.NO.getCode());
-//        }
-//
-//        return friendVo;
-//    }
-//
-//    @Override
-//    @Transactional
-//    public void addFriend(FriendRequestDto friendRequestDto) {
-//
-//        QueryWrapper<ImFriendshipRequestPo> imFriendshipRequestQuery = new QueryWrapper<>();
-//
-//        imFriendshipRequestQuery.eq("from_id", friendRequestDto.getFromId())
-//                .eq("to_id", friendRequestDto.getToId());
-//
-//        if (ObjectUtil.isEmpty(imFriendshipRequestMapper.selectOne(imFriendshipRequestQuery))) {
-//
-//            ImFriendshipRequestPo imFriendshipRequestPo = new ImFriendshipRequestPo();
-//
-//            String id = UUID.randomUUID().toString();
-//
-//            BeanUtil.copyProperties(friendRequestDto, imFriendshipRequestPo);
-//
-//            imFriendshipRequestPo.setId(id)
-//                    .setReadStatus(IMStatus.NO.getCode())
-//                    .setApproveStatus(IMStatus.NO.getCode())
-//            ;
-//
-//            imFriendshipRequestMapper.insert(imFriendshipRequestPo);
-//        }
-//    }
-//
-//    @Override
-//    public List<FriendshipRequestVo> request(String userId) {
-//
-//        QueryWrapper<ImFriendshipRequestPo> imFriendshipRequestQuery = new QueryWrapper<>();
-//
-//        imFriendshipRequestQuery.eq("to_id", userId);
-//
-//        List<ImFriendshipRequestPo> imFriendshipRequestPoList = imFriendshipRequestMapper.selectList(imFriendshipRequestQuery);
-//
-//        List<FriendshipRequestVo> friendshipRequestVoList = new ArrayList<>();
-//
-//        imFriendshipRequestPoList.stream().forEach(imFriendshipRequestPo -> {
-//
-//            FriendshipRequestVo FriendshipRequestVo = new FriendshipRequestVo();
-//
-//            BeanUtils.copyProperties(imFriendshipRequestPo, FriendshipRequestVo);
-//
-//            QueryWrapper<ImUserDataPo> imUserDataQuery = new QueryWrapper<>();
-//            imUserDataQuery.eq("user_id", imFriendshipRequestPo.getToId());
-//            ImUserDataPo imUserDataPo = imUserDataMapper.selectOne(imUserDataQuery);
-//
-//            FriendshipRequestVo
-//                    .setName(imUserDataPo.getName())
-//                    .setAvatar(imUserDataPo.getAvatar());
-//
-//            friendshipRequestVoList.add(FriendshipRequestVo);
-//        });
-//
-//        return friendshipRequestVoList;
-//    }
-//
-//    @Override
-//    @Transactional
-//    public void approveFriend(FriendshipRequestDto friendshipRequestDto) {
-//
-//        String fromId = friendshipRequestDto.getFromId();
-//
-//        String toId = friendshipRequestDto.getToId();
-//
-//        // 被申请方审批通过构建好友关系
-//        if (friendshipRequestDto.getApproveStatus().equals(IMStatus.YES.getCode())) {
-//
-//            QueryWrapper<ImFriendshipRequestPo> imFriendshipRequestQuery = new QueryWrapper<>();
-//
-//            imFriendshipRequestQuery.eq("id", friendshipRequestDto.getId());
-//
-//            // 查询申请方备注
-//            ImFriendshipRequestPo imFriendshipRequestPo = imFriendshipRequestMapper.selectOne(imFriendshipRequestQuery);
-//
-//            bindFriend(fromId, toId, imFriendshipRequestPo.getRemark());
-//
-//            bindFriend(toId, fromId, friendshipRequestDto.getRemark());
-//
-//            imFriendshipRequestPo
-//                    .setReadStatus(IMStatus.YES.getCode())
-//                    .setApproveStatus(IMStatus.YES.getCode())
-//            ;
-//
-//            imFriendshipRequestMapper.updateById(imFriendshipRequestPo);
-//        }
-//    }
-//
-//
-//    /**
-//     * 建立好友关系
-//     *
-//     * @param fromId 申请方
-//     * @param toId   被申请方
-//     * @param remark 备注
-//     */
-//    public void bindFriend(String fromId, String toId, String remark) {
-//
-//        QueryWrapper<ImFriendshipPo> queryWrapper = new QueryWrapper<>();
-//
-//        queryWrapper.lambda().eq(ImFriendshipPo::getOwnerId, fromId).eq(ImFriendshipPo::getToId, toId);
-//
-//        if (imFriendshipMapper.selectList(queryWrapper).size() == 0) {
-//
-//            // 申请方对象
-//            ImFriendshipPo fromFriendship = new ImFriendshipPo()
-//                    .setOwnerId(fromId)
-//                    .setToId(toId)
-//                    .setRemark(remark)
-//                    .setStatus(IMStatus.YES.getCode())
-//                    .setBlack(IMStatus.YES.getCode())
-//                    .setSequence(new Date().getTime());
-//
-//            imFriendshipMapper.insert(fromFriendship);
-//        }
-//    }
-//
-//
-//    /**
-//     * 删除好友，单向解除好友关系
-//     *
-//     * @param friendDto
-//     */
-//    @Override
-//    public void delFriend(FriendDto friendDto) {
-//
-//        String fromId = friendDto.getFromId();
-//
-//        String toId = friendDto.getToId();
-//
-//        QueryWrapper<ImFriendshipPo> queryWrapper = new QueryWrapper<>();
-//
-//        queryWrapper.lambda().eq(ImFriendshipPo::getOwnerId, fromId).eq(ImFriendshipPo::getToId, toId);
-//
-//        if (imFriendshipMapper.selectList(queryWrapper).size() > 0) {
-//
-//            imFriendshipMapper.delete(queryWrapper);
-//        }
-//    }
+    @Override
+    public Result getFriendInfoList(FriendDto friendDto) {
+        // 参数校验
+        if (friendDto == null) {
+            throw new IllegalArgumentException("friendDto cannot be null");
+        }
+        final String ownerId = friendDto.getFromId();
+        final String keyword = friendDto.getKeyword();
 
+        // 如果没有关键字，直接返回空列表
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return Result.success(Collections.emptyList());
+        }
 
+        try {
+            // 1. 使用用户服务按关键字搜索用户
+            List<ImUserDataPo> users = imUserFeign.search(keyword.trim());
+            if (isEmpty(users)) {
+                return Result.success(Collections.emptyList());
+            }
+
+            // 过滤掉 owner 自己
+            List<ImUserDataPo> filteredUsers = users.stream()
+                    .filter(u -> u != null && !Objects.equals(u.getUserId(), ownerId))
+                    .toList();
+            if (filteredUsers.isEmpty()) {
+                return Result.success(Collections.emptyList());
+            }
+
+            // 收集 userId 列表，用于批量查询好友关系
+            List<String> userIds = filteredUsers.stream()
+                    .map(ImUserDataPo::getUserId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            // 2. 获取好友关系映射
+            Map<String, ImFriendshipPo> relMap = getFriendshipMap(ownerId, userIds);
+
+            // 3. 构建返回 VO 列表
+            List<FriendVo> result = buildFriendVoLists(filteredUsers, relMap, ownerId);
+
+            return Result.success(result);
+        } catch (Exception e) {
+            log.error("searchFriendsByKeyword failed for ownerId={}, keyword={}", friendDto.getFromId(), friendDto.getKeyword(), e);
+            return Result.success(Collections.emptyList());
+        }
+    }
+
+    @Override
+    public Result addFriend(FriendRequestDto friendRequestDto) {
+        long start = System.currentTimeMillis();
+        log.debug("addFriend() 开始 -> fromId={}, toId={}", friendRequestDto.getFromId(), friendRequestDto.getToId());
+
+        try {
+            // 检查是否已经存在好友请求
+            ImFriendshipRequestPo existingRequests = imRelationshipFeign.getRequestOne(
+                    new ImFriendshipRequestPo()
+                            .setFromId(friendRequestDto.getFromId())
+                            .setToId(friendRequestDto.getToId()));
+
+            if (Objects.isNull(existingRequests)) {
+                // 创建好友请求
+                ImFriendshipRequestPo request = createFriendRequest(friendRequestDto);
+                imRelationshipFeign.addFriendRequest(request);
+                log.info("好友请求已创建 -> id={}, fromId={}, toId={}", request.getId(), request.getFromId(), request.getToId());
+            } else {
+                updateExistingRequest(existingRequests, friendRequestDto);
+                imRelationshipFeign.updateFriendRequest(existingRequests);
+                log.debug("好友请求已存在，更新信息 -> fromId={}, toId={}", friendRequestDto.getFromId(), friendRequestDto.getToId());
+            }
+
+            log.info("addFriend() 完成 -> fromId={}, toId={}, 耗时 {} ms",
+                    friendRequestDto.getFromId(), friendRequestDto.getToId(), System.currentTimeMillis() - start);
+            return Result.success("添加好友请求成功");
+        } catch (Exception ex) {
+            log.error("addFriend() 处理失败 -> fromId={}, toId={}, 耗时 {} ms",
+                    friendRequestDto.getFromId(), friendRequestDto.getToId(), System.currentTimeMillis() - start, ex);
+            return Result.failed("添加好友请求失败");
+        }
+    }
+
+    @Override
+    public Result approveFriend(FriendRequestDto friendshipRequestDto) {
+        long start = System.currentTimeMillis();
+        log.debug("approveFriend() 开始 -> requestId={}, approveStatus={}",
+                friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus());
+
+        try {
+            ImFriendshipRequestPo request = imRelationshipFeign.getRequestOne(
+                    new ImFriendshipRequestPo().setId(friendshipRequestDto.getId()));
+
+            if (request == null) {
+                return Result.failed("好友请求不存在");
+            }
+
+            String fromId = request.getFromId();
+            String toId = request.getToId();
+
+            // 如果审批通过，则建立双向好友关系
+            if (friendshipRequestDto.getApproveStatus() == 1) {
+                createBidirectionalFriendship(fromId, toId, friendshipRequestDto.getRemark());
+                log.info("已建立双向好友关系 -> {} <-> {}", fromId, toId);
+            }
+
+            // 更新好友请求状态
+            imRelationshipFeign.updateFriendRequestStatus(friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus());
+
+            log.info("approveFriend() 完成 -> requestId={}, approveStatus={}, 耗时 {} ms",
+                    friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus(), System.currentTimeMillis() - start);
+            return Result.success("审批好友请求完成");
+        } catch (Exception ex) {
+            log.error("approveFriend() 处理失败 -> requestId={}, approveStatus={}, 耗时 {} ms",
+                    friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus(), System.currentTimeMillis() - start, ex);
+            return Result.failed("审批好友请求失败");
+        }
+    }
+
+    @Override
+    public Result delFriend(FriendDto friendDto) {
+        long start = System.currentTimeMillis();
+        log.debug("delFriend() 开始 -> fromId={}, toId={}", friendDto.getFromId(), friendDto.getToId());
+
+        try {
+            String fromId = friendDto.getFromId();
+            String toId = friendDto.getToId();
+
+            // 删除好友关系
+            imRelationshipFeign.deleteFriendship(fromId, toId);
+            log.info("已删除好友关系 -> {} -> {}", fromId, toId);
+
+            log.info("delFriend() 完成 -> fromId={}, toId={}, 耗时 {} ms",
+                    friendDto.getFromId(), friendDto.getToId(), System.currentTimeMillis() - start);
+            return Result.success();
+        } catch (Exception ex) {
+            log.error("delFriend() 处理失败 -> fromId={}, toId={}, 耗时 {} ms",
+                    friendDto.getFromId(), friendDto.getToId(), System.currentTimeMillis() - start, ex);
+            return Result.failed("删除好友失败");
+        }
+    }
+
+    /**
+     * 批量查询用户信息
+     */
+    private List<ImUserDataPo> batchQueryUsers(List<String> ids) {
+        List<ImUserDataPo> userDataAll = new ArrayList<>();
+        for (int i = 0; i < ids.size(); i += BATCH_SIZE) {
+            int end = Math.min(i + BATCH_SIZE, ids.size());
+            List<String> batch = ids.subList(i, end);
+            try {
+                List<ImUserDataPo> part = imUserFeign.getUserByIds(batch);
+                if (part != null && !part.isEmpty()) {
+                    userDataAll.addAll(part);
+                } else {
+                    log.debug("分片查询没有返回数据 -> batchSize={}, startIndex={}", batch.size(), i);
+                }
+            } catch (Exception ex) {
+                log.error("分片查询用户失败 -> startIndex={}, batchSize={}", i, batch.size(), ex);
+            }
+        }
+        return userDataAll;
+    }
+
+    /**
+     * 构建好友VO列表
+     */
+    private List<FriendVo> buildFriendVoList(List<ImFriendshipPo> friendships, Map<String, ImUserDataPo> userMap, String ownerId) {
+        return friendships.stream()
+                .map(friendship -> {
+                    ImUserDataPo user = userMap.get(friendship.getToId());
+                    if (Objects.isNull(user)) {
+                        log.warn("找不到好友对应的用户数据 -> ownerId={}, friendToId={}", ownerId, friendship.getToId());
+                        return null;
+                    }
+
+                    FriendVo vo = new FriendVo();
+                    BeanUtils.copyProperties(user, vo);
+                    vo.setUserId(ownerId)
+                            .setFriendId(user.getUserId())
+                            .setBlack(friendship.getBlack())
+                            .setAlias(friendship.getRemark())
+                            .setSequence(friendship.getSequence());
+
+                    return vo;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 构建好友请求VO列表
+     */
+    private List<FriendshipRequestVo> buildFriendshipRequestVoList(List<ImFriendshipRequestPo> requests, Map<String, ImUserDataPo> userDataMap) {
+        return requests.stream()
+                .map(req -> {
+                    FriendshipRequestVo vo = new FriendshipRequestVo();
+                    BeanUtils.copyProperties(req, vo);
+
+                    ImUserDataPo userData = userDataMap.get(req.getFromId());
+                    if (Objects.nonNull(userData)) {
+                        vo.setName(userData.getName());
+                        vo.setAvatar(userData.getAvatar());
+                    } else {
+                        log.warn("无法找到请求者用户数据 -> fromId={}, requestId={}", req.getFromId(), req.getId());
+                    }
+
+                    return vo;
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 获取好友关系映射
+     */
+    private Map<String, ImFriendshipPo> getFriendshipMap(String ownerId, List<String> userIds) {
+        Map<String, ImFriendshipPo> relMap = new HashMap<>();
+        try {
+            List<ImFriendshipPo> rels = imRelationshipFeign.shipList(ownerId, userIds);
+            if (rels != null) {
+                for (ImFriendshipPo r : rels) {
+                    if (r != null && r.getToId() != null) {
+                        relMap.put(r.getToId(), r);
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            log.warn("批量查询好友关系失败，将使用单条查询. ownerId={}, userIdsCount={}", ownerId, userIds.size(), ex);
+        }
+
+        // 对缺失的 userId 使用单条查询补齐
+        List<String> missingIds = userIds.stream().filter(id -> !relMap.containsKey(id)).toList();
+        if (!missingIds.isEmpty()) {
+            for (String fid : missingIds) {
+                try {
+                    ImFriendshipPo singleRel = imRelationshipFeign.getOne(ownerId, fid);
+                    if (singleRel != null) relMap.put(fid, singleRel);
+                } catch (Exception ex) {
+                    log.debug("查询单个好友关系失败 ownerId={} friendId={}", ownerId, fid, ex);
+                }
+            }
+        }
+
+        return relMap;
+    }
+
+    /**
+     * 构建好友VO列表（用于搜索结果）
+     */
+    private List<FriendVo> buildFriendVoLists(List<ImUserDataPo> users, Map<String, ImFriendshipPo> relMap, String ownerId) {
+        return users.stream()
+                .map(u -> {
+                    FriendVo vo = new FriendVo();
+                    BeanUtils.copyProperties(u, vo);
+                    vo.setUserId(ownerId);
+                    vo.setFriendId(u.getUserId());
+
+                    ImFriendshipPo rel = relMap.get(u.getUserId());
+                    if (rel != null) {
+                        vo.setFlag(1);
+                        Optional.ofNullable(rel.getBlack()).ifPresent(vo::setBlack);
+                        Optional.ofNullable(rel.getRemark()).ifPresent(vo::setAlias);
+                        Optional.ofNullable(rel.getSequence()).ifPresent(vo::setSequence);
+                    } else {
+                        vo.setFlag(2);
+                    }
+
+                    return vo;
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 创建好友请求对象
+     */
+    private ImFriendshipRequestPo createFriendRequest(FriendRequestDto dto) {
+        ImFriendshipRequestPo request = new ImFriendshipRequestPo();
+        request.setId(UUID.randomUUID().toString());
+        request.setFromId(dto.getFromId());
+        request.setToId(dto.getToId());
+        request.setMessage(dto.getMessage());
+        request.setApproveStatus(0);
+        request.setReadStatus(0);
+        request.setDelFlag(1);
+        request.setRemark(dto.getRemark());
+        request.setUpdateTime(System.currentTimeMillis());
+        request.setCreateTime(System.currentTimeMillis());
+        return request;
+    }
+
+    /**
+     * 更新已存在的请求
+     */
+    private void updateExistingRequest(ImFriendshipRequestPo existing, FriendRequestDto dto) {
+        existing.setMessage(dto.getMessage());
+        existing.setRemark(dto.getRemark());
+        existing.setUpdateTime(System.currentTimeMillis());
+    }
+
+    /**
+     * 创建双向好友关系
+     */
+    private void createBidirectionalFriendship(String fromId, String toId, String remark) {
+        // 创建fromId到toId的好友关系
+        ImFriendshipPo friendship1 = new ImFriendshipPo();
+        friendship1.setOwnerId(fromId);
+        friendship1.setToId(toId);
+        friendship1.setRemark(remark);
+        friendship1.setStatus(1);
+        friendship1.setBlack(1);
+        friendship1.setSequence(System.currentTimeMillis());
+        friendship1.setCreateTime(System.currentTimeMillis());
+
+        // 创建toId到fromId的好友关系
+        ImFriendshipPo friendship2 = new ImFriendshipPo();
+        friendship2.setOwnerId(toId);
+        friendship2.setToId(fromId);
+        friendship2.setRemark("");
+        friendship2.setStatus(1);
+        friendship2.setBlack(1);
+        friendship2.setSequence(System.currentTimeMillis());
+        friendship2.setCreateTime(System.currentTimeMillis());
+
+        imRelationshipFeign.createFriendship(friendship1);
+        imRelationshipFeign.createFriendship(friendship2);
+    }
+
+    /**
+     * 判断集合是否为空
+     */
+    private boolean isEmpty(Collection<?> collection) {
+        return collection == null || collection.isEmpty();
+    }
 }
-
-
-
-
-

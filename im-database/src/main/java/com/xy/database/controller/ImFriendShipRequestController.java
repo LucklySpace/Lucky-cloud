@@ -7,10 +7,7 @@ import com.xy.domain.po.ImFriendshipRequestPo;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -33,5 +30,16 @@ public class ImFriendShipRequestController {
     @GetMapping("/list")
     public List<ImFriendshipRequestPo> list(@RequestParam("userId") String userId) {
         return imFriendshipRequestService.list(userId);
+    }
+
+    /**
+     * 获取好友请求
+     *
+     * @param requestPo 请求
+     * @return
+     */
+    @PostMapping("/getOne")
+    public ImFriendshipRequestPo getOne(@RequestBody ImFriendshipRequestPo requestPo) {
+        return imFriendshipRequestService.getOne(requestPo);
     }
 }

@@ -3,10 +3,9 @@ package com.xy.core.model;
 
 import com.xy.core.enums.IMessageType;
 import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.Accessors;
+import lombok.experimental.SuperBuilder;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -17,6 +16,7 @@ import java.io.Serializable;
  * @author dense
  */
 @Data
+@SuperBuilder
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor

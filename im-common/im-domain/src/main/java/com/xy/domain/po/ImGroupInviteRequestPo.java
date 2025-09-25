@@ -11,68 +11,79 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.io.Serializable;
 
 /**
- * @TableName im_friendship_request
+ * 群聊邀请请求
  */
 @Data
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName(value = "im_friendship_request")
-public class ImFriendshipRequestPo implements Serializable {
+@TableName(value = "im_group_invite_request")
+public class ImGroupInviteRequestPo implements Serializable {
 
-    @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 
     /**
-     * 请求ID
+     * 邀请请求ID
      */
-    @TableId(value = "id")
-    private String id;
+    @TableId(value = "request_id")
+    private String requestId;
 
     /**
-     * 请求发起者
+     * 群组ID
+     */
+    @TableField(value = "group_id")
+    private String groupId;
+
+    /**
+     * 邀请发起者用户ID
      */
     @TableField(value = "from_id")
     private String fromId;
 
     /**
-     * 请求接收者
+     * 被邀请者用户ID
      */
     @TableField(value = "to_id")
     private String toId;
 
     /**
-     * 备注
+     * 验证者用户ID（群主或管理员）
      */
-    @TableField(value = "remark")
-    private String remark;
+    @TableField(value = "verifier_id")
+    private String verifierId;
 
     /**
-     * 是否已读（1已读）
+     * 群主或管理员验证 （0:待处理, 1:同意, 2:拒绝）
      */
-    @TableField(value = "read_status")
-    private Integer readStatus;
+    @TableField(value = "verifier_status")
+    private Integer verifierStatus;
 
     /**
-     * 好友来源
-     */
-    @TableField(value = "add_source")
-    private String addSource;
-
-    /**
-     * 好友验证信息
+     * 邀请验证信息
      */
     @TableField(value = "message")
     private String message;
 
     /**
-     * 审批状态（0未审批，1同意，2拒绝）
+     * 被邀请人状态（0:待处理, 1:同意, 2:拒绝）
      */
     @TableField(value = "approve_status")
     private Integer approveStatus;
 
     /**
-     * 创建时间
+     * 邀请来源（如二维码、成员邀请等）
+     */
+    @TableField(value = "add_source")
+    private String addSource;
+
+    /**
+     * 邀请过期时间（Unix时间戳）
+     */
+    @TableField(value = "expire_time")
+    private Long expireTime;
+
+    /**
+     * 创建时间（Unix时间戳）
      */
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
@@ -80,7 +91,7 @@ public class ImFriendshipRequestPo implements Serializable {
     private Long createTime;
 
     /**
-     * 更新时间
+     * 更新时间（Unix时间戳）
      */
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
@@ -88,18 +99,15 @@ public class ImFriendshipRequestPo implements Serializable {
     private Long updateTime;
 
     /**
-     * 序列号
-     */
-    @TableField(value = "sequence")
-    private Long sequence;
-
-    /**
-     * 删除标识（1正常，0删除）
+     * 删除标识（1:正常, 0:删除）
      */
     @TableLogic(value = "1", delval = "0")
     @TableField(value = "del_flag")
     private Integer delFlag;
 
+    /**
+     * 版本信息（用于乐观锁）
+     */
     @Version
-    private Integer version;
+    private Long version;
 }

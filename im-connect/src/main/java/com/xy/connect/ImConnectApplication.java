@@ -7,7 +7,8 @@ import com.xy.connect.utils.MachineCodeUtils;
 import com.xy.spring.XSpringApplication;
 import com.xy.spring.annotations.SpringApplication;
 import com.xy.spring.annotations.aop.EnableAop;
-import com.xy.spring.utils.YamlConfigLoader;
+import com.xy.spring.context.ApplicationContext;
+import com.xy.spring.core.ApplicationConfigLoader;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j(topic = LogConstant.Main)
@@ -27,6 +28,7 @@ public class ImConnectApplication {
         // 日志系统初始化
         initializeLogger();
 
+        // 启动Spring
         XSpringApplication.run(ImConnectApplication.class, args);
 
         log.info("IM连接服务启动成功，监听地址：{}", IPAddressUtil.getLocalIp4Address());
@@ -57,7 +59,7 @@ public class ImConnectApplication {
 
         log.info("获取机器码 ：{}", brokerId);
 
-        YamlConfigLoader.put("brokerId", brokerId);
+        ApplicationConfigLoader.put("brokerId", brokerId);
     }
 
 }

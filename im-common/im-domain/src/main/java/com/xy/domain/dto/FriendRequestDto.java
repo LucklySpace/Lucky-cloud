@@ -11,8 +11,9 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-
 public class FriendRequestDto {
+
+    private String id;
 
     private String fromId;
 
@@ -21,4 +22,6 @@ public class FriendRequestDto {
     private String remark;
 
     private String message;
+
+    private Integer approveStatus;
 }

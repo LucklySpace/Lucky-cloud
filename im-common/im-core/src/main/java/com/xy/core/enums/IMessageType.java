@@ -11,10 +11,20 @@ public enum IMessageType {
     SINGLE_MESSAGE(1003, "私聊消息"),
     GROUP_MESSAGE(1004, "群发消息"),
     VIDEO_MESSAGE(1005, "视频通话"),
+    AUDIO_MESSAGE(1006, "音频通话"),
 
-    ROBOT(1006, "机器人"),
 
-    PUBLIC(1007, "公众号");
+    CREATE_GROUP(1500, "创建群聊"),
+    GROUP_INVITE(1501, "群聊邀请"),
+
+
+    ROBOT(2000, "机器人"),
+    PUBLIC(2001, "公众号"),
+
+    MESSAGE_STATUS_UPDATE(3000, "消息状态更新"),
+
+
+            ;
 
     private Integer code;
 

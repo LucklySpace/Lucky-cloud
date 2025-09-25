@@ -18,6 +18,8 @@ public class IMessageWrap<T> implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
+    private String messageId;
+
     private Integer code;
 
     private List<String> ids;

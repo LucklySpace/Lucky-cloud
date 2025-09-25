@@ -17,7 +17,7 @@ import java.text.SimpleDateFormat;
 import java.util.LinkedHashMap;
 
 /**
- * JSON 工具类，封装了 Jackson 的常用方法，提供类似 Fastjson 的使用体验
+ * JSON 工具类，封装了 Jackson 的常用方法
  */
 @Slf4j
 public class JsonUtil {
@@ -28,15 +28,15 @@ public class JsonUtil {
     private static final String STANDARD_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     static {
-        // 对象的所有字段全部列入序列化
+        //对象的所有字段全部列入序列化
         objectMapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
-        // 取消默认转换 timestamps 形式
+        //取消默认转换timestamps形式
         objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-        // 忽略空 Bean 转 json 的错误
+        //忽略空Bean转json的错误
         objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-        // 设置日期格式
+        //所有的日期格式都统一为以下的格式，即yyyy-MM-dd HH:mm:ss
         objectMapper.setDateFormat(new SimpleDateFormat(STANDARD_FORMAT));
-        // 忽略在 JSON 字符串中存在，但在 Java 对象中不存在对应属性的情况，防止错误
+        //忽略 在json字符串中存在，但在java对象中不存在对应属性的情况。防止错误
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 

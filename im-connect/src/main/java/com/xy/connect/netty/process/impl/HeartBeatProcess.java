@@ -37,7 +37,7 @@ public class HeartBeatProcess implements WebsocketProcess {
         Integer code = getRemaining(token) <= tokenExpired ? IMessageType.REFRESHTOKEN.getCode() : IMessageType.HEART_BEAT.getCode();
 
         // 响应ws
-        MessageUtils.send(ctx, sendInfo.setCode(code));
+        MessageUtils.send(ctx, sendInfo.setCode(code).setMessage("心跳成功"));
 
         //redisTemplate.expire(USER_CACHE_PREFIX + userId , heartBeatTime * 2);
 

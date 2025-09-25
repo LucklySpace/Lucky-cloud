@@ -6,8 +6,7 @@ import com.xy.domain.po.ImFriendshipRequestPo;
 import com.xy.domain.po.ImGroupPo;
 import com.xy.server.api.FeignRequestInterceptor;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -45,9 +44,69 @@ public interface ImRelationshipFeign {
      * @param friendId
      * @return
      */
-    @GetMapping("/friend/getOne")
+    @GetMapping("/friend/ship/getOne")
     ImFriendshipPo getOne(@RequestParam("ownerId") String ownerId, @RequestParam("friendId") String friendId);
 
+
+    @GetMapping("/friend/ship/list")
+    List<ImFriendshipPo> shipList(@RequestParam("ownerId") String ownerId, @RequestParam("ids") List<String> ids);
+
+    /**
+     * 请求好友列表
+     *
+     * @return
+     */
     @GetMapping("/friend/request/list")
     List<ImFriendshipRequestPo> newFriends(@RequestParam("userId") String userId);
+
+    /**
+     * 获取好友请求
+     *
+     * @param request
+     * @return
+     */
+    @PostMapping("/friend/request/getOne")
+    ImFriendshipRequestPo getRequestOne(@RequestBody ImFriendshipRequestPo request);
+
+    /**
+     * 添加好友请求
+     *
+     * @param request 好友请求信息
+     */
+    @PostMapping("/friend/request/add")
+    void addFriendRequest(@RequestBody ImFriendshipRequestPo request);
+
+    /**
+     * 更新好友请求状态
+     *
+     * @param request 好友请求信息
+     */
+    @PostMapping("/friend/request/update")
+    void updateFriendRequest(@RequestBody ImFriendshipRequestPo request);
+
+    /**
+     * 更新好友请求状态
+     *
+     * @param requestId 请求ID
+     * @param status    审批状态
+     */
+    @PutMapping("/friend/request/updateStatus")
+    void updateFriendRequestStatus(@RequestParam("requestId") String requestId, @RequestParam("status") Integer status);
+
+    /**
+     * 创建好友关系
+     *
+     * @param friendship 好友关系信息
+     */
+    @PostMapping("/friend/create")
+    void createFriendship(@RequestBody ImFriendshipPo friendship);
+
+    /**
+     * 删除好友关系
+     *
+     * @param ownerId  用户ID
+     * @param friendId 好友ID
+     */
+    @PostMapping("/friend/delete")
+    void deleteFriendship(@RequestParam("ownerId") String ownerId, @RequestParam("friendId") String friendId);
 }

@@ -1,5 +1,10 @@
 package com.xy.core.enums;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
 public enum IMessageReadStatus {
 
     UNREAD(0, "未读"),
@@ -24,19 +29,4 @@ public enum IMessageReadStatus {
         return null;
     }
 
-    public Integer getCode() {
-        return code;
-    }
-
-    public void setCode(Integer code) {
-        this.code = code;
-    }
-
-    public String getDesc() {
-        return desc;
-    }
-
-    public void setDesc(String desc) {
-        this.desc = desc;
-    }
 }

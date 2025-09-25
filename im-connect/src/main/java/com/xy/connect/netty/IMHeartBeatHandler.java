@@ -2,6 +2,7 @@ package com.xy.connect.netty;
 
 
 import com.xy.connect.channel.UserChannelMap;
+import com.xy.connect.config.LogConstant;
 import com.xy.connect.netty.process.impl.HeartBeatProcess;
 import com.xy.connect.redis.RedisTemplate;
 import com.xy.core.constants.IMConstant;
@@ -18,7 +19,7 @@ import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 
-@Slf4j(topic = "Netty")
+@Slf4j(topic = LogConstant.Netty)
 @Component
 @ChannelHandler.Sharable
 public class IMHeartBeatHandler extends SimpleChannelInboundHandler<IMConnectMessage<Object>> {
@@ -59,7 +60,7 @@ public class IMHeartBeatHandler extends SimpleChannelInboundHandler<IMConnectMes
         }
     }
 
-    private void handleIdleState(ChannelHandlerContext ctx) {
+    private void handleIdleState(ChannelHandlerContext ctx) throws Exception {
         final String channelId = ctx.channel().id().asLongText();
 
         if (log.isDebugEnabled()) {
@@ -97,7 +98,7 @@ public class IMHeartBeatHandler extends SimpleChannelInboundHandler<IMConnectMes
         return ctx.channel().attr(USER_ID_ATTR_KEY).get();
     }
 
-    private void asyncRedisDelete(final String key) {
+    private void asyncRedisDelete(final String key) throws Exception {
         if (key == null || key.isEmpty()) return;
         redisTemplate.del(key);
     }

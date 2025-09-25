@@ -1,5 +1,6 @@
 package com.xy.spring.context;
 
+
 import com.xy.spring.annotations.SpringApplication;
 import com.xy.spring.annotations.core.*;
 import com.xy.spring.annotations.event.EventListener;
@@ -17,8 +18,8 @@ import com.xy.spring.exception.TooMuchBeanException;
 import com.xy.spring.exception.handler.ExceptionHandler;
 import com.xy.spring.exception.handler.GlobalExceptionHandler;
 import com.xy.spring.factory.BeanFactory;
+import com.xy.spring.core.ApplicationConfigLoader;
 import com.xy.spring.utils.ClassUtils;
-import com.xy.spring.utils.YamlConfigLoader;
 import lombok.extern.slf4j.Slf4j;
 
 import java.beans.Introspector;
@@ -27,16 +28,20 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.stream.Collectors;
 
 /**
  * 精简版手写 Spring 容器（优化版）
- * - 引入反射元数据缓存（constructor/fields/postConstruct）
- * - 添加类型索引（typeIndex）以优化按类型查找
- * - 清理 creationLocks 防止无限增长
- * - 仅使用 earlySingletonFactories 作为早期引用机制，避免重复保存 earlySingletonObjects
  * <p>
- * 说明：保持与你原实现接口兼容（getBean/getEventPublisher/close 等）。
+ * 主要优化点（满足你的要求）：
+ * 1) 扫描阶段优先识别并注册所有 @Configuration 及其 @Bean 定义（第一遍）
+ * 2) 在后续初始化阶段尽早实例化这些 Configuration 类（使 factory bean 可用）
+ * 3) 在配置类实例化后，再实例化 BeanPostProcessor（包括那些由 @Bean 提供的 BPP）
+ * 4) 最后再做普通单例的预实例化（initSingletons），避免依赖注入缺失
+ * <p>
+ * 其它优化：
+ * - 反射元数据缓存（构造器、可注入字段、@PostConstruct 方法）
+ * - 类型索引 typeIndex（支持按类型查找，且避免重复项）
+ * - creationLocks 在创建结束后清理，避免 Map 无限制增长
  *
  * @param <T> 启动主类类型
  */
@@ -65,6 +70,7 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
     private final ExceptionHandler exceptionHandler = new GlobalExceptionHandler();
     // 事件发布
     private final ApplicationEventBus applicationEventBus = new ApplicationEventBus();
+
     // ------------------ 新增缓存/索引（性能优化点） ------------------
     // 反射元数据缓存，避免重复调用反射 API
     private final ConcurrentHashMap<Class<?>, Constructor<?>> constructorCache = new ConcurrentHashMap<>();
@@ -88,14 +94,32 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
                 r -> new Thread(r, "AppRunner")
         );
 
-        validateAnnotation();        // 校验启动注解
-        YamlConfigLoader.load();     // 加载配置
-        scanAndRegister();           // 扫描并注册 BeanDefinition（仅注册定义）
-        registerInternalBeans();       // 注册 内部 bean
-        instantiateAllBeanPostProcessors(); // 先实例化所有 BPP（重要：BPP 要尽早）
-        initSingletons();            // 预实例化所有非懒加载单例（会用到提前注册的 BPP）
-        registerEventListeners();    // 注册事件监听器（基于 bean）
-        runRunners(args);            // 提交 runners，只提交任务，不等待完成
+        // 1) 校验启动注解
+        validateAnnotation();
+
+        // 2) 加载配置
+        ApplicationConfigLoader.load();
+
+        // 3) 扫描并注册 BeanDefinition（分多步，以保证 Configuration 先被识别注册）
+        scanAndRegister();
+
+        // 4) 注册内部框架 bean（如 ApplicationEventBus、配置加载器）
+        registerInternalBeans();
+
+        // 5) **尽早实例化所有 Configuration 类实例**（使工厂 bean 可用，供后续 @Bean/依赖注入使用）
+        instantiateConfigClasses();
+
+        // 6) 实例化所有 BeanPostProcessor（这一步会实例化由 @Bean 方法提供的 BPP，因为配置类已可用）
+        instantiateAllBeanPostProcessors();
+
+        // 7) 预实例化所有非懒加载单例（普通 bean）
+        initSingletons();
+
+        // 8) 注册事件监听器（基于 bean）
+        registerEventListeners();
+
+        // 9) 提交 runners，只提交任务，不等待完成
+        runRunners(args);
 
         // 注册 JVM ShutdownHook，实现自动关闭（"自动 GC"）
         Runtime.getRuntime().addShutdownHook(new Thread(this::close, "AppContext-ShutdownHook"));
@@ -112,10 +136,18 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
         return (ApplicationEventPublisher) getBean(deriveBeanName(ApplicationEventPublisher.class));
     }
 
+//    /**
+//     * 获取配置加载器
+//     */
+//    public ApplicationConfigLoader getConfigLoader() {
+//        return ApplicationConfigLoader.getConfigLoader();
+//    }
+
     /**
-     * 注册内置 Bean
+     * 注册内置 Bean（例如 ApplicationEventBus, configLoader）
      */
     private void registerInternalBeans() {
+        // 通过 registerSingleton 把已实例化对象注册到 definitions 与 singletons
         registerSingleton(applicationEventBus);
     }
 
@@ -131,9 +163,12 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
     /**
      * 扫描并注册组件与配置类中的 @Bean
      * <p>
-     * 说明：
-     * - 这里仅注册 BeanDefinition（不实例化），以便我们可以在之后做元数据缓存与按需实例化。
-     * - 为避免 ForkJoinPool 干扰，使用串行 stream，若需要可使用可配置的并行池。
+     * 优化说明：
+     * - 第一遍优先注册所有 @Configuration（及其 @Bean 方法），并把配置类自身注册为单例定义（但不实例化）
+     * - 第二遍再注册所有普通组件（@Component/@Service）—— 若与 @Configuration/@Bean 冲突，保留先注册的定义（避免覆盖 factory bean）
+     * - 第三步注册框架性定义（例如 AsyncBeanPostProcessor 的 BeanDefinition）
+     * <p>
+     * 目的：保证 factory bean 的定义在普通组件之前被注册，随后我们会尽早实例化这些配置类。
      */
     private void scanAndRegister() {
         try {
@@ -142,13 +177,21 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
                     .orElse(startupClass.getPackageName());
             Set<Class<?>> classes = ClassUtils.scan(basePkg);
 
-            // 序列化处理，避免占用全局 ForkJoinPool（parallelStream 有时会影响其他并行任务）
-            classes.stream().forEach(cls -> {
-                registerComponentDefinition(cls);
-                registerConfigBeanDefinition(cls);
-            });
+            // 1) 第一遍：只处理 @Configuration（并注册配置类本身与其 @Bean 方法）
+            for (Class<?> cls : classes) {
+                if (cls.isAnnotationPresent(Configuration.class)) {
+                    registerConfigClassAndBeansFirstPass(cls);
+                }
+            }
 
-            // 如果启用异步支持，注册异步相关的后置处理器（只注册定义）
+            // 2) 第二遍：处理普通组件（@Component / @Service 等），但是不要覆盖已有定义
+            for (Class<?> cls : classes) {
+                if (!cls.isAnnotationPresent(Configuration.class)) {
+                    registerComponentDefinition(cls);
+                }
+            }
+
+            // 3) 第三步：注册框架/功能性的 BeanDefinition（例如 Async BPP 等）
             if (startupClass.isAnnotationPresent(EnableAsync.class)) {
                 registerAsyncBeanPostProcessor();
             }
@@ -156,7 +199,6 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
             throw new RuntimeException("扫描注册失败", e);
         }
     }
-
 
     /**
      * 注册异步相关的BeanPostProcessor（只注册定义）
@@ -176,9 +218,10 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
 
     /**
      * 手动注册一个已实例化的单例 Bean 到容器（支持依赖注入）
-     *
-     * @param instance 已实例化的对象
-     * @throws IllegalArgumentException 如果名称冲突或类型不匹配
+     * <p>
+     * 说明：
+     * - 该方法会把实例放入 singletons，并在 definitions 中注册对应的 BeanDefinition（如果不存在）
+     * - 对已存在的同名 singletons 会抛异常（可根据需求改为覆盖）
      */
     public void registerSingleton(Object instance) {
         if (closed) throw new IllegalStateException("ApplicationContext 已关闭");
@@ -194,7 +237,6 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
             throw new IllegalArgumentException("Bean 名称 [" + name + "] 已存在，无法重复注册");
         }
 
-
         if (existingDef != null && !existingDef.getType().isInstance(instance)) {
             throw new IllegalArgumentException("实例类型 [" + instance.getClass().getName() + "] 与现有定义不匹配: " + existingDef.getType().getName());
         }
@@ -209,6 +251,7 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
                     .setScope(SINGLETON)
                     .setProxyType(ProxyType.NONE);  // 默认无代理，可扩展
             definitions.put(name, def);
+            indexBeanType(def.getType(), name);
 
             // 2. 可选：应用前置处理（如果需要增强）
             Object processed = applyPostProcessBeforeInitialization(instance, name, def);
@@ -237,11 +280,67 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
     }
 
     /**
-     * 将 @Component / @Service 转为 BeanDefinition（不立即实例化）
+     * 注册配置类及其 @Bean 方法（第一遍，优先执行）
+     * <p>
+     * 要点：
+     * - 将配置类本身注册为 singleton（非懒），以便后续我们能够尽早实例化配置类
+     * - 将其 @Bean 方法注册为 BeanDefinition（工厂方法模式），并且把 factoryBeanClass 设置为配置类（cfgClass）
+     * - 注意：此阶段只注册定义，不做实例化
+     */
+    private void registerConfigClassAndBeansFirstPass(Class<?> cfgClass) {
+        // 配置类本身的 beanName（例如 myConfig -> myConfig）
+        String cfgName = deriveBeanName(cfgClass);
+        // 如果已经注册过，不覆盖（避免重复）
+        if (!definitions.containsKey(cfgName)) {
+            BeanDefinition cfgDef = new BeanDefinition()
+                    .setType(cfgClass)
+                    .setName(cfgName)
+                    .setFullName(cfgClass.getName())
+                    .setLazy(false)                 // 强制非懒，保证配置类尽早可用
+                    .setScope(SINGLETON)           // 配置类通常为单例
+                    .setProxyType(ProxyType.NONE);
+            definitions.put(cfgName, cfgDef);
+            indexBeanType(cfgClass, cfgName);
+        }
+
+        // 注册 @Bean 方法（工厂方法） —— 重要：不要在这里实例化配置类，仅注册定义
+        for (Method m : cfgClass.getDeclaredMethods()) {
+            if (!m.isAnnotationPresent(Bean.class)) continue;
+            String name = Optional.of(m.getAnnotation(Bean.class).value())
+                    .filter(v -> !v.isEmpty())
+                    .orElse(m.getName());
+            // 如果已有同名定义，则跳过或记录冲突（避免覆盖）
+            if (definitions.containsKey(name)) {
+                log.warn("Bean 名称冲突：配置类 {} 的 @Bean 方法 {} 名称 {} 已存在，跳过注册", cfgClass.getName(), m.getName(), name);
+                continue;
+            }
+            BeanDefinition def = new BeanDefinition()
+                    .setType(m.getReturnType())
+                    .setName(name)
+                    .setFullName(m.getReturnType().getName())
+                    .setLazy(m.isAnnotationPresent(Lazy.class))     // @Bean 可声明 lazy
+                    .setScope(determineScope(m.getReturnType()))
+                    .setFactoryMethod(m)
+                    .setFactoryBeanClass(cfgClass)                   // 关键：记录 factoryBeanClass 为配置类类型
+                    .setProxyType(ProxyType.NONE);
+            definitions.put(name, def);
+            indexBeanType(def.getType(), name);
+        }
+    }
+
+    /**
+     * 优化版的 registerComponentDefinition（保持原语义）
+     * 注意：此处不会覆盖已由 @Configuration/@Bean 注册过的同名定义，避免覆盖 factory bean
      */
     private void registerComponentDefinition(Class<?> cls) {
         if (!cls.isAnnotationPresent(Component.class) && !cls.isAnnotationPresent(Service.class)) return;
         String name = deriveBeanName(cls);
+        // 如果该名称已经被配置类或 @Bean 方法占用，就不要覆盖它
+        if (definitions.containsKey(name)) {
+            // 可记录日志以便调试配置冲突
+            log.debug("组件 {} 的名称 {} 已由其他定义占用，跳过（避免覆盖 factory bean）", cls.getName(), name);
+            return;
+        }
         BeanDefinition def = new BeanDefinition()
                 .setType(cls)
                 .setName(name)
@@ -256,51 +355,18 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
     }
 
     /**
-     * 将 @Configuration 中的 @Bean 注册为 BeanDefinition（不立即实例化配置类里的 bean）
-     */
-    private void registerConfigBeanDefinition(Class<?> cls) {
-        if (!cls.isAnnotationPresent(Configuration.class)) return;
-        // 配置类本身作为一个普通 bean 定义（如果尚未注册）
-        String cfgName = deriveBeanName(cls);
-        if (!definitions.containsKey(cfgName)) {
-            BeanDefinition cfgDef = new BeanDefinition()
-                    .setType(cls)
-                    .setName(cfgName)
-                    .setFullName(cls.getName())
-                    .setLazy(false)
-                    .setScope(SINGLETON)
-                    .setProxyType(ProxyType.NONE);
-            definitions.put(cfgName, cfgDef);
-            indexBeanType(cfgDef.getType(), cfgName);
-        }
-
-        // 注册其 @Bean 方法为 BeanDefinition（工厂方法模式）
-        for (Method m : cls.getDeclaredMethods()) {
-            if (!m.isAnnotationPresent(Bean.class)) continue;
-            String name = Optional.of(m.getAnnotation(Bean.class).value())
-                    .filter(v -> !v.isEmpty())
-                    .orElse(m.getName());
-            BeanDefinition def = new BeanDefinition()
-                    .setType(m.getReturnType())
-                    .setName(name)
-                    .setFullName(m.getReturnType().getName())
-                    .setLazy(m.isAnnotationPresent(Lazy.class))
-                    .setScope(determineScope(m.getReturnType()))
-                    .setFactoryMethod(m)
-                    .setFactoryBeanClass(cls)
-                    .setProxyType(ProxyType.NONE);
-            definitions.put(name, def);
-            indexBeanType(def.getType(), name);
-        }
-    }
-
-    /**
      * 根据注解或类名生成 Bean 名称
      */
     private String deriveBeanName(Class<?> cls) {
+        // 优先检查 Component/Service/Configuration 注解的 value
         String val = Optional.ofNullable(cls.getAnnotation(Component.class)).map(Component::value)
                 .filter(v -> !v.isEmpty())
                 .orElse(Optional.ofNullable(cls.getAnnotation(Service.class)).map(Service::value).orElse(""));
+
+        if (val.isEmpty()) {
+            val = Optional.ofNullable(cls.getAnnotation(Configuration.class)).map(Configuration::value).orElse("");
+        }
+
         return val.isEmpty() ? Introspector.decapitalize(cls.getSimpleName()) : val;
     }
 
@@ -315,9 +381,33 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
     }
 
     /**
+     * 实例化所有配置类（Configuration）—— 尽早执行
+     * <p>
+     * 目的：
+     * - 确保配置类实例先被创建（包括 @Autowired 注入、@PostConstruct）
+     * - 使得配置类里的 @Bean 方法在后续实例化阶段可以被安全调用（比如创建其它依赖）
+     */
+    private void instantiateConfigClasses() {
+        // 收集所有被标记为 Configuration 的定义名
+        List<String> cfgNames = definitions.entrySet().stream()
+                .filter(e -> e.getValue().getType().isAnnotationPresent(Configuration.class))
+                .map(Map.Entry::getKey)
+                .toList();
+
+        for (String cfgName : cfgNames) {
+            try {
+                // 使用 getBean 来创建并初始化配置类单例（如果尚未创建）
+                getBean(cfgName);
+            } catch (Exception e) {
+                // 配置类实例化失败通常会导致严重后果，记录并继续尝试其他配置类
+                log.warn("配置类实例化失败: " + cfgName, e);
+            }
+        }
+    }
+
+    /**
      * 预实例化 (non-lazy) 单例 Bean（会触发创建逻辑）
      * <p>
-     * 注意：实例化过程中可以安全使用早期引用工厂，且我们已在 instantiateAllBeanPostProcessors 提前准备好 BPP。
      * 逐个串行创建，避免过度并发导致复杂的竞态与循环依赖问题。
      */
     private void initSingletons() {
@@ -325,6 +415,8 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
         for (Map.Entry<String, BeanDefinition> entry : definitions.entrySet()) {
             String name = entry.getKey();
             BeanDefinition def = entry.getValue();
+            // 跳过已经存在于 singletons 的（例如配置类、手动注册的单例）
+            if (singletons.containsKey(name)) continue;
             if (SINGLETON.equals(def.getScope()) && !def.isLazy()) {
                 try {
                     getBean(name);
@@ -338,6 +430,8 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
 
     /**
      * 先实例化所有 BeanPostProcessor 类型的 bean（确保它们在普通 bean 创建前可用）
+     * <p>
+     * 注意：配置类已实例化（instantiateConfigClasses），因此若有 BPP 是由 @Bean 提供，这里会正确创建并加入到 postProcessors 列表中。
      */
     private void instantiateAllBeanPostProcessors() {
         // 找到所有实现 BeanPostProcessor 的定义（仅收集名称，不在此刻并行实例化）
@@ -360,7 +454,6 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
 
     /**
      * 注册标注了 @EventListener 的 bean 为事件监听器
-     * 注：在扫描阶段已经把 BeanDefinition 注册好，这里实例化并注册具体的 listener 对象。
      */
     private void registerEventListeners() {
         for (Map.Entry<String, BeanDefinition> e : definitions.entrySet()) {
@@ -397,7 +490,6 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
 
     /**
      * getBean by name + type（修复版）
-     * 返回 bean 并做类型校验
      */
     @Override
     public Object getBean(String beanName, Class type) {
@@ -421,7 +513,7 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
             // fallback: 全表扫描（保持兼容）
             List<Map.Entry<String, BeanDefinition>> matches = definitions.entrySet().stream()
                     .filter(e -> type.isAssignableFrom(e.getValue().getType()))
-                    .collect(Collectors.toList());
+                    .toList();
             if (matches.isEmpty()) throw new NoSuchBeanException();
             if (matches.size() > 1) throw new TooMuchBeanException();
             return getBean(matches.get(0).getKey());
@@ -555,7 +647,7 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
 
     private Object instantiateBean(BeanDefinition def) throws Exception {
         if (def.hasFactoryMethod()) {
-            // 若是配置类的 @Bean，先确保 factory bean 实例化
+            // 若是配置类的 @Bean，先确保 factory bean 实例化（factoryBeanClass 指向配置类）
             Object factoryBean = null;
             if (def.getFactoryBeanClass() != null) {
                 // factoryBean name derive from class
@@ -709,7 +801,7 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
                 Value valAnno = f.getAnnotation(Value.class);
                 String expr = valAnno.value();
                 try {
-                    Object val = YamlConfigLoader.get(expr, f);
+                    Object val = ApplicationConfigLoader.get(expr, f);
                     f.set(bean, val);
                 } catch (Exception e) {
                     throw new RuntimeException("注入 @Value 字段失败: " + f + " expr=" + expr + " -> " + e.getMessage(), e);
@@ -847,34 +939,30 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
     }
 
     /**
-     * 把某个 bean 的类型加入 typeIndex（同时索引接口与父类，便于按类型查找）
+     * 把某个 bean 的类型加入 typeIndex（同时索引接口与父类）
+     * 使用去重逻辑，避免重复项
      */
     private void indexBeanType(Class<?> type, String beanName) {
-        // index concrete type
+        // concrete type
         typeIndex.compute(type, (k, v) -> {
-            if (v == null) {
-                List<String> lst = new ArrayList<>(1);
-                lst.add(beanName);
-                return lst;
-            } else {
-                v.add(beanName);
-                return v;
-            }
+            if (v == null) return new ArrayList<>(List.of(beanName));
+            if (!v.contains(beanName)) v.add(beanName);
+            return v;
         });
-        // index interfaces
+        // interfaces
         for (Class<?> itf : type.getInterfaces()) {
             typeIndex.compute(itf, (k, v) -> {
                 if (v == null) return new ArrayList<>(List.of(beanName));
-                v.add(beanName);
+                if (!v.contains(beanName)) v.add(beanName);
                 return v;
             });
         }
-        // index superclass (非 Object)
+        // superclass
         Class<?> sup = type.getSuperclass();
         if (sup != null && sup != Object.class) {
             typeIndex.compute(sup, (k, v) -> {
                 if (v == null) return new ArrayList<>(List.of(beanName));
-                v.add(beanName);
+                if (!v.contains(beanName)) v.add(beanName);
                 return v;
             });
         }

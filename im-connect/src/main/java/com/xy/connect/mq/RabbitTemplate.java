@@ -24,6 +24,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Component
 public class RabbitTemplate {
 
+    // 状态
+    private final AtomicBoolean running = new AtomicBoolean(false);
     // -------------------- 配置注入 --------------------
     @Value("${rabbitmq.address}")
     private String host;
@@ -37,30 +39,20 @@ public class RabbitTemplate {
     private String virtualHost;
     @Value("${brokerId}")
     private String queueName;
-
     @Value("${rabbitmq.exchange:im.exchange}")
     private String exchangeName;
-
     @Value("${rabbitmq.routingKeyPrefix:im.router.}")
     private String routingKeyPrefix;
-
     @Value("${rabbitmq.errorQueue:error.queue}")
     private String errorQueue;
-
     @Value("${rabbitmq.prefetch:50}")
     private Integer prefetch = 50;
-
-
     private ConnectionFactory factory;
     private Connection connection;
     // 用于消费（ack/nack）
     private volatile Channel consumerChannel;
     // 用于发送错误消息等
     private volatile Channel publishChannel;
-
-    // 状态
-    private final AtomicBoolean running = new AtomicBoolean(false);
-
     @Autowired
     private ApplicationEventBus applicationEventBus;
 

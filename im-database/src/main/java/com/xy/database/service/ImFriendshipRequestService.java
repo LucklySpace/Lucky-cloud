@@ -14,4 +14,6 @@ public interface ImFriendshipRequestService extends IService<ImFriendshipRequest
 
     List<ImFriendshipRequestPo> list(String userId);
 
+    ImFriendshipRequestPo getOne(ImFriendshipRequestPo requestPo);
+
 }

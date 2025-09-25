@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/{version}/message/group")
+@RequestMapping("/api/{version}/group")
 @Tag(name = "group", description = "群聊")
 public class GroupChatController {
 
@@ -47,6 +47,14 @@ public class GroupChatController {
         return groupService.getGroupMembers(groupDto);
     }
 
+    @PostMapping("/approve")
+    @Operation(summary = "群聊邀请接受或拒绝", tags = {"group"}, description = "请使用此接口群聊邀请接受或拒绝")
+    @Parameters({
+            @Parameter(name = "groupInviteDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
+    })
+    public Result approveGroupInvite(@RequestBody GroupInviteDto groupInviteDto) {
+        return groupService.approveGroupInvite(groupInviteDto);
+    }
 
     @PostMapping("/info")
     @Operation(summary = "群信息", tags = {"group"}, description = "请使用此接口查询群信息")

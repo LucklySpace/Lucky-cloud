@@ -1,5 +1,8 @@
 package com.xy.core.enums;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Locale;
@@ -8,6 +11,8 @@ import java.util.Set;
 /**
  * 文件类型枚举：每个类型绑定一组后缀
  */
+@Getter
+@NoArgsConstructor
 public enum IMFileType {
     VIDEO("mp4", "mov", "avi", "wmv", "mkv", "mpeg", "flv", "webm"),
     MARKDOWN("md"),
@@ -18,7 +23,7 @@ public enum IMFileType {
     POWERPOINT("ppt", "pptx"),
     OTHER();  // 默认类型，无需后缀
 
-    private final Set<String> extensions;
+    private Set<String> extensions;
 
     IMFileType(String... exts) {
         this.extensions = new HashSet<>();

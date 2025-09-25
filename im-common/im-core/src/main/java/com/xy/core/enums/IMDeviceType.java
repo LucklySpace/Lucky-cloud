@@ -1,5 +1,10 @@
 package com.xy.core.enums;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
 public enum IMDeviceType {
 
     ANDROID("android"),
@@ -9,7 +14,7 @@ public enum IMDeviceType {
     WIN("win"),
     LINUX("linux");
 
-    private final String device;
+    private String device;
 
     IMDeviceType(String device) {
         this.device = device;

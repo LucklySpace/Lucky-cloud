@@ -8,10 +8,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.Accessors;
+import lombok.experimental.SuperBuilder;
 
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 抽象消息 DTO，定义通用属性
@@ -19,6 +21,7 @@ import java.util.List;
  * @author dense
  */
 @Data
+@SuperBuilder
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -101,6 +104,9 @@ public abstract class IMessageDto implements Serializable {
             @JsonSubTypes.Type(value = VideoMessageBody.class, name = "3"),// 视频消息
             @JsonSubTypes.Type(value = AudioMessageBody.class, name = "4"),// 语音消息
             @JsonSubTypes.Type(value = FileMessageBody.class, name = "5"),// 文件消息
+            @JsonSubTypes.Type(value = LocationMessageBody.class, name = "6"),// 位置消息
+            @JsonSubTypes.Type(value = ComplexMessageBody.class, name = "7"),// 混合消息
+            @JsonSubTypes.Type(value = GroupInviteMessageBody.class, name = "8"),// 群组邀请
             @JsonSubTypes.Type(value = SystemMessageBody.class, name = "10") // 系统消息
     })
     private MessageBody messageBody;
@@ -228,8 +234,63 @@ public abstract class IMessageDto implements Serializable {
     }
 
     /**
-     * 复杂消息体，支持文本、图片、视频的组合
+     * 群组邀请消息体
      */
+    @Getter
+    @Setter
+    @ToString(callSuper = true)
+    @Accessors(chain = true)
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class GroupInviteMessageBody extends MessageBody {
+
+        @NotBlank(message = "邀请ID不能为空")
+        private String requestId;
+
+        @NotBlank(message = "群组ID不能为空")
+        private String groupId;
+
+        @NotBlank(message = "群组名称不能为空")
+        private String groupName;
+
+        @NotBlank(message = "群组头像不能为空")
+        private String groupAvatar;
+
+        private String inviterId;
+
+        private String inviterName;
+
+        @NotBlank(message = "被邀请人不能为空")
+        private String userId;
+
+        private String userName;
+
+        @NotNull(message = "邀请状态不能为空")
+        // 1:待处理 2:已同意 3:已拒绝
+        private Integer approveStatus;
+    }
+
+    /**
+     * 位置消息体
+     */
+    @Getter
+    @Setter
+    @ToString(callSuper = true)
+    @Accessors(chain = true)
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LocationMessageBody extends MessageBody {
+        @NotBlank(message = "位置标题不能为空")
+        private String title;
+
+        @NotBlank(message = "位置地址不能为空")
+        private String address;
+
+        private Double latitude;
+
+        private Double longitude;
+    }
+
     @Getter
     @Setter
     @ToString(callSuper = true)
@@ -239,20 +300,32 @@ public abstract class IMessageDto implements Serializable {
     public static class ComplexMessageBody extends MessageBody {
 
         /**
-         * 可选文本文字
+         * 可选统一的 parts：数组的顺序即为消息内容的展示顺序
+         * 每个 Part.type 可为 "text"|"image"|"video"|"audio"|"file"|"location"|"invite" 等
          */
-        private String text;
+        @NotNull(message = "parts 不能为空，至少传空列表")
+        private List<Part> parts = Collections.emptyList();
 
-        /**
-         * 可选图片列表
-         */
-        @NotNull(message = "图片列表不能为空，请传空列表以表示无图片")
+        // 兼容字段（可选）：保留图片/视频列表供快速索引或旧代码使用
         private List<ImageMessageBody> images = Collections.emptyList();
-
-        /**
-         * 可选视频列表
-         */
-        @NotNull(message = "视频列表不能为空，请传空列表以表示无视频")
         private List<VideoMessageBody> videos = Collections.emptyList();
+
+        // 嵌套 Part 类
+        @Getter
+        @Setter
+        @ToString
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class Part implements Serializable {
+            /** 内容类型 */
+            @NotBlank
+            private String type; // e.g. "text", "image", "video", "location", "file"
+
+            /** 若文本类型，则放在 content.text；否则 content 可为对象（图片/视频信息） */
+            private Map<String, Object> content;
+
+            /** 可选元数据（例如 width/height/duration/alt 等）*/
+            private Map<String, Object> meta;
+        }
     }
 }

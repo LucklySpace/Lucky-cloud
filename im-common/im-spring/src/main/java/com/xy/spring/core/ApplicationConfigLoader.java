@@ -1,4 +1,4 @@
-package com.xy.spring.utils;
+package com.xy.spring.core;
 
 import com.xy.spring.context.ApplicationContext;
 import org.yaml.snakeyaml.Yaml;
@@ -20,19 +20,13 @@ import java.util.*;
  * 4. 提供手动覆写功能。
  * </p>
  */
-public class YamlConfigLoader {
+public class ApplicationConfigLoader {
 
     /**
      * 扁平化后配置项存储：
      * key: 配置路径（用 '.' 分隔），value: 原始值对象
      */
-    private static final Map<String, Object> properties = new LinkedHashMap<>();
-
-    /**
-     * 私有构造，禁止实例化
-     */
-    private YamlConfigLoader() {
-    }
+    private final static Map<String, Object> properties = new LinkedHashMap<>();
 
     /**
      * 加载并解析 application.yml
@@ -55,7 +49,7 @@ public class YamlConfigLoader {
      * 从 classpath 获取资源流
      */
     private static InputStream getResourceStream(String resourcePath) {
-        InputStream in = YamlConfigLoader.class.getClassLoader().getResourceAsStream(resourcePath);
+        InputStream in = ApplicationConfigLoader.class.getClassLoader().getResourceAsStream(resourcePath);
         if (in == null) {
             throw new RuntimeException("未找到资源文件: " + resourcePath);
         }
@@ -252,5 +246,137 @@ public class YamlConfigLoader {
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .toArray(String[]::new);
+    }
+
+    /**
+     * 获取字符串值
+     *
+     * @param key 配置项路径或占位符
+     * @return 字符串值
+     */
+    public static String getString(String key) {
+        return get(key, String.class);
+    }
+
+    /**
+     * 获取字符串值
+     *
+     * @param key          配置项路径或占位符
+     * @param defaultValue 默认值
+     * @return 字符串值，如果不存在则返回默认值
+     */
+    public static String getString(String key, String defaultValue) {
+        String value = get(key, String.class);
+        return value != null ? value : defaultValue;
+    }
+
+    /**
+     * 获取整型值
+     *
+     * @param key 配置项路径或占位符
+     * @return 整型值
+     */
+    public static Integer getInt(String key) {
+        return get(key, Integer.class);
+    }
+
+    /**
+     * 获取整型值
+     *
+     * @param key          配置项路径或占位符
+     * @param defaultValue 默认值
+     * @return 整型值，如果不存在则返回默认值
+     */
+    public static Integer getInt(String key, Integer defaultValue) {
+        Integer value = get(key, Integer.class);
+        return value != null ? value : defaultValue;
+    }
+
+    /**
+     * 获取长整型值
+     *
+     * @param key 配置项路径或占位符
+     * @return 长整型值
+     */
+    public static Long getLong(String key) {
+        return get(key, Long.class);
+    }
+
+    /**
+     * 获取长整型值
+     *
+     * @param key          配置项路径或占位符
+     * @param defaultValue 默认值
+     * @return 长整型值，如果不存在则返回默认值
+     */
+    public static Long getLong(String key, Long defaultValue) {
+        Long value = get(key, Long.class);
+        return value != null ? value : defaultValue;
+    }
+
+    /**
+     * 获取布尔值
+     *
+     * @param key 配置项路径或占位符
+     * @return 布尔值
+     */
+    public static Boolean getBool(String key) {
+        return get(key, Boolean.class);
+    }
+
+    /**
+     * 获取布尔值
+     *
+     * @param key          配置项路径或占位符
+     * @param defaultValue 默认值
+     * @return 布尔值，如果不存在则返回默认值
+     */
+    public static Boolean getBool(String key, Boolean defaultValue) {
+        Boolean value = get(key, Boolean.class);
+        return value != null ? value : defaultValue;
+    }
+
+    /**
+     * 获取List值
+     *
+     * @param key 配置项路径或占位符
+     * @return List值
+     */
+    public static List<Object> getList(String key) {
+        return get(key, List.class);
+    }
+
+    /**
+     * 获取List值
+     *
+     * @param key          配置项路径或占位符
+     * @param defaultValue 默认值
+     * @return List值，如果不存在则返回默认值
+     */
+    public static List<Object> getList(String key, List<Object> defaultValue) {
+        List<Object> value = get(key, List.class);
+        return value != null ? value : defaultValue;
+    }
+
+    /**
+     * 获取Map值
+     *
+     * @param key 配置项路径或占位符
+     * @return Map值
+     */
+    public static Map<String, Object> getMap(String key) {
+        return get(key, Map.class);
+    }
+
+    /**
+     * 获取Map值
+     *
+     * @param key          配置项路径或占位符
+     * @param defaultValue 默认值
+     * @return Map值，如果不存在则返回默认值
+     */
+    public static Map<String, Object> getMap(String key, Map<String, Object> defaultValue) {
+        Map<String, Object> value = get(key, Map.class);
+        return value != null ? value : defaultValue;
     }
 }

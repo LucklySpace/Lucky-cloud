@@ -27,6 +27,7 @@ public class FriendVo {
     // 是否拉黑 1正常 2拉黑
     private Integer black;
 
+    // 是否好友 1正常 2非好友
     private Integer flag;
 
     private String birthDay;

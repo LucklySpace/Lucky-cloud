@@ -3,6 +3,7 @@ package com.xy.connect.netty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.xy.connect.config.LogConstant;
 import com.xy.connect.domain.proto.ImConnectProto;
 import com.xy.core.constants.IMConstant;
 import com.xy.core.model.IMConnectMessage;
@@ -40,7 +41,7 @@ import java.util.concurrent.TimeUnit;
  * - 确保引用计数严格管理，防止泄漏。
  * - 恢复关键日志输出以便调试，同时避免性能敏感路径过多日志。
  */
-@Slf4j(topic = "Auth")
+@Slf4j(topic = LogConstant.Auth)
 @Component
 @ChannelHandler.Sharable
 public class AuthHandler extends ChannelInboundHandlerAdapter {
@@ -97,7 +98,6 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
             p.addLast("idle", new IdleStateHandler(0, 0, heartBeatTime, TimeUnit.MILLISECONDS));
             p.addLast("heartBeat", imHeartBeatHandler);
             p.addLast("login", imLoginHandler);
-            log.info("已为 channel 注入 IdleStateHandler 与 IMChannelHandler");
         }
         try {
             p.remove(this);
@@ -108,7 +108,6 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
 
 
     private void handleHttpHandshake(ChannelHandlerContext ctx, FullHttpRequest request) {
-        log.info("拦截到 HTTP 握手请求: {}", request.uri());
         String token = extractTokenFromHttpRequest(request);
         String userId = validateAndGetUserId(token);
         if (userId == null) {
@@ -117,7 +116,7 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
             ReferenceCountUtil.release(request);
             return;
         }
-        log.info("HTTP 握手鉴权成功 userId={}", userId);
+        log.info("拦截到 HTTP 握手请求: {} 鉴权成功 userId={}", request.uri(), userId);
         request.setUri("/im");
         ctx.channel().attr(USER_ID_ATTR_KEY).set(userId);
         ensurePostAuthPipeline(ctx);
@@ -178,7 +177,7 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
 
     // 公共验证方法：简化重复代码
     private String validateAndGetUserId(String token) {
-        if (StringUtils.isBlank(token) || !JwtUtil.validate(token)) {
+        if (StringUtils.isBlank(token)) {
             return null;
         }
         String userId = JwtUtil.getUsername(token);

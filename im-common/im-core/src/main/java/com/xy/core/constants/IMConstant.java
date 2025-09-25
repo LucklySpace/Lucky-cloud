@@ -6,6 +6,8 @@ package com.xy.core.constants;
  */
 public final class IMConstant {
 
+    public static final String SYSTEM = "000000";
+
     /**
      * HTTP 请求头中的授权字段
      */

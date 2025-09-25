@@ -1,5 +1,10 @@
 package com.xy.core.enums;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
 public enum IMessageSendStatus {
 
     SUCCESS(0, "成功"),
@@ -9,26 +14,11 @@ public enum IMessageSendStatus {
 
     private Integer code;
 
-    private String status;
+    private String desc;
 
     IMessageSendStatus(Integer index, String status) {
         this.code = index;
-        this.status = status;
+        this.desc = status;
     }
 
-    public Integer getCode() {
-        return code;
-    }
-
-    public void setCode(Integer code) {
-        this.code = code;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
 }

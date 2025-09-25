@@ -10,7 +10,6 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-@Configuration
 @ComponentScan
 public @interface SpringApplication {
     String value() default ""; // 支持传入 basePackage

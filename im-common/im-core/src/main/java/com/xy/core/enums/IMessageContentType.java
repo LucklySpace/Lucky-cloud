@@ -18,6 +18,10 @@ public enum IMessageContentType {
     FILE(5, "文件"),
     LOCAL(6, "位置"),
     COMPLEX(7, "混合"),
+    GROUP_INVITE(8, "群组邀请"),
+    GROUP_JOIN_APPROVE(9, "群组加入审批"),
+
+
     TIP(10, "系统提示"),
 
 
@@ -31,7 +35,7 @@ public enum IMessageContentType {
 
     private Integer code;
 
-    private String type;
+    private String desc;
 
     public static IMessageContentType getByCode(Integer code) {
         for (IMessageContentType v : values()) {

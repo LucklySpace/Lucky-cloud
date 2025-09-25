@@ -11,7 +11,7 @@
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
           <intProp name="LoopController.loops">-1</intProp>
         </elementProp>
-        <stringProp name="ThreadGroup.num_threads">10000</stringProp>
+        <stringProp name="ThreadGroup.num_threads">5000</stringProp>
         <stringProp name="ThreadGroup.ramp_time">5</stringProp>
         <boolProp name="ThreadGroup.scheduler">false</boolProp>
         <stringProp name="ThreadGroup.duration"></stringProp>
@@ -49,14 +49,15 @@
           <stringProp name="payloadType">Text</stringProp>
           <stringProp name="requestData">{
   &quot;code&quot;:&quot;1000&quot;,
-  &quot;token&quot;:&quot;${token}&quot;
+  &quot;token&quot;:&quot;${token}&quot;,
+  &quot;deviceType&quot;:&quot;desktop&quot;
 }</stringProp>
           <stringProp name="readTimeout">6000</stringProp>
           <boolProp name="loadDataFromFile">false</boolProp>
           <stringProp name="dataFile"></stringProp>
         </eu.luminis.jmeter.wssampler.RequestResponseWebSocketSampler>
         <hashTree/>
-        <WhileController guiclass="WhileControllerGui" testclass="WhileController" testname="While控制器"/>
+        <WhileController guiclass="WhileControllerGui" testclass="WhileController" testname="While控制器" enabled="false"/>
         <hashTree>
           <eu.luminis.jmeter.wssampler.RequestResponseWebSocketSampler guiclass="eu.luminis.jmeter.wssampler.RequestResponseWebSocketSamplerGui" testclass="eu.luminis.jmeter.wssampler.RequestResponseWebSocketSampler" testname="ws心跳">
             <boolProp name="createNewConnection">false</boolProp>

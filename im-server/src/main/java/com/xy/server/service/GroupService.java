@@ -18,4 +18,7 @@ public interface GroupService {
     Result inviteGroup(GroupInviteDto groupInviteDto);
 
     Result groupInfo(GroupDto groupDto);
+
+    Result approveGroupInvite(GroupInviteDto groupInviteDto);
+
 }

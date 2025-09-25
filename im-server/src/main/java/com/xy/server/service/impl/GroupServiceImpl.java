@@ -2,14 +2,14 @@ package com.xy.server.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.RandomUtil;
-import com.xy.core.enums.IMStatus;
-import com.xy.core.enums.IMemberStatus;
-import com.xy.core.enums.IMessageContentType;
-import com.xy.core.enums.IMessageType;
+import com.xy.core.constants.IMConstant;
+import com.xy.core.enums.*;
 import com.xy.core.model.IMGroupMessage;
+import com.xy.core.model.IMPrivateMessage;
 import com.xy.core.model.IMessageDto;
 import com.xy.domain.dto.GroupDto;
 import com.xy.domain.dto.GroupInviteDto;
+import com.xy.domain.po.ImGroupInviteRequestPo;
 import com.xy.domain.po.ImGroupMemberPo;
 import com.xy.domain.po.ImGroupPo;
 import com.xy.domain.po.ImUserDataPo;
@@ -155,13 +155,13 @@ public class GroupServiceImpl implements GroupService {
 
         Integer type = groupInviteDto.getType();
 
-        // 新建群聊
-        if (type.equals(IMessageType.SINGLE_MESSAGE.getCode())) {
+        // 创建群聊
+        if (type.equals(IMessageType.CREATE_GROUP.getCode())) {
             return createGroup(groupInviteDto);
         }
 
         // 邀请入群
-        if (type.equals(IMessageType.GROUP_MESSAGE.getCode())) {
+        if (type.equals(IMessageType.GROUP_INVITE.getCode())) {
             return groupInvite(groupInviteDto);
         }
 
@@ -224,7 +224,8 @@ public class GroupServiceImpl implements GroupService {
                 .setGroupType(1)
                 // 群名称
                 .setGroupName(groupName)
-                .setApplyJoinType(1)
+                // 群加入方式
+                .setApplyJoinType(ImGroupJoinStatus.FREE.getCode())
                 // 群头像
                 .setAvatar(generateGroupAvatar(groupId))
                 // 群状态
@@ -253,7 +254,7 @@ public class GroupServiceImpl implements GroupService {
     /**
      * 群聊邀请
      */
-    public Result<String> groupInvite(@NonNull GroupInviteDto dto) {
+    public Result groupInvite(@NonNull GroupInviteDto dto) {
 
         // 1. 确定群ID（允许新建群）
         String groupId = StringUtils.hasText(dto.getGroupId())
@@ -261,9 +262,9 @@ public class GroupServiceImpl implements GroupService {
                 : UUID.randomUUID().toString();
 
         // 邀请者id
-        String inviter = dto.getUserId();
+        String inviterId = dto.getUserId();
 
-        // 被邀请
+        // 被邀请者
         List<String> invitees = Optional.ofNullable(dto.getMemberIds())
                 .orElseGet(Collections::emptyList);
 
@@ -273,7 +274,7 @@ public class GroupServiceImpl implements GroupService {
                 .collect(Collectors.toSet());
 
         // 3. 校验邀请者必须已在群中
-        if (!existing.contains(inviter)) {
+        if (!existing.contains(inviterId)) {
             throw new GlobalException(ResultCode.FAIL, "用户不在该群组中，不可邀请新成员");
         }
 
@@ -283,35 +284,99 @@ public class GroupServiceImpl implements GroupService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        // 5. 如果有新成员则批量插入
-        if (!newMembers.isEmpty()) {
-            long now = DateTimeUtil.getCurrentUTCTimestamp();
-
-            List<ImGroupMemberPo> memberPos = newMembers.stream()
-                    .map(memberId -> buildMember(groupId, memberId, IMemberStatus.NORMAL, now))
-                    .collect(Collectors.toList());
-
-            boolean ok = imGroupFeign.groupMessageMemberBatchInsert(memberPos);
-            if (!ok) {
-                log.error("群成员插入失败，groupId={}, inviter={}, invitees={}", groupId, inviter, newMembers);
-                throw new GlobalException(ResultCode.FAIL, "新增群成员失败");
-            }
-            log.info("群成员插入成功，groupId={}, inviter={}, newMembers={}", groupId, inviter, newMembers);
+        if (newMembers.isEmpty()) {
+            // 没有需要邀请的新成员，直接返回
+            return Result.success(groupId);
         }
 
-        // 6. 更新群信息，小于10人换重设头像
-        if (existing.size() < 10) {
-            ImGroupPo update = new ImGroupPo()
-                    .setGroupId(groupId)
-                    .setAvatar(generateGroupAvatar(groupId));
+        // 5. 构建并保存邀请请求记录到数据库（ImGroupInviteRequestPo）
+        long now = DateTimeUtil.getCurrentUTCTimestamp();
+        long expireSeconds = 7L * 24 * 3600; // 默认 7 天过期（按秒）
+        long expireTime = now + expireSeconds;
 
-            boolean updated = imGroupFeign.updateById(update);
-            if (updated) {
-                log.info("群信息更新成功，groupId={}", groupId);
-            } else {
-                log.warn("群信息更新失败，groupId={}", groupId);
-            }
+        // 尝试查询群信息以确定 verifierId（默认群主）
+        ImGroupPo groupPo = imGroupFeign.getOneGroup(groupId);
+        String defaultVerifierId = null;
+        if (groupPo != null && StringUtils.hasText(groupPo.getOwnerId())) {
+            defaultVerifierId = groupPo.getOwnerId();
         }
+
+        List<ImGroupInviteRequestPo> inviteRequestPos = new ArrayList<>(newMembers.size());
+
+        for (String toId : newMembers) {
+
+            String requestId = imIdGeneratorFeign.getId(
+                    IdGeneratorConstant.uuid,
+                    IdGeneratorConstant.group_invite_id,
+                    String.class
+            );
+
+            ImGroupInviteRequestPo po = new ImGroupInviteRequestPo();
+            po.setRequestId(requestId);
+            po.setGroupId(groupId);
+            po.setFromId(inviterId);
+            po.setToId(toId);
+            po.setVerifierId(defaultVerifierId);
+            po.setVerifierStatus(0);       // 0: 待处理（群主/管理员）
+            po.setMessage(dto.getMessage()); // 邀请验证信息（可为空）
+            po.setApproveStatus(0);         // 0: 待被邀请人处理
+            po.setAddSource(dto.getAddSource());
+            po.setExpireTime(expireTime);
+            po.setCreateTime(now);
+            po.setDelFlag(1);
+            // version 字段由 DB/ORM 自动维护（不在此设置）
+            inviteRequestPos.add(po);
+        }
+
+        try {
+            Boolean dbOk = imGroupFeign.groupInviteSaveOrUpdateBatch(inviteRequestPos);
+
+            // 获取邀请者信息
+            ImUserDataPo inviterInfo = imUserFeign.getOne(inviterId);
+
+            for (ImGroupInviteRequestPo inviteRequestPo : inviteRequestPos) {
+                // 构造单聊消息对象
+                IMPrivateMessage privateMessage = IMPrivateMessage.builder()
+                        .messageTempId(UUID.randomUUID().toString())
+                        .fromId(inviteRequestPo.getFromId())
+                        .toId(inviteRequestPo.getToId())
+                        .messageContentType(8) // 群聊邀请消息类型
+                        .messageTime(DateTimeUtil.getCurrentUTCTimestamp())
+                        .messageType(IMessageType.SINGLE_MESSAGE.getCode())
+                        .build();
+
+                // 构造群聊邀请消息内容
+                IMessageDto.MessageBody messageBody = new IMessageDto.GroupInviteMessageBody()
+                        .setRequestId(inviteRequestPo.getRequestId())
+                        .setInviterId(inviteRequestPo.getFromId())
+                        .setGroupId(groupId)
+                        .setUserId(inviteRequestPo.getToId())
+                        .setGroupAvatar(groupPo != null ? groupPo.getAvatar() : "")
+                        .setGroupName(groupPo != null ? groupPo.getGroupName() : "默认群聊")
+                        .setInviterName(inviterInfo != null ? inviterInfo.getName() : "")
+                        .setApproveStatus(0) // 邀请状态 1-待处理
+                        ;
+
+
+                privateMessage.setMessageBody(messageBody);
+
+                // 发送单聊消息
+                messageService.sendPrivateMessage(privateMessage);
+            }
+
+            if (dbOk == null || !dbOk) {
+                log.error("保存邀请请求到 DB 失败, groupId={}, inviter={}, invitees={}", groupId, inviterId, newMembers);
+                return Result.failed("保存邀请请求失败");
+            }
+        } catch (Exception e) {
+            log.error("调用 imGroupFeign.groupInviteSaveOrUpdateBatch 异常, groupId={}, inviter={}, invitees={}", groupId, inviterId, newMembers, e);
+            return Result.failed("保存邀请请求异常");
+        }
+
+//        // 6. 保存成功后发送私聊邀请消息给被邀请人（保持原有行为）
+//        if (!newMembers.isEmpty()) {
+//            sendGroupInviteMessages(groupId, inviter, newMembers);
+//        }
 
         return Result.success(groupId);
     }
@@ -352,7 +417,7 @@ public class GroupServiceImpl implements GroupService {
     public IMGroupMessage systemMessage(String groupId, String message) {
         IMGroupMessage imGroupMessage = new IMGroupMessage();
         imGroupMessage.setGroupId(groupId)
-                .setFromId("000000") // 系统消息默认用户000000
+                .setFromId(IMConstant.SYSTEM) // 系统消息默认用户000000
                 .setMessageContentType(IMessageContentType.TIP.getCode()) // 系统消息
                 .setMessageBody(new IMessageDto.TextMessageBody().setText(message)); // 群聊邀请消息
         return imGroupMessage;
@@ -367,7 +432,7 @@ public class GroupServiceImpl implements GroupService {
      */
     @Override
     public Result<?> groupInfo(@NonNull GroupDto groupDto) {
-        return Result.success(imGroupFeign.getOne(groupDto.getGroupId()));
+        return Result.success(imGroupFeign.getOneGroup(groupDto.getGroupId()));
     }
 
     /**
@@ -391,4 +456,208 @@ public class GroupServiceImpl implements GroupService {
         return fileService.uploadFile(multipartFile).getPath();
     }
 
+    @Override
+    public Result approveGroupInvite(GroupInviteDto groupInviteDto) {
+
+        String groupId = groupInviteDto.getGroupId();
+        String userId = groupInviteDto.getUserId();
+        String inviterId = groupInviteDto.getInviterId();
+        Integer approveStatus = groupInviteDto.getApproveStatus();
+
+        if (!StringUtils.hasText(groupId) || !StringUtils.hasText(userId) || approveStatus == null) {
+            log.info("用户信息不完整，groupId={}, userId={}", groupId, userId);
+            return Result.success("信息不完整");
+        }
+
+        // 状态映射 0:待处理, 1:同意, 2:拒绝
+        if (Integer.valueOf(0).equals(approveStatus)) {
+            log.info("用户待处理群聊邀请，groupId={}, userId={}", groupId, userId);
+            return Result.success("待处理群聊邀请");
+        }
+        if (Integer.valueOf(2).equals(approveStatus)) {
+            log.info("用户拒绝群聊邀请，groupId={}, userId={}", groupId, userId);
+            return Result.success("已拒绝群聊邀请");
+        }
+
+        // --- 用户已同意邀请，进入后续流程 ---
+        ImGroupPo groupPo = imGroupFeign.getOneGroup(groupId);
+
+        if (Objects.isNull(groupPo)) {
+            log.info("群不存在, groupId={}", groupId);
+            return Result.success("群不存在");
+        }
+
+        // 1) 若群禁止加入 -> 直接返回
+        if (Objects.equals(groupPo.getApplyJoinType(), ImGroupJoinStatus.BAN.getCode())) {
+            log.info("群不允许加入，groupId={}, userId={}", groupId, userId);
+            return Result.success("群不允许加入");
+        }
+
+        // 2) 若群需要群主/管理员审核 -> 发送验证消息到群主/管理员
+        if (Objects.equals(groupPo.getApplyJoinType(), ImGroupJoinStatus.APPROVE.getCode())) {
+            try {
+                sendJoinApprovalRequestToAdmins(groupId, inviterId, userId, groupPo);
+                log.info("已向群主/管理员发送入群验证请求，groupId={}, userId={}", groupId, userId);
+                return Result.success("已发送入群验证请求，等待群主/管理员审核");
+            } catch (Exception e) {
+                log.error("发送入群验证请求失败，groupId={}, userId={}", groupId, userId, e);
+                return Result.failed("发送验证请求失败，请重试");
+            }
+        }
+
+        // 3) 群允许直接加入（FREE_JOIN 等） -> 直接加入
+        // 检查是否已在群中
+        ImGroupMemberPo member = imGroupFeign.getOneMember(groupId, userId);
+        if (Objects.nonNull(member) && Objects.equals(member.getRole(), IMemberStatus.NORMAL.getCode())) {
+            log.warn("用户已加入群聊，groupId={}, userId={}", groupId, userId);
+            return Result.failed("用户已加入群聊");
+        }
+
+        // 添加群成员
+        if (Objects.isNull(member)) {
+            long now = DateTimeUtil.getCurrentUTCTimestamp();
+            ImGroupMemberPo newMember = buildMember(groupId, userId, IMemberStatus.NORMAL, now);
+            boolean result = imGroupFeign.groupMessageMemberBatchInsert(List.of(newMember));
+            if (!result) {
+                log.error("用户加入群聊失败，groupId={}, userId={}", groupId, userId);
+                return Result.failed("加入群聊失败");
+            }
+        } else {
+            // 若存在但不是 NORMAL，则可能需要提升角色逻辑，这里视需求而定
+            log.warn("用户已在群聊中（非普通成员），groupId={}, userId={}", groupId, userId);
+            return Result.failed("用户已在群聊中");
+        }
+
+        // 更新群头像（如果成员少于10人）
+        List<ImGroupMemberPo> members = imGroupFeign.getGroupMemberList(groupId);
+        if (members.size() < 10) {
+            ImGroupPo update = new ImGroupPo()
+                    .setGroupId(groupId)
+                    .setAvatar(generateGroupAvatar(groupId));
+            imGroupFeign.updateById(update);
+        }
+
+        // 4) 发送系统消息通知群成员新成员加入
+        ImUserDataPo inviteeInfo = imUserFeign.getOne(userId);
+        ImUserDataPo inviterInfo = imUserFeign.getOne(inviterId);
+
+        String message = "\""+(inviterInfo != null ? inviterInfo.getName() : inviterId)
+                + "\" 邀请 \""
+                + (inviteeInfo != null ? inviteeInfo.getName() : userId)
+                + "\" 加入群聊";
+
+        messageService.sendGroupMessage(systemMessage(groupId, message));
+
+        return Result.success("成功加入群聊");
+    }
+
+    /**
+     * 向群主/管理员发送入群验证私信（当群设置需要审批时）
+     * <p>
+     * 注意：
+     * - 该方法会查询群成员并挑选出群主和管理员（role == GROUP_OWNER 或 role == MANAGER）
+     * - 然后为每个管理员发送一条私聊消息，通知有新成员请求入群
+     * - 你可以根据项目实际的消息体类型调整 IMessageDto.* 的使用
+     */
+    private void sendJoinApprovalRequestToAdmins(String groupId, String inviterId, String inviteeId, ImGroupPo groupPo) {
+        // 获取群成员并挑选管理员（群主 + 管理员）
+        List<ImGroupMemberPo> members = imGroupFeign.getGroupMemberList(groupId);
+
+        List<String> adminIds = members.stream()
+                .filter(m -> Objects.equals(m.getRole(), IMemberStatus.GROUP_OWNER.getCode())
+                        || Objects.equals(m.getRole(), IMemberStatus.ADMIN.getCode()))
+                .map(ImGroupMemberPo::getMemberId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 如果没找到管理员，兜底使用群 owner 字段
+        if (adminIds.isEmpty() && StringUtils.hasText(groupPo.getOwnerId())) {
+            adminIds = List.of(groupPo.getOwnerId());
+        }
+
+        // 获取 inviter / invitee 的用户信息（可用于消息展示）
+        ImUserDataPo inviterInfo = imUserFeign.getOne(inviterId);
+        ImUserDataPo inviteeInfo = imUserFeign.getOne(inviteeId);
+
+        for (String adminId : adminIds) {
+            IMPrivateMessage privateMessage = IMPrivateMessage.builder()
+                    .messageTempId(UUID.randomUUID().toString())
+                    .fromId(inviterId) // 可以使用 inviter 作为 fromId，也可以使用系统用户按需求
+                    .toId(adminId)
+                    // 这里复用一个业务类型（请根据项目的 IMessageContentType 添加合适类型）
+                    .messageContentType(IMessageContentType.GROUP_JOIN_APPROVE.getCode())
+                    .messageTime(DateTimeUtil.getCurrentUTCTimestamp())
+                    .build();
+
+            // 构造消息体（尽量包含必要字段，后端/前端可据此渲染审批 UI）
+            IMessageDto.MessageBody body = new IMessageDto.GroupInviteMessageBody()
+                    .setInviterId(inviterId)
+                    .setGroupId(groupId)
+                    .setUserId(inviteeId)
+                    .setGroupAvatar(groupPo != null ? groupPo.getAvatar() : "")
+                    .setGroupName(groupPo != null ? groupPo.getGroupName() : "")
+                    .setInviterName(inviterInfo != null ? inviterInfo.getName() : "")
+                    .setApproveStatus(0) // 0
+                    ;
+
+            // 如果有自定义字段可扩展（例如：setApplyUserId / setApplyUserName / setReason）
+            try {
+                // 尝试把 invitee info 注入到 messageBody（如果对应 DTO 支持）
+                // 以下为示例，视 IMessageDto.GroupInviteMessageBody 实现而定：
+                // ((IMessageDto.GroupInviteMessageBody) body).setApplyUserId(inviteeId).setApplyUserName(inviteeInfo != null ? inviteeInfo.getName() : "");
+            } catch (Throwable ignore) {
+            }
+
+            privateMessage.setMessageBody(body);
+
+            // 发送私信给管理员
+            messageService.sendPrivateMessage(privateMessage);
+        }
+    }
+
+    /**
+     * 发送群聊邀请消息给被邀请的用户
+     *
+     * @param groupId   群ID
+     * @param inviterId 邀请者ID
+     * @param invitees  被邀请者列表
+     */
+    private void sendGroupInviteMessages(String groupId, String inviterId, List<String> invitees) {
+        try {
+            // 获取群信息
+            ImGroupPo groupInfo = imGroupFeign.getOneGroup(groupId);
+
+            // 获取邀请者信息
+            ImUserDataPo inviterInfo = imUserFeign.getOne(inviterId);
+
+            // 构造邀请消息体
+            for (String inviteeId : invitees) {
+                // 构造单聊消息对象
+                IMPrivateMessage privateMessage = IMPrivateMessage.builder()
+                        .messageTempId(UUID.randomUUID().toString())
+                        .fromId(inviterId)
+                        .toId(inviteeId)
+                        .messageContentType(8) // 群聊邀请消息类型
+                        .messageTime(DateTimeUtil.getCurrentUTCTimestamp())
+                        .build();
+
+                // 构造群聊邀请消息内容
+                IMessageDto.MessageBody messageBody = new IMessageDto.GroupInviteMessageBody()
+                        .setInviterId(inviterId)
+                        .setGroupId(groupId)
+                        .setGroupAvatar(groupInfo != null ? groupInfo.getAvatar() : "")
+                        .setGroupName(groupInfo != null ? groupInfo.getGroupName() : "默认群聊")
+                        .setInviterName(inviterInfo != null ? inviterInfo.getName() : "")
+                        .setApproveStatus(1);// 邀请状态 1-待处理
+
+
+                privateMessage.setMessageBody(messageBody);
+
+                // 发送单聊消息
+                messageService.sendPrivateMessage(privateMessage);
+            }
+        } catch (Exception e) {
+            log.error("发送群聊邀请消息失败，groupId={}, inviterId={}, invitees={}", groupId, inviterId, invitees, e);
+        }
+    }
 }

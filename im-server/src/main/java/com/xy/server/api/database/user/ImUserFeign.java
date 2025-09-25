@@ -24,6 +24,16 @@ public interface ImUserFeign {
     @GetMapping("/data/getOne")
     ImUserDataPo getOne(@RequestParam("userId") String userId);
 
+
+    /**
+     * 获取用户信息
+     *
+     * @param keyword 关键词
+     * @return 用户信息集合
+     */
+    @GetMapping("/search")
+    List<ImUserDataPo> search(@RequestParam("keyword") String keyword);
+
     /**
      * 批量获取用户
      *

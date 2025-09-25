@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 public interface WebsocketProcess {
 
-    void process(ChannelHandlerContext ctx, IMConnectMessage sendInfo);
+    void process(ChannelHandlerContext ctx, IMConnectMessage sendInfo) throws Exception;
 
 
     /**

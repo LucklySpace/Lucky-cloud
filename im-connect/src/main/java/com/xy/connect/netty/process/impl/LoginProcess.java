@@ -20,9 +20,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
 import static com.xy.core.constants.IMConstant.USER_CACHE_PREFIX;
 
 @Slf4j(topic = LogConstant.Login)
@@ -63,7 +60,7 @@ public class LoginProcess implements WebsocketProcess {
      * @param sendInfo 消息
      */
     @Override
-    public void process(ChannelHandlerContext ctx, IMConnectMessage sendInfo) {
+    public void process(ChannelHandlerContext ctx, IMConnectMessage sendInfo) throws Exception {
 
         String token = sendInfo.getToken();
 
@@ -160,7 +157,7 @@ public class LoginProcess implements WebsocketProcess {
      * @param userId 用户id
      */
     public void addActiveUser(String userId) {
-        String dateStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
-        redisTemplate.pfadd(hyperloglogKey + dateStr, userId);
+        //String dateStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
+        // redisTemplate.pfadd(hyperloglogKey + dateStr, userId);
     }
 }

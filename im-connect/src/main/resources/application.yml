@@ -1,7 +1,6 @@
 app:
   name: MiniSpring
 
-
 rabbitmq:
   address: localhost
   port: 5672

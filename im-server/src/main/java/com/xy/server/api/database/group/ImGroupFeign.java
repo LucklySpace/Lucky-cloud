@@ -1,6 +1,7 @@
 package com.xy.server.api.database.group;
 
 
+import com.xy.domain.po.ImGroupInviteRequestPo;
 import com.xy.domain.po.ImGroupMemberPo;
 import com.xy.domain.po.ImGroupPo;
 import com.xy.server.api.FeignRequestInterceptor;
@@ -30,7 +31,7 @@ public interface ImGroupFeign {
      * @return
      */
     @GetMapping("/getOne")
-    ImGroupPo getOne(@RequestParam("groupId") String groupId);
+    ImGroupPo getOneGroup(@RequestParam("groupId") String groupId);
 
     /**
      * 插入群信息
@@ -60,13 +61,13 @@ public interface ImGroupFeign {
     List<String> getNinePeopleAvatar(@RequestParam("groupId") String groupId);
 
 
-//    /**
-//     * 群成员退出群聊
-//     *
-//     * @param memberId 成员id
-//     */
-//    @DeleteMapping("/member/{memberId}")
-//    Boolean deleteById(@PathVariable String memberId);
+    /**
+     * 群成员退出群聊
+     *
+     * @param memberId 成员id
+     */
+    @DeleteMapping("/member/{memberId}")
+    Boolean deleteById(@PathVariable("memberId") String memberId);
 
 
     /**
@@ -86,6 +87,34 @@ public interface ImGroupFeign {
      */
     @PostMapping("/member/batch/insert")
     Boolean groupMessageMemberBatchInsert(@RequestBody List<ImGroupMemberPo> groupMemberList);
+
+
+
+    /**
+     * 群成员申请加入群聊
+     *
+     * @param imGroupInviteRequestPo 群成员申请信息
+     */
+    @PostMapping("/invite/saveOrUpdate")
+    Boolean groupInviteSaveOrUpdate(@RequestBody ImGroupInviteRequestPo imGroupInviteRequestPo);
+
+
+    /**
+     * 群成员申请加入群聊 插入
+     *
+     * @param imGroupInviteRequestPo 群成员申请信息
+     */
+    @PostMapping("/invite/saveOrUpdate/batch")
+    Boolean groupInviteSaveOrUpdateBatch(@RequestBody List<ImGroupInviteRequestPo> imGroupInviteRequestPo);
+
+    /**
+     * 获取群成员申请信息
+     *
+     * @param requestId 申请id
+     * @return 群成员申请信息
+     */
+    @GetMapping("/invite/getOne")
+    ImGroupInviteRequestPo getOneInviteById(@RequestParam("requestId") String requestId);
 
 
 }

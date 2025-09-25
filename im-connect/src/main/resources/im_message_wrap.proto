@@ -2,12 +2,12 @@ syntax = "proto3";
 
 package im.connect;
 option java_package = "com.xy.connect.domain.proto";
-option java_outer_classname = "ImConnectProto";
+option java_outer_classname = "IMessageProto";
 
 import "google/protobuf/any.proto";
 
-// 生成命令: protoc --java_out=./ im_connect_message.proto
-message IMConnectMessage {
+// 生成命令: W
+message IMessageWrap {
 
   int32 code = 1;
 

@@ -22,6 +22,7 @@ public class ImGroupInviteRequestController {
 
     /**
      * 获取群邀请请求
+     *
      * @param requestId
      * @return
      */
@@ -32,6 +33,7 @@ public class ImGroupInviteRequestController {
 
     /**
      * 保存或更新群邀请请求
+     *
      * @param requestPo
      * @return
      */
@@ -47,6 +49,7 @@ public class ImGroupInviteRequestController {
 
     /**
      * 删除群邀请请求
+     *
      * @param requestId
      * @return
      */

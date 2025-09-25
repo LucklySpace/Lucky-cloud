@@ -3,8 +3,6 @@ package com.xy.database.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.xy.domain.po.ImGroupInviteRequestPo;
 
-import java.util.List;
-
 /**
  * 群聊邀请请求服务类
  */

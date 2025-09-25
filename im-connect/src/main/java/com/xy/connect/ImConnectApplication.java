@@ -7,7 +7,6 @@ import com.xy.connect.utils.MachineCodeUtils;
 import com.xy.spring.XSpringApplication;
 import com.xy.spring.annotations.SpringApplication;
 import com.xy.spring.annotations.aop.EnableAop;
-import com.xy.spring.context.ApplicationContext;
 import com.xy.spring.core.ApplicationConfigLoader;
 import lombok.extern.slf4j.Slf4j;
 

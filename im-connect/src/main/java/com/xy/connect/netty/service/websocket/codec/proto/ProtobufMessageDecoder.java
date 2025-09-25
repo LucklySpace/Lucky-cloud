@@ -1,8 +1,8 @@
 package com.xy.connect.netty.service.websocket.codec.proto;
 
-import com.xy.connect.domain.proto.ImConnectProto;
+import com.xy.connect.domain.proto.IMessageProto;
 import com.xy.connect.utils.ProtoJsonUtils;
-import com.xy.core.model.IMConnectMessage;
+import com.xy.core.model.IMessageWrap;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
@@ -18,10 +18,10 @@ public class ProtobufMessageDecoder extends MessageToMessageDecoder<BinaryWebSoc
                           BinaryWebSocketFrame frame,
                           List<Object> out) throws Exception {
 
-        ImConnectProto.IMConnectMessage proto =
-                ImConnectProto.IMConnectMessage.parseFrom(frame.content().nioBuffer());
+        IMessageProto.IMessageWrap proto =
+                IMessageProto.IMessageWrap.parseFrom(frame.content().nioBuffer());
 
-        IMConnectMessage<Object> pojo = new IMConnectMessage<>();
+        IMessageWrap<Object> pojo = new IMessageWrap<>();
         pojo.setCode(proto.getCode());
         pojo.setToken(proto.getToken());
         pojo.setRequestId(proto.getRequestId());

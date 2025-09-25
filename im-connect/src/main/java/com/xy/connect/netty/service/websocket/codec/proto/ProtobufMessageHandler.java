@@ -1,8 +1,8 @@
 package com.xy.connect.netty.service.websocket.codec.proto;
 
-import com.xy.connect.domain.proto.ImConnectProto;
+import com.xy.connect.domain.proto.IMessageProto;
 import com.xy.connect.utils.ProtoJsonUtils;
-import com.xy.core.model.IMConnectMessage;
+import com.xy.core.model.IMessageWrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandler;
@@ -21,10 +21,10 @@ public class ProtobufMessageHandler extends ChannelDuplexHandler {
         if (msg instanceof BinaryWebSocketFrame) {
             BinaryWebSocketFrame frame = (BinaryWebSocketFrame) msg;
             try {
-                ImConnectProto.IMConnectMessage proto =
-                        ImConnectProto.IMConnectMessage.parseFrom(frame.content().nioBuffer());
+                IMessageProto.IMessageWrap proto =
+                        IMessageProto.IMessageWrap.parseFrom(frame.content().nioBuffer());
 
-                IMConnectMessage<Object> pojo = new IMConnectMessage<>();
+                IMessageWrap<Object> pojo = new IMessageWrap<>();
                 pojo.setCode(proto.getCode());
                 pojo.setToken(proto.getToken());
                 pojo.setRequestId(proto.getRequestId());
@@ -62,16 +62,16 @@ public class ProtobufMessageHandler extends ChannelDuplexHandler {
 
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-        if (msg instanceof IMConnectMessage) {
-            IMConnectMessage imMsg = (IMConnectMessage) msg;
+        if (msg instanceof IMessageWrap) {
+            IMessageWrap imMsg = (IMessageWrap) msg;
             try {
                 if (imMsg == null) {
                     ctx.write(msg, promise);
                     return;
                 }
 
-                ImConnectProto.IMConnectMessage.Builder builder =
-                        ImConnectProto.IMConnectMessage.newBuilder();
+                IMessageProto.IMessageWrap.Builder builder =
+                        IMessageProto.IMessageWrap.newBuilder();
 
                 /* 1. 基础字段 */
                 if (imMsg.getCode() != null) builder.setCode(imMsg.getCode());

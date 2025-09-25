@@ -317,14 +317,20 @@ public abstract class IMessageDto implements Serializable {
         @NoArgsConstructor
         @AllArgsConstructor
         public static class Part implements Serializable {
-            /** 内容类型 */
+            /**
+             * 内容类型
+             */
             @NotBlank
             private String type; // e.g. "text", "image", "video", "location", "file"
 
-            /** 若文本类型，则放在 content.text；否则 content 可为对象（图片/视频信息） */
+            /**
+             * 若文本类型，则放在 content.text；否则 content 可为对象（图片/视频信息）
+             */
             private Map<String, Object> content;
 
-            /** 可选元数据（例如 width/height/duration/alt 等）*/
+            /**
+             * 可选元数据（例如 width/height/duration/alt 等）
+             */
             private Map<String, Object> meta;
         }
     }

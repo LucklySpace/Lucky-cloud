@@ -3,7 +3,7 @@ package com.xy.connect.netty.process;
 import cn.hutool.core.util.StrUtil;
 import com.xy.connect.utils.MessageUtils;
 import com.xy.core.enums.IMessageType;
-import com.xy.core.model.IMConnectMessage;
+import com.xy.core.model.IMessageWrap;
 import com.xy.core.utils.JwtUtil;
 import io.netty.channel.ChannelHandlerContext;
 
@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 public interface WebsocketProcess {
 
-    void process(ChannelHandlerContext ctx, IMConnectMessage sendInfo) throws Exception;
+    void process(ChannelHandlerContext ctx, IMessageWrap sendInfo) throws Exception;
 
 
     /**

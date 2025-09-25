@@ -1,8 +1,8 @@
 package com.xy.connect.netty.service.tcp.codec.proto;
 
-import com.xy.connect.domain.proto.ImConnectProto;
+import com.xy.connect.domain.proto.IMessageProto;
 import com.xy.connect.utils.ProtoJsonUtils;
-import com.xy.core.model.IMConnectMessage;
+import com.xy.core.model.IMessageWrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
@@ -30,17 +30,17 @@ public class ProtobufMessageDecoder extends MessageToMessageDecoder<BinaryWebSoc
         content.getBytes(content.readerIndex(), bytes);
 
         // 解析为 proto IMConnectMessage
-        ImConnectProto.IMConnectMessage proto;
+        IMessageProto.IMessageWrap proto;
         try {
-            proto = ImConnectProto.IMConnectMessage.parseFrom(bytes);
+            proto = IMessageProto.IMessageWrap.parseFrom(bytes);
         } catch (Exception e) {
-            log.warn("Failed to parse ImConnectProto.IMConnectMessage: {}", e.getMessage());
+            log.warn("Failed to parse ImConnectProto.IMMessage: {}", e.getMessage());
             // 解析失败：可选择记录并丢弃/抛出/关闭连接。这里丢弃该帧以保持健壮性。
             return;
         }
 
         // 映射为 POJO
-        IMConnectMessage<Object> pojo = new IMConnectMessage<>();
+        IMessageWrap<Object> pojo = new IMessageWrap<>();
         // 基础字段直接映射
         pojo.setCode(proto.getCode());
         pojo.setToken(proto.getToken());

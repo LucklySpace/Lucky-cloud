@@ -89,7 +89,6 @@ public interface ImGroupFeign {
     Boolean groupMessageMemberBatchInsert(@RequestBody List<ImGroupMemberPo> groupMemberList);
 
 
-
     /**
      * 群成员申请加入群聊
      *

@@ -1,21 +1,21 @@
 package com.xy.connect.netty.service.tcp.codec.proto;
 
-import com.xy.connect.domain.proto.ImConnectProto;
+import com.xy.connect.domain.proto.IMessageProto;
 import com.xy.connect.utils.ProtoJsonUtils;
-import com.xy.core.model.IMConnectMessage;
+import com.xy.core.model.IMessageWrap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageEncoder;
 
 import java.util.List;
 
-public class ProtobufMessageEncoder extends MessageToMessageEncoder<IMConnectMessage<?>> {
+public class ProtobufMessageEncoder extends MessageToMessageEncoder<IMessageWrap<?>> {
 
     @Override
-    protected void encode(ChannelHandlerContext ctx, IMConnectMessage<?> msg, List<Object> out) throws Exception {
+    protected void encode(ChannelHandlerContext ctx, IMessageWrap<?> msg, List<Object> out) throws Exception {
 
-        ImConnectProto.IMConnectMessage.Builder builder =
-                ImConnectProto.IMConnectMessage.newBuilder();
+        IMessageProto.IMessageWrap.Builder builder =
+                IMessageProto.IMessageWrap.newBuilder();
 
         /* 1. 基础字段 */
         if (msg.getCode() != null) builder.setCode(msg.getCode());

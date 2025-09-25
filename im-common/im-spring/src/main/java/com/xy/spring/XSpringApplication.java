@@ -1,7 +1,6 @@
 package com.xy.spring;
 
 import com.xy.spring.context.ApplicationContext;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,12 +11,12 @@ import java.util.function.Supplier;
 
 /**
  * XSpringApplication - 应用启动器（单例容器管理）
- *
+ * <p>
  * 说明：
  * - 负责创建并持有全局 ApplicationContext 实例（线程安全）。
  * - 提供 run(...) 入口，返回已创建的 ApplicationContext。
  * - 提供 set/get/close 等辅助方法。
- *
+ * <p>
  * 设计原则：
  * - 使用 CAS 保证并发场景下只会初始化一次（双检查 + compareAndSet）。
  * - 如果构造失败，会清理并抛出异常，避免半初始化状态残留。
@@ -48,6 +47,20 @@ public final class XSpringApplication {
             throw new IllegalStateException("ApplicationContext 尚未初始化，请先调用 XSpringApplication.run(...) 或 setContext(...)");
         }
         return (ApplicationContext<T>) ctx;
+    }
+
+    /**
+     * 直接设置 context（如果已有则抛出异常）
+     *
+     * @throws IllegalStateException 如果已有 context
+     */
+    public static void setContext(ApplicationContext<?> ctx) {
+        Objects.requireNonNull(ctx, "ctx 不能为 null");
+        if (!CONTEXT.compareAndSet(null, ctx)) {
+            throw new IllegalStateException("ApplicationContext 已存在，拒绝重复设置（如需覆盖请使用 setContextForce）");
+        }
+        log.info("ApplicationContext 已设置: {}", ctx.getClass().getName());
+        registerShutdownHookIfNeeded(ctx);
     }
 
     /**
@@ -106,33 +119,19 @@ public final class XSpringApplication {
     }
 
     /**
-     * 直接设置 context（如果已有则抛出异常）
-     *
-     * @throws IllegalStateException 如果已有 context
-     */
-    public static void setContext(ApplicationContext<?> ctx) {
-        Objects.requireNonNull(ctx, "ctx 不能为 null");
-        if (!CONTEXT.compareAndSet(null, ctx)) {
-            throw new IllegalStateException("ApplicationContext 已存在，拒绝重复设置（如需覆盖请使用 setContextForce）");
-        }
-        log.info("ApplicationContext 已设置: {}", ctx.getClass().getName());
-        registerShutdownHookIfNeeded(ctx);
-    }
-
-    /**
      * 启动并返回 ApplicationContext 实例（线程安全、可重入）
-     *
+     * <p>
      * 使用方式：
-     *   ApplicationContext<MyApp> ctx = XSpringApplication.run(MyApp.class, args);
-     *
+     * ApplicationContext<MyApp> ctx = XSpringApplication.run(MyApp.class, args);
+     * <p>
      * 行为：
      * - 如果已有 context 存在，直接返回已有实例（不会重复创建）。
      * - 否则创建新的 ApplicationContext 并尝试设置为全局 context（CAS）。
      * - 若在并发情况下其它线程已经创建并设置了 context，则会关闭当前创建的临时实例并返回已存在的实例。
      *
      * @param startupClass 启动类（含 @SpringApplication 注解）
-     * @param args 启动参数
-     * @param <T> 启动类类型（用于返回泛型）
+     * @param args         启动参数
+     * @param <T>          启动类类型（用于返回泛型）
      * @return 已存在或新创建的 ApplicationContext
      */
     @SuppressWarnings("unchecked")
@@ -193,7 +192,7 @@ public final class XSpringApplication {
 
     /**
      * 通过 supplier 延迟创建并设置 ApplicationContext（适合自定义构造逻辑）
-     *
+     * <p>
      * 如果已有 context 存在则返回已有实例；否则调用 supplier 创建并尝试设置（CAS）。
      */
     @SuppressWarnings("unchecked")
@@ -224,7 +223,11 @@ public final class XSpringApplication {
         } catch (RuntimeException | Error e) {
             log.error("runWithSupplier 创建 ApplicationContext 失败", e);
             if (created != null) {
-                try { created.close(); } catch (Exception ex) { log.warn("关闭失败", ex); }
+                try {
+                    created.close();
+                } catch (Exception ex) {
+                    log.warn("关闭失败", ex);
+                }
             }
             throw e;
         }

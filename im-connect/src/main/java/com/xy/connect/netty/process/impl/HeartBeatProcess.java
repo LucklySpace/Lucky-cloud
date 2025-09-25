@@ -6,7 +6,7 @@ import com.xy.connect.netty.process.WebsocketProcess;
 import com.xy.connect.redis.RedisTemplate;
 import com.xy.connect.utils.MessageUtils;
 import com.xy.core.enums.IMessageType;
-import com.xy.core.model.IMConnectMessage;
+import com.xy.core.model.IMessageWrap;
 import com.xy.spring.annotations.core.Autowired;
 import com.xy.spring.annotations.core.Component;
 import com.xy.spring.annotations.core.Value;
@@ -27,7 +27,7 @@ public class HeartBeatProcess implements WebsocketProcess {
     private RedisTemplate redisTemplate;
 
     @Override
-    public void process(ChannelHandlerContext ctx, IMConnectMessage sendInfo) {
+    public void process(ChannelHandlerContext ctx, IMessageWrap sendInfo) {
 
         String token = sendInfo.getToken();
 

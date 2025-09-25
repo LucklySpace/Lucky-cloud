@@ -1,7 +1,6 @@
 package com.xy.spring.annotations;
 
 import com.xy.spring.annotations.core.ComponentScan;
-import com.xy.spring.annotations.core.Configuration;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

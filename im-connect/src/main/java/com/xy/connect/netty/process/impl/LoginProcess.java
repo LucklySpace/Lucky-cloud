@@ -9,8 +9,8 @@ import com.xy.connect.utils.JacksonUtil;
 import com.xy.connect.utils.MessageUtils;
 import com.xy.core.constants.IMConstant;
 import com.xy.core.enums.IMessageType;
-import com.xy.core.model.IMConnectMessage;
 import com.xy.core.model.IMRegisterUser;
+import com.xy.core.model.IMessageWrap;
 import com.xy.core.utils.StringUtils;
 import com.xy.spring.annotations.core.Autowired;
 import com.xy.spring.annotations.core.Component;
@@ -60,7 +60,7 @@ public class LoginProcess implements WebsocketProcess {
      * @param sendInfo 消息
      */
     @Override
-    public void process(ChannelHandlerContext ctx, IMConnectMessage sendInfo) throws Exception {
+    public void process(ChannelHandlerContext ctx, IMessageWrap sendInfo) throws Exception {
 
         String token = sendInfo.getToken();
 
@@ -113,7 +113,7 @@ public class LoginProcess implements WebsocketProcess {
      * - 其次从 channel attr
      * - 默认 "default"
      */
-    private String extractDeviceType(IMConnectMessage sendInfo, ChannelHandlerContext ctx) {
+    private String extractDeviceType(IMessageWrap sendInfo, ChannelHandlerContext ctx) {
         // 从消息 metadata 提取
         String deviceType = sendInfo.getDeviceType();
         if (!StringUtils.hasText(deviceType)) {

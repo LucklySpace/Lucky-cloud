@@ -7,7 +7,7 @@ import com.xy.connect.netty.process.impl.LoginProcess;
 import com.xy.connect.redis.RedisTemplate;
 import com.xy.core.constants.IMConstant;
 import com.xy.core.enums.IMessageType;
-import com.xy.core.model.IMConnectMessage;
+import com.xy.core.model.IMessageWrap;
 import com.xy.core.utils.StringUtils;
 import com.xy.spring.annotations.core.Autowired;
 import com.xy.spring.annotations.core.Component;
@@ -22,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j(topic = LogConstant.Login)
 @Component
 @ChannelHandler.Sharable
-public class IMLoginHandler extends SimpleChannelInboundHandler<IMConnectMessage<Object>> {
+public class IMLoginHandler extends SimpleChannelInboundHandler<IMessageWrap<Object>> {
 
     private static final AttributeKey<String> USER_ID_ATTR_KEY = AttributeKey.valueOf(IMConstant.IM_USER);
 
@@ -36,7 +36,7 @@ public class IMLoginHandler extends SimpleChannelInboundHandler<IMConnectMessage
     private UserChannelMap userChannelMap;
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, IMConnectMessage<Object> message) {
+    protected void channelRead0(ChannelHandlerContext ctx, IMessageWrap<Object> message) {
         int code = message.getCode();
         if (code == IMessageType.LOGIN.getCode()) {
             try {

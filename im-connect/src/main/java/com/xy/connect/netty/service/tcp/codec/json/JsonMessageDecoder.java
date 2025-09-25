@@ -1,7 +1,7 @@
 package com.xy.connect.netty.service.tcp.codec.json;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.xy.core.model.IMConnectMessage;
+import com.xy.core.model.IMessageWrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
@@ -26,7 +26,7 @@ public class JsonMessageDecoder extends ByteToMessageDecoder {
         in.readBytes(bytes);
         String txt = new String(bytes, StandardCharsets.UTF_8);
         try {
-            IMConnectMessage<?> pojo = MAPPER.readValue(txt, IMConnectMessage.class);
+            IMessageWrap<?> pojo = MAPPER.readValue(txt, IMessageWrap.class);
             out.add(pojo);
         } catch (Exception ex) {
             // 解析失败，记录日志并丢弃（或按需把原文传递）

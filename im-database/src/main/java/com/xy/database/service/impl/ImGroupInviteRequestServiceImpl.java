@@ -7,8 +7,6 @@ import com.xy.database.service.ImGroupInviteRequestService;
 import com.xy.domain.po.ImGroupInviteRequestPo;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-
 @Service
 public class ImGroupInviteRequestServiceImpl extends ServiceImpl<ImGroupInviteRequestMapper, ImGroupInviteRequestPo> implements ImGroupInviteRequestService {
 

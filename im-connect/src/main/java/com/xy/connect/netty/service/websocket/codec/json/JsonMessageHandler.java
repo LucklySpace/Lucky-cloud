@@ -1,7 +1,7 @@
 package com.xy.connect.netty.service.websocket.codec.json;
 
 import com.xy.connect.utils.JacksonUtil;
-import com.xy.core.model.IMConnectMessage;
+import com.xy.core.model.IMessageWrap;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -18,7 +18,7 @@ public class JsonMessageHandler extends ChannelDuplexHandler {
         if (msg instanceof TextWebSocketFrame) {
             TextWebSocketFrame frame = (TextWebSocketFrame) msg;
             try {
-                IMConnectMessage pojo = JacksonUtil.fromJson(frame.text(), IMConnectMessage.class);
+                IMessageWrap pojo = JacksonUtil.fromJson(frame.text(), IMessageWrap.class);
                 // 替换消息为 POJO 并 forward
                 ctx.fireChannelRead(pojo);
             } catch (Exception e) {
@@ -35,8 +35,8 @@ public class JsonMessageHandler extends ChannelDuplexHandler {
 
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-        if (msg instanceof IMConnectMessage) {
-            IMConnectMessage imMsg = (IMConnectMessage) msg;
+        if (msg instanceof IMessageWrap) {
+            IMessageWrap imMsg = (IMessageWrap) msg;
             try {
                 if (imMsg == null) {
                     ctx.write(msg, promise);

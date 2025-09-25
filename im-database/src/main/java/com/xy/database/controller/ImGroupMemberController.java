@@ -1,8 +1,6 @@
 package com.xy.database.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xy.database.security.SecurityInner;
-import com.xy.database.service.ImGroupInviteRequestService;
 import com.xy.database.service.ImGroupMemberService;
 import com.xy.domain.po.ImGroupMemberPo;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,7 +34,7 @@ public class ImGroupMemberController {
     /**
      * 获取群成员信息
      *
-     * @param groupId 群id
+     * @param groupId  群id
      * @param memberId 成员id
      * @return 群成员信息
      */
@@ -69,7 +67,7 @@ public class ImGroupMemberController {
     /**
      * 获取群成员信息
      *
-     * @param groupId 群id
+     * @param groupId  群id
      * @param memberId 成员id
      * @return 群成员信息
      */

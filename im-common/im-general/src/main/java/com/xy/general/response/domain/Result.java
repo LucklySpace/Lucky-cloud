@@ -61,7 +61,7 @@ public class Result<T> {
      * 成功无数据
      */
     public static <T> Result<T> success() {
-        return  new Result<>(ResultCode.SUCCESS.getCode(),ResultCode.SUCCESS.getMessage(), null);
+        return new Result<>(ResultCode.SUCCESS.getCode(), ResultCode.SUCCESS.getMessage(), null);
     }
 
     /**

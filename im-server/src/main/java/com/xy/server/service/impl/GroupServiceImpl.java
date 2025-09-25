@@ -541,7 +541,7 @@ public class GroupServiceImpl implements GroupService {
         ImUserDataPo inviteeInfo = imUserFeign.getOne(userId);
         ImUserDataPo inviterInfo = imUserFeign.getOne(inviterId);
 
-        String message = "\""+(inviterInfo != null ? inviterInfo.getName() : inviterId)
+        String message = "\"" + (inviterInfo != null ? inviterInfo.getName() : inviterId)
                 + "\" 邀请 \""
                 + (inviteeInfo != null ? inviteeInfo.getName() : userId)
                 + "\" 加入群聊";

@@ -24,7 +24,7 @@ public enum IMessageType {
     MESSAGE_STATUS_UPDATE(3000, "消息状态更新"),
 
 
-            ;
+    ;
 
     private Integer code;
 

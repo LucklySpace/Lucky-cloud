@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.xy.connect.config.LogConstant;
-import com.xy.connect.domain.proto.ImConnectProto;
+import com.xy.connect.domain.proto.IMessageProto;
 import com.xy.core.constants.IMConstant;
-import com.xy.core.model.IMConnectMessage;
+import com.xy.core.model.IMessageWrap;
 import com.xy.core.utils.JwtUtil;
 import com.xy.spring.annotations.core.Autowired;
 import com.xy.spring.annotations.core.Component;
@@ -77,8 +77,8 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
                 handleTcpInitialString(ctx, (String) msg);
                 return;
             }
-            if (msg instanceof IMConnectMessage) {
-                handleTcpPojo(ctx, (IMConnectMessage<?>) msg);
+            if (msg instanceof IMessageWrap) {
+                handleTcpPojo(ctx, (IMessageWrap<?>) msg);
                 return;
             }
             ctx.fireChannelRead(msg);
@@ -161,7 +161,7 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
         ctx.fireChannelRead(txt);
     }
 
-    private void handleTcpPojo(ChannelHandlerContext ctx, IMConnectMessage<?> pojo) {
+    private void handleTcpPojo(ChannelHandlerContext ctx, IMessageWrap<?> pojo) {
         String token = pojo.getToken();
         String userId = validateAndGetUserId(token);
         if (userId == null) {
@@ -219,7 +219,7 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
 
     private String tryExtractTokenFromProtoBytes(byte[] bytes) {
         try {
-            ImConnectProto.IMConnectMessage proto = ImConnectProto.IMConnectMessage.parseFrom(bytes);
+            IMessageProto.IMessageWrap proto = IMessageProto.IMessageWrap.parseFrom(bytes);
             return StringUtils.isNotBlank(proto.getToken()) ? proto.getToken() : null;
         } catch (InvalidProtocolBufferException ignored) {
             return null;

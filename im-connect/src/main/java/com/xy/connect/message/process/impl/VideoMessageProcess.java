@@ -4,7 +4,6 @@ import com.xy.connect.channel.UserChannelMap;
 import com.xy.connect.config.LogConstant;
 import com.xy.connect.message.process.MessageProcess;
 import com.xy.core.enums.IMessageType;
-import com.xy.core.model.IMConnectMessage;
 import com.xy.core.model.IMessageWrap;
 import com.xy.spring.annotations.core.Autowired;
 import com.xy.spring.annotations.core.Service;
@@ -42,7 +41,7 @@ public class VideoMessageProcess implements MessageProcess {
                     if (ctx != null && ctx.isOpen()) {
 
                         // 推送消息到用户
-                        IMConnectMessage<Object> wsConnMessage = IMConnectMessage.builder()
+                        IMessageWrap<Object> wsConnMessage = IMessageWrap.builder()
                                 .code(IMessageType.VIDEO_MESSAGE.getCode())
                                 .data(messageWrap.getData())
                                 .build();

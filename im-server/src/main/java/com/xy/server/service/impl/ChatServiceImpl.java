@@ -20,12 +20,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -50,6 +52,9 @@ public class ChatServiceImpl implements ChatService {
     private ImMessageFeign imMessageFeign;
     @Resource
     private RedissonClient redissonClient;
+    @Resource
+    @Qualifier("asyncTaskExecutor")
+    private Executor asyncTaskExecutor;
 
     /**
      * 读消息（加锁防并发更新）
@@ -196,7 +201,7 @@ public class ChatServiceImpl implements ChatService {
 
             List<ImChatPo> imChatPos = imChatFeign.getChatList(chatDto.getFromId(), chatDto.getSequence());
             List<CompletableFuture<ChatVo>> chatFutures = imChatPos.stream()
-                    .map(e -> CompletableFuture.supplyAsync(() -> getChat(e)))
+                    .map(e -> CompletableFuture.supplyAsync(() -> getChat(e), asyncTaskExecutor))
                     .toList();
 
             List<ChatVo> result = chatFutures.stream()
@@ -350,8 +355,8 @@ public class ChatServiceImpl implements ChatService {
         try {
             ImGroupMessageStatusPo updateMessage = new ImGroupMessageStatusPo();
             updateMessage.setReadStatus(IMessageReadStatus.ALREADY_READ.getCode());
-            updateMessage.setGroupId(chatDto.getToId()); // 修正：groupId是toId
-            updateMessage.setToId(chatDto.getFromId()); // 修正：toId是ownerId
+            updateMessage.setGroupId(chatDto.getFromId());
+            updateMessage.setToId(chatDto.getToId());
 
             boolean success = imMessageFeign.groupMessageStatusBatchInsert(List.of(updateMessage));
             log.debug("群聊已读更新 groupId={} ownerId={} 成功={} 耗时:{}ms", chatDto.getToId(), chatDto.getFromId(), success, System.currentTimeMillis() - start);

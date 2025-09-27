@@ -52,18 +52,14 @@ import static com.xy.core.constants.IMConstant.USER_CACHE_PREFIX;
 public class MessageServiceImpl implements MessageService {
 
     private static final ObjectMapper jacksonMapper = new ObjectMapper();
-
-    private final Map<String, Long> messageToOutboxId = new ConcurrentHashMap<>();
-
     private static final String LOCK_KEY_SEND_SINGLE = "lock:send:single:";
     private static final String LOCK_KEY_SEND_GROUP = "lock:send:group:";
     private static final String LOCK_KEY_SEND_VIDEO = "lock:send:video:";
     private static final String LOCK_KEY_RECALL_MESSAGE = "recall:message:lock:";
     private static final String LOCK_KEY_RETRY_PENDING = "lock:retry:pending";
-
     private static final long LOCK_WAIT_TIME = 5L; // 锁等待5s
     private static final long LOCK_LEASE_TIME = 10L; // 锁持有10s
-
+    private final Map<String, Long> messageToOutboxId = new ConcurrentHashMap<>();
     @Resource
     private ImMessageFeign imMessageFeign;
     @Resource
@@ -266,7 +262,7 @@ public class MessageServiceImpl implements MessageService {
         long startTime = System.currentTimeMillis();
         String lockKey = LOCK_KEY_SEND_VIDEO + videoMessage.getFromId() + ":" + videoMessage.getToId();
         RLock lock = redissonClient.getLock(lockKey);
-        
+
         try {
             if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
                 log.warn("无法获取发送视频消息锁，from={} to={}", videoMessage.getFromId(), videoMessage.getToId());
@@ -332,7 +328,7 @@ public class MessageServiceImpl implements MessageService {
             // 使用分布式锁确保撤回操作的原子性
             String lockKey = LOCK_KEY_RECALL_MESSAGE + messageId;
             RLock lock = redissonClient.getLock(lockKey);
-            
+
             try {
                 // 尝试获取锁，等待3秒，持有锁10秒
                 boolean acquired = lock.tryLock(3, 10, TimeUnit.SECONDS);
@@ -340,7 +336,7 @@ public class MessageServiceImpl implements MessageService {
                     log.warn("无法获取撤回消息的分布式锁，messageId={}", messageId);
                     return Result.failed("消息正在处理中，请稍后再试");
                 }
-                
+
                 Map<String, Object> recallPayload = new HashMap<>();
                 recallPayload.put("_recalled", true);
                 recallPayload.put("operatorId", operatorId);
@@ -369,10 +365,10 @@ public class MessageServiceImpl implements MessageService {
                     if (!operatorId.equals(msg.getFromId())) return Result.failed("无权撤回");
 
                     // 权限校验（发送者或群主）
-    //                if (!operatorId.equals(msg.getFromId())) {
-    //                    boolean isAdmin = imGroupFeign.isGroupAdmin(msg.getGroupId(), operatorId);
-    //                    if (!isAdmin) return Result.failed("无权撤回");
-    //                }
+                    //                if (!operatorId.equals(msg.getFromId())) {
+                    //                    boolean isAdmin = imGroupFeign.isGroupAdmin(msg.getGroupId(), operatorId);
+                    //                    if (!isAdmin) return Result.failed("无权撤回");
+                    //                }
 
                     Map<String, Object> body = safeParseMessageBody(msg.getMessageBody());
                     if (Boolean.TRUE.equals(body.get("_recalled"))) return Result.success("消息已撤回");

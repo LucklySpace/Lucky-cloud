@@ -1,0 +1,65 @@
+#redisson-cluster.yml
+# 全局配置
+# codec: 默认 JsonJacksonCodec，若全场景可控可使用 Kryo5/KryoCodec 提升性能（注意兼容性）
+codec: !<org.redisson.codec.Kryo5Codec> {}
+# 线程池（io/任务）配置，按机器核数和负载调整
+threads: 16
+nettyThreads: 32
+transportMode: "NIO"
+
+# 锁看门狗（毫秒），Redisson 用于自动延长锁超时的守护线程
+lockWatchdogTimeout: 30000
+keepPubSubOrder: true
+
+# 集群配置（Redisson cluster）
+clusterServersConfig:
+  # 集群节点地址（至少一个 seed 节点），格式 redis://host:port 或 rediss://host:port(for TLS)
+  nodeAddresses:
+    - "redis://10.0.0.11:7000"
+    - "redis://10.0.0.12:7000"
+    - "redis://10.0.0.13:7000"
+    - "redis://10.0.0.11:7001"
+    - "redis://10.0.0.12:7001"
+    - "redis://10.0.0.13:7001"
+
+  # 探测集群拓扑的间隔（毫秒），不宜过小，建议 2000 - 10000
+  scanInterval: 2000
+
+  # 认证密码（若无可设为 null）
+  password: null
+
+  # 连接/超时/重试配置（跟 single 一致）
+  connectTimeout: 10000
+  timeout: 3000
+  retryAttempts: 3
+  retryInterval: 1500
+  # ping timeout（可选）
+  # pingTimeout: 1000
+
+  # 主/从连接池（根据并发调整）
+  masterConnectionMinimumIdleSize: 24
+  masterConnectionPoolSize: 64
+
+  slaveConnectionMinimumIdleSize: 24
+  slaveConnectionPoolSize: 64
+
+  # 订阅/发布连接池（用于 pub/sub）
+  subscriptionsPerConnection: 5
+  subscriptionConnectionMinimumIdleSize: 1
+  subscriptionConnectionPoolSize: 50
+
+  # 空闲/回收相关
+  idleConnectionTimeout: 10000
+  # DNS 监测（若使用 DNS 服务发现）
+  dnsMonitoringInterval: 5000
+
+  # 读/写策略
+  # readMode: MASTER / SLAVE / MASTER_SLAVE / NEAREST
+  # 推荐：若想将读流量分摊到从节点使用 SLAVE 或 NEAREST（需注意一致性）
+  readMode: "MASTER_SLAVE"
+
+  # 负载均衡策略（可选： ROUND_ROBIN, LEAST_CONNECTED, RANDOM 等）
+  # loadBalancer: !<org.redisson.connection.balancer.RoundRobinLoadBalancer> {}
+
+  # optional: 是否使用 Adaptive reconnect strategies 等高级项，可根据需要添加
+  # adaptiveReconnectTimeout: 5000

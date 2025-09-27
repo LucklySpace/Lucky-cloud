@@ -4,24 +4,39 @@ package com.xy.server.config;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.redisson.Redisson;
+import org.redisson.api.RedissonClient;
+import org.redisson.config.Config;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CachingConfigurerSupport;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+import java.io.IOException;
 import java.time.Duration;
 
 @EnableCaching  //开启缓存注解功能
 @Configuration
 public class RedisConfig extends CachingConfigurerSupport {
+
+    @Value("${spring.data.redis.redisson.address}")
+    private String address;
+
+    @Bean(destroyMethod = "shutdown")
+    public RedissonClient redisson() throws IOException {
+        RedissonClient redisson = Redisson.create(
+                Config.fromYAML(new ClassPathResource(address).getInputStream()));
+        return redisson;
+    }
 
     @Bean
     public RedisCacheConfiguration redisCacheConfiguration() {

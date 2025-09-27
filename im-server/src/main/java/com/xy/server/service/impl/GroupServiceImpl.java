@@ -29,12 +29,12 @@ import com.xy.utils.DateTimeUtil;
 import com.xy.utils.GroupHeadImageUtil;
 import jakarta.annotation.Resource;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RMapCache;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -43,6 +43,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -51,17 +52,15 @@ import java.util.stream.Collectors;
 @Service
 public class GroupServiceImpl implements GroupService {
 
-    private final GroupHeadImageUtil groupHeadImageUtil = new GroupHeadImageUtil();
     private static final String GROUP_CACHE_PREFIX = "group:info:";
     private static final String GROUP_MEMBERS_PREFIX = "group:members:";
     private static final String GROUP_JOIN_LOCK_PREFIX = "lock:join:";
     private static final String GROUP_INVITE_LOCK_PREFIX = "lock:invite:";
     private static final String GROUP_QUIT_LOCK_PREFIX = "lock:quit:";
-
     private static final long CACHE_TTL_SECONDS = 300L; // 5min TTL
     private static final long LOCK_WAIT_TIME = 5L; // 锁等待5s
     private static final long LOCK_LEASE_TIME = 10L; // 锁持有10s
-
+    private final GroupHeadImageUtil groupHeadImageUtil = new GroupHeadImageUtil();
     @Resource
     private RedissonClient redissonClient;
     @Resource
@@ -74,6 +73,9 @@ public class GroupServiceImpl implements GroupService {
     private FileService fileService;
     @Resource
     private MessageService messageService;
+    @Resource
+    @Qualifier("asyncTaskExecutor")
+    private Executor asyncTaskExecutor;
 
     /**
      * 获取群成员信息（Redisson RMapCache缓存）
@@ -155,7 +157,7 @@ public class GroupServiceImpl implements GroupService {
                 CompletableFuture.runAsync(() -> {
                     RMapCache<String, Object> cache = redissonClient.getMapCache(GROUP_MEMBERS_PREFIX);
                     cache.fastRemove(groupId); // 原子移除
-                });
+                }, asyncTaskExecutor);
                 log.info("退出群聊成功 groupId={} userId={}", groupId, userId);
             }
             log.debug("退出群聊耗时:{}ms", System.currentTimeMillis() - startTime);
@@ -227,7 +229,7 @@ public class GroupServiceImpl implements GroupService {
             }
 
             // 异步发送系统消息
-            CompletableFuture.runAsync(() -> messageService.sendGroupMessage(systemMessage(groupId, "已加入群聊,请尽情聊天吧")));
+            CompletableFuture.runAsync(() -> messageService.sendGroupMessage(systemMessage(groupId, "已加入群聊,请尽情聊天吧")), asyncTaskExecutor);
 
             // Redisson缓存群信息（原子put）
             RMapCache<String, Object> groupCache = redissonClient.getMapCache(GROUP_CACHE_PREFIX);
@@ -307,7 +309,7 @@ public class GroupServiceImpl implements GroupService {
             }
 
             // 异步批量发送邀请消息
-            CompletableFuture.runAsync(() -> sendBatchInviteMessages(groupId, inviterId, newInvitees, groupPo));
+            CompletableFuture.runAsync(() -> sendBatchInviteMessages(groupId, inviterId, newInvitees, groupPo), asyncTaskExecutor);
 
             log.info("群邀请成功 groupId={} inviter={} newMembers={}", groupId, inviterId, newInvitees.size());
             log.debug("群邀请耗时:{}ms", System.currentTimeMillis() - startTime);
@@ -358,7 +360,7 @@ public class GroupServiceImpl implements GroupService {
 
             if (ImGroupJoinStatus.APPROVE.getCode().equals(groupPo.getApplyJoinType())) {
                 // 异步发送审批请求
-                CompletableFuture.runAsync(() -> sendJoinApprovalRequestToAdmins(groupId, inviterId, userId, groupPo));
+                CompletableFuture.runAsync(() -> sendJoinApprovalRequestToAdmins(groupId, inviterId, userId, groupPo), asyncTaskExecutor);
                 return Result.success("已发送入群验证请求，等待审核");
             }
 
@@ -390,7 +392,7 @@ public class GroupServiceImpl implements GroupService {
                         generateGroupAvatarAsync(groupId);
                     }
                     sendJoinNotification(groupId, inviterId, userId);
-                });
+                }, asyncTaskExecutor);
             }
 
             log.info("批准邀请成功 groupId={} userId={}", groupId, userId);
@@ -483,7 +485,7 @@ public class GroupServiceImpl implements GroupService {
                 messages.add(msg);
             }
             // 批量发送
-            CompletableFuture.allOf(messages.stream().map(msg -> CompletableFuture.runAsync(() -> messageService.sendSingleMessage(msg))).toArray(CompletableFuture[]::new)).get();
+            CompletableFuture.allOf(messages.stream().map(msg -> CompletableFuture.runAsync(() -> messageService.sendSingleMessage(msg), asyncTaskExecutor)).toArray(CompletableFuture[]::new)).get();
         } catch (Exception e) {
             log.error("批量发送邀请消息失败 groupId={} invitees={}", groupId, invitees.size(), e);
         }
@@ -534,6 +536,6 @@ public class GroupServiceImpl implements GroupService {
             msgs.add(msg);
         }
         // 批量异步发送
-        CompletableFuture.allOf(msgs.stream().map(m -> CompletableFuture.runAsync(() -> messageService.sendSingleMessage(m))).toArray(CompletableFuture[]::new)).join();
+        CompletableFuture.allOf(msgs.stream().map(m -> CompletableFuture.runAsync(() -> messageService.sendSingleMessage(m), asyncTaskExecutor)).toArray(CompletableFuture[]::new)).join();
     }
 }

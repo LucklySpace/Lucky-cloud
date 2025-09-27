@@ -29,6 +29,8 @@ spring:
       max-file-size: 10MB
   data:
     redis:
+      redisson:
+        address: redisson-single.yml
       host: localhost
       port: 6379
       password:

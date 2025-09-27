@@ -1,4 +1,4 @@
-# redisson.yaml
+# redisson-single.yml
 
 # 编码。默认值: org.redisson.codec.JsonJacksonCodec
 codec: !<org.redisson.codec.Kryo5Codec> {}

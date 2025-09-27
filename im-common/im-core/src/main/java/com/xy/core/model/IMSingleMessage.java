@@ -22,7 +22,7 @@ import java.io.Serializable;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-public class IMPrivateMessage extends IMessageDto implements Serializable {
+public class IMSingleMessage extends IMessage implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;

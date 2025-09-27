@@ -292,10 +292,10 @@ CREATE TABLE `im_group_message_status`
 -- ----------------------------
 
 -- ----------------------------
--- Table structure for im_private_message
+-- Table structure for im_single_message
 -- ----------------------------
-DROP TABLE IF EXISTS `im_private_message`;
-CREATE TABLE `im_private_message`
+DROP TABLE IF EXISTS `im_single_message`;
+CREATE TABLE `im_single_message`
 (
     `message_id`           varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '消息ID',
     `from_id`              varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci  NOT NULL COMMENT '发送者用户ID',
@@ -317,234 +317,234 @@ CREATE TABLE `im_private_message`
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of im_private_message
+-- Records of im_single_message
 -- ----------------------------
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1906969524805640192', '100002', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1743491939156, 1, 0, NULL, NULL, NULL, NULL, 1743491945792, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1906970731435597824', '100002', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1743492226834, 1, 0, NULL, NULL, NULL, NULL, 1743492226834, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1906974846098153472', '100001', '100002', '{
   \"message\": \"😂\"}', 1743493207846, 1, 0, NULL, NULL, NULL, NULL, 1743493207848, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1906975077405630464', '100002', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1743493262994, 1, 0, NULL, NULL, NULL, NULL, 1743493262996, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1906975177917931520', '100003', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1743493286958, 1, 0, NULL, NULL, NULL, NULL, 1743493286959, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1906975223707148288', '100001', '100003', '{
   \"message\": \"😂\"}', 1743493297875, 1, 0, NULL, NULL, NULL, NULL, 1743493297878, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1906975943583932416', '100003', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1743493469507, 1, 0, NULL, NULL, NULL, NULL, 1743493469508, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1906976412007997440', '100004', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1743493581188, 1, 0, NULL, NULL, NULL, NULL, 1743493581188, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1906977355302772736', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1743493806087, 1, 0, NULL, NULL, NULL, NULL, 1743493806088, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1907073612960624640', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1743516755705, 1, 0, NULL, NULL, NULL, NULL, 1743516755722, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1907073954632822784', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1743516837162, 1, 0, NULL, NULL, NULL, NULL, 1743516837166, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1911057040533995520', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1744466478845, 1, 0, NULL, NULL, NULL, NULL, 1744466482715, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1911057091893248000', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1744466491088, 1, 0, NULL, NULL, NULL, NULL, 1744466491089, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1911057136088629248', '100001', '100005', '{
   \"message\": \"😅\"}', 1744466501625, 1, 0, NULL, NULL, NULL, NULL, 1744466501627, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1911057185870823424', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1744466513494, 1, 0, NULL, NULL, NULL, NULL, 1744466513494, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1911057257618587648', '100001', '100005', '{
   \"message\": \"笑死了\"}', 1744466530600, 1, 0, NULL, NULL, NULL, NULL, 1744466530601, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1911069592622055424', '100005', '100001', '{
   \"message\": \"不必理会\"}', 1744469471494, 1, 0, NULL, NULL, NULL, NULL, 1744469471499, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1911074656841482240', '100005', '100001', '{
   \"message\": \"不必理会\"}', 1744470678898, 1, 0, NULL, NULL, NULL, NULL, 1744470678900, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1911081473881427968', '100005', '100001', '{
   \"message\": \"不必理会\"}', 1744472304211, 1, 0, NULL, NULL, NULL, NULL, 1744472304285, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1911083007830675456', '100005', '100001', '{
   \"message\": \"不必理会\"}', 1744472669929, 1, 0, NULL, NULL, NULL, NULL, 1744472669931, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1911084153169268736', '100005', '100001', '{
   \"message\": \"不必理会\"}', 1744472942999, 1, 0, NULL, NULL, NULL, NULL, 1744472943000, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1911084426826633216', '100005', '100001', '{
   \"message\": \"不必理会\"}', 1744473008244, 1, 0, NULL, NULL, NULL, NULL, 1744473008244, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1911084868663005184', '100005', '100001', '{
   \"message\": \"不必理会\"}', 1744473113586, 1, 0, NULL, NULL, NULL, NULL, 1744473113587, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916026802972241920', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1745651363240, 1, 0, NULL, NULL, NULL, NULL, 1745651369541, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916027164550606848', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50!\"}', 1745651448749, 1, 0, NULL, NULL, NULL, NULL, 1745651448756, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916027498996019200', '100004', '100001', '{
   \"message\": \"疯狂星期四  v我50!\"}', 1745651528487, 1, 0, NULL, NULL, NULL, NULL, 1745651528491, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916035714513481728', '100004', '100001', '{
   \"message\": \"疯狂星期四  v我50!\"}', 1745653487222, 1, 0, NULL, NULL, NULL, NULL, 1745653493986, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916121845921820672', '100004', '100001', '{
   \"message\": \"疯狂星期四  v我50! ok?\"}', 1745674022552, 1, 0, NULL, NULL, NULL, NULL, 1745674030083, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916124931570610176', '100004', '100001', '{
   \"message\": \"疯狂星期四  v我50! ok?\"}', 1745674758223, 1, 0, NULL, NULL, NULL, NULL, 1745674763682, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916130754258612224', '100004', '100001', '{
   \"message\": \"疯狂星期四  v我50! ok?\"}', 1745676146460, 1, 0, NULL, NULL, NULL, NULL, 1745676152674, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916132131252809728', '100004', '100001', '{
   \"message\": \"疯狂星期四  v我50! ok?\"}', 1745676474761, 1, 0, NULL, NULL, NULL, NULL, 1745676474940, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916133569756475392', '100004', '100001', '{
   \"message\": \"疯狂星期四  v我50! ok?\"}', 1745676817727, 1, 0, NULL, NULL, NULL, NULL, 1745676817949, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916136889137049600', '100004', '100001', '{
   \"message\": \"疯狂星期四  v我50! ok?\"}', 1745677609129, 1, 0, NULL, NULL, NULL, NULL, 1745677663100, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916139092669181952', '100004', '100001', '{
   \"message\": \"疯狂星期四  v我50! ok?\"}', 1745678134492, 1, 0, NULL, NULL, NULL, NULL, 1745678134673, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916139753284644864', '100004', '100001', '{
   \"message\": \"疯狂星期四  v我50! ok?\"}', 1745678291995, 1, 0, NULL, NULL, NULL, NULL, 1745678292169, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916141885819793408', '100004', '100001', '{
   \"message\": \"疯狂星期四  v我50! ok?\"}', 1745678800431, 1, 0, NULL, NULL, NULL, NULL, 1745678800826, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916142404793610240', '100004', '100001', '{
   \"message\": \"疯狂星期四  v我50! ok?\"}', 1745678924164, 1, 0, NULL, NULL, NULL, NULL, 1745678924343, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916143156006039552', '100004', '100001', '{
   \"message\": \"疯狂星期四  v我50! ok?\"}', 1745679103267, 1, 0, NULL, NULL, NULL, NULL, 1745679103496, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916143341373235200', '100004', '100001', '{
   \"message\": \"疯狂星期四  v我50! ok?\"}', 1745679147465, 1, 0, NULL, NULL, NULL, NULL, 1745679147603, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916143678809300992', '100004', '100001', '{
   \"message\": \"疯狂星期四  v我50! ok?\"}', 1745679227916, 1, 0, NULL, NULL, NULL, NULL, 1745679228066, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916170677900607488', '100004', '100001', '{
   \"message\": \"疯狂星期四  v我50! ok?\"}', 1745685665001, 1, 0, NULL, NULL, NULL, NULL, 1745685665324, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916171080427929600', '100004', '100001', '{
   \"message\": \"疯狂星期四  v我50! ok?\"}', 1745685760971, 1, 0, NULL, NULL, NULL, NULL, 1745685761099, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916434458551533568', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1745748555208, 1, 0, NULL, NULL, NULL, NULL, 1745748555492, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916438276534190080', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1745749465484, 1, 0, NULL, NULL, NULL, NULL, 1745749465665, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916440324373757952', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1745749953727, 1, 0, NULL, NULL, NULL, NULL, 1745749953738, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916440504007409664', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1745749996555, 1, 0, NULL, NULL, NULL, NULL, 1745750421391, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1916454843229683712', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1745753415292, 1, 0, NULL, NULL, NULL, NULL, 1745753963638, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1919756607500701696', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1746540617242, 1, 0, NULL, NULL, NULL, NULL, 1746540617764, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1919757078365851648', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1746540729501, 1, 0, NULL, NULL, NULL, NULL, 1746540729513, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1919758756896841728', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1746541129697, 1, 0, NULL, NULL, NULL, NULL, 1746541138027, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1919758827587641344', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1746541146548, 1, 0, NULL, NULL, NULL, NULL, 1746541151101, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1919943960575975424', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1746585285696, 1, 0, NULL, NULL, NULL, NULL, 1746585294304, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1919944627210276864', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1746585444633, 1, 0, NULL, NULL, NULL, NULL, 1746585444756, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1919999416807821312', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1746598507493, 1, 0, NULL, NULL, NULL, NULL, 1746598507702, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1920125427310436352', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1746628550738, 1, 0, NULL, NULL, NULL, NULL, 1746628554289, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1920479237438545920', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1746712905647, 1, 0, NULL, NULL, NULL, NULL, 1746712905743, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1920479271773118464', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1746712913827, 1, 0, NULL, NULL, NULL, NULL, 1746712913838, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1920663185636544512', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1746756762311, 1, 0, NULL, NULL, NULL, NULL, 1746756762352, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1920699028061376512', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1746765307809, 1, 0, NULL, NULL, NULL, NULL, 1746765307818, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1920846350795710464', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1746800432289, 1, 0, NULL, NULL, NULL, NULL, 1746800432329, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1921174385059270656', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1746878641752, 1, 0, NULL, NULL, NULL, NULL, 1746878647416, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1924007481823584256', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1747554104657, 1, 0, NULL, NULL, NULL, NULL, 1747554104837, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1924008117310849024', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1747554256168, 1, 0, NULL, NULL, NULL, NULL, 1747554256308, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1924022127829712896', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1747557596534, 1, 0, NULL, NULL, NULL, NULL, 1747557596545, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1924022153188474880', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1747557602580, 1, 0, NULL, NULL, NULL, NULL, 1747557602591, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1924022614276710400', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1747557712514, 1, 0, NULL, NULL, NULL, NULL, 1747557712653, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1924022685156253696', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1747557729411, 1, 0, NULL, NULL, NULL, NULL, 1747557729414, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1925765120265940992', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1747973158315, 1, 0, NULL, NULL, NULL, NULL, 1747973158745, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1925767340692729856', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1747973687705, 1, 0, NULL, NULL, NULL, NULL, 1747973687715, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('1925769127826944000', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1747974113791, 1, 0, NULL, NULL, NULL, NULL, 1747974113796, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('526426298994659390', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1748015455428, 1, 0, NULL, NULL, NULL, NULL, 1748015461936, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('527501479192301580', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1748271753165, 1, 0, NULL, NULL, NULL, NULL, 1748271753554, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('527501706271920178', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1748271807285, 1, 0, NULL, NULL, NULL, NULL, 1748271807290, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('527501733098688610', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1748271813681, 1, 0, NULL, NULL, NULL, NULL, 1748271813688, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('527501759686381633', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1748271820022, 1, 0, NULL, NULL, NULL, NULL, 1748271820032, NULL, NULL);
-INSERT INTO `im_private_message`
+INSERT INTO `im_single_message`
 VALUES ('527512357983752279', '100005', '100001', '{
   \"message\": \"疯狂星期四  v我50\"}', 1748274346889, 1, 0, NULL, NULL, NULL, NULL, 1748274347119, NULL, NULL);
 

@@ -24,7 +24,7 @@ public class ThreadPoolConfig {
         return Executors.newThreadPerTaskExecutor(Thread.ofVirtual().name("im-server-virtual-thread-", 1).factory());
     }
 
-    @Bean
+    @Bean("asyncTaskExecutor")
     public TaskExecutor taskExecutor() {
         // 使用虚拟线程池
         return new TaskExecutor() {

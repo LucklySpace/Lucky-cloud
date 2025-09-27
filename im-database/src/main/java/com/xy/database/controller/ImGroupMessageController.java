@@ -23,6 +23,18 @@ public class ImGroupMessageController {
     private final ImGroupMessageService imGroupMessageService;
     private final ImGroupMessageStatusService imGroupMessageStatusService;
 
+
+    /**
+     * 获取群聊消息
+     *
+     * @param messageId 消息id
+     * @return 群聊消息
+     */
+    @GetMapping("/getById")
+    public ImGroupMessagePo getById(@RequestParam("messageId") String messageId) {
+        return imGroupMessageService.getById(messageId);
+    }
+
     /**
      * 获取用户群聊消息
      *
@@ -33,6 +45,16 @@ public class ImGroupMessageController {
     @GetMapping("/list")
     public List<ImGroupMessagePo> list(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
         return imGroupMessageService.list(userId, sequence);
+    }
+
+    /**
+     * 插入群聊消息
+     *
+     * @param messagePo 群聊消息
+     */
+    @PostMapping("/saveOrUpdate")
+    public Boolean saveOrUpdate(@RequestBody ImGroupMessagePo messagePo) {
+        return imGroupMessageService.saveOrUpdate(messagePo);
     }
 
     /**
@@ -60,15 +82,6 @@ public class ImGroupMessageController {
         return imGroupMessageService.selectReadStatus(groupId, toId, code);
     }
 
-    /**
-     * 插入群聊消息
-     *
-     * @param messagePo 群聊消息
-     */
-    @PostMapping("/insert")
-    public Boolean insert(@RequestBody ImGroupMessagePo messagePo) {
-        return imGroupMessageService.save(messagePo);
-    }
 
     /**
      * 插入群聊消息状态

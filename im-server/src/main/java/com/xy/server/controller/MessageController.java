@@ -2,8 +2,9 @@ package com.xy.server.controller;
 
 
 import com.xy.core.model.IMGroupMessage;
-import com.xy.core.model.IMPrivateMessage;
+import com.xy.core.model.IMSingleMessage;
 import com.xy.core.model.IMVideoMessage;
+import com.xy.core.model.IMessageAction;
 import com.xy.domain.dto.ChatDto;
 import com.xy.general.request.annotations.ApiSign;
 import com.xy.general.response.domain.Result;
@@ -33,13 +34,13 @@ public class MessageController {
     private MessageService messageService;
 
     @ApiSign
-    @PostMapping("/private")
+    @PostMapping("/single")
     @Operation(summary = "单聊发送消息", tags = {"single"}, description = "请使用此接口发送单聊消息")
     @Parameters({
-            @Parameter(name = "privateMessageDto", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
+            @Parameter(name = "singleMessageDto", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result sendPrivateMessage(@Valid @RequestBody IMPrivateMessage privateMessageDto) {
-        return messageService.sendPrivateMessage(privateMessageDto);
+    public Result sendSingleMessage(@Valid @RequestBody IMSingleMessage singleMessageDto) {
+        return messageService.sendSingleMessage(singleMessageDto);
     }
 
     @PostMapping("/group")
@@ -58,6 +59,16 @@ public class MessageController {
     })
     public Result sendVideoMessage(@RequestBody IMVideoMessage videoMessageDto) {
         return messageService.sendVideoMessage(videoMessageDto);
+    }
+
+
+    @PostMapping("/recall")
+    @Operation(summary = "撤回消息", tags = {"message"}, description = "请使用此接口撤回消息")
+    @Parameters({
+            @Parameter(name = "messageAction", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
+    })
+    public Result recallMessage(@RequestBody IMessageAction messageAction) {
+        return messageService.recallMessage(messageAction);
     }
 
 

@@ -25,7 +25,7 @@ import java.util.Map;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-public abstract class IMessageDto implements Serializable {
+public abstract class IMessage implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -72,7 +72,10 @@ public abstract class IMessageDto implements Serializable {
     /**
      * 额外信息（扩展字段，JSON 格式存储）
      */
-    private String extra;
+    /**
+     * 可扩展额外字段
+     */
+    private Map<String, Object> extra;
 
     /* ------------------- 引用消息 & @人 扩展 ------------------- */
 
@@ -291,6 +294,9 @@ public abstract class IMessageDto implements Serializable {
         private Double longitude;
     }
 
+    /**
+     * 混合消息体
+     */
     @Getter
     @Setter
     @ToString(callSuper = true)
@@ -333,5 +339,117 @@ public abstract class IMessageDto implements Serializable {
              */
             private Map<String, Object> meta;
         }
+    }
+
+    /**
+     * 撤回消息体（ Recall ）
+     * 用于通知其他端某条消息被撤回
+     * 约定：messageContentType == 11 表示此体
+     */
+    @Getter
+    @Setter
+    @ToString(callSuper = true)
+    @Accessors(chain = true)
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RecallMessageBody extends MessageBody implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+
+        /**
+         * 被撤回的 messageId（必填）
+         */
+        @NotBlank(message = "被撤回的 messageId 不能为空")
+        private String messageId;
+
+        /**
+         * 操作者 ID（通常为原发送者，也可能为群主/管理员）
+         */
+        @NotBlank(message = "操作人 ID 不能为空")
+        private String operatorId;
+
+        /**
+         * 撤回原因（可选）
+         */
+        private String reason;
+
+        /**
+         * 撤回时间（毫秒）
+         */
+        @NotNull(message = "撤回时间不能为空")
+        private Long recallTime;
+
+        /**
+         * 可选：所属会话 id（toId 或 groupId），便于路由/展示
+         */
+        private String chatId;
+
+        /**
+         * 可选：会话类型（0 单聊 1 群聊 等）
+         */
+        private Integer chatType;
+    }
+
+    /**
+     * 编辑/更新消息体（ Edit ）
+     * 用于把一条消息的内容替换为新内容（编辑）
+     * 约定：messageContentType == 12 表示此体
+     * <p>
+     * 注意：newMessageBody 使用 Map 以兼容任意 messageBody 结构（text/image/file 等）
+     */
+    @Getter
+    @Setter
+    @ToString(callSuper = true)
+    @Accessors(chain = true)
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class EditMessageBody extends MessageBody implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+
+        /**
+         * 被编辑的 messageId（必填）
+         */
+        @NotBlank(message = "被编辑的 messageId 不能为空")
+        private String messageId;
+
+        /**
+         * 编辑者 ID（通常为原发送者）
+         */
+        @NotBlank(message = "编辑者 ID 不能为空")
+        private String editorId;
+
+        /**
+         * 编辑时间（毫秒）
+         */
+        @NotNull(message = "编辑时间不能为空")
+        private Long editTime;
+
+        /**
+         * 新的 messageContentType（例如 1=text,2=image...），便于 Jackson 在消费端解析 newMessageBody
+         */
+        private Integer newMessageContentType;
+
+        /**
+         * 新的消息体（Map 结构以兼容任意 body 类型）
+         * 后端在写 DB 时可以把它序列化为 JSON 存到 message_body 字段
+         */
+        @NotNull(message = "newMessageBody 不能为空")
+        private Map<String, Object> newMessageBody;
+
+        /**
+         * 可选：编辑前的预览文本
+         */
+        private String oldPreview;
+
+        /**
+         * 可选：所属会话 id（toId 或 groupId），便于路由/展示
+         */
+        private String chatId;
+
+        /**
+         * 可选：会话类型（0 单聊 1 群聊 等）
+         */
+        private Integer chatType;
     }
 }

@@ -12,14 +12,14 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.io.Serializable;
 
 /**
- * @TableName im_private_message
+ * @TableName im_srivate_message
  */
 @Data
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName(value = "im_private_message")
-public class ImPrivateMessagePo implements Serializable {
+@TableName(value = "im_single_message")
+public class ImSingleMessagePo implements Serializable {
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

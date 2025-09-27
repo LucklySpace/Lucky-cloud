@@ -20,8 +20,6 @@ public enum IMessageContentType {
     COMPLEX(7, "混合"),
     GROUP_INVITE(8, "群组邀请"),
     GROUP_JOIN_APPROVE(9, "群组加入审批"),
-
-
     TIP(10, "系统提示"),
 
 

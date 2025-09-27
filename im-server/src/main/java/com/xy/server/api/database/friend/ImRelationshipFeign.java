@@ -41,11 +41,11 @@ public interface ImRelationshipFeign {
      * 根据用户和好友id查询
      *
      * @param ownerId
-     * @param friendId
+     * @param toId
      * @return
      */
     @GetMapping("/friend/ship/getOne")
-    ImFriendshipPo getOne(@RequestParam("ownerId") String ownerId, @RequestParam("friendId") String friendId);
+    ImFriendshipPo getOne(@RequestParam("ownerId") String ownerId, @RequestParam("toId") String toId);
 
 
     @GetMapping("/friend/ship/list")

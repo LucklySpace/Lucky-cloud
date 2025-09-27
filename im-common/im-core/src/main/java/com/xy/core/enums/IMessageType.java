@@ -21,7 +21,7 @@ public enum IMessageType {
     ROBOT(2000, "机器人"),
     PUBLIC(2001, "公众号"),
 
-    MESSAGE_STATUS_UPDATE(3000, "消息状态更新"),
+    MESSAGE_ACTION(3000, "消息更新"),
 
 
     ;

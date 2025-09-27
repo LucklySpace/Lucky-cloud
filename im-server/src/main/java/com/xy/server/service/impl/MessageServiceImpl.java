@@ -2,6 +2,8 @@ package com.xy.server.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.ObjectUtil;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xy.core.enums.IMStatus;
 import com.xy.core.enums.IMessageReadStatus;
 import com.xy.core.enums.IMessageType;
@@ -13,6 +15,7 @@ import com.xy.general.response.domain.ResultCode;
 import com.xy.server.api.database.chat.ImChatFeign;
 import com.xy.server.api.database.group.ImGroupFeign;
 import com.xy.server.api.database.message.ImMessageFeign;
+import com.xy.server.api.database.outbox.IMOutboxFeign;
 import com.xy.server.api.id.IdGeneratorConstant;
 import com.xy.server.api.id.ImIdGeneratorFeign;
 import com.xy.server.config.RabbitTemplateFactory;
@@ -23,14 +26,18 @@ import com.xy.utils.DateTimeUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.MessageDeliveryMode;
+import org.springframework.amqp.core.MessagePostProcessor;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 import static com.xy.core.constants.IMConstant.MQ_EXCHANGE_NAME;
@@ -38,7 +45,12 @@ import static com.xy.core.constants.IMConstant.USER_CACHE_PREFIX;
 
 @Slf4j
 @Service
+
 public class MessageServiceImpl implements MessageService {
+
+    private static final ObjectMapper jacksonMapper = new ObjectMapper();
+
+    private final Map<String, Long> messageToOutboxId = new ConcurrentHashMap<>();
 
     @Resource
     private ImMessageFeign imMessageFeign;
@@ -50,34 +62,52 @@ public class MessageServiceImpl implements MessageService {
     private ImIdGeneratorFeign imIdGeneratorFeign;
 
     @Resource
+    private IMOutboxFeign imOutboxFeign;
+
+    @Resource
     private ImGroupFeign imGroupFeign;
 
     @Resource
     private RedisUtil redisUtil;
 
     @Resource
+    @Qualifier("asyncTaskExecutor")
+    private Executor asyncTaskExecutor;
+
+    @Resource
     private RabbitTemplateFactory rabbitTemplateFactory;
 
     private RabbitTemplate rabbitTemplate;
 
+    /**
+     * 初始化 RabbitTemplate 并绑定确认回调与返回回调
+     */
     @PostConstruct
     public void init() {
         rabbitTemplate = rabbitTemplateFactory.createRabbitTemplate(
                 (correlationData, ack, cause) -> {
+                    String messageId = correlationData != null ? correlationData.getId() : null;
                     if (ack) {
-                        log.info("消息成功发送到交换机，消息ID: {}",
-                                correlationData != null ? correlationData.getId() : null);
+                        log.info("Confirm: message {} ACKed by broker", messageId);
+                        handleConfirm(messageId, true, null);
                     } else {
-                        log.error("消息发送到交换机失败，原因: {}", cause);
+                        log.warn("Confirm: message {} NACKed by broker, cause: {}", messageId, cause);
+                        handleConfirm(messageId, false, cause != null ? cause : "broker_nack");
                     }
                 },
                 returnedMessage -> {
-                    log.info("\n确认消息送到队列(Queue)结果：");
-                    log.info("发生消息：{}", returnedMessage.getMessage());
-                    log.info("回应码：{}", returnedMessage.getReplyCode());
-                    log.info("回应信息：{}", returnedMessage.getReplyText());
-                    log.info("交换机：{}", returnedMessage.getExchange());
-                    log.info("路由键：{}", returnedMessage.getRoutingKey());
+                    try {
+                        log.warn("ReturnCallback: message returned. exchange={}, routingKey={}, replyText={}",
+                                returnedMessage.getExchange(),
+                                returnedMessage.getRoutingKey(),
+                                returnedMessage.getReplyText());
+                        // correlationId 可能为 null，需保护
+                        Object corr = returnedMessage.getMessage().getMessageProperties().getCorrelationId();
+                        String messageId = corr != null ? corr.toString() : null;
+                        handleConfirm(messageId, false, "message_returned:" + returnedMessage.getReplyText());
+                    } catch (Exception ex) {
+                        log.error("处理返回消息时异常: {}", ex.getMessage(), ex);
+                    }
                 }
         );
     }
@@ -86,389 +116,130 @@ public class MessageServiceImpl implements MessageService {
      * 发送私聊消息
      */
     @Override
-    //@Transactional
-    public Result<?> sendPrivateMessage(IMPrivateMessage dto) {
+    public Result<?> sendSingleMessage(IMSingleMessage dto) {
+        long startTime = System.currentTimeMillis();
         try {
-
-            // 消息id
             Long messageId = imIdGeneratorFeign.getId(IdGeneratorConstant.snowflake, IdGeneratorConstant.private_message_id, Long.class);
-
-            // 消息时间
             Long messageTime = DateTimeUtil.getCurrentUTCTimestamp();
+
             dto.setMessageId(String.valueOf(messageId))
                     .setMessageTime(messageTime)
                     .setReadStatus(IMessageReadStatus.UNREAD.getCode())
                     .setSequence(messageTime);
 
-            // 插入消息
-            ImPrivateMessagePo messagePo = new ImPrivateMessagePo()
-                    .setDelFlag(IMStatus.YES.getCode());
-
+            ImSingleMessagePo messagePo = new ImSingleMessagePo().setDelFlag(IMStatus.YES.getCode());
             BeanUtils.copyProperties(dto, messagePo);
 
-            insertImPrivateMessageAsync(messagePo);
+            // 异步插入消息和更新会话
+            CompletableFuture.runAsync(() -> {
+                insertImSingleMessage(messagePo);
+                createOrUpdateImChat(dto.getFromId(), dto.getToId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
+                createOrUpdateImChat(dto.getToId(), dto.getFromId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
+            }, asyncTaskExecutor);
 
-            // 更新会话信息
-            setChatAsync(dto.getFromId(), dto.getToId(), messageTime);
-
-            // 通过redis查找接收者长连接信息
+            // 检查接收者在线状态
             Object redisObj = redisUtil.get(USER_CACHE_PREFIX + dto.getToId());
-
-            ResultCode messageRes;
-
-            // 判断长连接信息是否为空，不为空则发送消息到mq
-            if (ObjectUtil.isNotEmpty(redisObj)) {
-
-                //序列化对象
-                IMRegisterUser registerUser = JsonUtil.parseObject(redisObj, IMRegisterUser.class);
-
-                // 获取机器码
-                String brokerId = registerUser.getBrokerId();
-
-                IMessageWrap<Object> imPrivateMessageIMessageWrap = new IMessageWrap<>().setCode(IMessageType.SINGLE_MESSAGE.getCode()).setData(dto).setIds(List.of(dto.getToId()));
-
-                // 发送消息到 mq 消息队列
-                rabbitTemplate.convertAndSend(MQ_EXCHANGE_NAME, brokerId,
-                        Objects.requireNonNull(JsonUtil.toJSONString(imPrivateMessageIMessageWrap)), new CorrelationData(messageId.toString()));
-
-                messageRes = ResultCode.SUCCESS;
-
-                log.info("单聊消息发送成功 发送用户:{} 接收用户:{}", dto.getFromId(), dto.getToId());
-            } else {
-                // 对方不在线
-                messageRes = ResultCode.USER_OFFLINE;
-
-                log.info("单聊消息未发送   发送用户:{}  接收用户:{} 未登录", dto.getFromId(), dto.getToId());
+            if (ObjectUtil.isEmpty(redisObj)) {
+                log.info("单聊目标不在线 from:{} to:{}", dto.getFromId(), dto.getToId());
+                return Result.success(ResultCode.USER_OFFLINE.getMessage(), dto);
             }
 
-            return Result.success(messageRes.getMessage(), dto);
+            IMRegisterUser registerUser = JsonUtil.parseObject(redisObj, IMRegisterUser.class);
+            String brokerId = registerUser.getBrokerId();
+
+            // 创建 outbox 并发送到 MQ
+            createOutbox(String.valueOf(messageId), JsonUtil.toJSONString(dto), "direct", "single.message." + dto.getToId(), messageTime);
+
+            IMessageWrap<Object> wrapper = new IMessageWrap<>().setCode(IMessageType.SINGLE_MESSAGE.getCode()).setData(dto).setIds(List.of(dto.getToId()));
+
+            publishToBroker(MQ_EXCHANGE_NAME, brokerId, JsonUtil.toJSONString(wrapper), String.valueOf(messageId));
+
+            log.info("单聊消息发送成功 from:{} to:{}", dto.getFromId(), dto.getToId());
+
+            return Result.success(ResultCode.SUCCESS.getMessage(), dto);
 
         } catch (Exception e) {
-
             log.error("单聊消息发送异常: {}", e.getMessage(), e);
-
             return Result.failed("发送消息失败");
+        } finally {
+            log.info("单聊消息总耗时: {}ms", System.currentTimeMillis() - startTime);
         }
     }
-
-    /**
-     * 保存私聊消息到数据库
-     *
-     * @param messagePo 私聊消息
-     */
-    private void insertImPrivateMessageAsync(ImPrivateMessagePo messagePo) {
-        CompletableFuture.runAsync(() -> {
-            try {
-                if (imMessageFeign.privateMessageInsert(messagePo)) {
-
-                    log.info("保存私聊消息成功 消息id:{} 发送人id:{} 接收人:{} 消息发送时间:{}", messagePo.getMessageId(), messagePo.getFromId(), messagePo.getToId(), messagePo.getMessageTime());
-                } else {
-
-                    log.error("保存私聊消息失败 消息id:{} 发送人id:{} 接收人:{} 消息发送时间:{}", messagePo.getMessageId(), messagePo.getFromId(), messagePo.getToId(), messagePo.getMessageTime());
-                }
-            } catch (Exception e) {
-
-                log.error("保存私聊消息异常, 消息id:{} 发送人id:{} 接收人:{} 消息发送时间:{}", messagePo.getMessageId(), messagePo.getFromId(), messagePo.getToId(), messagePo.getMessageTime(), e);
-            }
-        });
-    }
-
-    /**
-     * 保存或更新会话
-     *
-     * @param fromId      发送人
-     * @param toId        接收人
-     * @param messageTime 消息时间
-     */
-    private void setChatAsync(String fromId, String toId, Long messageTime) {
-        CompletableFuture.runAsync(() -> {
-            try {
-                createOrUpdateImChatSet(fromId, toId, messageTime);
-                createOrUpdateImChatSet(toId, fromId, messageTime);
-            } catch (Exception e) {
-
-                log.error("异步更新会话异常: {}", e.getMessage(), e);
-            }
-        });
-    }
-
-
-    /**
-     * 创建或更新会话
-     *
-     * @param ownerId     所属人
-     * @param toId        会话对象
-     * @param messageTime 消息时间
-     */
-    private void createOrUpdateImChatSet(String ownerId, String toId, Long messageTime) {
-        try {
-
-            ImChatPo chatPo = imChatFeign.getOne(ownerId, toId, IMessageType.SINGLE_MESSAGE.getCode());
-
-            if (ObjectUtil.isEmpty(chatPo)) {
-                chatPo = new ImChatPo();
-
-                // 会话id
-                String chatId = imIdGeneratorFeign.getId(IdGeneratorConstant.uuid, IdGeneratorConstant.chat_id, String.class);
-                //String chatId = UUID.randomUUID().toString();
-
-                chatPo.setChatId(chatId)
-                        .setOwnerId(ownerId)
-                        .setToId(toId)
-                        .setSequence(messageTime)
-                        .setIsMute(IMStatus.NO.getCode())
-                        .setIsTop(IMStatus.NO.getCode())
-                        .setDelFlag(IMStatus.YES.getCode())
-                        .setChatType(IMessageType.SINGLE_MESSAGE.getCode());
-
-                if (imChatFeign.insert(chatPo)) {
-                    log.info("保存私聊会话成功 会话id:{} 归属人id:{} 会话对象:{} 最新会话时间:{}", chatId, ownerId, toId, messageTime);
-                } else {
-                    log.error("保存私聊会话失败 会话id:{} 归属人id:{} 会话对象:{} 最新会话时间:{}", chatId, ownerId, toId, messageTime);
-                }
-
-            } else {
-                // 更新会话时间
-                chatPo.setSequence(messageTime);
-
-                if (imChatFeign.updateById(chatPo)) {
-                    log.info("更新私聊会话成功 会话id:{} 归属人id:{} 会话对象:{} 最新会话时间:{}", chatPo.getChatId(), ownerId, toId, messageTime);
-                } else {
-                    log.error("更新私聊会话失败 会话id:{} 归属人id:{} 会话对象:{} 最新会话时间:{}", chatPo.getChatId(), ownerId, toId, messageTime);
-                }
-            }
-
-        } catch (Exception e) {
-            log.error("创建或更新会话异常: ownerId={}, toId={}, messageTime={}, error={}",
-                    ownerId, toId, messageTime, e.getMessage(), e);
-        }
-    }
-
 
     /**
      * 发送群聊消息
-     *
-     * @param imGroupMessage 群消息对象
-     * @return 发送结果
      */
     @Override
-    public Result<?> sendGroupMessage(IMGroupMessage imGroupMessage) {
+    public Result<?> sendGroupMessage(IMGroupMessage dto) {
+        long startTime = System.currentTimeMillis();
         try {
-            // 生成消息id
-            //String messageId = IdUtil.getSnowflake().nextIdStr();
             Long messageId = imIdGeneratorFeign.getId(IdGeneratorConstant.snowflake, IdGeneratorConstant.group_message_id, Long.class);
-
-            // 获取群聊id
-            String groupId = imGroupMessage.getGroupId();
-
             Long messageTime = DateTimeUtil.getCurrentUTCTimestamp();
 
-            imGroupMessage.setMessageId(String.valueOf(messageId))
+            dto.setMessageId(String.valueOf(messageId))
                     .setMessageTime(messageTime)
                     .setSequence(messageTime);
 
             // 异步插入群消息
-            insertImGroupMessageAsync(imGroupMessage);
+            CompletableFuture.runAsync(() -> insertImGroupMessage(dto), asyncTaskExecutor);
 
-            // 获取群成员列表
-            List<ImGroupMemberPo> imGroupMemberPos = imGroupFeign.getGroupMemberList(groupId);
-
-            if (CollectionUtil.isEmpty(imGroupMemberPos)) {
-                log.warn("群:{} 没有成员，无法发送消息", groupId);
+            List<ImGroupMemberPo> members = imGroupFeign.getGroupMemberList(dto.getGroupId());
+            if (CollectionUtil.isEmpty(members)) {
+                log.warn("群:{} 没有成员，无法发送消息", dto.getGroupId());
                 return Result.failed("群聊成员为空，无法发送消息");
             }
 
-            // 过滤掉发送者，获取接收者ID列表
-            List<String> toList = imGroupMemberPos.parallelStream()
-                    .filter(member -> !member.getMemberId().equals(imGroupMessage.getFromId()))
-                    .map(member -> USER_CACHE_PREFIX + member.getMemberId())
+            // 过滤发送者，获取接收者
+            List<String> toList = members.stream()
+                    .filter(m -> !m.getMemberId().equals(dto.getFromId()))
+                    .map(m -> USER_CACHE_PREFIX + m.getMemberId())
                     .collect(Collectors.toList());
 
-            // 异步设置消息读取状态
-            setReadStatusAsync(String.valueOf(messageId), groupId, imGroupMemberPos);
+            // 异步设置读状态和更新会话
+            CompletableFuture.runAsync(() -> {
+                setGroupReadStatus(String.valueOf(messageId), dto.getGroupId(), members);
+                updateGroupChats(dto.getGroupId(), messageTime, members);
+            }, asyncTaskExecutor);
 
-            // 更新会话信息
-            setChatAsync(groupId, messageTime, imGroupMemberPos);
-
-            // 批量获取用户的长连接信息
-            List<Object> userObjList = redisUtil.batchGet(toList);
+            // 批量获取在线用户并按broker分组
+            List<Object> userObjs = redisUtil.batchGet(toList);
             Map<String, List<String>> brokerMap = new HashMap<>();
-
-            // 根据长连接的  brokerId 对用户进行分类汇总
-            for (Object redisObj : userObjList) {
-                if (ObjectUtil.isNotEmpty(redisObj)) {
-
-                    IMRegisterUser userDto = JsonUtil.parseObject(redisObj, IMRegisterUser.class);
-
-                    // 根据 brokerId 对用户进行分类
-                    brokerMap.computeIfAbsent(userDto.getBrokerId(), k -> new ArrayList<>()).add(userDto.getUserId());
+            for (Object obj : userObjs) {
+                if (ObjectUtil.isNotEmpty(obj)) {
+                    IMRegisterUser user = JsonUtil.parseObject(obj, IMRegisterUser.class);
+                    brokerMap.computeIfAbsent(user.getBrokerId(), k -> new ArrayList<>()).add(user.getUserId());
                 }
             }
 
-            // 分发消息到不同的 broker
+            // 分发到各broker
             for (Map.Entry<String, List<String>> entry : brokerMap.entrySet()) {
-                // 机器码
                 String brokerId = entry.getKey();
-                // 群聊在线用户
-                imGroupMessage.setToList(entry.getValue());
+                dto.setToList(entry.getValue());
 
-                IMessageWrap<Object> groupMessageIMessageWrap = new IMessageWrap<>().setCode(IMessageType.GROUP_MESSAGE.getCode()).setData(imGroupMessage).setIds(entry.getValue());
-
-                // 发送消息到 mq
-                rabbitTemplate.convertAndSend(MQ_EXCHANGE_NAME, brokerId,
-                        Objects.requireNonNull(JsonUtil.toJSONString(groupMessageIMessageWrap)), new CorrelationData(messageId.toString()));
+                createOutbox(String.valueOf(messageId), JsonUtil.toJSONString(dto), "topic", "group.message." + dto.getGroupId(), messageTime);
+                IMessageWrap<Object> wrapper = new IMessageWrap<>().setCode(IMessageType.GROUP_MESSAGE.getCode()).setData(dto).setIds(entry.getValue());
+                publishToBroker(MQ_EXCHANGE_NAME, brokerId, JsonUtil.toJSONString(wrapper), String.valueOf(messageId));
             }
 
-            return Result.success(imGroupMessage);
+            return Result.success(ResultCode.SUCCESS.getMessage(), dto);
 
         } catch (Exception e) {
-            log.error("群消息发送失败, 群ID: {}, 发送者: {}, 错误: {}",
-                    imGroupMessage.getGroupId(), imGroupMessage.getFromId(), e.getMessage(), e);
+            log.error("群消息发送失败, 群ID: {}, 发送者: {}", dto.getGroupId(), dto.getFromId(), e);
             return Result.failed("发送群消息失败");
+        } finally {
+            log.info("群聊消息总耗时: {}ms", System.currentTimeMillis() - startTime);
         }
     }
 
     /**
-     * 异步插入群消息
+     * 发送视频消息
      */
-    private void insertImGroupMessageAsync(IMGroupMessage imGroupMessage) {
-        CompletableFuture.runAsync(() -> {
-            try {
-
-                ImGroupMessagePo imGroupMessagePo = new ImGroupMessagePo()
-                        .setDelFlag(IMStatus.YES.getCode());
-
-                BeanUtils.copyProperties(imGroupMessage, imGroupMessagePo);
-
-                // 保存群消息
-                if (imMessageFeign.groupMessageInsert(imGroupMessagePo)) {
-
-                    log.info("群消息保存成功, 群ID: {}, 发送者: {}", imGroupMessagePo.getGroupId(), imGroupMessagePo.getFromId());
-                } else {
-
-                    log.error("群消息保存失败, 群ID: {}, 发送者: {}", imGroupMessagePo.getGroupId(), imGroupMessagePo.getFromId());
-                }
-            } catch (Exception e) {
-
-                log.error("异步插入群消息失败: {}", e.getMessage(), e);
-            }
-        });
-    }
-
-
-    /**
-     * 异步更新会话信息
-     */
-    private void setChatAsync(String groupId, Long messageTime, List<ImGroupMemberPo> imGroupMemberPos) {
-        CompletableFuture.runAsync(() -> setGroupChat(groupId, messageTime, imGroupMemberPos));
-    }
-
-
-    /**
-     * 更新群聊会话信息
-     *
-     * @param groupId          群id
-     * @param messageTime      时间
-     * @param imGroupMemberPos 群成员
-     */
-    public void setGroupChat(String groupId, Long messageTime, List<ImGroupMemberPo> imGroupMemberPos) {
-        try {
-            for (ImGroupMemberPo member : imGroupMemberPos) {
-
-                ImChatPo chatPo = imChatFeign.getOne(member.getMemberId(), groupId, IMessageType.GROUP_MESSAGE.getCode());
-
-                String memberId = member.getMemberId();
-
-                if (ObjectUtil.isEmpty(chatPo)) {
-                    chatPo = new ImChatPo();
-
-                    String chatId = UUID.randomUUID().toString();
-
-                    chatPo.setChatId(chatId)
-                            .setOwnerId(memberId)
-                            .setToId(groupId)
-                            .setSequence(messageTime)
-                            .setIsMute(IMStatus.NO.getCode())
-                            .setIsTop(IMStatus.NO.getCode())
-                            .setDelFlag(IMStatus.YES.getCode())
-                            .setChatType(IMessageType.GROUP_MESSAGE.getCode());
-
-                    if (imChatFeign.insert(chatPo)) {
-
-                        log.info("保存群聊会话成功 会话id:{} 归属人id:{} 群id:{} 最新会话时间:{}", chatId, memberId, groupId, messageTime);
-                    } else {
-
-                        log.error("保存群聊会话失败 会话id:{} 归属人id:{} 群id:{} 最新会话时间:{}", chatId, memberId, groupId, messageTime);
-                    }
-
-                } else {
-                    // 更新会话时间
-                    chatPo.setSequence(messageTime);
-
-                    if (imChatFeign.updateById(chatPo)) {
-
-                        log.info("更新群聊会话成功 会话id:{} 归属人id:{} 群id:{} 最新会话时间:{}", chatPo.getChatId(), memberId, groupId, messageTime);
-                    } else {
-
-                        log.error("更新群聊会话失败 会话id:{} 归属人id:{} 群id:{} 最新会话时间:{}", chatPo.getChatId(), memberId, groupId, messageTime);
-                    }
-                }
-            }
-
-            log.info("成功更新群会话信息, 群ID: {}", groupId);
-        } catch (Exception e) {
-
-            log.error("更新群会话信息失败, 群ID: {}, 错误: {}", groupId, e.getMessage(), e);
-        }
-    }
-
-    /**
-     * 异步设置消息阅读状态
-     *
-     * @param messageId        消息id
-     * @param groupId          群id
-     * @param imGroupMemberPos 群成员
-     */
-    private void setReadStatusAsync(String messageId, String groupId, List<ImGroupMemberPo> imGroupMemberPos) {
-        CompletableFuture.runAsync(() -> setReadStatus(messageId, groupId, imGroupMemberPos));
-    }
-
-    /**
-     * 设置群消息的阅读状态
-     *
-     * @param messageId        消息id
-     * @param groupId          群id
-     * @param imGroupMemberPos 群成员
-     */
-    public void setReadStatus(String messageId, String groupId, List<ImGroupMemberPo> imGroupMemberPos) {
-        try {
-            // 设置所有群消息未读
-            List<ImGroupMessageStatusPo> groupReadStatusList = imGroupMemberPos.stream()
-                    .map(member -> new ImGroupMessageStatusPo()
-                            .setMessageId(messageId)
-                            .setGroupId(groupId)
-                            .setReadStatus(IMessageReadStatus.UNREAD.getCode())
-                            .setToId(member.getMemberId()))
-                    .collect(Collectors.toList());
-
-            // 插入数据库
-            imMessageFeign.groupMessageStatusBatchInsert(groupReadStatusList);
-
-            log.info("成功设置群消息阅读状态, 消息ID: {}", messageId);
-
-        } catch (Exception e) {
-
-            log.error("设置群消息阅读状态失败, 消息ID: {}, 错误: {}", messageId, e.getMessage(), e);
-        }
-    }
-
     @Override
-    public Result sendVideoMessage(IMVideoMessage videoMessage) {
+    public Result<?> sendVideoMessage(IMVideoMessage videoMessage) {
         if (videoMessage == null || videoMessage.getToId() == null) {
             return Result.failed("参数无效，消息或接收方为空");
         }
 
-        // 从 Redis 获取用户连接信息
         Object redisObj = redisUtil.get(USER_CACHE_PREFIX + videoMessage.getToId());
         if (ObjectUtil.isEmpty(redisObj)) {
             log.info("用户 [{}] 未登录，消息发送失败", videoMessage.getToId());
@@ -476,22 +247,19 @@ public class MessageServiceImpl implements MessageService {
         }
 
         try {
-            // 解析用户连接信息
             IMRegisterUser targetUser = JsonUtil.parseObject(redisObj, IMRegisterUser.class);
             String brokerId = targetUser.getBrokerId();
 
-            // 包装消息
-            IMessageWrap<Object> wrapMsg = new IMessageWrap<>()
-                    .setCode(IMessageType.VIDEO_MESSAGE.getCode())
-                    .setData(videoMessage)
-                    .setIds(List.of(videoMessage.getToId()));
+            IMessageWrap<Object> wrapMsg = new IMessageWrap<>().setCode(IMessageType.VIDEO_MESSAGE.getCode()).setData(videoMessage).setIds(List.of(videoMessage.getToId()));
 
-            // 发送消息到 MQ
-            rabbitTemplate.convertAndSend(MQ_EXCHANGE_NAME, brokerId, JsonUtil.toJSONString(wrapMsg));
+            MessagePostProcessor mpp = msg -> {
+                msg.getMessageProperties().setDeliveryMode(MessageDeliveryMode.PERSISTENT);
+                return msg;
+            };
 
-            log.info("视频消息发送成功，from={} → to={} via broker={}",
-                    videoMessage.getFromId(), videoMessage.getToId(), brokerId);
+            rabbitTemplate.convertAndSend(MQ_EXCHANGE_NAME, brokerId, JsonUtil.toJSONString(wrapMsg), mpp);
 
+            log.info("视频消息发送成功，from={} → to={} via broker={}", videoMessage.getFromId(), videoMessage.getToId(), brokerId);
             return Result.success("消息发送成功");
         } catch (Exception e) {
             log.error("发送视频消息异常，toId={}", videoMessage.getToId(), e);
@@ -499,33 +267,322 @@ public class MessageServiceImpl implements MessageService {
         }
     }
 
+    /**
+     * 撤回消息
+     */
+    @Override
+    public Result<?> recallMessage(IMessageAction dto) {
+        try {
+            if (dto == null || dto.getMessageId() == null || dto.getOperatorId() == null) {
+                return Result.failed("参数无效");
+            }
+
+            String messageId = dto.getMessageId();
+            String operatorId = dto.getOperatorId();
+            Long recallTime = dto.getRecallTime() != null ? dto.getRecallTime() : DateTimeUtil.getCurrentUTCTimestamp();
+            String reason = dto.getReason();
+
+            Integer messageType = dto.getMessageType();
+            if (messageType == null) {
+                return Result.failed("无法确定消息类型");
+            }
+
+            Map<String, Object> recallPayload = new HashMap<>();
+            recallPayload.put("_recalled", true);
+            recallPayload.put("operatorId", operatorId);
+            recallPayload.put("recallTime", recallTime);
+            recallPayload.put("reason", reason);
+
+            if (messageType.equals(IMessageType.SINGLE_MESSAGE.getCode())) {
+                ImSingleMessagePo msg = imMessageFeign.getSingleMessageById(messageId);
+                if (Objects.isNull(msg)) return Result.failed("消息不存在");
+                if (!operatorId.equals(msg.getFromId())) return Result.failed("无权撤回");
+
+                // 检查是否已撤回
+                Map<String, Object> body = safeParseMessageBody(msg.getMessageBody());
+                if (Boolean.TRUE.equals(body.get("_recalled"))) return Result.success("消息已撤回");
+
+                recallPayload.put("messageBody", msg.getMessageBody());
+                ImSingleMessagePo update = new ImSingleMessagePo().setMessageId(messageId).setMessageBody(JsonUtil.toJSONString(recallPayload)).setUpdateTime(recallTime);
+                imMessageFeign.singleMessageSaveOrUpdate(update);
+
+                // 广播给双方
+                broadcastRecall(dto, messageId, recallTime, List.of(msg.getFromId(), msg.getToId()), IMessageType.SINGLE_MESSAGE.getCode());
+            }
+            if (messageType.equals(IMessageType.GROUP_MESSAGE.getCode())) {
+                ImGroupMessagePo msg = imMessageFeign.getGroupMessageById(messageId);
+                if (Objects.isNull(msg)) return Result.failed("消息不存在");
+                if (!operatorId.equals(msg.getFromId())) return Result.failed("无权撤回");
+
+                // 权限校验（发送者或群主）
+//                if (!operatorId.equals(msg.getFromId())) {
+//                    boolean isAdmin = imGroupFeign.isGroupAdmin(msg.getGroupId(), operatorId);
+//                    if (!isAdmin) return Result.failed("无权撤回");
+//                }
+
+                Map<String, Object> body = safeParseMessageBody(msg.getMessageBody());
+                if (Boolean.TRUE.equals(body.get("_recalled"))) return Result.success("消息已撤回");
+
+                recallPayload.put("groupId", msg.getGroupId());
+                ImGroupMessagePo update = new ImGroupMessagePo().setMessageId(messageId).setMessageBody(JsonUtil.toJSONString(recallPayload)).setUpdateTime(recallTime);
+                imMessageFeign.groupMessageSaveOrUpdate(update);
+
+                // 广播给群成员
+                List<ImGroupMemberPo> members = imGroupFeign.getGroupMemberList(msg.getGroupId());
+                if (CollectionUtil.isNotEmpty(members)) {
+                    List<String> memberIds = members.stream().map(ImGroupMemberPo::getMemberId).collect(Collectors.toList());
+                    broadcastRecall(dto, messageId, recallTime, memberIds, IMessageType.GROUP_MESSAGE.getCode());
+                }
+            }
+
+            return Result.success("消息撤回成功");
+        } catch (Exception e) {
+            log.error("撤回消息异常: {}", e.getMessage(), e);
+            return Result.failed("撤回失败");
+        }
+    }
+
+    /**
+     * 广播撤回通知
+     */
+    private void broadcastRecall(IMessageAction dto, String messageId, Long recallTime, List<String> recipientIds, Integer messageType) {
+        dto.setMessageTime(recallTime).setMessageId(messageId);
+
+        List<String> redisKeys = recipientIds.stream().map(id -> USER_CACHE_PREFIX + id).collect(Collectors.toList());
+        List<Object> redisObjs = redisUtil.batchGet(redisKeys);
+
+        Map<String, List<String>> brokerMap = new HashMap<>();
+        for (Object obj : redisObjs) {
+            if (ObjectUtil.isNotEmpty(obj)) {
+                IMRegisterUser user = JsonUtil.parseObject(obj, IMRegisterUser.class);
+                brokerMap.computeIfAbsent(user.getBrokerId(), k -> new ArrayList<>()).add(user.getUserId());
+            }
+        }
+
+        for (Map.Entry<String, List<String>> entry : brokerMap.entrySet()) {
+            IMessageWrap<Object> wrap = new IMessageWrap<>().setCode(messageType).setData(dto).setIds(entry.getValue());
+            publishToBroker(MQ_EXCHANGE_NAME, entry.getKey(), JsonUtil.toJSONString(wrap), messageId);
+        }
+
+        log.info("撤回完成 messageId={} type={}", messageId, messageType);
+    }
+
+    /**
+     * 获取消息列表
+     */
     @Override
     public Map<Integer, Object> list(ChatDto chatDto) {
-
         String userId = chatDto.getFromId();
-
         Long sequence = chatDto.getSequence();
-
-        CompletableFuture<List<ImPrivateMessagePo>> singleMessageFuture = CompletableFuture.supplyAsync(() -> imMessageFeign.getPrivateMessageList(userId, sequence));
-        CompletableFuture<List<ImGroupMessagePo>> groupMessageFuture = CompletableFuture.supplyAsync(() -> imMessageFeign.getGroupMessageList(userId, sequence));
 
         Map<Integer, Object> map = new HashMap<>();
 
-        try {
-            List<ImPrivateMessagePo> IMPrivateMessageDtoList = singleMessageFuture.get();
-            if (ObjectUtil.isNotEmpty(IMPrivateMessageDtoList)) {
-                map.put(IMessageType.SINGLE_MESSAGE.getCode(), IMPrivateMessageDtoList);
-            }
+        List<ImSingleMessagePo> singleMessages = imMessageFeign.getSingleMessageList(userId, sequence);
+        if (!CollectionUtil.isEmpty(singleMessages)) {
+            map.put(IMessageType.SINGLE_MESSAGE.getCode(), singleMessages);
+        }
 
-            List<ImGroupMessagePo> IMGroupMessagePoDtoList = groupMessageFuture.get();
-            if (ObjectUtil.isNotEmpty(IMGroupMessagePoDtoList)) {
-                map.put(IMessageType.GROUP_MESSAGE.getCode(), IMGroupMessagePoDtoList);
-            }
-        } catch (InterruptedException | ExecutionException e) {
-            // 处理异常
+        List<ImGroupMessagePo> groupMessages = imMessageFeign.getGroupMessageList(userId, sequence);
+        if (!CollectionUtil.isEmpty(groupMessages)) {
+            map.put(IMessageType.GROUP_MESSAGE.getCode(), groupMessages);
         }
 
         return map;
     }
 
+    /**
+     * 插入私聊消息
+     */
+    private void insertImSingleMessage(ImSingleMessagePo messagePo) {
+        try {
+            if (!imMessageFeign.singleMessageSaveOrUpdate(messagePo)) {
+                log.error("保存私聊消息失败 messageId={}", messagePo.getMessageId());
+            }
+        } catch (Exception e) {
+            log.error("插入私聊消息异常 messageId={}", messagePo.getMessageId(), e);
+        }
+    }
+
+    /**
+     * 插入群聊消息
+     */
+    private void insertImGroupMessage(IMGroupMessage dto) {
+        try {
+            ImGroupMessagePo po = new ImGroupMessagePo().setDelFlag(IMStatus.YES.getCode());
+            BeanUtils.copyProperties(dto, po);
+            if (!imMessageFeign.groupMessageSaveOrUpdate(po)) {
+                log.error("保存群消息失败 messageId={}", dto.getMessageId());
+            }
+        } catch (Exception e) {
+            log.error("插入群消息异常 messageId={}", dto.getMessageId(), e);
+        }
+    }
+
+    /**
+     * 创建或更新会话（通用）
+     */
+    private void createOrUpdateImChat(String ownerId, String toId, Long messageTime, Integer chatType) {
+        try {
+            ImChatPo chatPo = imChatFeign.getOne(ownerId, toId, chatType);
+            if (Objects.isNull(chatPo)) {
+                chatPo = new ImChatPo()
+                        .setChatId(imIdGeneratorFeign.getId(IdGeneratorConstant.uuid, IdGeneratorConstant.chat_id, String.class))
+                        .setOwnerId(ownerId)
+                        .setToId(toId)
+                        .setSequence(messageTime)
+                        .setIsMute(IMStatus.NO.getCode())
+                        .setIsTop(IMStatus.NO.getCode())
+                        .setDelFlag(IMStatus.YES.getCode())
+                        .setChatType(chatType);
+                if (!imChatFeign.insert(chatPo)) {
+                    log.error("保存会话失败 ownerId={} toId={}", ownerId, toId);
+                }
+            } else {
+                chatPo.setSequence(messageTime);
+                if (!imChatFeign.updateById(chatPo)) {
+                    log.error("更新会话失败 ownerId={} toId={}", ownerId, toId);
+                }
+            }
+        } catch (Exception e) {
+            log.error("创建/更新会话异常 ownerId={} toId={}", ownerId, toId, e);
+        }
+    }
+
+    /**
+     * 更新群聊会话
+     */
+    private void updateGroupChats(String groupId, Long messageTime, List<ImGroupMemberPo> members) {
+        for (ImGroupMemberPo member : members) {
+            createOrUpdateImChat(member.getMemberId(), groupId, messageTime, IMessageType.GROUP_MESSAGE.getCode());
+        }
+    }
+
+    /**
+     * 设置群消息读状态
+     */
+    private void setGroupReadStatus(String messageId, String groupId, List<ImGroupMemberPo> members) {
+        try {
+            List<ImGroupMessageStatusPo> statusList = members.stream()
+                    .map(m -> new ImGroupMessageStatusPo().setMessageId(messageId).setGroupId(groupId)
+                            .setReadStatus(IMessageReadStatus.UNREAD.getCode()).setToId(m.getMemberId()))
+                    .collect(Collectors.toList());
+            imMessageFeign.groupMessageStatusBatchInsert(statusList);
+        } catch (Exception e) {
+            log.error("设置群读状态失败 messageId={}", messageId, e);
+        }
+    }
+
+    /**
+     * 创建Outbox
+     */
+    private IMOutboxPo createOutbox(String messageId, String payload, String exchange, String routingKey, Long messageTime) {
+        long outboxId = System.nanoTime();
+        IMOutboxPo po = new IMOutboxPo().setId(outboxId).setMessageId(messageId).setPayload(payload)
+                .setExchange(exchange).setRoutingKey(routingKey).setAttempts(0).setStatus("PENDING")
+                .setCreatedAt(messageTime).setUpdatedAt(messageTime);
+
+        CompletableFuture.runAsync(() -> {
+            if (!imOutboxFeign.saveOrUpdate(po)) {
+                log.warn("Outbox保存失败 messageId={}", messageId);
+            }
+        }, asyncTaskExecutor);
+
+        messageToOutboxId.put(messageId, outboxId);
+        return po;
+    }
+
+    /**
+     * 发布到Broker
+     */
+    private void publishToBroker(String exchange, String routingKey, String payload, String messageId) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                MessagePostProcessor mpp = msg -> {
+                    msg.getMessageProperties().setDeliveryMode(MessageDeliveryMode.PERSISTENT);
+                    msg.getMessageProperties().setCorrelationId(messageId);
+                    return msg;
+                };
+                CorrelationData corr = new CorrelationData(messageId);
+                rabbitTemplate.convertAndSend(exchange, routingKey, payload, mpp, corr);
+            } catch (Exception e) {
+                log.error("发布失败 messageId={}", messageId, e);
+                Long outboxId = messageToOutboxId.get(messageId);
+                if (outboxId != null) {
+                    imOutboxFeign.markAsFailed(outboxId, e.getMessage(), 1);
+                }
+            }
+        }, asyncTaskExecutor);
+    }
+
+    /**
+     * 处理确认回调
+     */
+    private void handleConfirm(String messageId, boolean ack, String cause) {
+        if (messageId == null) return;
+        Long outboxId = messageToOutboxId.get(messageId);
+        if (outboxId == null) return;
+
+        try {
+            if (ack) {
+                imOutboxFeign.updateStatus(outboxId, "SENT", 1);
+                messageToOutboxId.remove(messageId);
+            } else {
+                imOutboxFeign.updateStatus(outboxId, "PENDING", 0);
+            }
+        } catch (Exception e) {
+            log.error("更新Outbox失败 outboxId={} messageId={}", outboxId, messageId, e);
+        }
+    }
+
+    /**
+     * 重试Pending消息（调度器调用）
+     */
+    public void retryPendingMessages() {
+        try {
+            List<IMOutboxPo> pending = imOutboxFeign.listByStatus("PENDING", 100);
+            if (CollectionUtil.isEmpty(pending)) return;
+
+            for (IMOutboxPo o : pending) {
+                int attempts = o.getAttempts() + 1;
+                try {
+                    MessagePostProcessor mpp = msg -> {
+                        msg.getMessageProperties().setDeliveryMode(MessageDeliveryMode.PERSISTENT);
+                        msg.getMessageProperties().setCorrelationId(o.getMessageId());
+                        return msg;
+                    };
+                    CorrelationData corr = new CorrelationData(o.getMessageId());
+                    rabbitTemplate.convertAndSend(o.getExchange(), o.getRoutingKey(), o.getPayload(), mpp, corr);
+                    imOutboxFeign.updateStatus(o.getId(), "SENT", attempts);
+                } catch (Exception e) {
+                    log.error("重试失败 messageId={}", o.getMessageId(), e);
+                    imOutboxFeign.markAsFailed(o.getId(), e.getMessage(), attempts);
+                }
+            }
+        } catch (Exception e) {
+            log.error("重试任务失败", e);
+        }
+    }
+
+    /**
+     * 安全解析MessageBody
+     */
+    private Map<String, Object> safeParseMessageBody(Object raw) {
+        if (raw == null) return Collections.emptyMap();
+        if (raw instanceof Map) return (Map<String, Object>) raw;
+        if (raw instanceof String) {
+            String s = ((String) raw).trim();
+            try {
+                return jacksonMapper.readValue(s, new TypeReference<Map<String, Object>>() {
+                });
+            } catch (Exception e) {
+                return Map.of("raw", s);
+            }
+        }
+        try {
+            return jacksonMapper.convertValue(raw, new TypeReference<Map<String, Object>>() {
+            });
+        } catch (Exception e) {
+            return Map.of("raw", String.valueOf(raw));
+        }
+    }
 }

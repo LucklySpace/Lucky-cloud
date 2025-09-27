@@ -22,7 +22,7 @@ import java.util.List;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-public class IMGroupMessage extends IMessageDto implements Serializable {
+public class IMGroupMessage extends IMessage implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;

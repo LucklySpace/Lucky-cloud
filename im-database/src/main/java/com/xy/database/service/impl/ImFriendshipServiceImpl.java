@@ -34,10 +34,10 @@ public class ImFriendshipServiceImpl extends ServiceImpl<ImFriendshipMapper, ImF
     }
 
     @Override
-    public ImFriendshipPo getOne(String ownerId, String friendId) {
+    public ImFriendshipPo getOne(String ownerId, String toId) {
         QueryWrapper<ImFriendshipPo> query = new QueryWrapper<>();
         query.eq("owner_id", ownerId)
-                .eq("friend_id", friendId);
+                .eq("to_id", toId);
         return this.getOne(query);
     }
 

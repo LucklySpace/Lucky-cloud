@@ -1,5 +1,6 @@
 package com.xy.server.service.impl;
 
+import com.xy.core.enums.IMStatus;
 import com.xy.domain.dto.FriendDto;
 import com.xy.domain.dto.FriendRequestDto;
 import com.xy.domain.po.ImFriendshipPo;
@@ -183,16 +184,16 @@ public class RelationshipServiceImpl implements RelationshipService {
         }
 
         String ownerId = friendDto.getFromId();
-        String friendId = friendDto.getToId();
+        String toId = friendDto.getToId();
 
         FriendVo vo = new FriendVo();
 
         try {
             // 1. 查询用户信息
-            ImUserDataPo userDataPo = imUserFeign.getOne(friendId);
+            ImUserDataPo userDataPo = imUserFeign.getOne(toId);
             if (userDataPo == null) {
-                vo.setUserId(ownerId).setFriendId(friendId).setFlag(2);
-                log.warn("getFriendInfo: user not found for friendId={}", friendId);
+                vo.setUserId(ownerId).setFriendId(toId).setFlag(2);
+                log.warn("getFriendInfo: user not found for friendId={}", toId);
                 return Result.success(vo);
             }
 
@@ -201,20 +202,20 @@ public class RelationshipServiceImpl implements RelationshipService {
             vo.setUserId(ownerId).setFriendId(userDataPo.getUserId());
 
             // 2. 查询好友关系
-            ImFriendshipPo friendshipPo = imRelationshipFeign.getOne(ownerId, friendId);
-            if (friendshipPo != null) {
-                vo.setFlag(1);
+            ImFriendshipPo friendshipPo = imRelationshipFeign.getOne(ownerId, toId);
+            if (Objects.nonNull(friendshipPo)) {
+                vo.setFlag(IMStatus.YES.getCode());
                 Optional.ofNullable(friendshipPo.getBlack()).ifPresent(vo::setBlack);
                 Optional.ofNullable(friendshipPo.getRemark()).ifPresent(vo::setAlias);
                 Optional.ofNullable(friendshipPo.getSequence()).ifPresent(vo::setSequence);
             } else {
-                vo.setFlag(2);
+                vo.setFlag(IMStatus.NO.getCode());
             }
 
             return Result.success(vo);
         } catch (Exception ex) {
-            log.error("getFriendInfo failed for ownerId={} friendId={}", ownerId, friendId, ex);
-            vo.setUserId(ownerId).setFriendId(friendId).setFlag(2);
+            log.error("getFriendInfo failed for ownerId={} friendId={}", ownerId, toId, ex);
+            vo.setUserId(ownerId).setFriendId(toId).setFlag(IMStatus.NO.getCode());
             return Result.success(vo);
         }
     }

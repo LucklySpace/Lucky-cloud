@@ -36,12 +36,12 @@ public class ImFriendshipController {
      * 获取好友关系
      *
      * @param ownerId  用户ID
-     * @param friendId 好友id
+     * @param toId 好友id
      * @return
      */
     @GetMapping("/ship/getOne")
-    public ImFriendshipPo getOne(@RequestParam("ownerId") String ownerId, @RequestParam("friendId") String friendId) {
-        return imFriendshipService.getOne(ownerId, friendId);
+    public ImFriendshipPo getOne(@RequestParam("ownerId") String ownerId, @RequestParam("toId") String toId) {
+        return imFriendshipService.getOne(ownerId, toId);
     }
 
     /**

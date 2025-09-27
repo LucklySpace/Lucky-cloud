@@ -15,7 +15,7 @@ public interface ImFriendshipService extends IService<ImFriendshipPo> {
     List<ImFriendshipPo> list(String ownerId);
 
 
-    ImFriendshipPo getOne(String ownerId, String friendId);
+    ImFriendshipPo getOne(String ownerId, String toId);
 
     /**
      * 保存好友请求

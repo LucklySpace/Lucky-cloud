@@ -5,8 +5,8 @@ import cn.hutool.core.util.RandomUtil;
 import com.xy.core.constants.IMConstant;
 import com.xy.core.enums.*;
 import com.xy.core.model.IMGroupMessage;
-import com.xy.core.model.IMPrivateMessage;
-import com.xy.core.model.IMessageDto;
+import com.xy.core.model.IMSingleMessage;
+import com.xy.core.model.IMessage;
 import com.xy.domain.dto.GroupDto;
 import com.xy.domain.dto.GroupInviteDto;
 import com.xy.domain.po.ImGroupInviteRequestPo;
@@ -336,7 +336,7 @@ public class GroupServiceImpl implements GroupService {
 
             for (ImGroupInviteRequestPo inviteRequestPo : inviteRequestPos) {
                 // 构造单聊消息对象
-                IMPrivateMessage privateMessage = IMPrivateMessage.builder()
+                IMSingleMessage singleMessage = IMSingleMessage.builder()
                         .messageTempId(UUID.randomUUID().toString())
                         .fromId(inviteRequestPo.getFromId())
                         .toId(inviteRequestPo.getToId())
@@ -346,7 +346,7 @@ public class GroupServiceImpl implements GroupService {
                         .build();
 
                 // 构造群聊邀请消息内容
-                IMessageDto.MessageBody messageBody = new IMessageDto.GroupInviteMessageBody()
+                IMessage.MessageBody messageBody = new IMessage.GroupInviteMessageBody()
                         .setRequestId(inviteRequestPo.getRequestId())
                         .setInviterId(inviteRequestPo.getFromId())
                         .setGroupId(groupId)
@@ -358,10 +358,10 @@ public class GroupServiceImpl implements GroupService {
                         ;
 
 
-                privateMessage.setMessageBody(messageBody);
+                singleMessage.setMessageBody(messageBody);
 
                 // 发送单聊消息
-                messageService.sendPrivateMessage(privateMessage);
+                messageService.sendSingleMessage(singleMessage);
             }
 
             if (dbOk == null || !dbOk) {
@@ -419,7 +419,7 @@ public class GroupServiceImpl implements GroupService {
         imGroupMessage.setGroupId(groupId)
                 .setFromId(IMConstant.SYSTEM) // 系统消息默认用户000000
                 .setMessageContentType(IMessageContentType.TIP.getCode()) // 系统消息
-                .setMessageBody(new IMessageDto.TextMessageBody().setText(message)); // 群聊邀请消息
+                .setMessageBody(new IMessage.TextMessageBody().setText(message)); // 群聊邀请消息
         return imGroupMessage;
     }
 
@@ -580,7 +580,7 @@ public class GroupServiceImpl implements GroupService {
         ImUserDataPo inviteeInfo = imUserFeign.getOne(inviteeId);
 
         for (String adminId : adminIds) {
-            IMPrivateMessage privateMessage = IMPrivateMessage.builder()
+            IMSingleMessage singleMessage = IMSingleMessage.builder()
                     .messageTempId(UUID.randomUUID().toString())
                     .fromId(inviterId) // 可以使用 inviter 作为 fromId，也可以使用系统用户按需求
                     .toId(adminId)
@@ -590,7 +590,7 @@ public class GroupServiceImpl implements GroupService {
                     .build();
 
             // 构造消息体（尽量包含必要字段，后端/前端可据此渲染审批 UI）
-            IMessageDto.MessageBody body = new IMessageDto.GroupInviteMessageBody()
+            IMessage.MessageBody body = new IMessage.GroupInviteMessageBody()
                     .setInviterId(inviterId)
                     .setGroupId(groupId)
                     .setUserId(inviteeId)
@@ -608,10 +608,10 @@ public class GroupServiceImpl implements GroupService {
             } catch (Throwable ignore) {
             }
 
-            privateMessage.setMessageBody(body);
+            singleMessage.setMessageBody(body);
 
             // 发送私信给管理员
-            messageService.sendPrivateMessage(privateMessage);
+            messageService.sendSingleMessage(singleMessage);
         }
     }
 
@@ -633,7 +633,7 @@ public class GroupServiceImpl implements GroupService {
             // 构造邀请消息体
             for (String inviteeId : invitees) {
                 // 构造单聊消息对象
-                IMPrivateMessage privateMessage = IMPrivateMessage.builder()
+                IMSingleMessage singleMessage = IMSingleMessage.builder()
                         .messageTempId(UUID.randomUUID().toString())
                         .fromId(inviterId)
                         .toId(inviteeId)
@@ -642,7 +642,7 @@ public class GroupServiceImpl implements GroupService {
                         .build();
 
                 // 构造群聊邀请消息内容
-                IMessageDto.MessageBody messageBody = new IMessageDto.GroupInviteMessageBody()
+                IMessage.MessageBody messageBody = new IMessage.GroupInviteMessageBody()
                         .setInviterId(inviterId)
                         .setGroupId(groupId)
                         .setGroupAvatar(groupInfo != null ? groupInfo.getAvatar() : "")
@@ -651,10 +651,10 @@ public class GroupServiceImpl implements GroupService {
                         .setApproveStatus(1);// 邀请状态 1-待处理
 
 
-                privateMessage.setMessageBody(messageBody);
+                singleMessage.setMessageBody(messageBody);
 
                 // 发送单聊消息
-                messageService.sendPrivateMessage(privateMessage);
+                messageService.sendSingleMessage(singleMessage);
             }
         } catch (Exception e) {
             log.error("发送群聊邀请消息失败，groupId={}, inviterId={}, invitees={}", groupId, inviterId, invitees, e);

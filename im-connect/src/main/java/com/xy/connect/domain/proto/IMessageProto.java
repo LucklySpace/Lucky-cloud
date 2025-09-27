@@ -64,6 +64,7 @@ public final class IMessageProto {
         descriptor.resolveAllFeaturesImmutable();
         com.google.protobuf.AnyProto.getDescriptor();
     }
+
     private IMessageProto() {
     }
 

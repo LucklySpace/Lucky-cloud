@@ -180,17 +180,17 @@ public class ChatServiceImpl implements ChatService {
 
         String toId = chatVo.getToId();
 
-        ImPrivateMessagePo privateMessageDto = imMessageFeign.plast(ownerId, toId);
+        ImSingleMessagePo singleMessageDto = imMessageFeign.plast(ownerId, toId);
 
         chatVo.setMessageTime(0L);
 
-        if (ObjectUtil.isNotEmpty(privateMessageDto)) {
+        if (ObjectUtil.isNotEmpty(singleMessageDto)) {
 
-            chatVo.setMessage(privateMessageDto.getMessageBody());
+            chatVo.setMessage(singleMessageDto.getMessageBody());
 
-            chatVo.setMessageContentType(privateMessageDto.getMessageContentType());
+            chatVo.setMessageContentType(singleMessageDto.getMessageContentType());
 
-            chatVo.setMessageTime(privateMessageDto.getMessageTime());
+            chatVo.setMessageTime(singleMessageDto.getMessageTime());
         }
 
         Integer unread = imMessageFeign.pSelectReadStatus(toId, ownerId, IMessageReadStatus.UNREAD.getCode());
@@ -278,16 +278,16 @@ public class ChatServiceImpl implements ChatService {
 //        }
 //
 //        // 构造更新对象，将状态标记为已读
-//        ImPrivateMessagePo updateMessage = new ImPrivateMessagePo();
+//        ImSingleMessagePo updateMessage = new ImSingleMessagePo();
 //        updateMessage.setReadStatus(IMessageReadStatus.ALREADY_READ);
 //
 //        // 使用 LambdaUpdateWrapper 进行条件构造，字段名通过方法引用来保证类型安全
-//        LambdaUpdateWrapper<ImPrivateMessagePo> updateWrapper = new LambdaUpdateWrapper<>();
-//        updateWrapper.eq(ImPrivateMessagePo::getFromId, chatDto.getFromId())
-//                .eq(ImPrivateMessagePo::getToId, chatDto.getToId());
+//        LambdaUpdateWrapper<ImSingleMessagePo> updateWrapper = new LambdaUpdateWrapper<>();
+//        updateWrapper.eq(ImSingleMessagePo::getFromId, chatDto.getFromId())
+//                .eq(ImSingleMessagePo::getToId, chatDto.getToId());
 //
 //        // 执行更新
-//        int updatedRows = imPrivateMessageMapper.update(updateMessage, updateWrapper);
+//        int updatedRows = imSingleMessageMapper.update(updateMessage, updateWrapper);
 //        if (updatedRows == 0) {
 //            log.warn("未更新任何记录，fromId: {}, toId: {}", chatDto.getFromId(), chatDto.getToId());
 //        } else {

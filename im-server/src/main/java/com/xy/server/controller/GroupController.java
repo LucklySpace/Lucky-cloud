@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/{version}/group")
 @Tag(name = "group", description = "群聊")
-public class GroupChatController {
+public class GroupController {
 
     @Resource
     private GroupService groupService;
@@ -71,8 +71,8 @@ public class GroupChatController {
     @Parameters({
             @Parameter(name = "groupDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public void quit(@RequestBody GroupDto groupDto) {
-        groupService.quitGroup(groupDto);
+    public Result quit(@RequestBody GroupDto groupDto) {
+        return groupService.quitGroup(groupDto);
     }
 
 }

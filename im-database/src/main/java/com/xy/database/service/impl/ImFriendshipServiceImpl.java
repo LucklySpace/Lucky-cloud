@@ -59,10 +59,10 @@ public class ImFriendshipServiceImpl extends ServiceImpl<ImFriendshipMapper, ImF
     }
 
     @Override
-    public void deleteFriendship(String ownerId, String friendId) {
+    public Boolean deleteFriendship(String ownerId, String friendId) {
         QueryWrapper<ImFriendshipPo> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("owner_id", ownerId).eq("to_id", friendId);
-        this.remove(queryWrapper);
+        return this.remove(queryWrapper);
     }
 
     @Override

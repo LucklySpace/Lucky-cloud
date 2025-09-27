@@ -45,7 +45,7 @@ public interface ImFriendshipService extends IService<ImFriendshipPo> {
      * @param ownerId  用户ID
      * @param friendId 好友ID
      */
-    void deleteFriendship(String ownerId, String friendId);
+    Boolean deleteFriendship(String ownerId, String friendId);
 
     /**
      * 批量查询好友关系

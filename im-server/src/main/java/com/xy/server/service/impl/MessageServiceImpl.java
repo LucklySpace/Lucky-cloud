@@ -26,6 +26,8 @@ import com.xy.utils.DateTimeUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.amqp.core.MessageDeliveryMode;
 import org.springframework.amqp.core.MessagePostProcessor;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
@@ -38,6 +40,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.xy.core.constants.IMConstant.MQ_EXCHANGE_NAME;
@@ -52,28 +55,32 @@ public class MessageServiceImpl implements MessageService {
 
     private final Map<String, Long> messageToOutboxId = new ConcurrentHashMap<>();
 
+    private static final long LOCK_WAIT_TIME = 5L; // 锁等待5s
+    private static final long LOCK_LEASE_TIME = 10L; // 锁持有10s
+
+    private static final String LOCK_KEY_SEND_SINGLE = "lock:send:single:";
+    private static final String LOCK_KEY_SEND_GROUP = "lock:send:group:";
+    private static final String LOCK_KEY_SEND_VIDEO = "lock:send:video:";
+    private static final String LOCK_KEY_RECALL_MESSAGE = "recall:message:lock:";
+    private static final String LOCK_KEY_RETRY_PENDING = "lock:retry:pending";
+
     @Resource
     private ImMessageFeign imMessageFeign;
-
     @Resource
     private ImChatFeign imChatFeign;
-
     @Resource
     private ImIdGeneratorFeign imIdGeneratorFeign;
-
     @Resource
     private IMOutboxFeign imOutboxFeign;
-
     @Resource
     private ImGroupFeign imGroupFeign;
-
     @Resource
     private RedisUtil redisUtil;
-
+    @Resource
+    private RedissonClient redissonClient;
     @Resource
     @Qualifier("asyncTaskExecutor")
     private Executor asyncTaskExecutor;
-
     @Resource
     private RabbitTemplateFactory rabbitTemplateFactory;
 
@@ -118,7 +125,14 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public Result<?> sendSingleMessage(IMSingleMessage dto) {
         long startTime = System.currentTimeMillis();
+        String lockKey = LOCK_KEY_SEND_SINGLE + dto.getFromId() + ":" + dto.getToId();
+        RLock lock = redissonClient.getLock(lockKey);
         try {
+            if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
+                log.warn("无法获取发送私聊锁，from={} to={} tempId={}", dto.getFromId(), dto.getToId(), dto.getMessageTempId());
+                return Result.failed("消息发送中，请稍后重试");
+            }
+
             Long messageId = imIdGeneratorFeign.getId(IdGeneratorConstant.snowflake, IdGeneratorConstant.private_message_id, Long.class);
             Long messageTime = DateTimeUtil.getCurrentUTCTimestamp();
 
@@ -162,6 +176,9 @@ public class MessageServiceImpl implements MessageService {
             log.error("单聊消息发送异常: {}", e.getMessage(), e);
             return Result.failed("发送消息失败");
         } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
             log.info("单聊消息总耗时: {}ms", System.currentTimeMillis() - startTime);
         }
     }
@@ -172,7 +189,14 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public Result<?> sendGroupMessage(IMGroupMessage dto) {
         long startTime = System.currentTimeMillis();
+        String lockKey = LOCK_KEY_SEND_GROUP + dto.getGroupId() + ":" + dto.getFromId() + ":" + dto.getMessageTempId();
+        RLock lock = redissonClient.getLock(lockKey);
         try {
+            if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
+                log.warn("无法获取发送群聊锁，groupId={} from={} tempId={}", dto.getGroupId(), dto.getFromId(), dto.getMessageTempId());
+                return Result.failed("消息发送中，请稍后重试");
+            }
+
             Long messageId = imIdGeneratorFeign.getId(IdGeneratorConstant.snowflake, IdGeneratorConstant.group_message_id, Long.class);
             Long messageTime = DateTimeUtil.getCurrentUTCTimestamp();
 
@@ -227,6 +251,9 @@ public class MessageServiceImpl implements MessageService {
             log.error("群消息发送失败, 群ID: {}, 发送者: {}", dto.getGroupId(), dto.getFromId(), e);
             return Result.failed("发送群消息失败");
         } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
             log.info("群聊消息总耗时: {}ms", System.currentTimeMillis() - startTime);
         }
     }
@@ -236,17 +263,26 @@ public class MessageServiceImpl implements MessageService {
      */
     @Override
     public Result<?> sendVideoMessage(IMVideoMessage videoMessage) {
-        if (videoMessage == null || videoMessage.getToId() == null) {
-            return Result.failed("参数无效，消息或接收方为空");
-        }
-
-        Object redisObj = redisUtil.get(USER_CACHE_PREFIX + videoMessage.getToId());
-        if (ObjectUtil.isEmpty(redisObj)) {
-            log.info("用户 [{}] 未登录，消息发送失败", videoMessage.getToId());
-            return Result.failed("用户未登录");
-        }
-
+        long startTime = System.currentTimeMillis();
+        String lockKey = LOCK_KEY_SEND_VIDEO + videoMessage.getFromId() + ":" + videoMessage.getToId();
+        RLock lock = redissonClient.getLock(lockKey);
+        
         try {
+            if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
+                log.warn("无法获取发送视频消息锁，from={} to={}", videoMessage.getFromId(), videoMessage.getToId());
+                return Result.failed("消息发送中，请稍后重试");
+            }
+
+            if (videoMessage == null || videoMessage.getToId() == null) {
+                return Result.failed("参数无效，消息或接收方为空");
+            }
+
+            Object redisObj = redisUtil.get(USER_CACHE_PREFIX + videoMessage.getToId());
+            if (ObjectUtil.isEmpty(redisObj)) {
+                log.info("用户 [{}] 未登录，消息发送失败", videoMessage.getToId());
+                return Result.failed("用户未登录");
+            }
+
             IMRegisterUser targetUser = JsonUtil.parseObject(redisObj, IMRegisterUser.class);
             String brokerId = targetUser.getBrokerId();
 
@@ -264,14 +300,20 @@ public class MessageServiceImpl implements MessageService {
         } catch (Exception e) {
             log.error("发送视频消息异常，toId={}", videoMessage.getToId(), e);
             return Result.failed("消息发送异常");
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+            log.debug("视频消息总耗时: {}ms", System.currentTimeMillis() - startTime);
         }
     }
 
     /**
-     * 撤回消息
+     * 撤回消息（Redisson锁已优化）
      */
     @Override
     public Result<?> recallMessage(IMessageAction dto) {
+        long startTime = System.currentTimeMillis();
         try {
             if (dto == null || dto.getMessageId() == null || dto.getOperatorId() == null) {
                 return Result.failed("参数无效");
@@ -287,51 +329,69 @@ public class MessageServiceImpl implements MessageService {
                 return Result.failed("无法确定消息类型");
             }
 
-            Map<String, Object> recallPayload = new HashMap<>();
-            recallPayload.put("_recalled", true);
-            recallPayload.put("operatorId", operatorId);
-            recallPayload.put("recallTime", recallTime);
-            recallPayload.put("reason", reason);
+            // 使用分布式锁确保撤回操作的原子性
+            String lockKey = LOCK_KEY_RECALL_MESSAGE + messageId;
+            RLock lock = redissonClient.getLock(lockKey);
+            
+            try {
+                // 尝试获取锁，等待3秒，持有锁10秒
+                boolean acquired = lock.tryLock(3, 10, TimeUnit.SECONDS);
+                if (!acquired) {
+                    log.warn("无法获取撤回消息的分布式锁，messageId={}", messageId);
+                    return Result.failed("消息正在处理中，请稍后再试");
+                }
+                
+                Map<String, Object> recallPayload = new HashMap<>();
+                recallPayload.put("_recalled", true);
+                recallPayload.put("operatorId", operatorId);
+                recallPayload.put("recallTime", recallTime);
+                recallPayload.put("reason", reason);
 
-            if (messageType.equals(IMessageType.SINGLE_MESSAGE.getCode())) {
-                ImSingleMessagePo msg = imMessageFeign.getSingleMessageById(messageId);
-                if (Objects.isNull(msg)) return Result.failed("消息不存在");
-                if (!operatorId.equals(msg.getFromId())) return Result.failed("无权撤回");
+                if (messageType.equals(IMessageType.SINGLE_MESSAGE.getCode())) {
+                    ImSingleMessagePo msg = imMessageFeign.getSingleMessageById(messageId);
+                    if (Objects.isNull(msg)) return Result.failed("消息不存在");
+                    if (!operatorId.equals(msg.getFromId())) return Result.failed("无权撤回");
 
-                // 检查是否已撤回
-                Map<String, Object> body = safeParseMessageBody(msg.getMessageBody());
-                if (Boolean.TRUE.equals(body.get("_recalled"))) return Result.success("消息已撤回");
+                    // 检查是否已撤回
+                    Map<String, Object> body = safeParseMessageBody(msg.getMessageBody());
+                    if (Boolean.TRUE.equals(body.get("_recalled"))) return Result.success("消息已撤回");
 
-                recallPayload.put("messageBody", msg.getMessageBody());
-                ImSingleMessagePo update = new ImSingleMessagePo().setMessageId(messageId).setMessageBody(JsonUtil.toJSONString(recallPayload)).setUpdateTime(recallTime);
-                imMessageFeign.singleMessageSaveOrUpdate(update);
+                    recallPayload.put("messageBody", msg.getMessageBody());
+                    ImSingleMessagePo update = new ImSingleMessagePo().setMessageId(messageId).setMessageBody(JsonUtil.toJSONString(recallPayload)).setUpdateTime(recallTime);
+                    imMessageFeign.singleMessageSaveOrUpdate(update);
 
-                // 广播给双方
-                broadcastRecall(dto, messageId, recallTime, List.of(msg.getFromId(), msg.getToId()), IMessageType.SINGLE_MESSAGE.getCode());
-            }
-            if (messageType.equals(IMessageType.GROUP_MESSAGE.getCode())) {
-                ImGroupMessagePo msg = imMessageFeign.getGroupMessageById(messageId);
-                if (Objects.isNull(msg)) return Result.failed("消息不存在");
-                if (!operatorId.equals(msg.getFromId())) return Result.failed("无权撤回");
+                    // 广播给双方
+                    broadcastRecall(dto, messageId, recallTime, List.of(msg.getFromId(), msg.getToId()), IMessageType.SINGLE_MESSAGE.getCode());
+                }
+                if (messageType.equals(IMessageType.GROUP_MESSAGE.getCode())) {
+                    ImGroupMessagePo msg = imMessageFeign.getGroupMessageById(messageId);
+                    if (Objects.isNull(msg)) return Result.failed("消息不存在");
+                    if (!operatorId.equals(msg.getFromId())) return Result.failed("无权撤回");
 
-                // 权限校验（发送者或群主）
-//                if (!operatorId.equals(msg.getFromId())) {
-//                    boolean isAdmin = imGroupFeign.isGroupAdmin(msg.getGroupId(), operatorId);
-//                    if (!isAdmin) return Result.failed("无权撤回");
-//                }
+                    // 权限校验（发送者或群主）
+    //                if (!operatorId.equals(msg.getFromId())) {
+    //                    boolean isAdmin = imGroupFeign.isGroupAdmin(msg.getGroupId(), operatorId);
+    //                    if (!isAdmin) return Result.failed("无权撤回");
+    //                }
 
-                Map<String, Object> body = safeParseMessageBody(msg.getMessageBody());
-                if (Boolean.TRUE.equals(body.get("_recalled"))) return Result.success("消息已撤回");
+                    Map<String, Object> body = safeParseMessageBody(msg.getMessageBody());
+                    if (Boolean.TRUE.equals(body.get("_recalled"))) return Result.success("消息已撤回");
 
-                recallPayload.put("groupId", msg.getGroupId());
-                ImGroupMessagePo update = new ImGroupMessagePo().setMessageId(messageId).setMessageBody(JsonUtil.toJSONString(recallPayload)).setUpdateTime(recallTime);
-                imMessageFeign.groupMessageSaveOrUpdate(update);
+                    recallPayload.put("groupId", msg.getGroupId());
+                    ImGroupMessagePo update = new ImGroupMessagePo().setMessageId(messageId).setMessageBody(JsonUtil.toJSONString(recallPayload)).setUpdateTime(recallTime);
+                    imMessageFeign.groupMessageSaveOrUpdate(update);
 
-                // 广播给群成员
-                List<ImGroupMemberPo> members = imGroupFeign.getGroupMemberList(msg.getGroupId());
-                if (CollectionUtil.isNotEmpty(members)) {
-                    List<String> memberIds = members.stream().map(ImGroupMemberPo::getMemberId).collect(Collectors.toList());
-                    broadcastRecall(dto, messageId, recallTime, memberIds, IMessageType.GROUP_MESSAGE.getCode());
+                    // 广播给群成员
+                    List<ImGroupMemberPo> members = imGroupFeign.getGroupMemberList(msg.getGroupId());
+                    if (CollectionUtil.isNotEmpty(members)) {
+                        List<String> memberIds = members.stream().map(ImGroupMemberPo::getMemberId).collect(Collectors.toList());
+                        broadcastRecall(dto, messageId, recallTime, memberIds, IMessageType.GROUP_MESSAGE.getCode());
+                    }
+                }
+            } finally {
+                // 释放锁
+                if (lock.isHeldByCurrentThread()) {
+                    lock.unlock();
                 }
             }
 
@@ -339,6 +399,8 @@ public class MessageServiceImpl implements MessageService {
         } catch (Exception e) {
             log.error("撤回消息异常: {}", e.getMessage(), e);
             return Result.failed("撤回失败");
+        } finally {
+            log.info("撤回消息总耗时: {}ms", System.currentTimeMillis() - startTime);
         }
     }
 
@@ -475,11 +537,18 @@ public class MessageServiceImpl implements MessageService {
     /**
      * 创建Outbox
      */
-    private IMOutboxPo createOutbox(String messageId, String payload, String exchange, String routingKey, Long messageTime) {
+    private void createOutbox(String messageId, String payload, String exchange, String routingKey, Long messageTime) {
         long outboxId = System.nanoTime();
-        IMOutboxPo po = new IMOutboxPo().setId(outboxId).setMessageId(messageId).setPayload(payload)
-                .setExchange(exchange).setRoutingKey(routingKey).setAttempts(0).setStatus("PENDING")
-                .setCreatedAt(messageTime).setUpdatedAt(messageTime);
+        IMOutboxPo po = new IMOutboxPo()
+                .setId(outboxId)
+                .setMessageId(messageId)
+                .setPayload(payload)
+                .setExchange(exchange)
+                .setRoutingKey(routingKey)
+                .setAttempts(0)
+                .setStatus("PENDING")
+                .setCreatedAt(messageTime)
+                .setUpdatedAt(messageTime);
 
         CompletableFuture.runAsync(() -> {
             if (!imOutboxFeign.saveOrUpdate(po)) {
@@ -488,7 +557,6 @@ public class MessageServiceImpl implements MessageService {
         }, asyncTaskExecutor);
 
         messageToOutboxId.put(messageId, outboxId);
-        return po;
     }
 
     /**
@@ -498,8 +566,10 @@ public class MessageServiceImpl implements MessageService {
         CompletableFuture.runAsync(() -> {
             try {
                 MessagePostProcessor mpp = msg -> {
-                    msg.getMessageProperties().setDeliveryMode(MessageDeliveryMode.PERSISTENT);
-                    msg.getMessageProperties().setCorrelationId(messageId);
+                    msg.getMessageProperties()
+                            .setDeliveryMode(MessageDeliveryMode.PERSISTENT);
+                    msg.getMessageProperties()
+                            .setCorrelationId(messageId);
                     return msg;
                 };
                 CorrelationData corr = new CorrelationData(messageId);
@@ -535,10 +605,17 @@ public class MessageServiceImpl implements MessageService {
     }
 
     /**
-     * 重试Pending消息（调度器调用）
+     * 重试Pending消息（加Redisson锁防并发重试）
      */
     public void retryPendingMessages() {
+        long startTime = System.currentTimeMillis();
+        RLock lock = redissonClient.getLock(LOCK_KEY_RETRY_PENDING);
         try {
+            if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
+                log.warn("无法获取重试Pending锁");
+                return;
+            }
+
             List<IMOutboxPo> pending = imOutboxFeign.listByStatus("PENDING", 100);
             if (CollectionUtil.isEmpty(pending)) return;
 
@@ -560,6 +637,11 @@ public class MessageServiceImpl implements MessageService {
             }
         } catch (Exception e) {
             log.error("重试任务失败", e);
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+            log.info("重试任务总耗时: {}ms", System.currentTimeMillis() - startTime);
         }
     }
 

@@ -100,7 +100,7 @@ public class ImFriendshipController {
      * @param friendId 好友ID
      */
     @PostMapping("/delete")
-    public void deleteFriendship(@RequestParam("ownerId") String ownerId, @RequestParam("friendId") String friendId) {
-        imFriendshipService.deleteFriendship(ownerId, friendId);
+    public Boolean deleteFriendship(@RequestParam("ownerId") String ownerId, @RequestParam("friendId") String friendId) {
+        return imFriendshipService.deleteFriendship(ownerId, friendId);
     }
 }

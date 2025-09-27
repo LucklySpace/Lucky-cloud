@@ -108,5 +108,5 @@ public interface ImRelationshipFeign {
      * @param friendId 好友ID
      */
     @PostMapping("/friend/delete")
-    void deleteFriendship(@RequestParam("ownerId") String ownerId, @RequestParam("friendId") String friendId);
+    Boolean deleteFriendship(@RequestParam("ownerId") String ownerId, @RequestParam("friendId") String friendId);
 }

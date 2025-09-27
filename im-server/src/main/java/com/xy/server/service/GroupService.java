@@ -13,7 +13,7 @@ public interface GroupService {
 
     Result getGroupMembers(GroupDto groupDto);
 
-    void quitGroup(GroupDto groupDto);
+    Result quitGroup(GroupDto groupDto);
 
     Result inviteGroup(GroupInviteDto groupInviteDto);
 

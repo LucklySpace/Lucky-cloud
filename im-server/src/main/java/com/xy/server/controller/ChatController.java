@@ -3,6 +3,7 @@ package com.xy.server.controller;
 
 import com.xy.domain.dto.ChatDto;
 import com.xy.domain.vo.ChatVo;
+import com.xy.general.response.domain.Result;
 import com.xy.server.service.ChatService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -39,8 +40,8 @@ public class ChatController {
     @Parameters({
             @Parameter(name = "chatSetDto", description = "用户会话已读", required = true, in = ParameterIn.DEFAULT)
     })
-    public void read(@RequestBody ChatDto chatDto) {
-        chatService.read(chatDto);
+    public Result read(@RequestBody ChatDto chatDto) {
+        return chatService.read(chatDto);
     }
 
     @GetMapping("/one")

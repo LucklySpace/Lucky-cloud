@@ -54,7 +54,6 @@ public class GroupServiceImpl implements GroupService {
     private final GroupHeadImageUtil groupHeadImageUtil = new GroupHeadImageUtil();
     private static final String GROUP_CACHE_PREFIX = "group:info:";
     private static final String GROUP_MEMBERS_PREFIX = "group:members:";
-
     private static final String GROUP_JOIN_LOCK_PREFIX = "lock:join:";
     private static final String GROUP_INVITE_LOCK_PREFIX = "lock:invite:";
     private static final String GROUP_QUIT_LOCK_PREFIX = "lock:quit:";

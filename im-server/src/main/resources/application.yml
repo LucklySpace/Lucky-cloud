@@ -4,3 +4,14 @@ spring: #springboot的配置
     include: undertow  # 引用其他的yml文件
   jackson:
     default-property-inclusion: non_null
+
+
+grpc:
+  server:
+    port: 7085
+  client:
+    GLOBAL:
+      negotiation-type: plaintext
+      enable-keep-alive: true
+      keep-alive-without-calls: true
+

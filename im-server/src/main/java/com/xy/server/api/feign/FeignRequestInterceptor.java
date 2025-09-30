@@ -1,4 +1,4 @@
-package com.xy.server.api;
+package com.xy.server.api.feign;
 
 import feign.RequestInterceptor;
 import feign.RequestTemplate;

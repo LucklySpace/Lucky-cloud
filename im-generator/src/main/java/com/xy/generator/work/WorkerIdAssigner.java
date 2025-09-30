@@ -19,8 +19,8 @@ import java.util.stream.IntStream;
  * 2. 添加重试机制应对 Nacos 初始化延迟
  * 3. 明确处理实例不存在异常
  */
-@Component
 @Slf4j
+@Component
 public class WorkerIdAssigner {
 
     private static final int MAX_WORKER_ID = 1023;

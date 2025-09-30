@@ -35,13 +35,14 @@ public class GenericGrpcInvocationHandler implements InvocationHandler {
     // 默认地址，当Nacos不可用时使用
     private final String defaultAddress;
     private final Random random = new Random();
+    // 使用ThreadLocal存储channel，确保线程安全
+    private final ThreadLocal<ManagedChannel> channelThreadLocal = new ThreadLocal<>();
     // Nacos相关依赖（可选）
     private NacosServiceManager nacosServiceManager;
     private NacosDiscoveryProperties nacosDiscoveryProperties;
     private String serviceName;
     private Serializer serializer;
     private BeanFactory beanFactory;
-    private ManagedChannel channel;
 
     public GenericGrpcInvocationHandler(
             BeanFactory beanFactory,
@@ -97,7 +98,7 @@ public class GenericGrpcInvocationHandler implements InvocationHandler {
                 .build();
 
         // 动态创建Channel
-        channel = createChannel();
+        ManagedChannel channel = createChannel();
 
         try {
             GenericServiceGrpc.GenericServiceBlockingStub stub = GenericServiceGrpc.newBlockingStub(channel);
@@ -206,7 +207,10 @@ public class GenericGrpcInvocationHandler implements InvocationHandler {
         }
 
         log.info("[GenericGrpcInvocationHandler] Creating gRPC channel to {}:{}", host, port);
-        return ManagedChannelBuilder.forAddress(host, port).usePlaintext().build();
+        ManagedChannel channel = ManagedChannelBuilder.forAddress(host, port).usePlaintext().build();
+        // 将channel存储在ThreadLocal中
+        channelThreadLocal.set(channel);
+        return channel;
     }
 
     public void init() {
@@ -310,6 +314,11 @@ public class GenericGrpcInvocationHandler implements InvocationHandler {
                 }
 
                 @Override
+                public Object[] deserializeToArray(byte[] bytes, Class<?>[] paramTypes) throws Exception {
+                    return new Object[0];
+                }
+
+                @Override
                 public String contentType() {
                     return "application/json";
                 }
@@ -339,6 +348,11 @@ public class GenericGrpcInvocationHandler implements InvocationHandler {
                         }
                     }
                     return null;
+                }
+
+                @Override
+                public Object[] deserializeToArray(byte[] bytes, Class<?>[] paramTypes) throws Exception {
+                    return new Object[0];
                 }
 
                 @Override

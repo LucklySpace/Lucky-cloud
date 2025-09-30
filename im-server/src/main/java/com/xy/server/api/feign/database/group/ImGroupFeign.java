@@ -1,10 +1,10 @@
-package com.xy.server.api.database.group;
+package com.xy.server.api.feign.database.group;
 
 
 import com.xy.domain.po.ImGroupInviteRequestPo;
 import com.xy.domain.po.ImGroupMemberPo;
 import com.xy.domain.po.ImGroupPo;
-import com.xy.server.api.FeignRequestInterceptor;
+import com.xy.server.api.feign.FeignRequestInterceptor;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 

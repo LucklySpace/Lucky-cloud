@@ -1,7 +1,7 @@
 #redisson-cluster.yml
 # 全局配置
 # codec: 默认 JsonJacksonCodec，若全场景可控可使用 Kryo5/KryoCodec 提升性能（注意兼容性）
-codec: !<org.redisson.codec.Kryo5Codec> {}
+codec: !<org.redisson.codec.Kryo5Codec> { }
 # 线程池（io/任务）配置，按机器核数和负载调整
 threads: 16
 nettyThreads: 32

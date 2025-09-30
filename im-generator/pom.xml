@@ -29,6 +29,13 @@
             <scope>compile</scope>
         </dependency>
 
+        <dependency>
+            <groupId>com.xy</groupId>
+            <artifactId>im-grpc-server</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+
         <!--    MySQL依赖    -->
         <dependency>
             <groupId>com.mysql</groupId>

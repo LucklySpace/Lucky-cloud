@@ -8,7 +8,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 
-@ComponentScan("com.xy") // 扫描包路径
+@ComponentScan(basePackages = {"com.xy.generator", "com.xy.grpc"})
 @EnableDiscoveryClient
 @SpringBootApplication
 @EnableTransactionManagement  //开启事务管理

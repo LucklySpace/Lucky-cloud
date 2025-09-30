@@ -1,4 +1,4 @@
-package com.xy.server.api.id;
+package com.xy.server.api;
 
 
 /**

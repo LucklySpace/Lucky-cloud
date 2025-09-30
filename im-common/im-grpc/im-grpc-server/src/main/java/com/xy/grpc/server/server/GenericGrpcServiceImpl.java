@@ -1,6 +1,5 @@
 package com.xy.grpc.server.server;
 
-
 import com.google.protobuf.ByteString;
 import com.xy.grpc.core.generic.GenericRequest;
 import com.xy.grpc.core.generic.GenericResponse;
@@ -12,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.util.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -30,57 +30,80 @@ public class GenericGrpcServiceImpl extends GenericServiceGrpc.GenericServiceImp
     @Override
     public void call(GenericRequest request, StreamObserver<GenericResponse> responseObserver) {
         String url = request.getUrl();
+        if (!StringUtils.hasText(url)) {
+            log.warn("Invalid request: URL is empty");
+            sendErrorResponse(responseObserver, 400, "URL is required");
+            return;
+        }
+
         log.debug("开始处理gRPC请求: {}", url);
 
         try {
-            GrpcRouteHandler h = registry.find(url);
-            if (h == null) {
+            GrpcRouteHandler handler = registry.find(url);
+            if (handler == null) {
                 log.warn("未找到处理程序: {}", url);
-                GenericResponse r = GenericResponse.newBuilder()
-                        .setCode(404)
-                        .setMessage("No handler for " + url)
-                        .build();
-                responseObserver.onNext(r);
-                responseObserver.onCompleted();
+                sendErrorResponse(responseObserver, 404, "No handler for " + url);
                 return;
             }
 
-            Object arg = null;
-            if (!h.getParamType().equals(Void.class)) {
-                arg = serializer.deserialize(request.getPayload().toByteArray(), h.getParamType());
-                log.debug("反序列化参数完成: {}", h.getParamType().getSimpleName());
+            Class<?>[] paramTypes = handler.getParamTypes();
+            Object[] args = null;
+            if (paramTypes.length > 0) {
+                byte[] payloadBytes = request.getPayload().toByteArray();
+                if (payloadBytes.length == 0) {
+                    throw new IllegalArgumentException("Payload is empty but method requires parameters");
+                }
+                if (paramTypes.length == 1) {
+                    // 单参数：反序列化为单个对象
+                    args = new Object[1];
+                    args[0] = serializer.deserialize(payloadBytes, paramTypes[0]);
+                    log.debug("反序列化单参数完成: {}", paramTypes[0].getSimpleName());
+                } else {
+                    // 多参数：反序列化为数组（假设 payload 是序列化的数组）
+                    args = serializer.deserializeToArray(payloadBytes, paramTypes);
+                    if (args.length != paramTypes.length) {
+                        throw new IllegalArgumentException("Parameter count mismatch: expected " + paramTypes.length + ", got " + args.length);
+                    }
+                    log.debug("反序列化多参数完成: {} 个参数", paramTypes.length);
+                }
+            } else {
+                log.debug("方法无参数");
             }
 
-            Object result = h.getMethod().invoke(h.getBean(), arg);
-            log.debug("方法调用成功: {}", h.getMethod().getName());
+            Object result = handler.getMethod().invoke(handler.getBean(), args);
+            log.debug("方法调用成功: {}", handler.getMethod().getName());
 
-            byte[] payload = result != null ? serializer.serialize(result) : new byte[0];
-            GenericResponse resp = GenericResponse.newBuilder()
+            byte[] payload = (result != null && !handler.getReturnType().equals(Void.class))
+                    ? serializer.serialize(result)
+                    : new byte[0];
+            GenericResponse response = GenericResponse.newBuilder()
                     .setCode(0)
                     .setMessage("OK")
                     .setPayload(ByteString.copyFrom(payload))
                     .build();
-            responseObserver.onNext(resp);
+            responseObserver.onNext(response);
             responseObserver.onCompleted();
 
             log.debug("请求处理完成: {}", url);
-        } catch (InvocationTargetException ite) {
-            Throwable t = ite.getCause() != null ? ite.getCause() : ite;
-            log.error("调用目标方法时发生异常: " + url, t);
-            GenericResponse r = GenericResponse.newBuilder()
-                    .setCode(500)
-                    .setMessage(t.getMessage() != null ? t.getMessage() : "Internal server error")
-                    .build();
-            responseObserver.onNext(r);
-            responseObserver.onCompleted();
-        } catch (Exception ex) {
-            log.error("处理gRPC请求时发生异常: " + url, ex);
-            GenericResponse r = GenericResponse.newBuilder()
-                    .setCode(500)
-                    .setMessage(ex.getMessage() != null ? ex.getMessage() : "Internal server error")
-                    .build();
-            responseObserver.onNext(r);
-            responseObserver.onCompleted();
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            log.error("调用目标方法时发生业务异常: {} - {}", url, cause.getMessage(), cause);
+            sendErrorResponse(responseObserver, 500, cause.getMessage() != null ? cause.getMessage() : "Business error");
+        } catch (IllegalArgumentException | IllegalAccessException e) {
+            log.error("参数或访问异常: {} - {}", url, e.getMessage(), e);
+            sendErrorResponse(responseObserver, 400, e.getMessage() != null ? e.getMessage() : "Invalid request");
+        } catch (Exception e) {
+            log.error("处理gRPC请求时发生系统异常: {} - {}", url, e.getMessage(), e);
+            sendErrorResponse(responseObserver, 500, e.getMessage() != null ? e.getMessage() : "Internal server error");
         }
+    }
+
+    private void sendErrorResponse(StreamObserver<GenericResponse> responseObserver, int code, String message) {
+        GenericResponse errorResponse = GenericResponse.newBuilder()
+                .setCode(code)
+                .setMessage(message)
+                .build();
+        responseObserver.onNext(errorResponse);
+        responseObserver.onCompleted();
     }
 }

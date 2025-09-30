@@ -5,5 +5,7 @@ public interface Serializer {
 
     <T> T deserialize(byte[] bytes, Class<T> clazz) throws Exception;
 
+    Object[] deserializeToArray(byte[] bytes, Class<?>[] paramTypes) throws Exception;
+
     String contentType();
 }

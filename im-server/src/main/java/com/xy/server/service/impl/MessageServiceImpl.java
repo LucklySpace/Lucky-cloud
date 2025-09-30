@@ -5,6 +5,7 @@ import cn.hutool.core.util.ObjectUtil;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xy.core.enums.IMStatus;
+import com.xy.core.enums.IMWebRTCType;
 import com.xy.core.enums.IMessageReadStatus;
 import com.xy.core.enums.IMessageType;
 import com.xy.core.model.*;
@@ -12,12 +13,12 @@ import com.xy.domain.dto.ChatDto;
 import com.xy.domain.po.*;
 import com.xy.general.response.domain.Result;
 import com.xy.general.response.domain.ResultCode;
-import com.xy.server.api.database.chat.ImChatFeign;
-import com.xy.server.api.database.group.ImGroupFeign;
-import com.xy.server.api.database.message.ImMessageFeign;
-import com.xy.server.api.database.outbox.IMOutboxFeign;
-import com.xy.server.api.id.IdGeneratorConstant;
-import com.xy.server.api.id.ImIdGeneratorFeign;
+import com.xy.server.api.IdGeneratorConstant;
+import com.xy.server.api.feign.database.chat.ImChatFeign;
+import com.xy.server.api.feign.database.group.ImGroupFeign;
+import com.xy.server.api.feign.database.message.ImMessageFeign;
+import com.xy.server.api.grpc.id.ImIdGeneratorGrpcClient;
+import com.xy.server.api.grpc.outbox.IMOutboxGrpcClient;
 import com.xy.server.config.RabbitTemplateFactory;
 import com.xy.server.service.MessageService;
 import com.xy.server.utils.JsonUtil;
@@ -48,7 +49,6 @@ import static com.xy.core.constants.IMConstant.USER_CACHE_PREFIX;
 
 @Slf4j
 @Service
-
 public class MessageServiceImpl implements MessageService {
 
     private static final ObjectMapper jacksonMapper = new ObjectMapper();
@@ -59,15 +59,13 @@ public class MessageServiceImpl implements MessageService {
     private static final String LOCK_KEY_RETRY_PENDING = "lock:retry:pending";
     private static final long LOCK_WAIT_TIME = 5L; // 锁等待5s
     private static final long LOCK_LEASE_TIME = 10L; // 锁持有10s
-    private final Map<String, Long> messageToOutboxId = new ConcurrentHashMap<>();
+    private final Map<String, Long> messageToOutboxIdMap = new ConcurrentHashMap<>();
+    private final Map<String, Boolean> ackedOutboxMessageMap = new ConcurrentHashMap<>();
+
     @Resource
     private ImMessageFeign imMessageFeign;
     @Resource
     private ImChatFeign imChatFeign;
-    @Resource
-    private ImIdGeneratorFeign imIdGeneratorFeign;
-    @Resource
-    private IMOutboxFeign imOutboxFeign;
     @Resource
     private ImGroupFeign imGroupFeign;
     @Resource
@@ -77,6 +75,11 @@ public class MessageServiceImpl implements MessageService {
     @Resource
     @Qualifier("asyncTaskExecutor")
     private Executor asyncTaskExecutor;
+    @Resource
+    private IMOutboxGrpcClient imOutboxGrpcClient;
+    @Resource
+    private ImIdGeneratorGrpcClient imIdGeneratorGrpcClient;
+
     @Resource
     private RabbitTemplateFactory rabbitTemplateFactory;
 
@@ -120,64 +123,177 @@ public class MessageServiceImpl implements MessageService {
      */
     @Override
     public Result<?> sendSingleMessage(IMSingleMessage dto) {
-        long startTime = System.currentTimeMillis();
+        final long overallStart = System.nanoTime();
+
         String lockKey = LOCK_KEY_SEND_SINGLE + dto.getFromId() + ":" + dto.getToId();
         RLock lock = redissonClient.getLock(lockKey);
+
+        // 用于记录分段耗时（以毫秒为单位）
+        long lockAcquireMs = 0;
+        long idGenMs = 0;
+        long dtoSetupMs = 0;
+        long beanCopyMs = 0;
+        long asyncScheduleMs = 0;
+        long redisCheckMs = 0;
+        long outboxCreateMs = 0;
+        long serializationMs = 0;
+        long publishMs = 0;
+
         try {
-            if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
-                log.warn("无法获取发送私聊锁，from={} to={} tempId={}", dto.getFromId(), dto.getToId(), dto.getMessageTempId());
+            long tLockStart = System.nanoTime();
+            boolean locked = lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS);
+            lockAcquireMs = (System.nanoTime() - tLockStart) / 1_000_000L;
+
+            if (!locked) {
+                log.warn("无法获取发送私聊锁，from={} to={} tempId={} (lockWait={}s)",
+                        dto.getFromId(), dto.getToId(), dto.getMessageTempId(), LOCK_WAIT_TIME);
+                log.info("sendSingleMessage timing summary: lockAcquireMs={} totalMs={}",
+                        lockAcquireMs, (System.nanoTime() - overallStart) / 1_000_000L);
                 return Result.failed("消息发送中，请稍后重试");
             }
 
-            Long messageId = imIdGeneratorFeign.getId(IdGeneratorConstant.snowflake, IdGeneratorConstant.private_message_id, Long.class);
+            // id 生成
+            long tIdStart = System.nanoTime();
+            Long messageId = imIdGeneratorGrpcClient.getId(IdGeneratorConstant.snowflake, IdGeneratorConstant.private_message_id).getLongId();
             Long messageTime = DateTimeUtil.getCurrentUTCTimestamp();
+            idGenMs = (System.nanoTime() - tIdStart) / 1_000_000L;
 
+            // dto 填充
+            long tDtoStart = System.nanoTime();
             dto.setMessageId(String.valueOf(messageId))
                     .setMessageTime(messageTime)
                     .setReadStatus(IMessageReadStatus.UNREAD.getCode())
                     .setSequence(messageTime);
 
+            dtoSetupMs = (System.nanoTime() - tDtoStart) / 1_000_000L;
+
+            // bean copy
             ImSingleMessagePo messagePo = new ImSingleMessagePo().setDelFlag(IMStatus.YES.getCode());
+            long tCopyStart = System.nanoTime();
             BeanUtils.copyProperties(dto, messagePo);
 
-            // 异步插入消息和更新会话
+            beanCopyMs = (System.nanoTime() - tCopyStart) / 1_000_000L;
+
+            // 异步插入消息和更新会话（记录调度耗时）
+            long tAsyncStart = System.nanoTime();
             CompletableFuture.runAsync(() -> {
+                createOutbox(String.valueOf(messageId), JsonUtil.toJSONString(dto), MQ_EXCHANGE_NAME, "single.message." + dto.getToId(), messageTime);
                 insertImSingleMessage(messagePo);
                 createOrUpdateImChat(dto.getFromId(), dto.getToId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
                 createOrUpdateImChat(dto.getToId(), dto.getFromId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
             }, asyncTaskExecutor);
+            asyncScheduleMs = (System.nanoTime() - tAsyncStart) / 1_000_000L;
 
-            // 检查接收者在线状态
+            // 检查接收者在线状态（Redis）
+            long tRedisStart = System.nanoTime();
             Object redisObj = redisUtil.get(USER_CACHE_PREFIX + dto.getToId());
+            redisCheckMs = (System.nanoTime() - tRedisStart) / 1_000_000L;
+
             if (ObjectUtil.isEmpty(redisObj)) {
                 log.info("单聊目标不在线 from:{} to:{}", dto.getFromId(), dto.getToId());
+                log.info("sendSingleMessage timing summary: lockAcquireMs={} idGenMs={} dtoSetupMs={} beanCopyMs={} asyncScheduleMs={} redisCheckMs={} totalMs={}",
+                        lockAcquireMs, idGenMs, dtoSetupMs, beanCopyMs, asyncScheduleMs, redisCheckMs,
+                        (System.nanoTime() - overallStart) / 1_000_000L);
                 return Result.success(ResultCode.USER_OFFLINE.getMessage(), dto);
             }
 
+            // 解析 register user
             IMRegisterUser registerUser = JsonUtil.parseObject(redisObj, IMRegisterUser.class);
             String brokerId = registerUser.getBrokerId();
 
-            // 创建 outbox 并发送到 MQ
-            createOutbox(String.valueOf(messageId), JsonUtil.toJSONString(dto), "direct", "single.message." + dto.getToId(), messageTime);
-
+            // 包装消息并序列化（计时序列化）
+            long tSerStart = System.nanoTime();
             IMessageWrap<Object> wrapper = new IMessageWrap<>().setCode(IMessageType.SINGLE_MESSAGE.getCode()).setData(dto).setIds(List.of(dto.getToId()));
+            String payload = JsonUtil.toJSONString(wrapper);
 
-            publishToBroker(MQ_EXCHANGE_NAME, brokerId, JsonUtil.toJSONString(wrapper), String.valueOf(messageId));
+            serializationMs = (System.nanoTime() - tSerStart) / 1_000_000L;
+
+            // 发布到 broker（计时 publish）
+            long tPubStart = System.nanoTime();
+            publishToBroker(MQ_EXCHANGE_NAME, brokerId, payload, String.valueOf(messageId));
+            publishMs = (System.nanoTime() - tPubStart) / 1_000_000L;
 
             log.info("单聊消息发送成功 from:{} to:{}", dto.getFromId(), dto.getToId());
-
             return Result.success(ResultCode.SUCCESS.getMessage(), dto);
 
         } catch (Exception e) {
             log.error("单聊消息发送异常: {}", e.getMessage(), e);
             return Result.failed("发送消息失败");
         } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
+            try {
+                if (lock.isHeldByCurrentThread()) {
+                    lock.unlock();
+                }
+            } catch (Exception ex) {
+                log.warn("unlock error", ex);
             }
-            log.info("单聊消息总耗时: {}ms", System.currentTimeMillis() - startTime);
+
+            final long totalMs = (System.nanoTime() - overallStart) / 1_000_000L;
+            log.info("sendSingleMessage timing summary: lockAcquireMs={} idGenMs={} dtoSetupMs={} beanCopyMs={} asyncScheduleMs={} redisCheckMs={} outboxCreateMs={} serializationMs={} publishMs={} totalMs={}",
+                    lockAcquireMs, idGenMs, dtoSetupMs, beanCopyMs, asyncScheduleMs, redisCheckMs, outboxCreateMs, serializationMs, publishMs, totalMs);
         }
     }
+//    @Override
+//    public Result<?> sendSingleMessage(IMSingleMessage dto) {
+//        long startTime = System.currentTimeMillis();
+//        String lockKey = LOCK_KEY_SEND_SINGLE + dto.getFromId() + ":" + dto.getToId();
+//        RLock lock = redissonClient.getLock(lockKey);
+//        try {
+//            if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
+//                log.warn("无法获取发送私聊锁，from={} to={} tempId={}", dto.getFromId(), dto.getToId(), dto.getMessageTempId());
+//                return Result.failed("消息发送中，请稍后重试");
+//            }
+//
+//            Long messageId = imIdGeneratorGrpcClient.getId(IdGeneratorConstant.snowflake, IdGeneratorConstant.private_message_id, Long.class);
+//            Long messageTime = DateTimeUtil.getCurrentUTCTimestamp();
+//
+//            dto.setMessageId(String.valueOf(messageId))
+//                    .setMessageTime(messageTime)
+//                    .setReadStatus(IMessageReadStatus.UNREAD.getCode())
+//                    .setSequence(messageTime);
+//
+//            ImSingleMessagePo messagePo = new ImSingleMessagePo().setDelFlag(IMStatus.YES.getCode());
+//            BeanUtils.copyProperties(dto, messagePo);
+//
+//            // 异步插入消息和更新会话
+//            CompletableFuture.runAsync(() -> {
+//                insertImSingleMessage(messagePo);
+//                createOrUpdateImChat(dto.getFromId(), dto.getToId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
+//                createOrUpdateImChat(dto.getToId(), dto.getFromId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
+//            }, asyncTaskExecutor);
+//
+//            // 检查接收者在线状态
+//            Object redisObj = redisUtil.get(USER_CACHE_PREFIX + dto.getToId());
+//            if (ObjectUtil.isEmpty(redisObj)) {
+//                log.info("单聊目标不在线 from:{} to:{}", dto.getFromId(), dto.getToId());
+//                return Result.success(ResultCode.USER_OFFLINE.getMessage(), dto);
+//            }
+//
+//            IMRegisterUser registerUser = JsonUtil.parseObject(redisObj, IMRegisterUser.class);
+//
+//            String brokerId = registerUser.getBrokerId();
+//
+//            // 创建 outbox 并发送到 MQ
+//            createOutbox(String.valueOf(messageId), JsonUtil.toJSONString(dto), MQ_EXCHANGE_NAME, brokerId, messageTime);
+//
+//            IMessageWrap<Object> wrapper = new IMessageWrap<>().setCode(IMessageType.SINGLE_MESSAGE.getCode()).setData(dto).setIds(List.of(dto.getToId()));
+//
+//            publishToBroker(MQ_EXCHANGE_NAME, brokerId, JsonUtil.toJSONString(wrapper), String.valueOf(messageId));
+//
+//            log.info("单聊消息发送成功 from:{} to:{}", dto.getFromId(), dto.getToId());
+//
+//            return Result.success(ResultCode.SUCCESS.getMessage(), dto);
+//
+//        } catch (Exception e) {
+//            log.error("单聊消息发送异常: {}", e.getMessage(), e);
+//            return Result.failed("发送消息失败");
+//        } finally {
+//            if (lock.isHeldByCurrentThread()) {
+//                lock.unlock();
+//            }
+//            log.info("单聊消息总耗时: {}ms", System.currentTimeMillis() - startTime);
+//        }
+//    }
 
     /**
      * 发送群聊消息
@@ -193,15 +309,12 @@ public class MessageServiceImpl implements MessageService {
                 return Result.failed("消息发送中，请稍后重试");
             }
 
-            Long messageId = imIdGeneratorFeign.getId(IdGeneratorConstant.snowflake, IdGeneratorConstant.group_message_id, Long.class);
+            Long messageId = imIdGeneratorGrpcClient.getId(IdGeneratorConstant.snowflake, IdGeneratorConstant.group_message_id).getLongId();
             Long messageTime = DateTimeUtil.getCurrentUTCTimestamp();
 
             dto.setMessageId(String.valueOf(messageId))
                     .setMessageTime(messageTime)
                     .setSequence(messageTime);
-
-            // 异步插入群消息
-            CompletableFuture.runAsync(() -> insertImGroupMessage(dto), asyncTaskExecutor);
 
             List<ImGroupMemberPo> members = imGroupFeign.getGroupMemberList(dto.getGroupId());
             if (CollectionUtil.isEmpty(members)) {
@@ -215,10 +328,12 @@ public class MessageServiceImpl implements MessageService {
                     .map(m -> USER_CACHE_PREFIX + m.getMemberId())
                     .collect(Collectors.toList());
 
-            // 异步设置读状态和更新会话
+            // 异步插入群消息 异步设置读状态和更新会话
             CompletableFuture.runAsync(() -> {
+                insertImGroupMessage(dto);
                 setGroupReadStatus(String.valueOf(messageId), dto.getGroupId(), members);
                 updateGroupChats(dto.getGroupId(), messageTime, members);
+                createOutbox(String.valueOf(messageId), JsonUtil.toJSONString(dto), MQ_EXCHANGE_NAME, "group.message." + dto.getGroupId(), messageTime);
             }, asyncTaskExecutor);
 
             // 批量获取在线用户并按broker分组
@@ -235,8 +350,6 @@ public class MessageServiceImpl implements MessageService {
             for (Map.Entry<String, List<String>> entry : brokerMap.entrySet()) {
                 String brokerId = entry.getKey();
                 dto.setToList(entry.getValue());
-
-                createOutbox(String.valueOf(messageId), JsonUtil.toJSONString(dto), "topic", "group.message." + dto.getGroupId(), messageTime);
                 IMessageWrap<Object> wrapper = new IMessageWrap<>().setCode(IMessageType.GROUP_MESSAGE.getCode()).setData(dto).setIds(entry.getValue());
                 publishToBroker(MQ_EXCHANGE_NAME, brokerId, JsonUtil.toJSONString(wrapper), String.valueOf(messageId));
             }
@@ -255,24 +368,24 @@ public class MessageServiceImpl implements MessageService {
     }
 
     /**
-     * 发送视频消息
+     * 发送视频消息（根据类型判断是否发送文本消息）
      */
     @Override
     public Result<?> sendVideoMessage(IMVideoMessage videoMessage) {
         long startTime = System.currentTimeMillis();
         String lockKey = LOCK_KEY_SEND_VIDEO + videoMessage.getFromId() + ":" + videoMessage.getToId();
         RLock lock = redissonClient.getLock(lockKey);
-
         try {
             if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
-                log.warn("无法获取发送视频消息锁，from={} to={}", videoMessage.getFromId(), videoMessage.getToId());
-                return Result.failed("消息发送中，请稍后重试");
+                log.warn("无法获取发送视频锁，from={} to={}", videoMessage.getFromId(), videoMessage.getToId());
+                return Result.failed("视频发送中，请稍后重试");
             }
 
-            if (videoMessage == null || videoMessage.getToId() == null) {
-                return Result.failed("参数无效，消息或接收方为空");
+            if (Objects.isNull(videoMessage.getFromId()) || Objects.isNull(videoMessage.getToId())) {
+                return Result.failed("参数无效，消息发送方或接收方为空");
             }
 
+            // 检查接收者在线状态
             Object redisObj = redisUtil.get(USER_CACHE_PREFIX + videoMessage.getToId());
             if (ObjectUtil.isEmpty(redisObj)) {
                 log.info("用户 [{}] 未登录，消息发送失败", videoMessage.getToId());
@@ -282,6 +395,33 @@ public class MessageServiceImpl implements MessageService {
             IMRegisterUser targetUser = JsonUtil.parseObject(redisObj, IMRegisterUser.class);
             String brokerId = targetUser.getBrokerId();
 
+            int typeCode = videoMessage.getType(); // 假设IMVideoMessage有getType()返回code
+            IMWebRTCType webRTCType = IMWebRTCType.getByCode(typeCode); // 假设枚举有fromCode静态方法
+
+            if (webRTCType == null) {
+                log.warn("未知WebRTC类型 code={}", typeCode);
+                return Result.failed("无效消息类型");
+            }
+
+            // 对于特定类型，发送文本消息
+//            if (webRTCType == IMWebRTCType.RTC_REJECT ||
+//                    webRTCType == IMWebRTCType.RTC_CANCEL ||
+//                    webRTCType == IMWebRTCType.RTC_FAILED ||
+//                    webRTCType == IMWebRTCType.RTC_HANDUP) {
+//
+//                // 构建文本消息
+//                IMSingleMessage textMessage = new IMSingleMessage();
+//                textMessage.setFromId(videoMessage.getFromId());
+//                textMessage.setToId(videoMessage.getToId());
+//                textMessage.setMessageContentType(IMessageContentType.TEXT.getCode()); // 假设文本类型code
+//                String textContent = webRTCType.getDesc(); // 使用枚举desc，或自定义如"用户拒绝了通话"
+//                textMessage.setMessageBody(new IMessage.TextMessageBody().setText(textContent));
+//
+//                // 发送文本消息
+//                return sendSingleMessage(textMessage);
+//            }
+
+            // 其他类型发送视频消息
             IMessageWrap<Object> wrapMsg = new IMessageWrap<>().setCode(IMessageType.VIDEO_MESSAGE.getCode()).setData(videoMessage).setIds(List.of(videoMessage.getToId()));
 
             MessagePostProcessor mpp = msg -> {
@@ -484,7 +624,7 @@ public class MessageServiceImpl implements MessageService {
             ImChatPo chatPo = imChatFeign.getOne(ownerId, toId, chatType);
             if (Objects.isNull(chatPo)) {
                 chatPo = new ImChatPo()
-                        .setChatId(imIdGeneratorFeign.getId(IdGeneratorConstant.uuid, IdGeneratorConstant.chat_id, String.class))
+                        .setChatId(imIdGeneratorGrpcClient.getId(IdGeneratorConstant.uuid, IdGeneratorConstant.chat_id).getStringId())
                         .setOwnerId(ownerId)
                         .setToId(toId)
                         .setSequence(messageTime)
@@ -535,6 +675,7 @@ public class MessageServiceImpl implements MessageService {
      */
     private void createOutbox(String messageId, String payload, String exchange, String routingKey, Long messageTime) {
         long outboxId = System.nanoTime();
+
         IMOutboxPo po = new IMOutboxPo()
                 .setId(outboxId)
                 .setMessageId(messageId)
@@ -546,13 +687,13 @@ public class MessageServiceImpl implements MessageService {
                 .setCreatedAt(messageTime)
                 .setUpdatedAt(messageTime);
 
-        CompletableFuture.runAsync(() -> {
-            if (!imOutboxFeign.saveOrUpdate(po)) {
-                log.warn("Outbox保存失败 messageId={}", messageId);
-            }
-        }, asyncTaskExecutor);
+        // CompletableFuture.runAsync(() -> {
+        if (!imOutboxGrpcClient.saveOrUpdate(po)) {
+            log.warn("Outbox保存失败 messageId={}", messageId);
+        }
+        // }, asyncTaskExecutor);
 
-        messageToOutboxId.put(messageId, outboxId);
+        messageToOutboxIdMap.put(messageId, outboxId);
     }
 
     /**
@@ -572,9 +713,9 @@ public class MessageServiceImpl implements MessageService {
                 rabbitTemplate.convertAndSend(exchange, routingKey, payload, mpp, corr);
             } catch (Exception e) {
                 log.error("发布失败 messageId={}", messageId, e);
-                Long outboxId = messageToOutboxId.get(messageId);
+                Long outboxId = messageToOutboxIdMap.get(messageId);
                 if (outboxId != null) {
-                    imOutboxFeign.markAsFailed(outboxId, e.getMessage(), 1);
+                    imOutboxGrpcClient.markAsFailed(outboxId, e.getMessage(), 1);
                 }
             }
         }, asyncTaskExecutor);
@@ -585,16 +726,18 @@ public class MessageServiceImpl implements MessageService {
      */
     private void handleConfirm(String messageId, boolean ack, String cause) {
         if (messageId == null) return;
-        Long outboxId = messageToOutboxId.get(messageId);
-        if (outboxId == null) return;
+
+        Long outboxId = messageToOutboxIdMap.get(messageId);
 
         try {
             if (ack) {
-                imOutboxFeign.updateStatus(outboxId, "SENT", 1);
-                messageToOutboxId.remove(messageId);
-            } else {
-                imOutboxFeign.updateStatus(outboxId, "PENDING", 0);
+                imOutboxGrpcClient.updateStatus(outboxId, "SENT", 1);
+                messageToOutboxIdMap.remove(messageId);
+                ackedOutboxMessageMap.remove(messageId);
             }
+//            else {
+//                imOutboxGrpcClient.updateStatus(outboxId, "PENDING", 0);
+//            }
         } catch (Exception e) {
             log.error("更新Outbox失败 outboxId={} messageId={}", outboxId, messageId, e);
         }
@@ -612,7 +755,7 @@ public class MessageServiceImpl implements MessageService {
                 return;
             }
 
-            List<IMOutboxPo> pending = imOutboxFeign.listByStatus("PENDING", 100);
+            List<IMOutboxPo> pending = imOutboxGrpcClient.listByStatus("PENDING", 100);
             if (CollectionUtil.isEmpty(pending)) return;
 
             for (IMOutboxPo o : pending) {
@@ -625,10 +768,10 @@ public class MessageServiceImpl implements MessageService {
                     };
                     CorrelationData corr = new CorrelationData(o.getMessageId());
                     rabbitTemplate.convertAndSend(o.getExchange(), o.getRoutingKey(), o.getPayload(), mpp, corr);
-                    imOutboxFeign.updateStatus(o.getId(), "SENT", attempts);
+                    imOutboxGrpcClient.updateStatus(o.getId(), "SENT", attempts);
                 } catch (Exception e) {
                     log.error("重试失败 messageId={}", o.getMessageId(), e);
-                    imOutboxFeign.markAsFailed(o.getId(), e.getMessage(), attempts);
+                    imOutboxGrpcClient.markAsFailed(o.getId(), e.getMessage(), attempts);
                 }
             }
         } catch (Exception e) {
@@ -664,3 +807,4 @@ public class MessageServiceImpl implements MessageService {
         }
     }
 }
+

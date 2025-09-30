@@ -1,10 +1,10 @@
-package com.xy.server.api.database.friend;
+package com.xy.server.api.feign.database.friend;
 
 
 import com.xy.domain.po.ImFriendshipPo;
 import com.xy.domain.po.ImFriendshipRequestPo;
 import com.xy.domain.po.ImGroupPo;
-import com.xy.server.api.FeignRequestInterceptor;
+import com.xy.server.api.feign.FeignRequestInterceptor;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 

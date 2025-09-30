@@ -2,3 +2,12 @@ spring: #springboot的配置
   profiles:
     active: ${APP_PROFILES_ACTIVE:dev}
     include: undertow  # 引用其他的yml文件
+
+grpc:
+  server:
+    port: 7086 #Grpc端口
+  client: #Grpic客户端配置
+    GLOBAL:
+      negotiation-type: plaintext #协议类型，明文传输，也可以使用TLS进行加密传输，服务内部通信使用明文即可
+      enable-keep-alive: true
+      keep-alive-without-calls: true

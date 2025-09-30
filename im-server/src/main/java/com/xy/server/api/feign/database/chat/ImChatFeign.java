@@ -1,4 +1,4 @@
-package com.xy.server.api.database.chat;
+package com.xy.server.api.feign.database.chat;
 
 import com.xy.domain.po.ImChatPo;
 import org.springframework.cloud.openfeign.FeignClient;

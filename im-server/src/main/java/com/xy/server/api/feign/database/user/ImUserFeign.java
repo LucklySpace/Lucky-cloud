@@ -1,8 +1,8 @@
-package com.xy.server.api.database.user;
+package com.xy.server.api.feign.database.user;
 
 
 import com.xy.domain.po.ImUserDataPo;
-import com.xy.server.api.FeignRequestInterceptor;
+import com.xy.server.api.feign.FeignRequestInterceptor;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;

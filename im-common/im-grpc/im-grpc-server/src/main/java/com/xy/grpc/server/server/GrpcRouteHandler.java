@@ -14,7 +14,7 @@ public class GrpcRouteHandler {
 
     private final Object bean;
     private final Method method;
-    private final Class<?> paramType;
+    private final Class<?>[] paramTypes;
     private final Class<?> returnType;
 
     /**
@@ -30,11 +30,11 @@ public class GrpcRouteHandler {
         this.bean = bean;
         this.method = method;
         Class<?>[] parameterTypes = method.getParameterTypes();
-        this.paramType = (parameterTypes.length > 0) ? parameterTypes[0] : Void.class;
+        this.paramTypes = (parameterTypes.length > 0) ? parameterTypes : null;
         this.returnType = method.getReturnType();
 
         log.debug("Create GrpcRouteHandler: bean={}, method={}, paramType={}, returnType={}",
-                bean.getClass().getName(), method.getName(), this.paramType.getSimpleName(), this.returnType.getSimpleName());
+                bean.getClass().getName(), method.getName(), this.paramTypes, this.returnType.getSimpleName());
     }
 
     public Object getBean() {
@@ -45,8 +45,8 @@ public class GrpcRouteHandler {
         return method;
     }
 
-    public Class<?> getParamType() {
-        return paramType;
+    public Class<?>[] getParamTypes() {
+        return paramTypes;
     }
 
     public Class<?> getReturnType() {
@@ -60,13 +60,13 @@ public class GrpcRouteHandler {
         GrpcRouteHandler that = (GrpcRouteHandler) o;
         return Objects.equals(bean, that.bean) &&
                 Objects.equals(method, that.method) &&
-                Objects.equals(paramType, that.paramType) &&
+                Objects.equals(paramTypes, that.paramTypes) &&
                 Objects.equals(returnType, that.returnType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(bean, method, paramType, returnType);
+        return Objects.hash(bean, method, paramTypes, returnType);
     }
 
     @Override
@@ -74,7 +74,7 @@ public class GrpcRouteHandler {
         return "GrpcRouteHandler{" +
                 "bean=" + bean.getClass().getSimpleName() +
                 ", method=" + method.getName() +
-                ", paramType=" + paramType.getSimpleName() +
+                ", paramType=" + getParamTypes().toString() +
                 ", returnType=" + returnType.getSimpleName() +
                 '}';
     }

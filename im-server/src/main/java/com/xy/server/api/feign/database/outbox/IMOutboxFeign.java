@@ -1,7 +1,7 @@
-package com.xy.server.api.database.outbox;
+package com.xy.server.api.feign.database.outbox;
 
 import com.xy.domain.po.IMOutboxPo;
-import com.xy.server.api.FeignRequestInterceptor;
+import com.xy.server.api.feign.FeignRequestInterceptor;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;

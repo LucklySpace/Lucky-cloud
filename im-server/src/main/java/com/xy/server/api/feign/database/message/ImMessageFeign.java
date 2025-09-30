@@ -1,10 +1,10 @@
-package com.xy.server.api.database.message;
+package com.xy.server.api.feign.database.message;
 
 
 import com.xy.domain.po.ImGroupMessagePo;
 import com.xy.domain.po.ImGroupMessageStatusPo;
 import com.xy.domain.po.ImSingleMessagePo;
-import com.xy.server.api.FeignRequestInterceptor;
+import com.xy.server.api.feign.FeignRequestInterceptor;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;

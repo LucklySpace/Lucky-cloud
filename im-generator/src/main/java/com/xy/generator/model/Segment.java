@@ -33,4 +33,8 @@ public class Segment {
     public long remaining() {
         return end - current.get();
     }
+
+    public boolean isFinished() {
+        return current.get() > end;
+    }
 }

@@ -19,6 +19,10 @@
         <module>im-analysis</module>
         <module>im-generator</module>
         <module>im-proxy</module>
+        <module>im-update</module>
+        <module>im-meet</module>
+        <module>im-ai</module>
+        <module>im-connect</module>
     </modules>
 
     <properties>

@@ -1,11 +1,11 @@
 package com.xy.generator.core.impl;
 
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xy.core.model.IMetaId;
 import com.xy.generator.core.IDGen;
 import com.xy.generator.model.IdMetaInfo;
-import com.xy.generator.model.Segment;
 import com.xy.generator.repository.IdMetaInfoRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
@@ -21,330 +21,430 @@ import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Collectors;
 
 /**
- * 基于 Redis 与数据库双 Buffer 机制的全局唯一 ID 生成器，
- * 使用 Redisson 分布式锁确保多实例部署时仅由一个实例执行校准操作。
+ * 高性能 Redis Segment ID 生成器（双 buffer + 异步预加载 + 持久化 debounced）
+ * <p>
+ * 关键点：
+ * - LocalSegment 使用 AtomicLong，无锁 next()
+ * - 使用共享 loaderPool 来异步加载号段
+ * - 持久化到文件使用定时批量 flush，避免每次 get 请求都写文件
  */
 @Slf4j
 @Component("redisSegmentIDGen")
 public class RedisSegmentIDGenImpl implements IDGen {
 
-    /**
-     * 持久化文件
-     */
+    // 本地持久化文件（用于快速恢复）
     private static final String CACHE_FILE = "idgen-segments.json";
-    /**
-     * 分布式锁前缀
-     */
-    private final String LOCK_PREFIX = "lock:idgen:calibrate:";
-    /**
-     * 本地缓存每个业务 key 的 SegmentPair
-     */
+    private static final long DEFAULT_PERSIST_INTERVAL_SECONDS = 5L;
+
+    private static final String LOCK_PREFIX = "lock:idgen:calibrate:";
+
+    // local cache for segments
     private final ConcurrentHashMap<String, SegmentPair> segmentCache = new ConcurrentHashMap<>();
-    /**
-     * Reactor 调度池，用于运行阻塞操作
-     */
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread t = new Thread(r, "IDGen-Scheduler");
-        t.setDaemon(true);
-        return t;
-    });
+
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    // thread pools
+    // loaderPool: fixed size to avoid过多并发 DB/Redis 操作；默认 CPU*2
+    private final ExecutorService loaderPool;
+    // scheduler for periodic tasks (persist)
+    private final ScheduledExecutorService scheduler;
+    // persist dirty flag
+    private final AtomicBoolean dirty = new AtomicBoolean(false);
     @Resource
     private ReactiveRedisTemplate<String, Object> reactiveRedisTemplate;
     @Resource
     private IdMetaInfoRepository idMetaInfoRepository;
     @Resource
     private RedissonClient redissonClient;
-    /**
-     * 默认每个号段大小，支持配置注入
-     */
     @Value("${generate.step:1000}")
-    private Integer defaultStep;
-    /**
-     * 初始id
-     */
+    private int defaultStep;
     @Value("${generate.initialId:0}")
-    private Long initialId;
-    /**
-     * 预加载阈值（剩余比例）
-     */
+    private long initialId;
     @Value("${generate.prefetchThreshold:0.2}")
     private double prefetchThreshold;
-    /**
-     * 分布式锁等待时间（秒）
-     */
     @Value("${generate.lockWaitSeconds:5}")
     private long lockWaitSeconds;
-    /**
-     * 分布式锁租约时间（秒）
-     */
     @Value("${generate.lockLeaseSeconds:60}")
     private long lockLeaseSeconds;
 
-    /**
-     * 初始化时检查 Redis 可用性
-     */
+    // ctor
+    public RedisSegmentIDGenImpl() {
+        int cpu = Math.max(1, Runtime.getRuntime().availableProcessors());
+        // loaderPool: allow some parallelism but avoid冲击 redis/db
+        this.loaderPool = Executors.newFixedThreadPool(Math.min(16, cpu * 2),
+                r -> {
+                    Thread t = new Thread(r, "IDGen-Loader");
+                    t.setDaemon(true);
+                    return t;
+                });
+        this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "IDGen-Scheduler");
+            t.setDaemon(true);
+            return t;
+        });
+    }
+
+    @Override
     @SneakyThrows
     @PostConstruct
-    @Override
     public boolean init() {
+        // load state from file quickly (best-effort)
         loadCacheFromFile();
-        String pong = reactiveRedisTemplate.getConnectionFactory()
-                .getReactiveConnection()
-                .ping().block();
-        if (pong == null) {
-            throw new IllegalStateException("Redis 服务连接失败，PING 返回 null");
-        }
 
-        log.info("Redis 服务可用，PING 响应：{}", pong);
+        // schedule periodic persistence (debounced)
+        scheduler.scheduleAtFixedRate(this::persistCacheIfDirty, DEFAULT_PERSIST_INTERVAL_SECONDS,
+                DEFAULT_PERSIST_INTERVAL_SECONDS, TimeUnit.SECONDS);
+
+        // test redis connectivity in background (don't block startup)
+        loaderPool.submit(() -> {
+            try {
+                String pong = reactiveRedisTemplate.getConnectionFactory()
+                        .getReactiveConnection()
+                        .ping().block(Duration.ofSeconds(2));
+                log.info("Redis PING -> {}", pong);
+            } catch (Throwable t) {
+                log.warn("Redis ping failed during init: {}", t.getMessage());
+            }
+        });
+
+        log.info("RedisSegmentIDGen initialized (loaderPool={}, persistInterval={}s)",
+                ((ThreadPoolExecutor) loaderPool).getCorePoolSize(), DEFAULT_PERSIST_INTERVAL_SECONDS);
         return true;
     }
 
-    /**
-     * 从本地文件加载 SegmentPair 缓存
-     */
     private void loadCacheFromFile() {
         try {
-            File file = Paths.get(CACHE_FILE).toFile();
-            if (!file.exists()) return;
-            Map<String, SegmentSnapshot> map = objectMapper.readValue(file,
+            File f = Paths.get(CACHE_FILE).toFile();
+            if (!f.exists()) return;
+            Map<String, SegmentSnapshot> map = objectMapper.readValue(f,
                     new TypeReference<Map<String, SegmentSnapshot>>() {
                     });
-            map.forEach((k, snap) -> segmentCache.put(k, new SegmentPair(k, snap)));
-            log.info("从文件{}加载{}个号段缓存", CACHE_FILE, map.size());
-        } catch (Exception e) {
-            log.warn("加载号段缓存失败：{}", e.getMessage());
+            if (map != null && !map.isEmpty()) {
+                map.forEach((k, v) -> {
+                    SegmentPair pair = new SegmentPair(k, v);
+                    segmentCache.put(k, pair);
+                });
+                log.info("Loaded {} segment snapshots from {}", map.size(), CACHE_FILE);
+            }
+        } catch (Throwable t) {
+            log.warn("Failed to load segment cache from file: {}", t.getMessage());
         }
     }
 
-    /**
-     * 同步持久化缓存到文件
-     */
+    // periodic persist if something changed
+    private void persistCacheIfDirty() {
+        if (!dirty.getAndSet(false)) return;
+        persistCacheToFile();
+    }
+
     private synchronized void persistCacheToFile() {
         try {
-            Map<String, SegmentSnapshot> snapMap = segmentCache.entrySet().stream()
+            Map<String, SegmentSnapshot> snap = segmentCache.entrySet().stream()
                     .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().snapshot()));
-            objectMapper.writeValue(new File(CACHE_FILE), snapMap);
-            log.info("持久化{}个号段缓存到文件{}", snapMap.size(), CACHE_FILE);
-        } catch (Exception e) {
-            log.error("持久化号段缓存失败：{}", e.getMessage(), e);
+            objectMapper.writeValue(new File(CACHE_FILE), snap);
+            log.debug("Persisted {} segments to {}", snap.size(), CACHE_FILE);
+        } catch (Throwable t) {
+            log.error("Persist cache to file failed: {}", t.getMessage(), t);
+            dirty.set(true); // mark dirty for retry
         }
     }
 
-    /**
-     * 异步持久化，提交到调度池执行
-     */
-    private void persistCacheToFileAsync() {
-        scheduler.submit(this::persistCacheToFile);
-    }
-
-    /**
-     * 获取下一个 ID（响应式返回）
-     */
     @Override
     public Mono<IMetaId> get(String key) {
-        // 取本地缓存 segmentPair，没有则初始化
-        SegmentPair pair = segmentCache.computeIfAbsent(key, SegmentPair::new);
-        Long nextId = pair.nextId();
-        persistCacheToFileAsync();
-        IMetaId build = IMetaId.builder().metaId(nextId).build();
-        return Mono.just(build);
+        return Mono.fromCallable(() -> getId(key));
     }
 
-    /**
-     * 号段快照，用于序列化
-     */
+    @Override
+    public IMetaId getId(String key) {
+        // fast path get-or-create pair
+        SegmentPair pair = segmentCache.computeIfAbsent(key, SegmentPair::new);
+        long id = pair.nextId();
+        // debounce persistence: mark dirty, actual write happens periodically
+        dirty.set(true);
+        return IMetaId.builder().longId(id).build();
+    }
+
+    // shutdown helper (optional)
+    public void shutdown() {
+        try {
+            loaderPool.shutdownNow();
+        } catch (Throwable ignored) {
+        }
+        try {
+            scheduler.shutdownNow();
+        } catch (Throwable ignored) {
+        }
+    }
+
+    // ----------------------------
+    // Snapshot structure for persistence
+    // ----------------------------
     @Data
     public static class SegmentSnapshot {
-        /**
-         * 当前号池
-         */
-        private Segment current;
-        /**
-         * 缓冲号池
-         */
-        private Segment next;
+        private long currentStart;
+        private long currentEnd;
+        private long currentCursor; // next value to use
+        private int currentStep;
+
+        private Long nextStart;
+        private Long nextEnd;
+        private Integer nextStep;
     }
 
-
     /**
-     * 本地缓存的号段容器，双缓冲结构
+     * LocalSegment: 内存轻量、线程安全、无锁的号段实现
      */
+    private static final class LocalSegment {
+        static final long EXHAUSTED = Long.MIN_VALUE;
+
+        final long start;
+        final long end;
+        final int step;
+        final AtomicLong cursor; // next id to return
+
+        LocalSegment(long start, long end, int step) {
+            this.start = start;
+            this.end = end;
+            this.step = step;
+            this.cursor = new AtomicLong(Math.max(start, start)); // next to return
+        }
+
+        // construct with known current cursor
+        LocalSegment(long start, long end, int step, long currentCursor) {
+            this.start = start;
+            this.end = end;
+            this.step = step;
+            this.cursor = new AtomicLong(Math.max(currentCursor, start));
+        }
+
+        long next() {
+            while (true) {
+                long cur = cursor.get();
+                if (cur > end) return EXHAUSTED;
+                long next = cur;
+                if (cursor.compareAndSet(cur, cur + 1)) {
+                    return next;
+                }
+                // CAS 失败，重试（极少数）
+            }
+        }
+
+        long remaining() {
+            long cur = cursor.get();
+            long rem = end - cur + 1;
+            return Math.max(0, rem);
+        }
+
+        int getStep() {
+            return this.step;
+        }
+    }
+
+    // ----------------------------
+    // SegmentPair and LocalSegment
+    // ----------------------------
     private class SegmentPair {
-
         private final String key;
+
+        // flags
         private final AtomicBoolean loading = new AtomicBoolean(false);
-        /**
-         * 当前号池
-         */
-        private volatile Segment current;
-        /**
-         * 缓冲号池
-         */
-        private volatile Segment next;
 
-        // 启动加载
-        public SegmentPair(String key) {
+        // use volatile for visibility; LocalSegment is thread-safe
+        private volatile LocalSegment current;
+        private volatile LocalSegment nextSegment;
+
+        SegmentPair(String key) {
             this.key = key;
-            // 首次加载当前号段（阻塞）
-            this.current = loadSegmentBlocking();
+            // load initial synchronously but on loaderPool to avoid blocking caller thread if DB/Redis slow
+            Future<LocalSegment> f = loaderPool.submit(this::loadSegmentBlocking);
+            try {
+                this.current = f.get(3, TimeUnit.SECONDS); // small timeout for initial load
+            } catch (Throwable t) {
+                log.warn("[{}] initial load slow or failed, creating fallback empty segment", key);
+                // fallback to an empty segment that will trigger async load on first access
+                this.current = new LocalSegment(initialId + 1, initialId, defaultStep);
+                triggerAsyncLoad(); // proactively load
+            }
         }
 
-        // 从快照加载
-        public SegmentPair(String key, SegmentSnapshot snap) {
+        SegmentPair(String key, SegmentSnapshot snap) {
             this.key = key;
-            this.current = snap.current;
-            if (snap.next != null) this.next = snap.next;
+            this.current = new LocalSegment(snap.getCurrentStart(), snap.getCurrentEnd(), snap.getCurrentStep(), snap.getCurrentCursor());
+            if (snap.getNextStart() != null) {
+                this.nextSegment = new LocalSegment(snap.getNextStart(), snap.getNextEnd(), snap.getNextStep());
+            }
         }
 
-        /**
-         * 获取下一个可用 ID
-         */
-        public Long nextId() {
 
+        long nextId() {
             int retry = 0;
 
             while (true) {
-                Segment seg = current;
-                Long nextId = seg.next();
-                if (nextId != -1) {
-                    // 如果剩余不足 20%，提前异步加载下一个 Segment
+                // 快速路径：读取 current（可能被其他线程更新）
+                LocalSegment seg = this.current;
+                long id = seg.next(); // 调用 LocalSegment.next() 方法
+
+                if (id != LocalSegment.EXHAUSTED) {
+                    // 当剩余量低于阈值时触发异步加载（非阻塞）
                     if (seg.remaining() < seg.getStep() * prefetchThreshold) {
-                        log.info("[{}] 余量不足{}%，获取id：{}", key, prefetchThreshold * 100, nextId);
                         triggerAsyncLoad();
-                    } else {
-                        log.info("[{}] 获取id：{}", key, nextId);
                     }
-                    return nextId;
+                    return id;
                 }
 
-                // 当前段耗尽，切换到下一段
-                synchronized (this) {
-                    if (current == seg && next != null) {
-                        log.info("[{}] 切换号段：{}-{} -> {}-{}", key, seg.getStart(), seg.getEnd(), next.getStart(), next.getEnd());
-                        current = next;
-                        next = null;
-                        continue;
+                // 当前段耗尽，尝试快速切换到已加载的 nextSegment（如果存在）
+                LocalSegment ns = this.nextSegment;
+                if (ns != null) {
+                    // 在临界区内再次确认并执行切换（double-check）
+                    synchronized (this) {
+                        if (this.current == seg && this.nextSegment != null) {
+                            this.current = this.nextSegment;
+                            this.nextSegment = null;
+                            // 切换成功，立即重试以从新的 current 取值
+                            continue;
+                        }
                     }
+                    // 如果在同步区发现已经被切换走，loop 将重试并读取新的 current
+                    continue;
                 }
 
-                // 等待号段加载完成
-                if (retry++ > 50) {
-                    throw new IllegalStateException("号段耗尽，且新的号段尚未准备好，请稍后重试！");
-                }
+                // 没有可切换的 nextSegment，则触发异步加载（若尚未进行）
+                triggerAsyncLoad();
 
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new RuntimeException("等待号段加载被中断", e);
+                // 轻量等待：短自旋 + 退避（避免 busy loop）
+                retry++;
+                if (retry > 200) { // 调整上限，可配置
+                    throw new IllegalStateException("Segment exhausted and new segment not ready for key=" + key);
                 }
+                // parkNanos 做短暂停顿，避免调用线程完全忙等
+                // 逐步增加等待时间以降低 CPU 占用（指数退避或线性退避都可）
+                long backoffNanos = Math.min(1_000L * retry, 1_000_000L); // 最多 1ms
+                LockSupport.parkNanos(backoffNanos);
+                // 重试循环会再次检查 current/nextSegment
             }
         }
 
-        /**
-         * 异步加载新的号段
-         */
         private void triggerAsyncLoad() {
-            if (next == null && loading.compareAndSet(false, true)) {
-                Mono.fromCallable(this::loadSegmentBlocking)
-                        .doOnSuccess(seg -> {
-                            synchronized (this) {
-                                next = seg;
+            // 仅当 nextSegment 为空并且没有正在加载时提交加载任务
+            if (this.nextSegment == null && loading.compareAndSet(false, true)) {
+                loaderPool.submit(() -> {
+                    try {
+                        LocalSegment seg = loadSegmentBlocking();
+                        // 将加载到的新段放入 nextSegment（在 synchronized 中双重检查）
+                        synchronized (this) {
+                            if (this.nextSegment == null) {
+                                this.nextSegment = seg;
+                            } else {
+                                // 如果已有 nextSegment（极小概率），丢弃新加载段或可合并策略
+                                log.debug("[{}] nextSegment already present, discarding loaded segment {}-{}", key, seg.start, seg.end);
                             }
-                            log.info("[{}] 异步预加载完成：{}-{}", key, seg.getStart(), seg.getEnd());
-                        })
-                        .doFinally(s -> loading.set(false))
-                        .subscribe();
+                        }
+                        if (log.isDebugEnabled()) log.debug("[{}] async prefetch done: {}-{}", key, seg.start, seg.end);
+                    } catch (Throwable t) {
+                        log.error("[{}] async load failed", key, t);
+                    } finally {
+                        loading.set(false);
+                    }
+                });
             }
         }
 
+
         /**
-         * 在异步线程中加载号段（Redis 和 DB 读写）
+         * blocking segment load - runs in loaderPool threads
          */
-        private Segment loadSegmentBlocking() {
+        private LocalSegment loadSegmentBlocking() {
             String lockName = LOCK_PREFIX + key;
-
             RLock lock = redissonClient.getLock(lockName);
-
+            boolean locked = false;
             try {
-                // 获取分布式锁，带等待与租约
-                if (!lock.tryLock(lockWaitSeconds, lockLeaseSeconds, TimeUnit.SECONDS)) {
-                    throw new IllegalStateException("获取分布式锁超时：" + lockName);
+                locked = lock.tryLock(lockWaitSeconds, lockLeaseSeconds, TimeUnit.SECONDS);
+                if (!locked) {
+                    throw new IllegalStateException("Failed to acquire distributed lock: " + lockName);
                 }
 
-                log.debug("[{}] 获得分布式锁，开始校准与分配", key);
-
-                // === 1. 查询数据库中的元信息（阻塞，线程池中执行） ===
+                // 1. load meta from DB (sync)
                 IdMetaInfo meta = idMetaInfoRepository.findById(key).orElseGet(() -> {
                     IdMetaInfo m = new IdMetaInfo();
                     m.setId(key);
                     m.setMaxId(initialId);
                     m.setStep(defaultStep);
                     m.setUpdateTime(LocalDateTime.now());
-                    log.info("[{}] 元信息不存在，已初始化 step={}", key, defaultStep);
+                    idMetaInfoRepository.save(m);
+                    log.info("[{}] meta not found, initialized step={}", key, defaultStep);
                     return m;
                 });
 
-                // 2. 从 Redis 获取当前值（可能为 null）
-                Object redisObj = reactiveRedisTemplate.opsForValue().get(key)
-                        .toFuture().get();
+                int step = Math.max(1, meta.getStep() == null ? defaultStep : meta.getStep());
 
-                Long redisVal;
-                if (redisObj == null) {
-                    redisVal = meta.getMaxId();
-                    // 初始化 Redis 值为数据库 maxId
-                    reactiveRedisTemplate.opsForValue().set(key, redisVal).subscribe();
-                    log.warn("[{}] Redis 值为空，已初始化为 meta.maxId={}", key, redisVal);
-                } else {
-                    long reset = meta.getMaxId();
-                    redisVal = (redisObj instanceof Integer)
-                            ? ((Integer) redisObj).longValue()
-                            : (Long) redisObj;
-                    log.warn("[{}] Redis 值校准：{} -> {}", key, redisVal, reset);
+                // 2. check redis current value (block here but running in loader thread)
+                Object redisValObj = reactiveRedisTemplate.opsForValue().get(key).block(Duration.ofSeconds(2));
+                if (redisValObj == null) {
+                    // initialize redis with meta.maxId
+                    reactiveRedisTemplate.opsForValue().set(key, meta.getMaxId()).block(Duration.ofSeconds(2));
                 }
 
-                // === 4. Redis 自增以获得新号段的最大值 ===
-                Long newMax = reactiveRedisTemplate.opsForValue().increment(key, meta.getStep())
-                        .toFuture()
-                        .get();
-                long start = newMax - meta.getStep() + 1;
+                // 3. increment redis to allocate new range
+                Long newMax = reactiveRedisTemplate.opsForValue().increment(key, step).block(Duration.ofSeconds(3));
+                if (newMax == null) {
+                    throw new IllegalStateException("Redis increment returned null for key=" + key);
+                }
+                long start = newMax - step + 1;
                 long end = newMax;
 
-                // 5. 异步持久化更新数据库
-                scheduler.submit(() -> {
-                    try {
-                        meta.setMaxId(end);
-                        meta.setUpdateTime(LocalDateTime.now());
-                        idMetaInfoRepository.save(meta);
-                        log.info("[{}] 元信息持久化成功 开始:{} 结束:{} 步长:{}", key, start, end, meta.getStep());
-                    } catch (Exception ex) {
-                        log.error("[{}] 元信息保存失败: {}", key, ex.getMessage(), ex);
-                    }
-                });
+                // 4. persist meta.maxId asynchronously (do not block caller)
+                try {
+                    scheduler.submit(() -> {
+                        try {
+                            meta.setMaxId(end);
+                            meta.setUpdateTime(LocalDateTime.now());
+                            idMetaInfoRepository.save(meta);
+                        } catch (Throwable ex) {
+                            log.error("[{}] persist meta failed: {}", key, ex.getMessage(), ex);
+                        }
+                    });
+                } catch (RejectedExecutionException rx) {
+                    log.warn("[{}] persist meta scheduling rejected, will persist later", key);
+                }
 
-                return new Segment(start, end, meta.getStep());
-            } catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException("加载 Segment 异常", e);
+                // return new LocalSegment
+                return new LocalSegment(start, end, step);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted while acquiring lock", ie);
             } finally {
-                if (lock.isHeldByCurrentThread()) {
-                    lock.unlock();
-                    log.debug("[{}] 释放分布式锁", key);
+                if (locked && lock.isHeldByCurrentThread()) {
+                    try {
+                        lock.unlock();
+                    } catch (Throwable ignore) {
+                    }
                 }
             }
         }
 
-        public SegmentSnapshot snapshot() {
+        SegmentSnapshot snapshot() {
             SegmentSnapshot snap = new SegmentSnapshot();
-            snap.current = current;
-            snap.next = next;
+            LocalSegment cur = current;
+            snap.setCurrentStart(cur.start);
+            snap.setCurrentEnd(cur.end);
+            snap.setCurrentCursor(cur.cursor.get());
+            snap.setCurrentStep(cur.step);
+            LocalSegment n = nextSegment;
+            if (n != null) {
+                snap.setNextStart(n.start);
+                snap.setNextEnd(n.end);
+                snap.setNextStep(n.step);
+            }
             return snap;
         }
     }

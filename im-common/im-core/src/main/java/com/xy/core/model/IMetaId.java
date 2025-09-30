@@ -14,4 +14,8 @@ public class IMetaId {
 
     private Object metaId;
 
+    private String stringId;
+
+    private Long longId;
+
 }

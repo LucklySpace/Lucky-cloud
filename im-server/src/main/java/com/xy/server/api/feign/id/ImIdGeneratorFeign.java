@@ -1,8 +1,8 @@
-package com.xy.server.api.id;
+package com.xy.server.api.feign.id;
 
 
 import com.xy.core.model.IMetaId;
-import com.xy.server.api.FeignRequestInterceptor;
+import com.xy.server.api.feign.FeignRequestInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.openfeign.FeignClient;

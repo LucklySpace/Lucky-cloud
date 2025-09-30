@@ -33,7 +33,7 @@ public class RedisConfig extends CachingConfigurerSupport {
 
     @Bean(destroyMethod = "shutdown")
     public RedissonClient redisson() throws IOException {
-        return  Redisson.create(
+        return Redisson.create(
                 Config.fromYAML(new ClassPathResource(address).getInputStream()));
     }
 

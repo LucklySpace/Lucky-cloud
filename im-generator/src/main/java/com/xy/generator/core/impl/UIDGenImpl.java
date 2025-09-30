@@ -118,10 +118,31 @@ public class UIDGenImpl implements IDGen {
 
         log.info("[{}] 获取 ID：{}", key, nextId);
 
-        IMetaId build = IMetaId.builder().metaId(nextId).build();
+        IMetaId build = IMetaId.builder().longId(nextId).build();
 
         return Mono.just(build);
     }
+
+    /**
+     * 获取下一个 UID（异步方式）
+     * 在每次获取时自动判断缓存区余量是否需要补充
+     */
+    @Override
+    public IMetaId getId(String key) {
+
+        loadWorkerId();
+
+        if (ringBuffer.size() < (int) (bufferSize * paddingFactor)) {
+            fillBuffer(); // 剩余不足阈值时填充
+        }
+
+        Long nextId = ringBuffer.take();
+
+        log.info("[{}] 获取 ID：{}", key, nextId);
+
+        return IMetaId.builder().longId(nextId).build();
+    }
+
 
     /**
      * 批量填充 UID 缓存区直到满为止

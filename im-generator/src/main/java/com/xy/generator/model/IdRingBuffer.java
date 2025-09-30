@@ -1,6 +1,9 @@
 package com.xy.generator.model;
 
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 /**
  * 简易无锁环形缓冲区
  *
@@ -9,13 +12,14 @@ package com.xy.generator.model;
 
 /**
  * 简单的环形缓冲区，用于缓存 UID
- * 使用 synchronized 保证线程安全
+ * 使用 Lock 保证线程安全，提高并发性能
  */
 public class IdRingBuffer<E> {
     private final Object[] buffer; // 存储元素的数组
     private final int capacity; // 容量必须是 2 的幂
-    private int head = 0; // 读指针
-    private int tail = 0; // 写指针
+    private final Lock lock = new ReentrantLock();
+    private volatile int head = 0; // 读指针
+    private volatile int tail = 0; // 写指针
     private volatile int size = 0; // 当前缓存区中元素数量
 
     public IdRingBuffer(int capacity) {
@@ -26,28 +30,38 @@ public class IdRingBuffer<E> {
     /**
      * 添加元素到缓冲区尾部
      */
-    public synchronized void put(E e) {
-        if (isFull()) {
-            throw new IllegalStateException("RingBuffer is full");
+    public void put(E e) {
+        lock.lock();
+        try {
+            if (isFull()) {
+                throw new IllegalStateException("RingBuffer is full");
+            }
+            buffer[tail] = e;
+            tail = (tail + 1) & (capacity - 1);
+            size++;
+        } finally {
+            lock.unlock();
         }
-        buffer[tail] = e;
-        tail = (tail + 1) & (capacity - 1);
-        size++;
     }
 
     /**
      * 从缓冲区头部获取元素
      */
     @SuppressWarnings("unchecked")
-    public synchronized E take() {
-        if (isEmpty()) {
-            throw new IllegalStateException("RingBuffer is empty");
+    public E take() {
+        lock.lock();
+        try {
+            if (isEmpty()) {
+                throw new IllegalStateException("RingBuffer is empty");
+            }
+            E e = (E) buffer[head];
+            buffer[head] = null;
+            head = (head + 1) & (capacity - 1);
+            size--;
+            return e;
+        } finally {
+            lock.unlock();
         }
-        E e = (E) buffer[head];
-        buffer[head] = null;
-        head = (head + 1) & (capacity - 1);
-        size--;
-        return e;
     }
 
     /**
@@ -71,4 +85,3 @@ public class IdRingBuffer<E> {
         return size;
     }
 }
-

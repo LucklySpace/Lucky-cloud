@@ -36,8 +36,14 @@ public class HeartBeatProcess implements WebsocketProcess {
         // 如果token剩余时间小于有效时间，  则通知客户端刷新token
         Integer code = getRemaining(token) <= tokenExpired ? IMessageType.REFRESHTOKEN.getCode() : IMessageType.HEART_BEAT.getCode();
 
+        if (code.equals(IMessageType.REFRESHTOKEN.getCode())) {
+            log.warn("用户:{} token已过期", userId);
+        }
+
+        String message = code.equals(IMessageType.REFRESHTOKEN.getCode()) ? "token已过期" : "心跳成功";
+
         // 响应ws
-        MessageUtils.send(ctx, sendInfo.setCode(code).setMessage("心跳成功"));
+        MessageUtils.send(ctx, sendInfo.setCode(code).setMessage(message));
 
         //redisTemplate.expire(USER_CACHE_PREFIX + userId , heartBeatTime * 2);
 

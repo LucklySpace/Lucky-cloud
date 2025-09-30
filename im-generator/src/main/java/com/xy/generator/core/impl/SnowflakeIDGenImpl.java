@@ -9,223 +9,205 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
 
 /**
- * Reactor 风格的雪花算法 ID 生成器实现，基于 WebFlux 非阻塞。
- * <p>
- * 通过单线程调度器保证序列号和时间戳状态的线程安全，无需显式锁或 synchronized。
- * 支持小幅度时钟回拨容错和随机序列号起始以提升安全性。
- * </p>
+ * 高性能无锁 Snowflake 实现
+ * - 状态通过单个 AtomicLong 打包 (timestamp << sequenceBits) | sequence
+ * - CAS 循环保证并发安全，无 synchronized
+ * - workerId 仅首次加载且校验
  */
 @Slf4j
 @Component("snowflakeIDGen")
 public class SnowflakeIDGenImpl implements IDGen {
 
-    /**
-     * 起始时间戳：2021-06-01 00:00:00 UTC 毫秒数，可避免 2038 年问题
-     */
-    private static final long EPOCH = 1622505600000L;
-    /**
-     * 随机数生成器，用于随机序列起始
-     */
-    private static final ThreadLocalRandom RANDOM = ThreadLocalRandom.current();
+    // epoch (ms)
+    private static final long EPOCH = 1622505600000L; // 2021-06-01T00:00:00Z
 
-    // ==================== 位数配置 ====================
-    /**
-     * workerId 所占位数，默认 10 位，最大支持 0-1023 节点
-     */
-    private final long workerIdBits = 10L;
-    /**
-     * 序列号所占位数，默认 12 位，每毫秒最多 4096 个 ID
-     */
-    private final long sequenceBits = 12L;
-    /**
-     * 最大 workerId 值
-     */
-    private final long maxWorkerId = ~(-1L << workerIdBits);
-    /**
-     * 左移位数：序列号位数
-     */
-    private final long workerIdShift = sequenceBits;
-    /**
-     * 左移位数：序列号位数 + workerId 位数
-     */
-    private final long timestampLeftShift = sequenceBits + workerIdBits;
-    /**
-     * 序列号掩码，用于循环取模
-     */
-    private final long sequenceMask = ~(-1L << sequenceBits);
-    /**
-     * 当前工作节点 ID
-     */
-    private final AtomicLong workerId = new AtomicLong(0);
+    // bit allocation
+    private static final long WORKER_ID_BITS = 10L;
+    private static final long SEQUENCE_BITS = 12L;
 
-    // ==================== 运行时状态，使用原子变量 ====================
-    /**
-     * 序列号
-     */
-    private final AtomicLong sequence = new AtomicLong(0);
-    /**
-     * 上次生成 ID 的时间戳
-     */
-    private final AtomicLong lastTimestamp = new AtomicLong(-1L);
+    // masks and shifts
+    private static final long MAX_WORKER_ID = ~(-1L << WORKER_ID_BITS);
+    private static final long SEQUENCE_MASK = ~(-1L << SEQUENCE_BITS);
+
+    private static final long WORKER_ID_SHIFT = SEQUENCE_BITS;
+    private static final long TIMESTAMP_LEFT_SHIFT = SEQUENCE_BITS + WORKER_ID_BITS;
+    // spin/wait tunables
+    private static final long MAX_CLOCK_BACK_MS = 5_000L; // 5s
+    private static final int SPIN_YIELDS_BEFORE_PARK = 16;
+    // state: [timestamp(ms) << SEQUENCE_BITS] | sequence
+    private final AtomicLong state = new AtomicLong(0L); // initial lastTs = 0, seq = 0
+    // workerId lazy init
+    private final AtomicLong workerId = new AtomicLong(-1L); // -1 => not loaded
+    private final AtomicBoolean workerLoaded = new AtomicBoolean(false);
     @Resource
     private WorkerIdAssigner workerIdAssigner;
 
     @Override
     public boolean init() {
+        // no blocking init required; workerId lazy-load on first request
         return true;
     }
 
-    /**
-     * 核心 API：生成 ID。
-     * <p>在独立调度器上非阻塞执行：加载 workerId、时钟回拨处理、组合 ID。</p>
-     *
-     * @param key 业务键，可用于埋点或区分日志
-     * @return Mono 包裹的 ID
-     */
     @Override
     public Mono<IMetaId> get(String key) {
+        // preserve Reactor style; core generation is lock-free and quick
+        return Mono.fromCallable(() -> getId(key));
+    }
 
-        // 确保 workerId 已加载并校验合法
-        loadWorkerId();
-
-        long ts = timeGen();
-
-        log.debug("[{}] 当前时间戳：{}，上次时间戳：{}", key, ts, lastTimestamp.get());
-
-        long nextId = generateId(handleClockBack(ts));
-
-        IMetaId build = IMetaId.builder().metaId(nextId).build();
-
-        // 处理时钟回拨
-        return Mono.just(build);
+    @Override
+    public IMetaId getId(String key) {
+        ensureWorkerIdLoaded();
+        long nextId = nextIdInternal();
+        return IMetaId.builder().longId(nextId).build();
     }
 
     /**
-     * 处理系统时钟回拨：
-     * - 小于 5 秒的回拨，将延迟两倍时间再重试获取时间
-     * - 大于阈值，抛出异常终止
-     *
-     * @param timestamp 初始采样时间
-     * @return Mono 包裹的校正后时间戳
+     * 无锁 CAS 主循环生成 ID
      */
-    private long handleClockBack(long timestamp) {
-        long lastTs = lastTimestamp.get();
-        if (timestamp >= lastTs) {
-            // 正常：时间未回拨
-            return timestamp;
-        }
+    private long nextIdInternal() {
+        final ThreadLocalRandom rnd = ThreadLocalRandom.current();
 
-        long offset = lastTs - timestamp;
-        log.warn("检测到时钟回拨，偏移：{} ms，允许阈值：5000 ms", offset);
+        while (true) {
+            long currentState = state.get();
+            long lastTs = currentState >>> SEQUENCE_BITS;
+            long seq = currentState & SEQUENCE_MASK;
 
-        if (offset <= 5_000) {
-            // 小幅度回拨：同步阻塞等待
-            long delayMs = offset << 1;
-            log.info("小幅度回拨：阻塞等待 {} ms 后重试", delayMs);
-            try {
-                Thread.sleep(delayMs);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException("回拨等待被中断", e);
-            }
             long now = timeGen();
-            if (now < lastTimestamp.get()) {
-                log.error("回拨等待后仍未恢复，当前：{}，上次：{}", now, lastTimestamp.get());
-                throw new IllegalStateException(
-                        String.format("系统时钟异常：等待后时间仍未前进（%d < %d）", now, lastTimestamp.get())
-                );
-            }
-            log.info("回拨已恢复，当前时间：{}", now);
-            return now;
-        }
 
-        // 严重回拨：超出阈值，拒绝生成
-        log.error("严重时钟回拨：{} ms，超过阈值，终止生成", offset);
-        throw new IllegalStateException(
-                String.format("系统时钟异常超过阈值：偏移 %d ms", offset)
-        );
+            if (now < lastTs) {
+                // 时钟回拨：小幅度 -> 等待；大幅度 -> 抛出
+                long offset = lastTs - now;
+                if (offset > MAX_CLOCK_BACK_MS) {
+                    // 严重回拨
+                    log.error("clock moved backwards too much: {} ms", offset);
+                    throw new IllegalStateException("Clock moved backwards by " + offset + "ms");
+                }
+                // 小幅回拨：短自旋等待恢复（带少量park）
+                now = waitUntilAtLeast(lastTs);
+                // loop continue to attempt CAS
+                continue;
+            }
+
+            if (now == lastTs) {
+                // 同一毫秒，序列增加
+                if (seq >= SEQUENCE_MASK) {
+                    // 序列耗尽，等待下一毫秒
+                    long newTs = tilNextMillis(lastTs);
+                    long newSeq = rnd.nextLong(0, 100); // 随机起始
+                    long newState = (newTs << SEQUENCE_BITS) | (newSeq & SEQUENCE_MASK);
+                    if (state.compareAndSet(currentState, newState)) {
+                        return composeId(newTs, newSeq);
+                    } else {
+                        // CAS失败，重试
+                        continue;
+                    }
+                } else {
+                    long newSeq = seq + 1;
+                    long newState = (lastTs << SEQUENCE_BITS) | (newSeq & SEQUENCE_MASK);
+                    if (state.compareAndSet(currentState, newState)) {
+                        return composeId(lastTs, newSeq);
+                    } else {
+                        continue;
+                    }
+                }
+            } else { // now > lastTs
+                long newSeq = rnd.nextLong(0, 100);
+                long newState = (now << SEQUENCE_BITS) | (newSeq & SEQUENCE_MASK);
+                if (state.compareAndSet(currentState, newState)) {
+                    return composeId(now, newSeq);
+                } else {
+                    continue;
+                }
+            }
+        }
     }
 
     /**
-     * 根据时间戳和序列号状态生成最终 ID，并更新状态。
-     *
-     * @param timestamp 用于生成的时间戳
-     * @return 生成的雪花 ID
-     */
-    private long generateId(long timestamp) {
-        long lastTs = lastTimestamp.get();
-        long seq;
-        if (timestamp == lastTs) {
-            // 同一毫秒内自增序列
-            seq = (sequence.incrementAndGet()) & sequenceMask;
-            if (seq == 0) {
-                // 序列用尽，切换到下一毫秒
-                seq = RANDOM.nextInt(100);
-                timestamp = tilNextMillis(lastTs);
-                log.debug("序列用尽，切换到下一毫秒：{}，初始随机序列：{}", timestamp, seq);
-            }
-        } else {
-            // 不同毫秒，随机起始序列
-            seq = RANDOM.nextInt(100);
-            log.debug("新毫秒：{}，随机序列初始化：{}", timestamp, seq);
-        }
-
-        // 更新状态
-        sequence.set(seq);
-        lastTimestamp.set(timestamp);
-
-        // 组合 ID：时间段 | workerId | 序列号
-        long id = ((timestamp - EPOCH) << timestampLeftShift)
-                | (workerId.get() << workerIdShift)
-                | seq;
-
-        log.trace("组成 ID: 时间部分 [{}], workerId [{}], 序列 [{}] => {}",
-                timestamp - EPOCH, workerId.get(), seq, id);
-
-        return id;
-    }
-
-    /**
-     * 阻塞式获取下一毫秒（仅在序列用尽时调用）
-     *
-     * @param lastTs 上次使用的时间戳
-     * @return 新的时间戳（保证 > lastTs）
+     * 在序列耗尽或需要等待下一毫秒时，快速等待直到 timestamp > lastTs
+     * 使用 busy-spin + onSpinWait + occasional park，延迟低且 CPU 占用可控
      */
     private long tilNextMillis(long lastTs) {
         long ts = timeGen();
+        int spins = 0;
         while (ts <= lastTs) {
+            spins++;
+            // 在热路径上使用 CPU 自旋（JDK9+会使用 onSpinWait hint）
+            onSpinWaitHint();
+            if ((spins & 0xF) == 0) {
+                // 每 16 次自旋做短暂 park，降低 CPU 占用
+                LockSupport.parkNanos(1_000L); // 1 microsecond
+            }
             ts = timeGen();
         }
-        log.trace("到达下一毫秒：{}", ts);
         return ts;
     }
 
     /**
-     * 获取当前系统时间戳，单位毫秒，可在测试中重写
+     * wait until system time >= targetTimestamp
+     * used when clock rolled back slightly
      */
+    private long waitUntilAtLeast(long targetTimestamp) {
+        long ts = timeGen();
+        long spins = 0;
+        while (ts < targetTimestamp) {
+            spins++;
+            onSpinWaitHint();
+            if ((spins & 0xFF) == 0) {
+                // occasional short park to avoid burning CPU for long backoffs
+                LockSupport.parkNanos(1_000L * Math.min(1000, spins)); // escalate up to ~1ms
+            }
+            ts = timeGen();
+        }
+        return ts;
+    }
+
+    private void onSpinWaitHint() {
+        // Java 9+ hint for spin loops
+        try {
+            Thread.onSpinWait();
+        } catch (Throwable ignored) {
+            // fallback: no-op on older JDK
+        }
+    }
+
+    private long composeId(long timestampMs, long seq) {
+        long wId = workerId.get();
+        return ((timestampMs - EPOCH) << TIMESTAMP_LEFT_SHIFT)
+                | ((wId & MAX_WORKER_ID) << WORKER_ID_SHIFT)
+                | (seq & SEQUENCE_MASK);
+    }
+
     protected long timeGen() {
-        long now = System.currentTimeMillis();
-        log.trace("timeGen 调用，当前时间：{}", now);
-        return now;
+        return System.currentTimeMillis();
     }
 
     /**
-     * 加载并校验 workerId，仅首次调用有效。
+     * workerId 惰性加载（只在首次执行时同步一次）
      */
-    private void loadWorkerId() {
-        if (workerId.get() == 0) {
-            log.info("加载 workerId");
-            workerIdAssigner.load();
-            long id = workerIdAssigner.getWorkerId();
-            if (id < 0 || id > maxWorkerId) {
-                log.error("非法 workerId:{}，必须在 0-{} 范围内", id, maxWorkerId);
-                throw new IllegalArgumentException("workerId 必须介于 0-" + maxWorkerId + " 之间");
+    private void ensureWorkerIdLoaded() {
+        if (workerLoaded.get()) return;
+
+        synchronized (this) {
+            if (workerLoaded.get()) return;
+            // call assigner to load worker id
+            try {
+                workerIdAssigner.load(); // assume id assigner handles its own blocking/IO
+                long id = workerIdAssigner.getWorkerId();
+                if (id < 0 || id > MAX_WORKER_ID) {
+                    throw new IllegalArgumentException("workerId out of range: " + id);
+                }
+                workerId.set(id);
+                workerLoaded.set(true);
+                if (log.isInfoEnabled()) log.info("Snowflake workerId loaded: {}", id);
+            } catch (Throwable t) {
+                log.error("Failed to load workerId", t);
+                throw new IllegalStateException("Failed to load workerId", t);
             }
-            workerId.set(id);
-            log.info("加载完成，workerId = {}", id);
         }
     }
 }

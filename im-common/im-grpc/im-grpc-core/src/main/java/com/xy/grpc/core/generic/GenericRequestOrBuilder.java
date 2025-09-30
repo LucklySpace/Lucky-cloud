@@ -4,58 +4,67 @@
 package com.xy.grpc.core.generic;
 
 public interface GenericRequestOrBuilder extends
-    // @@protoc_insertion_point(interface_extends:generic.GenericRequest)
-    com.google.protobuf.MessageOrBuilder {
+        // @@protoc_insertion_point(interface_extends:generic.GenericRequest)
+        com.google.protobuf.MessageOrBuilder {
 
-  /**
-   * <code>string url = 1;</code>
-   * @return The url.
-   */
-  java.lang.String getUrl();
-  /**
-   * <code>string url = 1;</code>
-   * @return The bytes for url.
-   */
-  com.google.protobuf.ByteString
-      getUrlBytes();
+    /**
+     * <code>string url = 1;</code>
+     *
+     * @return The url.
+     */
+    java.lang.String getUrl();
 
-  /**
-   * <code>bytes payload = 2;</code>
-   * @return The payload.
-   */
-  com.google.protobuf.ByteString getPayload();
+    /**
+     * <code>string url = 1;</code>
+     *
+     * @return The bytes for url.
+     */
+    com.google.protobuf.ByteString
+    getUrlBytes();
 
-  /**
-   * <code>map&lt;string, string&gt; metadata = 3;</code>
-   */
-  int getMetadataCount();
-  /**
-   * <code>map&lt;string, string&gt; metadata = 3;</code>
-   */
-  boolean containsMetadata(
-      java.lang.String key);
-  /**
-   * Use {@link #getMetadataMap()} instead.
-   */
-  @java.lang.Deprecated
-  java.util.Map<java.lang.String, java.lang.String>
-  getMetadata();
-  /**
-   * <code>map&lt;string, string&gt; metadata = 3;</code>
-   */
-  java.util.Map<java.lang.String, java.lang.String>
-  getMetadataMap();
-  /**
-   * <code>map&lt;string, string&gt; metadata = 3;</code>
-   */
+    /**
+     * <code>bytes payload = 2;</code>
+     *
+     * @return The payload.
+     */
+    com.google.protobuf.ByteString getPayload();
 
-  java.lang.String getMetadataOrDefault(
-      java.lang.String key,
-      java.lang.String defaultValue);
-  /**
-   * <code>map&lt;string, string&gt; metadata = 3;</code>
-   */
+    /**
+     * <code>map&lt;string, string&gt; metadata = 3;</code>
+     */
+    int getMetadataCount();
 
-  java.lang.String getMetadataOrThrow(
-      java.lang.String key);
+    /**
+     * <code>map&lt;string, string&gt; metadata = 3;</code>
+     */
+    boolean containsMetadata(
+            java.lang.String key);
+
+    /**
+     * Use {@link #getMetadataMap()} instead.
+     */
+    @java.lang.Deprecated
+    java.util.Map<java.lang.String, java.lang.String>
+    getMetadata();
+
+    /**
+     * <code>map&lt;string, string&gt; metadata = 3;</code>
+     */
+    java.util.Map<java.lang.String, java.lang.String>
+    getMetadataMap();
+
+    /**
+     * <code>map&lt;string, string&gt; metadata = 3;</code>
+     */
+
+    java.lang.String getMetadataOrDefault(
+            java.lang.String key,
+            java.lang.String defaultValue);
+
+    /**
+     * <code>map&lt;string, string&gt; metadata = 3;</code>
+     */
+
+    java.lang.String getMetadataOrThrow(
+            java.lang.String key);
 }

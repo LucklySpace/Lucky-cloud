@@ -17,6 +17,8 @@ public interface IDGen {
      */
     Mono<IMetaId> get(String key);
 
+    IMetaId getId(String key);
+
     /**
      * 初始化生成器
      *

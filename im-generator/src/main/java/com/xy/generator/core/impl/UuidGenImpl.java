@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * 基于 UUID 的 ID 生成器，实现了 RingBuffer 缓存池
@@ -16,14 +18,17 @@ import java.util.UUID;
 @Component("uuidIDGen")
 public class UuidGenImpl implements IDGen {
 
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "UUID-Generator");
+        t.setDaemon(true);
+        return t;
+    });
     // 缓存区位数（2 的幂），默认 10 -> 大小 1024
     @Value("${uuid.buffer-size-bits:10}")
     private int bufferSizeBits;
-
     // 缓存区阈值比例（低于该比例时触发补充），默认 0.2 -> 20%
     @Value("${uuid.padding-factor:0.2}")
     private double paddingFactor;
-
     private IdRingBuffer<String> ringBuffer;
     private int bufferSize;
 
@@ -50,17 +55,20 @@ public class UuidGenImpl implements IDGen {
      */
     @Override
     public Mono<IMetaId> get(String key) {
+        return Mono.fromCallable(() -> getId(key));
+    }
 
+    @Override
+    public IMetaId getId(String key) {
         // 检测剩余量
         if (ringBuffer.size() < bufferSize * paddingFactor) {
-            fillBuffer();
+            // 使用独立线程异步填充缓冲区，避免阻塞当前线程
+            executorService.submit(this::fillBuffer);
         }
 
         String nextId = ringBuffer.take();
 
-        IMetaId build = IMetaId.builder().metaId(nextId).build();
-
-        return Mono.just(build);
+        return IMetaId.builder().stringId(nextId).build();
     }
 
     /**

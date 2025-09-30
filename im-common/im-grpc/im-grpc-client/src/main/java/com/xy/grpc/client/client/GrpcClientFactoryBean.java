@@ -13,14 +13,7 @@ import org.springframework.util.Assert;
 
 import java.lang.reflect.Proxy;
 
-/**
- * FactoryBean that attempts to auto-resolve:
- * - Serializer (by type from context or fallback to internal DefaultJsonSerializer)
- * - NacosServiceManager / NacosDiscoveryProperties (by type if present in context)
- * If Nacos is not available, falls back to static address parsing.
- * <p>
- * This implementation does NOT require configuration in YAML for serializer or nacos class names.
- */
+
 @SuppressWarnings("unchecked")
 public class GrpcClientFactoryBean<T> implements FactoryBean<T>, InitializingBean, BeanFactoryAware {
 
@@ -30,10 +23,7 @@ public class GrpcClientFactoryBean<T> implements FactoryBean<T>, InitializingBea
     private String address;
     private String serviceName;
     private long defaultTimeoutMs = 0L;
-
-    // optional: container may set these by autowire-by-type
     private Serializer serializer;
-    // we keep Nacos objects as Object to avoid compile-time dependency
     private T proxy;
     private BeanFactory beanFactory;
 
@@ -62,13 +52,13 @@ public class GrpcClientFactoryBean<T> implements FactoryBean<T>, InitializingBea
     @Override
     public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
         this.beanFactory = beanFactory;
-        log.trace("设置BeanFactory: {}", beanFactory);
+        log.trace("Setting BeanFactory: {}", beanFactory);
     }
 
     @Override
     public void afterPropertiesSet() throws Exception {
         Assert.notNull(interfaceType, "interfaceType must not be null");
-        log.debug("初始化GrpcClientFactoryBean: interfaceType={}", interfaceType.getName());
+        log.debug("Initialize GrpcClientFactoryBean: interfaceType={}", interfaceType.getName());
 
         // create invocation handler - use the new constructor with Nacos dependencies
         GenericGrpcInvocationHandler handler = new GenericGrpcInvocationHandler(
@@ -85,7 +75,7 @@ public class GrpcClientFactoryBean<T> implements FactoryBean<T>, InitializingBea
 
     @Override
     public T getObject() {
-        log.trace("获取代理对象: {}", interfaceType.getName());
+        log.trace("Get proxy bean: {}", interfaceType.getName());
         return proxy;
     }
 

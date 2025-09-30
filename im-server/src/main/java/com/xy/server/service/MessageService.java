@@ -21,9 +21,6 @@ public interface MessageService {
 
     Result recallMessage(IMessageAction dto);
 
-
-    //    List<T> singleCheck(ChatDto chatDto);
-//
     Map<Integer, Object> list(ChatDto chatDto);
 
 }

@@ -1,7 +1,7 @@
 # redisson-single.yml
 
 # 编码。默认值: org.redisson.codec.JsonJacksonCodec
-codec: !<org.redisson.codec.Kryo5Codec> {}
+codec: !<org.redisson.codec.Kryo5Codec> { }
 # 线程池数量。默认值: 当前处理核数量 * 2
 threads: 16
 # Netty线程池数量。默认值: 当前处理核数量 * 2

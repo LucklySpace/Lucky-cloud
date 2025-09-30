@@ -19,10 +19,10 @@ public enum IMStatus {
     YES(1, "yes"),
     NO(0, "no");
 
-    private int code;
+    private Integer code;
     private String desc;
 
-    IMStatus(int code, String desc) {
+    IMStatus(Integer code, String desc) {
         this.code = code;
         this.desc = desc;
     }

@@ -42,7 +42,7 @@ public class NettyVirtualThreadFactory extends DefaultThreadFactory {
      * @param priority 线程优先级
      */
     public NettyVirtualThreadFactory(Class<?> poolType, int priority) {
-        this(poolType, priority, "Virtual-Thread-", false);
+        this(poolType, priority, "im-connect-virtual-thread-", false);
     }
 
     /**
@@ -55,7 +55,7 @@ public class NettyVirtualThreadFactory extends DefaultThreadFactory {
      */
     public NettyVirtualThreadFactory(Class<?> poolType, int priority, String prefix, boolean daemon) {
         super(poolType, priority);
-        this.prefix = prefix != null ? prefix : "Virtual-Thread-";
+        this.prefix = prefix != null ? prefix : "im-connect-virtual-thread-";
         this.daemon = daemon;
     }
 

@@ -20,7 +20,7 @@ public enum IMessageReadStatus {
         this.desc = desc;
     }
 
-    public static IMessageReadStatus fromCode(Integer code) {
+    public static IMessageReadStatus getByCode(Integer code) {
         for (IMessageReadStatus typeEnum : values()) {
             if (typeEnum.code.equals(code)) {
                 return typeEnum;

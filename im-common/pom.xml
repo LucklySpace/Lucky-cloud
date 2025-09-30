@@ -16,6 +16,7 @@
         <module>im-spring</module>
         <module>im-security</module>
         <module>im-general</module>
+        <module>im-grpc</module>
     </modules>
 
     <properties>
@@ -43,6 +44,10 @@
         <jakarta-validation.version>3.0.2</jakarta-validation.version>
         <logback.version>1.2.3</logback.version>
         <redission.version>3.43.0</redission.version>
+        <javax.annotation.api.version>1.3.2</javax.annotation.api.version>
+        <grpc.spring.version>3.0.0.RELEASE</grpc.spring.version>
+        <grpc.starter.version>3.0.0.RELEASE</grpc.starter.version>
+        <grpc.client.version>3.0.0.RELEASE</grpc.client.version>
     </properties>
 
 

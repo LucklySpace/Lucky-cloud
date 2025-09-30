@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xy</groupId>
+        <artifactId>im-common</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>im-grpc</artifactId>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>im-grpc-all</module>
+        <module>im-grpc-server</module>
+        <module>im-grpc-core</module>
+        <module>im-grpc-client</module>
+    </modules>
+
+    <properties>
+        <im.grpc.core.version>0.0.1-SNAPSHOT</im.grpc.core.version>
+        <im.grpc.server.version>0.0.1-SNAPSHOT</im.grpc.server.version>
+        <im.grpc.client.version>0.0.1-SNAPSHOT</im.grpc.client.version>
+    </properties>
+
+
+</project>

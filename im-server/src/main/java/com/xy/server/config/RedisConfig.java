@@ -33,9 +33,8 @@ public class RedisConfig extends CachingConfigurerSupport {
 
     @Bean(destroyMethod = "shutdown")
     public RedissonClient redisson() throws IOException {
-        RedissonClient redisson = Redisson.create(
+        return  Redisson.create(
                 Config.fromYAML(new ClassPathResource(address).getInputStream()));
-        return redisson;
     }
 
     @Bean
@@ -50,10 +49,7 @@ public class RedisConfig extends CachingConfigurerSupport {
     }
 
     /**
-     * retemplate相关配置
-     *
-     * @param factory
-     * @return
+     * redisTemplate相关配置
      */
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {

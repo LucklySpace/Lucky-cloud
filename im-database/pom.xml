@@ -14,24 +14,6 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <properties>
-        <!-- 统一版本号 -->
-        <project.version>1.0-SNAPSHOT</project.version>
-
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-        <java.version>21</java.version>
-
-        <jackson.version>2.15.2</jackson.version>
-        <shardingsphere.version>5.5.2</shardingsphere.version>
-        <dynamic.version>4.1.2</dynamic.version>
-        <mysql.version>8.2.0</mysql.version>
-        <postgresql.version>42.7.5</postgresql.version>
-        <mybatis-plus-spring.version>3.5.11</mybatis-plus-spring.version>
-    </properties>
     <dependencies>
 
         <dependency>

@@ -13,12 +13,6 @@
     <name>im-ai</name>
     <description>im-ai</description>
 
-    <properties>
-        <java.version>21</java.version>
-        <spring-ai.version>1.0.0-M6</spring-ai.version>
-        <tika.version>3.0.0</tika.version>
-    </properties>
-
     <dependencies>
 
 
@@ -147,7 +141,7 @@
         <dependency>
             <groupId>com.esotericsoftware</groupId>
             <artifactId>kryo</artifactId>
-            <version>5.6.2</version>
+            <version>${kryo.version}</version>
             <scope>compile</scope>
         </dependency>
 

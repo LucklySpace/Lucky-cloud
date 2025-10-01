@@ -24,21 +24,106 @@
         <module>im-ai</module>
         <module>im-connect</module>
     </modules>
-
     <properties>
+        <!-- Java 目标版本 -->
         <java.version>21</java.version>
 
+        <!-- 项目构建编码 -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- Spring Boot / Cloud 版本 -->
         <spring-boot.version>3.2.0</spring-boot.version>
         <spring-cloud.version>2023.0.0</spring-cloud.version>
         <spring-cloud-alibaba.version>2023.0.0.0-RC1</spring-cloud-alibaba.version>
 
+        <!-- Spring AI版本 -->
+        <spring-ai.version>1.0.0-M6</spring-ai.version>
+
+        <!-- gRPC / starter 版本 -->
+        <grpc.spring.version>3.0.0.RELEASE</grpc.spring.version>
+        <grpc.starter.version>3.0.0.RELEASE</grpc.starter.version>
+        <grpc.client.version>3.0.0.RELEASE</grpc.client.version>
+
+        <!-- JSON 处理（Jackson） -->
+        <jackson.version>2.17.2</jackson.version>
+
+        <!-- MyBatis / MyBatis-Plus 版本 -->
+        <mybatis-plus-spring.version>3.5.11</mybatis-plus-spring.version>
+        <mybatis.plus.version>3.5.5</mybatis.plus.version>
+        <mybatis.spring.version>3.0.3</mybatis.spring.version>
+
+        <!-- 日志与 APM -->
+        <slf4j.version>1.7.25</slf4j.version>
+        <logback.version>1.4.12</logback.version>
         <skywalking.version>8.0.1</skywalking.version>
 
-        <jackson.annotations.version>2.17.2</jackson.annotations.version>
-        <mybatis-plus-spring.version>3.5.11</mybatis-plus-spring.version>
+        <!-- 常用工具库 -->
+        <hutool.version>5.8.29</hutool.version>
+        <guava.version>33.3.1-jre</guava.version>
+        <commons.lang3.version>3.9</commons.lang3.version>
+        <commons.io.version>2.18.0</commons.io.version>
 
+        <!-- 网络 / 底层 -->
+        <netty.version>4.1.108.final</netty.version>
+
+        <!-- 数据库驱动 -->
+        <mysql.version>8.2.0</mysql.version>
+        <postgresql.version>42.7.5</postgresql.version>
+
+        <!-- 分布式 / 缓存 -->
+        <redis.version>4.2.3</redis.version>
+        <redission.version>3.43.0</redission.version>
+
+        <!-- 代码生成 / 注解 -->
+        <lombok.version>1.18.34</lombok.version>
+
+        <!-- 其它库版本 -->
+        <kryo.version>5.6.2</kryo.version>
+        <tika.version>3.0.0</tika.version>
+        <hanlp.version>portable-1.8.6</hanlp.version>
+        <knife4j.version>4.3.0</knife4j.version>
+        <knife4j.version>4.3.0</knife4j.version>
+        <knife4j.version>4.3.0</knife4j.version>
+
+        <!-- 额外第三方组件 -->
+        <sms.version>2.0.2</sms.version>
+        <zxing.version>3.4.1</zxing.version>
+        <thumbnailator.version>0.4.20</thumbnailator.version>
+        <commons-imaging.version>1.0-alpha2</commons-imaging.version>
+        <commons-io.version>2.18.0</commons-io.version>
+
+        <!-- 库兼容 / 其他 -->
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
+        <openapi3.version>4.3.0</openapi3.version>
+        <minio.version>8.5.17</minio.version>
+        <okhttp.version>4.9.0</okhttp.version>
+        <snakeyaml.version>2.2</snakeyaml.version>
+
+        <!-- Sentinel / Nacos / ShardingSphere -->
+        <sentinel.version>1.8.6</sentinel.version>
+        <nacos.version>2.4.2</nacos.version>
+        <shardingsphere.version>5.5.2</shardingsphere.version>
+
+        <!-- GraalVM插件版本 -->
+        <native-maven-plugin.version>0.9.28</native-maven-plugin.version>
+
+        <!-- Maven插件版本 -->
+        <maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
+
+        <!-- 动态数据源版本 -->
+        <dynamic.version>4.1.2</dynamic.version>
+
+        <!-- Druid数据源版本 -->
+        <druid.version>1.2.6</druid.version>
+
+        <!-- Kotlin标准库版本 -->
+        <kotlin-stdlib.version>1.3.70</kotlin-stdlib.version>
+
+        <!-- Hutool工具包版本 -->
+        <hutools.version>5.8.25</hutools.version>
+
+        <!-- 注释掉的备用版本 -->
         <!--        <spring-boot-admin.version>2.7.10</spring-boot-admin.version>-->
         <!--        <tobato.version>1.27.2</tobato.version>-->
         <!--        <kaptcha.version>2.3.3</kaptcha.version>-->
@@ -73,7 +158,7 @@
             <dependency>
                 <groupId>com.github.xiaoymin</groupId>
                 <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
-                <version>4.0.0</version>
+                <version>${knife4j.version}</version>
             </dependency>
 
             <!-- SpringCloud 微服务 -->
@@ -124,7 +209,7 @@
         <dependency>
             <groupId>org.graalvm.buildtools</groupId>
             <artifactId>native-maven-plugin</artifactId>
-            <version>0.9.28</version>
+            <version>${native-maven-plugin.version}</version>
         </dependency>
 
     </dependencies>
@@ -135,7 +220,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.1</version>
+                <version>${maven-compiler-plugin.version}</version>
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>

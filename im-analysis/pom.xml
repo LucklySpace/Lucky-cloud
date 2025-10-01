@@ -14,11 +14,6 @@
     <name>im-analysis</name>
     <description>im-analysis</description>
 
-    <properties>
-        <java.version>21</java.version>
-        <hanlp.version>portable-1.8.6</hanlp.version>
-    </properties>
-
     <dependencies>
 
         <!--hanlp 语义分析-->
@@ -32,7 +27,7 @@
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
             <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
-            <version>4.3.0</version>
+            <version>${knife4j.version}</version>
         </dependency>
 
         <dependency>

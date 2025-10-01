@@ -13,13 +13,6 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <properties>
-        <java.version>21</java.version>
-        <lombok.version>1.18.34</lombok.version>
-        <mysql.version>8.2.0</mysql.version>
-        <redission.version>3.43.0</redission.version>
-    </properties>
-
     <dependencies>
 
         <dependency>
@@ -55,7 +48,7 @@
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>druid-spring-boot-starter</artifactId>
-            <version>1.2.6</version>
+            <version>${druid.version}</version>
         </dependency>
 
         <!--redisson 分布式锁-->
@@ -146,7 +139,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>33.3.1-jre</version>
+            <version>${guava.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

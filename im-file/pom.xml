@@ -32,35 +32,26 @@
         <url/>
     </scm>
 
-    <properties>
-
-        <java.version>21</java.version>
-        <minio.version>8.5.17</minio.version>
-        <hutools.version>5.8.25</hutools.version>
-
-    </properties>
-
     <dependencies>
-
 
         <!--thumbnailator 缩略图-->
         <dependency>
             <groupId>net.coobird</groupId>
             <artifactId>thumbnailator</artifactId>
-            <version>0.4.20</version>
+            <version>${thumbnailator.version}</version>
         </dependency>
 
         <!--commons-io-->
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.18.0</version>
+            <version>${commons-io.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-imaging</artifactId>
-            <version>1.0-alpha2</version>
+            <version>${commons-imaging.version}</version>
         </dependency>
 
         <dependency>

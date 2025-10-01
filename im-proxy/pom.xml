@@ -11,17 +11,6 @@
 
     <artifactId>im-proxy</artifactId>
 
-    <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-        <lombok.version>1.18.30</lombok.version>
-        <slf4j.version>1.7.25</slf4j.version>
-        <logback.version>1.2.3</logback.version>
-        <nacos.version>2.4.2</nacos.version>
-        <hutool.version>5.8.25</hutool.version>
-    </properties>
 
     <dependencies>
 

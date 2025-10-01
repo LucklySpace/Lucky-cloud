@@ -14,18 +14,6 @@
     <name>im-auth</name>
     <description>IM Auth Module</description>
 
-    <properties>
-        <!-- Java版本 -->
-        <java.version>21</java.version>
-
-        <mybatis.plus.version>3.5.5</mybatis.plus.version>
-        <mybatis.spring.version>3.0.3</mybatis.spring.version>
-        <sentinel.version>1.8.6</sentinel.version>
-        <sms.version>2.0.2</sms.version>
-        <zxing.version>3.4.1</zxing.version>
-
-    </properties>
-
     <dependencies>
 
         <!-- 项目核心模块依赖 -->
@@ -90,7 +78,7 @@
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
             <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
-            <version>4.3.0</version>
+            <version>${knife4j.version}</version>
         </dependency>
 
         <!-- Spring Security，用于安全认证 -->
@@ -181,7 +169,7 @@
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
-            <version>5.8.29</version>
+            <version>${hutool.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

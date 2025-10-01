@@ -9,17 +9,37 @@
     <description>im-meet</description>
 
     <properties>
+        <!-- Java版本 -->
         <java.version>21</java.version>
 
+        <!-- Java编译版本 -->
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
 
+        <!-- 网络通信框架版本 -->
         <netty.version>4.1.108.final</netty.version>
+
+        <!-- 日志框架版本 -->
         <slf4j.version>1.7.25</slf4j.version>
         <logback.version>1.4.12</logback.version>
+
+        <!-- 工具包版本 -->
         <hutool.version>5.8.25</hutool.version>
+
+        <!-- JSON处理库版本 -->
         <jackson.version>2.15.2</jackson.version>
+
+        <!-- 代码生成工具版本 -->
         <lombok.version>1.18.30</lombok.version>
+
+        <!-- YAML解析库版本 -->
+        <snakeyaml.version>2.2</snakeyaml.version>
+
+        <!-- Nacos服务发现版本 -->
+        <nacos.version>2.4.2</nacos.version>
+
+        <!-- 日志框架版本 -->
+        <logback-classic.version>1.1.11</logback-classic.version>
 
     </properties>
     <dependencies>
@@ -66,7 +86,7 @@
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
-            <version>2.2</version>
+            <version>${snakeyaml.version}</version>
             <scope>compile</scope>
         </dependency>
 
@@ -85,13 +105,13 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.1.11</version>
+            <version>${logback-classic.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.alibaba.nacos</groupId>
             <artifactId>nacos-client</artifactId>
-            <version>2.4.2</version>
+            <version>${nacos.version}</version>
             <exclusions>
                 <!--排除snakeyaml依赖-->
                 <exclusion>
@@ -103,7 +123,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.30</version>
+            <version>${lombok.version}</version>
             <scope>provided</scope>
         </dependency>
 

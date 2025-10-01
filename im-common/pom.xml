@@ -23,28 +23,56 @@
         <!-- 统一版本号 -->
         <project.version>1.0-SNAPSHOT</project.version>
 
+        <!-- Java编译版本 -->
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <java.version>21</java.version>
+
+        <!-- 项目构建编码 -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
+        <!-- Spring框架版本 -->
         <spring-boot.version>3.2.0</spring-boot.version>
 
+        <!-- MyBatis相关版本 -->
         <mybatis-plus-spring.version>3.5.11</mybatis-plus-spring.version>
+
+        <!-- 代码生成工具版本 -->
         <lombok.version>1.18.34</lombok.version>
+
+        <!-- 网络通信框架版本 -->
         <netty.version>4.1.86.Final</netty.version>
+
+        <!-- 数据库驱动版本 -->
         <mysql.version>8.0.16</mysql.version>
+
+        <!-- 日志框架版本 -->
         <slf4j.version>1.7.25</slf4j.version>
         <logback.version>1.4.12</logback.version>
+
+        <!-- 工具包版本 -->
         <hutool.version>5.8.25</hutool.version>
+
+        <!-- Redis客户端版本 -->
         <redis.version>4.2.3</redis.version>
+
+        <!-- JSON处理库版本 -->
         <jackson.version>2.15.2</jackson.version>
+
+        <!-- Apache Commons工具包版本 -->
         <commons.lang3.version>3.9</commons.lang3.version>
         <commons.io.version>2.11.0</commons.io.version>
+
+        <!-- 验证框架版本 -->
         <jakarta-validation.version>3.0.2</jakarta-validation.version>
-        <logback.version>1.2.3</logback.version>
+
+        <!-- Redisson分布式锁版本 -->
         <redission.version>3.43.0</redission.version>
+
+        <!-- 注解API版本 -->
         <javax.annotation.api.version>1.3.2</javax.annotation.api.version>
+
+        <!-- gRPC相关版本 -->
         <grpc.spring.version>3.0.0.RELEASE</grpc.spring.version>
         <grpc.starter.version>3.0.0.RELEASE</grpc.starter.version>
         <grpc.client.version>3.0.0.RELEASE</grpc.client.version>

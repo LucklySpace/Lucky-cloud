@@ -33,6 +33,7 @@
         <logback.version>1.1.11</logback.version>
         <nacos.version>2.4.2</nacos.version>
         <google.protobuf.version>4.29.5</google.protobuf.version>
+        <sentinel.version>1.8.8</sentinel.version>
     </properties>
 
 
@@ -130,7 +131,7 @@
         <dependency>
             <groupId>com.alibaba.csp</groupId>
             <artifactId>sentinel-core</artifactId>
-            <version>1.8.8</version>
+            <version>${sentinel.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

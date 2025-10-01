@@ -16,8 +16,9 @@
     <url/>
 
     <properties>
+        <!-- Java版本 -->
         <java.version>21</java.version>
-        <openapi3.version>4.3.0</openapi3.version>
+
     </properties>
 
     <dependencies>

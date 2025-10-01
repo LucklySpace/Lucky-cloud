@@ -36,6 +36,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StopWatch;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -57,10 +58,9 @@ public class MessageServiceImpl implements MessageService {
     private static final String LOCK_KEY_SEND_VIDEO = "lock:send:video:";
     private static final String LOCK_KEY_RECALL_MESSAGE = "recall:message:lock:";
     private static final String LOCK_KEY_RETRY_PENDING = "lock:retry:pending";
-    private static final long LOCK_WAIT_TIME = 5L; // 锁等待5s
-    private static final long LOCK_LEASE_TIME = 10L; // 锁持有10s
+    private static final long LOCK_WAIT_TIME = 2L; // 锁等待5s
+    private static final long LOCK_LEASE_TIME = 5L; // 锁持有10s
     private final Map<String, Long> messageToOutboxIdMap = new ConcurrentHashMap<>();
-    private final Map<String, Boolean> ackedOutboxMessageMap = new ConcurrentHashMap<>();
 
     @Resource
     private ImMessageFeign imMessageFeign;
@@ -123,97 +123,93 @@ public class MessageServiceImpl implements MessageService {
      */
     @Override
     public Result<?> sendSingleMessage(IMSingleMessage dto) {
-        final long overallStart = System.nanoTime();
+        StopWatch stopWatch = new StopWatch("sendSingleMessage");
+        stopWatch.start("overall");
 
         String lockKey = LOCK_KEY_SEND_SINGLE + dto.getFromId() + ":" + dto.getToId();
         RLock lock = redissonClient.getLock(lockKey);
 
-        // 用于记录分段耗时（以毫秒为单位）
-        long lockAcquireMs = 0;
-        long idGenMs = 0;
-        long dtoSetupMs = 0;
-        long beanCopyMs = 0;
-        long asyncScheduleMs = 0;
-        long redisCheckMs = 0;
-        long outboxCreateMs = 0;
-        long serializationMs = 0;
-        long publishMs = 0;
-
         try {
-            long tLockStart = System.nanoTime();
+            stopWatch.stop();
+            stopWatch.start("lockAcquire");
             boolean locked = lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS);
-            lockAcquireMs = (System.nanoTime() - tLockStart) / 1_000_000L;
+            stopWatch.stop();
 
             if (!locked) {
                 log.warn("无法获取发送私聊锁，from={} to={} tempId={} (lockWait={}s)",
                         dto.getFromId(), dto.getToId(), dto.getMessageTempId(), LOCK_WAIT_TIME);
-                log.info("sendSingleMessage timing summary: lockAcquireMs={} totalMs={}",
-                        lockAcquireMs, (System.nanoTime() - overallStart) / 1_000_000L);
+                stopWatch.start("logTiming");
+                stopWatch.stop();
+                log.info("sendSingleMessage timing summary: {}", stopWatch.prettyPrint());
                 return Result.failed("消息发送中，请稍后重试");
             }
 
             // id 生成
-            long tIdStart = System.nanoTime();
+            stopWatch.start("idGeneration");
             Long messageId = imIdGeneratorGrpcClient.getId(IdGeneratorConstant.snowflake, IdGeneratorConstant.private_message_id).getLongId();
             Long messageTime = DateTimeUtil.getCurrentUTCTimestamp();
-            idGenMs = (System.nanoTime() - tIdStart) / 1_000_000L;
+            stopWatch.stop();
 
             // dto 填充
-            long tDtoStart = System.nanoTime();
+            stopWatch.start("dtoSetup");
             dto.setMessageId(String.valueOf(messageId))
                     .setMessageTime(messageTime)
                     .setReadStatus(IMessageReadStatus.UNREAD.getCode())
                     .setSequence(messageTime);
-
-            dtoSetupMs = (System.nanoTime() - tDtoStart) / 1_000_000L;
+            stopWatch.stop();
 
             // bean copy
+            stopWatch.start("beanCopy");
             ImSingleMessagePo messagePo = new ImSingleMessagePo().setDelFlag(IMStatus.YES.getCode());
-            long tCopyStart = System.nanoTime();
             BeanUtils.copyProperties(dto, messagePo);
+            stopWatch.stop();
 
-            beanCopyMs = (System.nanoTime() - tCopyStart) / 1_000_000L;
-
-            // 异步插入消息和更新会话（记录调度耗时）
-            long tAsyncStart = System.nanoTime();
+            // 异步插入消息和更新会话
+            stopWatch.start("asyncSchedule");
             CompletableFuture.runAsync(() -> {
                 createOutbox(String.valueOf(messageId), JsonUtil.toJSONString(dto), MQ_EXCHANGE_NAME, "single.message." + dto.getToId(), messageTime);
                 insertImSingleMessage(messagePo);
                 createOrUpdateImChat(dto.getFromId(), dto.getToId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
                 createOrUpdateImChat(dto.getToId(), dto.getFromId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
             }, asyncTaskExecutor);
-            asyncScheduleMs = (System.nanoTime() - tAsyncStart) / 1_000_000L;
+            stopWatch.stop();
 
             // 检查接收者在线状态（Redis）
-            long tRedisStart = System.nanoTime();
+            stopWatch.start("redisCheck");
             Object redisObj = redisUtil.get(USER_CACHE_PREFIX + dto.getToId());
-            redisCheckMs = (System.nanoTime() - tRedisStart) / 1_000_000L;
+            stopWatch.stop();
 
             if (ObjectUtil.isEmpty(redisObj)) {
                 log.info("单聊目标不在线 from:{} to:{}", dto.getFromId(), dto.getToId());
-                log.info("sendSingleMessage timing summary: lockAcquireMs={} idGenMs={} dtoSetupMs={} beanCopyMs={} asyncScheduleMs={} redisCheckMs={} totalMs={}",
-                        lockAcquireMs, idGenMs, dtoSetupMs, beanCopyMs, asyncScheduleMs, redisCheckMs,
-                        (System.nanoTime() - overallStart) / 1_000_000L);
+                stopWatch.start("logTiming");
+                stopWatch.stop();
+                log.info("sendSingleMessage timing summary: {}", stopWatch.prettyPrint());
                 return Result.success(ResultCode.USER_OFFLINE.getMessage(), dto);
             }
 
             // 解析 register user
+            stopWatch.start("parseRegisterUser");
             IMRegisterUser registerUser = JsonUtil.parseObject(redisObj, IMRegisterUser.class);
             String brokerId = registerUser.getBrokerId();
+            stopWatch.stop();
 
-            // 包装消息并序列化（计时序列化）
-            long tSerStart = System.nanoTime();
+            // 包装消息并序列化
+            stopWatch.start("serialization");
             IMessageWrap<Object> wrapper = new IMessageWrap<>().setCode(IMessageType.SINGLE_MESSAGE.getCode()).setData(dto).setIds(List.of(dto.getToId()));
             String payload = JsonUtil.toJSONString(wrapper);
+            stopWatch.stop();
 
-            serializationMs = (System.nanoTime() - tSerStart) / 1_000_000L;
-
-            // 发布到 broker（计时 publish）
-            long tPubStart = System.nanoTime();
+            // 发布到 broker
+            stopWatch.start("publishToBroker");
             publishToBroker(MQ_EXCHANGE_NAME, brokerId, payload, String.valueOf(messageId));
-            publishMs = (System.nanoTime() - tPubStart) / 1_000_000L;
+            stopWatch.stop();
 
+            stopWatch.start("logSuccess");
             log.info("单聊消息发送成功 from:{} to:{}", dto.getFromId(), dto.getToId());
+            stopWatch.stop();
+            stopWatch.start("logTiming");
+            stopWatch.stop();
+            log.info("sendSingleMessage timing summary: {}", stopWatch.prettyPrint());
             return Result.success(ResultCode.SUCCESS.getMessage(), dto);
 
         } catch (Exception e) {
@@ -227,116 +223,75 @@ public class MessageServiceImpl implements MessageService {
             } catch (Exception ex) {
                 log.warn("unlock error", ex);
             }
-
-            final long totalMs = (System.nanoTime() - overallStart) / 1_000_000L;
-            log.info("sendSingleMessage timing summary: lockAcquireMs={} idGenMs={} dtoSetupMs={} beanCopyMs={} asyncScheduleMs={} redisCheckMs={} outboxCreateMs={} serializationMs={} publishMs={} totalMs={}",
-                    lockAcquireMs, idGenMs, dtoSetupMs, beanCopyMs, asyncScheduleMs, redisCheckMs, outboxCreateMs, serializationMs, publishMs, totalMs);
+            log.info("sendSingleMessage timing summary: {}", stopWatch.prettyPrint());
         }
     }
-//    @Override
-//    public Result<?> sendSingleMessage(IMSingleMessage dto) {
-//        long startTime = System.currentTimeMillis();
-//        String lockKey = LOCK_KEY_SEND_SINGLE + dto.getFromId() + ":" + dto.getToId();
-//        RLock lock = redissonClient.getLock(lockKey);
-//        try {
-//            if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
-//                log.warn("无法获取发送私聊锁，from={} to={} tempId={}", dto.getFromId(), dto.getToId(), dto.getMessageTempId());
-//                return Result.failed("消息发送中，请稍后重试");
-//            }
-//
-//            Long messageId = imIdGeneratorGrpcClient.getId(IdGeneratorConstant.snowflake, IdGeneratorConstant.private_message_id, Long.class);
-//            Long messageTime = DateTimeUtil.getCurrentUTCTimestamp();
-//
-//            dto.setMessageId(String.valueOf(messageId))
-//                    .setMessageTime(messageTime)
-//                    .setReadStatus(IMessageReadStatus.UNREAD.getCode())
-//                    .setSequence(messageTime);
-//
-//            ImSingleMessagePo messagePo = new ImSingleMessagePo().setDelFlag(IMStatus.YES.getCode());
-//            BeanUtils.copyProperties(dto, messagePo);
-//
-//            // 异步插入消息和更新会话
-//            CompletableFuture.runAsync(() -> {
-//                insertImSingleMessage(messagePo);
-//                createOrUpdateImChat(dto.getFromId(), dto.getToId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
-//                createOrUpdateImChat(dto.getToId(), dto.getFromId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
-//            }, asyncTaskExecutor);
-//
-//            // 检查接收者在线状态
-//            Object redisObj = redisUtil.get(USER_CACHE_PREFIX + dto.getToId());
-//            if (ObjectUtil.isEmpty(redisObj)) {
-//                log.info("单聊目标不在线 from:{} to:{}", dto.getFromId(), dto.getToId());
-//                return Result.success(ResultCode.USER_OFFLINE.getMessage(), dto);
-//            }
-//
-//            IMRegisterUser registerUser = JsonUtil.parseObject(redisObj, IMRegisterUser.class);
-//
-//            String brokerId = registerUser.getBrokerId();
-//
-//            // 创建 outbox 并发送到 MQ
-//            createOutbox(String.valueOf(messageId), JsonUtil.toJSONString(dto), MQ_EXCHANGE_NAME, brokerId, messageTime);
-//
-//            IMessageWrap<Object> wrapper = new IMessageWrap<>().setCode(IMessageType.SINGLE_MESSAGE.getCode()).setData(dto).setIds(List.of(dto.getToId()));
-//
-//            publishToBroker(MQ_EXCHANGE_NAME, brokerId, JsonUtil.toJSONString(wrapper), String.valueOf(messageId));
-//
-//            log.info("单聊消息发送成功 from:{} to:{}", dto.getFromId(), dto.getToId());
-//
-//            return Result.success(ResultCode.SUCCESS.getMessage(), dto);
-//
-//        } catch (Exception e) {
-//            log.error("单聊消息发送异常: {}", e.getMessage(), e);
-//            return Result.failed("发送消息失败");
-//        } finally {
-//            if (lock.isHeldByCurrentThread()) {
-//                lock.unlock();
-//            }
-//            log.info("单聊消息总耗时: {}ms", System.currentTimeMillis() - startTime);
-//        }
-//    }
 
     /**
      * 发送群聊消息
      */
     @Override
     public Result<?> sendGroupMessage(IMGroupMessage dto) {
+        StopWatch stopWatch = new StopWatch("sendGroupMessage");
+        stopWatch.start("overall");
+
         long startTime = System.currentTimeMillis();
         String lockKey = LOCK_KEY_SEND_GROUP + dto.getGroupId() + ":" + dto.getFromId() + ":" + dto.getMessageTempId();
         RLock lock = redissonClient.getLock(lockKey);
         try {
+            stopWatch.stop();
+            stopWatch.start("lockAcquire");
             if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
                 log.warn("无法获取发送群聊锁，groupId={} from={} tempId={}", dto.getGroupId(), dto.getFromId(), dto.getMessageTempId());
+                stopWatch.stop();
+                log.info("sendGroupMessage timing summary: {}", stopWatch.prettyPrint());
                 return Result.failed("消息发送中，请稍后重试");
             }
+            stopWatch.stop();
 
+            stopWatch.start("idGeneration");
             Long messageId = imIdGeneratorGrpcClient.getId(IdGeneratorConstant.snowflake, IdGeneratorConstant.group_message_id).getLongId();
             Long messageTime = DateTimeUtil.getCurrentUTCTimestamp();
+            stopWatch.stop();
 
+            stopWatch.start("dtoSetup");
             dto.setMessageId(String.valueOf(messageId))
                     .setMessageTime(messageTime)
                     .setSequence(messageTime);
+            stopWatch.stop();
 
+            stopWatch.start("getGroupMembers");
             List<ImGroupMemberPo> members = imGroupFeign.getGroupMemberList(dto.getGroupId());
+            stopWatch.stop();
+            
             if (CollectionUtil.isEmpty(members)) {
                 log.warn("群:{} 没有成员，无法发送消息", dto.getGroupId());
+                stopWatch.start("logTiming");
+                stopWatch.stop();
+                log.info("sendGroupMessage timing summary: {}", stopWatch.prettyPrint());
                 return Result.failed("群聊成员为空，无法发送消息");
             }
 
             // 过滤发送者，获取接收者
+            stopWatch.start("filterRecipients");
             List<String> toList = members.stream()
                     .filter(m -> !m.getMemberId().equals(dto.getFromId()))
                     .map(m -> USER_CACHE_PREFIX + m.getMemberId())
                     .collect(Collectors.toList());
+            stopWatch.stop();
 
             // 异步插入群消息 异步设置读状态和更新会话
+            stopWatch.start("asyncSchedule");
             CompletableFuture.runAsync(() -> {
                 insertImGroupMessage(dto);
                 setGroupReadStatus(String.valueOf(messageId), dto.getGroupId(), members);
                 updateGroupChats(dto.getGroupId(), messageTime, members);
                 createOutbox(String.valueOf(messageId), JsonUtil.toJSONString(dto), MQ_EXCHANGE_NAME, "group.message." + dto.getGroupId(), messageTime);
             }, asyncTaskExecutor);
+            stopWatch.stop();
 
             // 批量获取在线用户并按broker分组
+            stopWatch.start("batchGetUsers");
             List<Object> userObjs = redisUtil.batchGet(toList);
             Map<String, List<String>> brokerMap = new HashMap<>();
             for (Object obj : userObjs) {
@@ -345,15 +300,21 @@ public class MessageServiceImpl implements MessageService {
                     brokerMap.computeIfAbsent(user.getBrokerId(), k -> new ArrayList<>()).add(user.getUserId());
                 }
             }
+            stopWatch.stop();
 
             // 分发到各broker
+            stopWatch.start("publishToBrokers");
             for (Map.Entry<String, List<String>> entry : brokerMap.entrySet()) {
                 String brokerId = entry.getKey();
                 dto.setToList(entry.getValue());
                 IMessageWrap<Object> wrapper = new IMessageWrap<>().setCode(IMessageType.GROUP_MESSAGE.getCode()).setData(dto).setIds(entry.getValue());
                 publishToBroker(MQ_EXCHANGE_NAME, brokerId, JsonUtil.toJSONString(wrapper), String.valueOf(messageId));
             }
+            stopWatch.stop();
 
+            stopWatch.start("logTiming");
+            stopWatch.stop();
+            log.info("sendGroupMessage timing summary: {}", stopWatch.prettyPrint());
             return Result.success(ResultCode.SUCCESS.getMessage(), dto);
 
         } catch (Exception e) {
@@ -364,6 +325,7 @@ public class MessageServiceImpl implements MessageService {
                 lock.unlock();
             }
             log.info("群聊消息总耗时: {}ms", System.currentTimeMillis() - startTime);
+            log.info("sendGroupMessage timing summary: {}", stopWatch.prettyPrint());
         }
     }
 
@@ -372,34 +334,59 @@ public class MessageServiceImpl implements MessageService {
      */
     @Override
     public Result<?> sendVideoMessage(IMVideoMessage videoMessage) {
+        StopWatch stopWatch = new StopWatch("sendVideoMessage");
+        stopWatch.start("overall");
+
         long startTime = System.currentTimeMillis();
         String lockKey = LOCK_KEY_SEND_VIDEO + videoMessage.getFromId() + ":" + videoMessage.getToId();
         RLock lock = redissonClient.getLock(lockKey);
         try {
+            stopWatch.stop();
+            stopWatch.start("lockAcquire");
             if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
                 log.warn("无法获取发送视频锁，from={} to={}", videoMessage.getFromId(), videoMessage.getToId());
+                stopWatch.stop();
+                log.info("sendVideoMessage timing summary: {}", stopWatch.prettyPrint());
                 return Result.failed("视频发送中，请稍后重试");
             }
+            stopWatch.stop();
 
+            stopWatch.start("validateParams");
             if (Objects.isNull(videoMessage.getFromId()) || Objects.isNull(videoMessage.getToId())) {
+                stopWatch.stop();
+                log.info("sendVideoMessage timing summary: {}", stopWatch.prettyPrint());
                 return Result.failed("参数无效，消息发送方或接收方为空");
             }
+            stopWatch.stop();
 
             // 检查接收者在线状态
+            stopWatch.start("checkOnlineStatus");
             Object redisObj = redisUtil.get(USER_CACHE_PREFIX + videoMessage.getToId());
+            stopWatch.stop();
+            
             if (ObjectUtil.isEmpty(redisObj)) {
                 log.info("用户 [{}] 未登录，消息发送失败", videoMessage.getToId());
+                stopWatch.start("logTiming");
+                stopWatch.stop();
+                log.info("sendVideoMessage timing summary: {}", stopWatch.prettyPrint());
                 return Result.failed("用户未登录");
             }
 
+            stopWatch.start("parseTargetUser");
             IMRegisterUser targetUser = JsonUtil.parseObject(redisObj, IMRegisterUser.class);
             String brokerId = targetUser.getBrokerId();
+            stopWatch.stop();
 
+            stopWatch.start("getWebRTCType");
             int typeCode = videoMessage.getType(); // 假设IMVideoMessage有getType()返回code
             IMWebRTCType webRTCType = IMWebRTCType.getByCode(typeCode); // 假设枚举有fromCode静态方法
+            stopWatch.stop();
 
             if (webRTCType == null) {
                 log.warn("未知WebRTC类型 code={}", typeCode);
+                stopWatch.start("logTiming");
+                stopWatch.stop();
+                log.info("sendVideoMessage timing summary: {}", stopWatch.prettyPrint());
                 return Result.failed("无效消息类型");
             }
 
@@ -422,6 +409,7 @@ public class MessageServiceImpl implements MessageService {
 //            }
 
             // 其他类型发送视频消息
+            stopWatch.start("wrapAndSend");
             IMessageWrap<Object> wrapMsg = new IMessageWrap<>().setCode(IMessageType.VIDEO_MESSAGE.getCode()).setData(videoMessage).setIds(List.of(videoMessage.getToId()));
 
             MessagePostProcessor mpp = msg -> {
@@ -430,8 +418,14 @@ public class MessageServiceImpl implements MessageService {
             };
 
             rabbitTemplate.convertAndSend(MQ_EXCHANGE_NAME, brokerId, JsonUtil.toJSONString(wrapMsg), mpp);
+            stopWatch.stop();
 
+            stopWatch.start("logSuccess");
             log.info("视频消息发送成功，from={} → to={} via broker={}", videoMessage.getFromId(), videoMessage.getToId(), brokerId);
+            stopWatch.stop();
+            stopWatch.start("logTiming");
+            stopWatch.stop();
+            log.info("sendVideoMessage timing summary: {}", stopWatch.prettyPrint());
             return Result.success("消息发送成功");
         } catch (Exception e) {
             log.error("发送视频消息异常，toId={}", videoMessage.getToId(), e);
@@ -441,6 +435,7 @@ public class MessageServiceImpl implements MessageService {
                 lock.unlock();
             }
             log.debug("视频消息总耗时: {}ms", System.currentTimeMillis() - startTime);
+            log.info("sendVideoMessage timing summary: {}", stopWatch.prettyPrint());
         }
     }
 
@@ -449,12 +444,21 @@ public class MessageServiceImpl implements MessageService {
      */
     @Override
     public Result<?> recallMessage(IMessageAction dto) {
+        StopWatch stopWatch = new StopWatch("recallMessage");
+        stopWatch.start("overall");
+
         long startTime = System.currentTimeMillis();
         try {
+            stopWatch.stop();
+            stopWatch.start("validateParams");
             if (dto == null || dto.getMessageId() == null || dto.getOperatorId() == null) {
+                stopWatch.stop();
+                log.info("recallMessage timing summary: {}", stopWatch.prettyPrint());
                 return Result.failed("参数无效");
             }
+            stopWatch.stop();
 
+            stopWatch.start("extractParams");
             String messageId = dto.getMessageId();
             String operatorId = dto.getOperatorId();
             Long recallTime = dto.getRecallTime() != null ? dto.getRecallTime() : DateTimeUtil.getCurrentUTCTimestamp();
@@ -462,28 +466,39 @@ public class MessageServiceImpl implements MessageService {
 
             Integer messageType = dto.getMessageType();
             if (messageType == null) {
+                stopWatch.stop();
+                log.info("recallMessage timing summary: {}", stopWatch.prettyPrint());
                 return Result.failed("无法确定消息类型");
             }
+            stopWatch.stop();
 
             // 使用分布式锁确保撤回操作的原子性
+            stopWatch.start("acquireLock");
             String lockKey = LOCK_KEY_RECALL_MESSAGE + messageId;
             RLock lock = redissonClient.getLock(lockKey);
 
             try {
                 // 尝试获取锁，等待3秒，持有锁10秒
                 boolean acquired = lock.tryLock(3, 10, TimeUnit.SECONDS);
+                stopWatch.stop();
                 if (!acquired) {
                     log.warn("无法获取撤回消息的分布式锁，messageId={}", messageId);
+                    stopWatch.start("logTiming");
+                    stopWatch.stop();
+                    log.info("recallMessage timing summary: {}", stopWatch.prettyPrint());
                     return Result.failed("消息正在处理中，请稍后再试");
                 }
 
+                stopWatch.start("prepareRecallPayload");
                 Map<String, Object> recallPayload = new HashMap<>();
                 recallPayload.put("_recalled", true);
                 recallPayload.put("operatorId", operatorId);
                 recallPayload.put("recallTime", recallTime);
                 recallPayload.put("reason", reason);
+                stopWatch.stop();
 
                 if (messageType.equals(IMessageType.SINGLE_MESSAGE.getCode())) {
+                    stopWatch.start("processSingleMessage");
                     ImSingleMessagePo msg = imMessageFeign.getSingleMessageById(messageId);
                     if (Objects.isNull(msg)) return Result.failed("消息不存在");
                     if (!operatorId.equals(msg.getFromId())) return Result.failed("无权撤回");
@@ -498,8 +513,10 @@ public class MessageServiceImpl implements MessageService {
 
                     // 广播给双方
                     broadcastRecall(dto, messageId, recallTime, List.of(msg.getFromId(), msg.getToId()), IMessageType.SINGLE_MESSAGE.getCode());
+                    stopWatch.stop();
                 }
                 if (messageType.equals(IMessageType.GROUP_MESSAGE.getCode())) {
+                    stopWatch.start("processGroupMessage");
                     ImGroupMessagePo msg = imMessageFeign.getGroupMessageById(messageId);
                     if (Objects.isNull(msg)) return Result.failed("消息不存在");
                     if (!operatorId.equals(msg.getFromId())) return Result.failed("无权撤回");
@@ -523,20 +540,27 @@ public class MessageServiceImpl implements MessageService {
                         List<String> memberIds = members.stream().map(ImGroupMemberPo::getMemberId).collect(Collectors.toList());
                         broadcastRecall(dto, messageId, recallTime, memberIds, IMessageType.GROUP_MESSAGE.getCode());
                     }
+                    stopWatch.stop();
                 }
             } finally {
                 // 释放锁
+                stopWatch.start("releaseLock");
                 if (lock.isHeldByCurrentThread()) {
                     lock.unlock();
                 }
+                stopWatch.stop();
             }
 
+            stopWatch.start("logTiming");
+            stopWatch.stop();
+            log.info("recallMessage timing summary: {}", stopWatch.prettyPrint());
             return Result.success("消息撤回成功");
         } catch (Exception e) {
             log.error("撤回消息异常: {}", e.getMessage(), e);
             return Result.failed("撤回失败");
         } finally {
             log.info("撤回消息总耗时: {}ms", System.currentTimeMillis() - startTime);
+            log.info("recallMessage timing summary: {}", stopWatch.prettyPrint());
         }
     }
 
@@ -544,11 +568,18 @@ public class MessageServiceImpl implements MessageService {
      * 广播撤回通知
      */
     private void broadcastRecall(IMessageAction dto, String messageId, Long recallTime, List<String> recipientIds, Integer messageType) {
+        StopWatch stopWatch = new StopWatch("broadcastRecall");
+        stopWatch.start("overall");
+        
         dto.setMessageTime(recallTime).setMessageId(messageId);
 
+        stopWatch.stop();
+        stopWatch.start("batchGetUsers");
         List<String> redisKeys = recipientIds.stream().map(id -> USER_CACHE_PREFIX + id).collect(Collectors.toList());
         List<Object> redisObjs = redisUtil.batchGet(redisKeys);
+        stopWatch.stop();
 
+        stopWatch.start("groupUsersByBroker");
         Map<String, List<String>> brokerMap = new HashMap<>();
         for (Object obj : redisObjs) {
             if (ObjectUtil.isNotEmpty(obj)) {
@@ -556,12 +587,18 @@ public class MessageServiceImpl implements MessageService {
                 brokerMap.computeIfAbsent(user.getBrokerId(), k -> new ArrayList<>()).add(user.getUserId());
             }
         }
+        stopWatch.stop();
 
+        stopWatch.start("publishToBrokers");
         for (Map.Entry<String, List<String>> entry : brokerMap.entrySet()) {
             IMessageWrap<Object> wrap = new IMessageWrap<>().setCode(messageType).setData(dto).setIds(entry.getValue());
             publishToBroker(MQ_EXCHANGE_NAME, entry.getKey(), JsonUtil.toJSONString(wrap), messageId);
         }
+        stopWatch.stop();
 
+        stopWatch.start("logTiming");
+        stopWatch.stop();
+        log.info("broadcastRecall timing summary: {}", stopWatch.prettyPrint());
         log.info("撤回完成 messageId={} type={}", messageId, messageType);
     }
 
@@ -570,21 +607,32 @@ public class MessageServiceImpl implements MessageService {
      */
     @Override
     public Map<Integer, Object> list(ChatDto chatDto) {
+        StopWatch stopWatch = new StopWatch("listMessages");
+        stopWatch.start("overall");
+
         String userId = chatDto.getFromId();
         Long sequence = chatDto.getSequence();
 
         Map<Integer, Object> map = new HashMap<>();
 
+        stopWatch.stop();
+        stopWatch.start("getSingleMessages");
         List<ImSingleMessagePo> singleMessages = imMessageFeign.getSingleMessageList(userId, sequence);
         if (!CollectionUtil.isEmpty(singleMessages)) {
             map.put(IMessageType.SINGLE_MESSAGE.getCode(), singleMessages);
         }
+        stopWatch.stop();
 
+        stopWatch.start("getGroupMessages");
         List<ImGroupMessagePo> groupMessages = imMessageFeign.getGroupMessageList(userId, sequence);
         if (!CollectionUtil.isEmpty(groupMessages)) {
             map.put(IMessageType.GROUP_MESSAGE.getCode(), groupMessages);
         }
+        stopWatch.stop();
 
+        stopWatch.start("logTiming");
+        stopWatch.stop();
+        log.info("listMessages timing summary: {}", stopWatch.prettyPrint());
         return map;
     }
 
@@ -687,11 +735,9 @@ public class MessageServiceImpl implements MessageService {
                 .setCreatedAt(messageTime)
                 .setUpdatedAt(messageTime);
 
-        // CompletableFuture.runAsync(() -> {
         if (!imOutboxGrpcClient.saveOrUpdate(po)) {
             log.warn("Outbox保存失败 messageId={}", messageId);
         }
-        // }, asyncTaskExecutor);
 
         messageToOutboxIdMap.put(messageId, outboxId);
     }
@@ -733,11 +779,9 @@ public class MessageServiceImpl implements MessageService {
             if (ack) {
                 imOutboxGrpcClient.updateStatus(outboxId, "SENT", 1);
                 messageToOutboxIdMap.remove(messageId);
-                ackedOutboxMessageMap.remove(messageId);
+            } else {
+                imOutboxGrpcClient.updateStatus(outboxId, "PENDING", 0);
             }
-//            else {
-//                imOutboxGrpcClient.updateStatus(outboxId, "PENDING", 0);
-//            }
         } catch (Exception e) {
             log.error("更新Outbox失败 outboxId={} messageId={}", outboxId, messageId, e);
         }
@@ -747,17 +791,34 @@ public class MessageServiceImpl implements MessageService {
      * 重试Pending消息（加Redisson锁防并发重试）
      */
     public void retryPendingMessages() {
+        StopWatch stopWatch = new StopWatch("retryPendingMessages");
+        stopWatch.start("overall");
+
         long startTime = System.currentTimeMillis();
         RLock lock = redissonClient.getLock(LOCK_KEY_RETRY_PENDING);
         try {
+            stopWatch.stop();
+            stopWatch.start("acquireLock");
             if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
                 log.warn("无法获取重试Pending锁");
+                stopWatch.stop();
+                log.info("retryPendingMessages timing summary: {}", stopWatch.prettyPrint());
+                return;
+            }
+            stopWatch.stop();
+
+            stopWatch.start("getPendingMessages");
+            List<IMOutboxPo> pending = imOutboxGrpcClient.listByStatus("PENDING", 100);
+            stopWatch.stop();
+            
+            if (CollectionUtil.isEmpty(pending)) {
+                stopWatch.start("logTiming");
+                stopWatch.stop();
+                log.info("retryPendingMessages timing summary: {}", stopWatch.prettyPrint());
                 return;
             }
 
-            List<IMOutboxPo> pending = imOutboxGrpcClient.listByStatus("PENDING", 100);
-            if (CollectionUtil.isEmpty(pending)) return;
-
+            stopWatch.start("retryMessages");
             for (IMOutboxPo o : pending) {
                 int attempts = o.getAttempts() + 1;
                 try {
@@ -774,6 +835,7 @@ public class MessageServiceImpl implements MessageService {
                     imOutboxGrpcClient.markAsFailed(o.getId(), e.getMessage(), attempts);
                 }
             }
+            stopWatch.stop();
         } catch (Exception e) {
             log.error("重试任务失败", e);
         } finally {
@@ -781,6 +843,9 @@ public class MessageServiceImpl implements MessageService {
                 lock.unlock();
             }
             log.info("重试任务总耗时: {}ms", System.currentTimeMillis() - startTime);
+            stopWatch.start("logTiming");
+            stopWatch.stop();
+            log.info("retryPendingMessages timing summary: {}", stopWatch.prettyPrint());
         }
     }
 
@@ -807,4 +872,3 @@ public class MessageServiceImpl implements MessageService {
         }
     }
 }
-

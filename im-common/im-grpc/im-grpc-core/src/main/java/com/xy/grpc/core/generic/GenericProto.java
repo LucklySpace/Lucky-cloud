@@ -72,6 +72,7 @@ public final class GenericProto {
                 internal_static_generic_GenericResponse_MetadataEntry_descriptor,
                 new java.lang.String[]{"Key", "Value",});
     }
+
     private GenericProto() {
     }
 

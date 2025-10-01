@@ -1,7 +1,7 @@
 package com.xy.grpc.client.annotation;
 
 
-import com.xy.grpc.client.client.GrpcClientRegistrar;
+import com.xy.grpc.client.GrpcClientRegistrar;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
 

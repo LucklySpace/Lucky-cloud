@@ -38,6 +38,7 @@ public final class GenericResponse extends
     private com.google.protobuf.MapField<
             java.lang.String, java.lang.String> metadata_;
     private byte memoizedIsInitialized = -1;
+
     // Use GenericResponse.newBuilder() to construct.
     private GenericResponse(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
         super(builder);

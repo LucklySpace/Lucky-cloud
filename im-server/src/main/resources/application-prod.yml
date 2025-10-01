@@ -30,7 +30,7 @@ spring:
   data:
     redis:
       redisson:
-        address: redisson-single.yml
+        address: redisson-cluster.yml
       host: localhost
       port: 6379
       password:

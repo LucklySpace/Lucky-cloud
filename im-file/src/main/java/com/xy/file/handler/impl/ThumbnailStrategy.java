@@ -1,9 +1,10 @@
 package com.xy.file.handler.impl;
 
-import com.xy.file.entity.OssFileMediaInfo;
+import com.xy.file.domain.OssFileMediaInfo;
 import com.xy.file.handler.ImageProcessingStrategy;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
+import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -11,7 +12,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 
+/**
+ * 缩略图处理策略
+ */
 @Slf4j
+@Component("thumbnail")
 public class ThumbnailStrategy implements ImageProcessingStrategy {
 
     @Override

@@ -34,6 +34,13 @@
 
     <dependencies>
 
+        <dependency>
+            <groupId>com.xy</groupId>
+            <artifactId>im-general</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+
         <!--thumbnailator 缩略图-->
         <dependency>
             <groupId>net.coobird</groupId>
@@ -114,6 +121,12 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
+        <!--引入Knife4j的官方start包,Spring Boot版本 > 3.0,开发者需要注意-->
+        <dependency>
+            <groupId>com.github.xiaoymin</groupId>
+            <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+            <version>${openapi3.version}</version>
+        </dependency>
 
     </dependencies>
 

@@ -1,7 +1,7 @@
 package com.xy.file.handler;
 
 
-import com.xy.file.entity.OssFileMediaInfo;
+import com.xy.file.domain.OssFileMediaInfo;
 
 import java.io.InputStream;
 

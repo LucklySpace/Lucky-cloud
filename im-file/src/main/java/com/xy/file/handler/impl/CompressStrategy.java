@@ -1,9 +1,10 @@
 package com.xy.file.handler.impl;
 
 
-import com.xy.file.entity.OssFileMediaInfo;
+import com.xy.file.domain.OssFileMediaInfo;
 import com.xy.file.handler.ImageProcessingStrategy;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -13,7 +14,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+/**
+ * 图片压缩策略
+ *
+ */
 @Slf4j
+@Component("compress")
 public class CompressStrategy implements ImageProcessingStrategy {
 
     /**

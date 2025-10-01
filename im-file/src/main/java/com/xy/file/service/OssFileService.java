@@ -1,7 +1,7 @@
 package com.xy.file.service;
 
 
-import com.xy.file.entity.OssFile;
+import com.xy.file.domain.OssFile;
 import com.xy.file.util.ResponseResult;
 import org.springframework.http.ResponseEntity;
 

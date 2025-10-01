@@ -1,14 +1,19 @@
-package com.xy.file.entity;
+package com.xy.file.domain;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 
+/**
+ * 上传文件
+ */
 @Data
 @Builder
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class OssFileImage {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class OssFile {
 
     /**
      * 主键
@@ -39,19 +44,29 @@ public class OssFileImage {
      */
     private String objectKey;
 
+
     private String contentType;
+
     /**
      * 文件大小（byte）
      */
     private Long fileSize;
     /**
+     * 每个分片大小（byte）
+     */
+    private Long partSize;
+    /**
+     * 分片数量
+     */
+    private Integer partNum;
+    /**
+     * 是否已完成上传(完成合并),1是0否
+     */
+    private Integer isFinish;
+
+    /**
      * 文件地址
      */
     private String path;
-    /**
-     * 缩略图文件地址
-     */
-    private String thumbnailPath;
-
 
 }

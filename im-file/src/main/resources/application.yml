@@ -15,7 +15,9 @@ spring: #springboot的配置
   threads:
     virtual:
       enabled: true  # 开启虚拟线程
-
+  servlet:
+    multipart:
+      max-file-size: 100MB
   data:
     redis:
       host: localhost
@@ -24,9 +26,12 @@ spring: #springboot的配置
       username:
 
 minio:
-  endpoint: http://localhost:9000
-  accessKey: minioadmin
-  secretKey: minioadmin
+  endpoint: http://127.0.0.1:9000 #内网地址
+  public: http://192.168.31.166:9000  #外网访问地址
+  #public: http://dns.kizhou.cn:11144  #外网访问地址
+  accesskey: admin
+  secretkey: admin123
+  bucketName: box-im
 
 
 # TODO: log settings
@@ -36,3 +41,8 @@ logging:
     com.xy.*.mapper: debug
     com.xy.*: debug
     org.springframework: warn
+
+
+watermark:
+    word: Lucky
+    font: Arial

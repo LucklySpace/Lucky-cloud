@@ -1,6 +1,7 @@
-package com.xy.file.entity;
+package com.xy.file.domain;
 
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -9,6 +10,7 @@ import java.io.RandomAccessFile;
 import java.util.Objects;
 
 @Slf4j
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class OssFileDownloadRange {
 
     /**

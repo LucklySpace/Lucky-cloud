@@ -53,7 +53,6 @@ public class HanLPController {
     })
     @PostMapping("/extractKeyword")
     public List<String> extractKeyword(@RequestParam String content, @RequestParam int size) {
-        // 调用服务层的方法提取关键词
         return hanLPService.extractKeyword(content, size);
     }
 
@@ -64,7 +63,6 @@ public class HanLPController {
     })
     @PostMapping("/extractSummary")
     public List<String> extractSummary(@RequestParam String document, @RequestParam int size) {
-        // 调用服务层的方法提取摘要
         return hanLPService.extractSummary(document, size);
     }
 
@@ -75,7 +73,6 @@ public class HanLPController {
     })
     @PostMapping("/extractPhrase")
     public List<String> extractPhrase(@RequestParam String text, @RequestParam int size) {
-        // 调用服务层的方法提取短语
         return hanLPService.extractPhrase(text, size);
     }
 
@@ -85,7 +82,6 @@ public class HanLPController {
     })
     @PostMapping("/standardSegment")
     public List<Term> standardSegment(@RequestParam String text) {
-        // 调用服务层的方法进行标准分词
         return hanLPService.standardSegment(text);
     }
 
@@ -95,7 +91,6 @@ public class HanLPController {
     })
     @PostMapping("/nlpSegment")
     public List<Term> nlpSegment(@RequestParam String text) {
-        // 调用服务层的方法进行 NLP 分词
         return hanLPService.nlpSegment(text);
     }
 
@@ -105,7 +100,6 @@ public class HanLPController {
     })
     @PostMapping("/indexSegment")
     public List<Term> indexSegment(@RequestParam String text) {
-        // 调用服务层的方法进行索引分词
         return hanLPService.indexSegment(text);
     }
 
@@ -115,7 +109,6 @@ public class HanLPController {
     })
     @PostMapping("/nShortSegment")
     public List<Term> nShortSegment(@RequestParam String text) {
-        // 调用服务层的方法进行 N 短分词
         return hanLPService.nShortSegment(text);
     }
 
@@ -125,7 +118,6 @@ public class HanLPController {
     })
     @PostMapping("/shortestSegment")
     public List<Term> shortestSegment(@RequestParam String text) {
-        // 调用服务层的方法进行最短分词
         return hanLPService.shortestSegment(text);
     }
 
@@ -135,7 +127,6 @@ public class HanLPController {
     })
     @PostMapping("/crfSegment")
     public String crfSegment(@RequestParam String text) {
-        // 调用服务层的方法进行 CRF 分词
         return hanLPService.crfSegment(text);
     }
 
@@ -145,7 +136,6 @@ public class HanLPController {
     })
     @PostMapping("/speedSegment")
     public List<Term> speedSegment(@RequestParam String text) {
-        // 调用服务层的方法进行快速分词
         return hanLPService.speedSegment(text);
     }
 
@@ -155,7 +145,6 @@ public class HanLPController {
     })
     @PostMapping("/nlpAnalyze")
     public String nlpAnalyze(@RequestParam String text) {
-        // 调用服务层的方法进行 NLP 分析
         return hanLPService.nlpAnalyze(text);
     }
 
@@ -165,7 +154,6 @@ public class HanLPController {
     })
     @PostMapping("/convertAndPrintPinyin")
     public void convertAndPrintPinyin(@RequestParam String text) {
-        // 调用服务层的方法转换文本为拼音并打印
         hanLPService.convertAndPrintPinyin(text);
     }
 
@@ -175,7 +163,6 @@ public class HanLPController {
     })
     @PostMapping("/convertToTraditional")
     public String convertToTraditional(@RequestParam String text) {
-        // 调用服务层的方法将文本转换为繁体字
         return hanLPService.convertToTraditional(text);
     }
 
@@ -185,7 +172,6 @@ public class HanLPController {
     })
     @PostMapping("/convertToSimplified")
     public String convertToSimplified(@RequestParam String text) {
-        // 调用服务层的方法将文本转换为简体字
         return hanLPService.convertToSimplified(text);
     }
 
@@ -195,7 +181,6 @@ public class HanLPController {
     })
     @PostMapping("/parseDependency")
     public CoNLLSentence parseDependency(@RequestParam String sentence) {
-        // 调用服务层的方法解析句子的依存关系
         return hanLPService.parseDependency(sentence);
     }
 
@@ -205,7 +190,6 @@ public class HanLPController {
     })
     @PostMapping("/formatDependency")
     public String formatDependency(@RequestBody CoNLLSentence sentence) {
-        // 调用服务层的方法格式化依存关系
         return hanLPService.formatDependency(sentence);
     }
 
@@ -215,7 +199,6 @@ public class HanLPController {
     })
     @PostMapping("/formatDependencyReverse")
     public String formatDependencyReverse(@RequestBody CoNLLSentence sentence) {
-        // 调用服务层的方法反向格式化依存关系
         return hanLPService.formatDependencyReverse(sentence);
     }
 
@@ -226,7 +209,6 @@ public class HanLPController {
     })
     @PostMapping("/traverseUp")
     public String traverseUp(@RequestBody CoNLLSentence sentence, @RequestParam int index) {
-        // 调用服务层的方法向上遍历依存关系
         return hanLPService.traverseUp(sentence, index);
     }
 }

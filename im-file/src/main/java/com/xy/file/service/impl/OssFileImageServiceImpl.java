@@ -161,7 +161,7 @@ public class OssFileImageServiceImpl implements OssFileImageService {
                 if (body instanceof Map) {
                     Object valid = ((Map<?, ?>) body).get("valid");
                     if (Boolean.TRUE.equals(valid)) {
-                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("图片包含违规内容");
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("图片包含违规内容 :"+ body);
                     }
                 }
             }
@@ -373,3 +373,5 @@ public class OssFileImageServiceImpl implements OssFileImageService {
         }
     }
 }
+
+

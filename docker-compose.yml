@@ -31,8 +31,8 @@ services:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
     volumes:
-      - D:\Docker-vm\folder\minio\data:/data
-      - D:\Docker-vm\folder\minio\config:/root/.minio
+      - /root/minio/data:/data
+      - /root/minio/config:/root/.minio
     command: server /data --console-address ":9090" --address ":9000"
 
   nacos:
@@ -61,6 +61,138 @@ services:
       RABBITMQ_DEFAULT_PASS: guest
     tty: true
     command: rabbitmq-server
+
+  postgres:
+    image: ankane/pgvector
+    ports:
+      - "35432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - /root/postgresql/vectordata:/var/lib/postgresql/data
+
+  # 数据库服务
+  im-database:
+    build: ./im-database
+    ports:
+      - "8086:8086"
+    depends_on:
+      - redis
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  # 认证服务
+  im-auth:
+    build: ./im-auth
+    ports:
+      - "8084:8084"
+    depends_on:
+      - nacos
+      - redis
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  # 网关服务
+  im-gateway:
+    build: ./im-gateway
+    ports:
+      - "9191:9191"
+    depends_on:
+      - nacos
+      - redis
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  # 连接服务
+  im-connect:
+    build: ./im-connect
+    ports:
+      - "19000-19002:19000-19002"
+    depends_on:
+      - nacos
+      - redis
+      - rabbitmq
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  # 业务服务
+  im-server:
+    build: ./im-server
+    ports:
+      - "8085:8085"
+    depends_on:
+      - nacos
+      - redis
+      - rabbitmq
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  # 文件服务
+  im-file:
+    build: ./im-file
+    ports:
+      - "8083:8083"
+    depends_on:
+      - nacos
+      - minio
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  # AI服务
+  im-ai:
+    build: ./im-ai
+    ports:
+      - "3210:3210"
+    depends_on:
+      - nacos
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  # 分析服务
+  im-analysis:
+    build: ./im-analysis
+    ports:
+      - "8082:8082"
+    depends_on:
+      - nacos
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  # 代码生成服务
+  im-generator:
+    build: ./im-generator
+    ports:
+      - "9999:9999"
+    depends_on:
+      - nacos
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  # 视频会议服务
+  im-meet:
+    build: ./im-meet
+    ports:
+      - "19100:19100"
+    depends_on:
+      - nacos
+      - srs
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  # 更新服务
+  im-update:
+    build: ./im-update
+    ports:
+      - "10000:10000"
+    depends_on:
+      - nacos
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
 
 networks:
   default:

@@ -186,6 +186,9 @@ docker run -p 9000:9000 -p 9090:9090 --name minio -d --restart=always -e "MINIO_
 
 # 启动 SRS (注意: CANDIDATE必须设置为物理机IP)
 docker run -it -p 1935:1935 -p 1985:1985 -p 8080:8080 -p 1990:1990 -p 8088:8088 --env CANDIDATE=192.168.1.9 -p 8000:8000/udp registry.cn-hangzhou.aliyuncs.com/ossrs/srs:6.0-d2
+
+# 启动 PostgreSQL
+docker run -d --name postgres -p 35432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres -v D:/Docker-vm/postgresql/vectordata:/var/lib/postgresql/data ankane/pgvector
 ```
 
 ### 2. 配置应用
@@ -238,9 +241,13 @@ srs:
 5. im-gateway (端口: 9191)
 ```
 
-**方式二：使用Docker Compose一键启动**
+**方式二：使用构建脚本一键启动**
 ```bash
-docker-compose up -d
+# Windows 系统
+deploy-all.bat
+
+# Linux/macOS 系统
+./deploy-all.sh
 ```
 
 ### 4. 访问服务
@@ -252,6 +259,7 @@ docker-compose up -d
 - **RabbitMQ管理**: http://localhost:15672 (账号: guest/guest)
 - **MinIO控制台**: http://localhost:9090 (账号: minioadmin/minioadmin)
 - **SRS服务**: http://localhost:8080
+- **PostgreSQL**: localhost:35432
 
 ## 🔧 开发指南
 
@@ -331,23 +339,6 @@ docker-compose up -d
 
 
 
-## 🤝 贡献指南
-
-我们欢迎所有形式的贡献！请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解详情。
-
-### 贡献方式
-
-1. **Fork** 项目
-2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 创建 **Pull Request**
-
-### 开发交流
-
-- 提交 Issue 报告问题或建议新功能
-- 加入技术交流群讨论技术细节
-
 ## 🙏 致谢
 
 - [Spring Boot](https://spring.io/projects/spring-boot) - Java应用框架
@@ -366,13 +357,28 @@ docker-compose up -d
 
   
 
+## 🤝 贡献指南
+
+我们欢迎所有形式的贡献！请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解详情。
+
+### 贡献方式
+
+1. **Fork** 项目
+2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 创建 **Pull Request**
+
+### 开发交流
+
+- 提交 Issue 报告问题或建议新功能
+- 加入技术交流群讨论技术细节
+
 ## 📞 联系我们
 
-- **项目主页**: [https://github.com/dennis9486/Lynk](https://github.com/dennis9486/Lynk)
+- **项目主页**: [https://github.com/Luckly-XYZ](https://github.com/dennis9486/Lynk)
 
-- **问题反馈**: [Issues](https://github.com/dennis9486/Lynk/issues)
-
-- **功能建议**: [Discussions](https://github.com/your-username/im-server/discussions)
+- **问题反馈**: [Issues](https://github.com/Luckly-XYZ/Lucky-cloud/issues)
 
 - **邮箱**: 382192293@qq.com
 

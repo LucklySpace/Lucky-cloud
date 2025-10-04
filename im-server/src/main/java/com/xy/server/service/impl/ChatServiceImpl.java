@@ -151,27 +151,27 @@ public class ChatServiceImpl implements ChatService {
      * 获取单个会话信息（加读锁）
      */
     @Override
-    public ChatVo one(String fromId, String toId) {
+    public ChatVo one(String ownerId, String toId) {
         long start = System.currentTimeMillis();
-        if (fromId == null || toId == null) {
+        if (ownerId == null || toId == null) {
             log.warn("one参数无效");
             throw new GlobalException(ResultCode.FAIL, "参数错误");
         }
 
-        String lockKey = LOCK_READ_CHAT_PREFIX + fromId + ":" + toId;
+        String lockKey = LOCK_READ_CHAT_PREFIX + ownerId + ":" + toId;
         RLock readLock = redissonClient.getLock(lockKey);
         try {
             if (!readLock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
-                log.warn("无法获取one会话读锁 from={} to={}", fromId, toId);
+                log.warn("无法获取one会话读锁 from={} to={}", ownerId, toId);
                 throw new GlobalException(ResultCode.FAIL, "会话读取中，请稍后重试");
             }
 
-            ImChatPo imChatPO = imChatFeign.getOne(fromId, toId, null);
+            ImChatPo imChatPO = imChatFeign.getOne(ownerId, toId, null);
             ChatVo chatVo = getChat(imChatPO);
-            log.debug("one会话完成 from={} to={} 耗时:{}ms", fromId, toId, System.currentTimeMillis() - start);
+            log.debug("one会话完成 from={} to={} 耗时:{}ms", ownerId, toId, System.currentTimeMillis() - start);
             return chatVo;
         } catch (Exception e) {
-            log.error("one会话异常 from={} to={}", fromId, toId, e);
+            log.error("one会话异常 from={} to={}", ownerId, toId, e);
             throw new GlobalException(ResultCode.FAIL, "获取会话失败");
         } finally {
             if (readLock.isHeldByCurrentThread()) {

@@ -2,6 +2,7 @@ package com.xy.auth.security.provider;
 
 
 import com.xy.auth.api.database.user.ImUserFeign;
+import com.xy.auth.domain.IMQRCode;
 import com.xy.auth.security.exception.AuthenticationFailException;
 import com.xy.auth.security.token.QrScanAuthenticationToken;
 import com.xy.auth.utils.RedisCache;
@@ -16,7 +17,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -47,7 +47,7 @@ public class QrScanAuthenticationProvider implements AuthenticationProvider {
         validateQrCodeAndPassword(qrcode, password);
 
         // 根据二维码信息从 Redis 获取用户信息
-        Map<String, Object> qrCodeInfo = getQrCodeInfoFromRedis(qrcode);
+        IMQRCode qrCodeInfo = getQrCodeInfoFromRedis(qrcode);
 
         // 获取用户信息
         ImUserPo user = getUserFromQrCodeInfo(qrCodeInfo);
@@ -84,7 +84,7 @@ public class QrScanAuthenticationProvider implements AuthenticationProvider {
      * @return 返回二维码信息
      * @throws AuthenticationFailException 如果二维码信息不存在或已过期
      */
-    private Map<String, Object> getQrCodeInfoFromRedis(String qrcode) {
+    private IMQRCode getQrCodeInfoFromRedis(String qrcode) {
 
         String redisKey = IMConstant.QRCODE_KEY_PREFIX + qrcode;
 
@@ -105,9 +105,9 @@ public class QrScanAuthenticationProvider implements AuthenticationProvider {
      * @return 用户信息
      * @throws AuthenticationFailException 如果用户未找到
      */
-    private ImUserPo getUserFromQrCodeInfo(Map<String, Object> qrCodeInfo) {
+    private ImUserPo getUserFromQrCodeInfo(IMQRCode qrCodeInfo) {
         // 校验二维码信息中的用户 ID
-        String userId = (String) qrCodeInfo.get("userId");
+        String userId = qrCodeInfo.getUserId();
 
         if (StringUtils.isEmpty(userId)) {
             log.error("User ID is missing in QR code information");

@@ -258,7 +258,7 @@ public class AuthServiceImpl implements AuthService {
 
         // 2. 获取并更新二维码状态
         IMQRCode qr = redisCache.get(redisKey);
-        qr.setStatus(IMConstant.QRCODE_SCANNED)
+        qr.setStatus(IMConstant.QRCODE_AUTHORIZED)
                 .setUserId(userId)
                 .setScannedAt(System.currentTimeMillis());
 
@@ -268,7 +268,7 @@ public class AuthServiceImpl implements AuthService {
         // 4. 返回统一响应
         return Result.success(new IMQRCodeResult()
                 .setCode(qrCodeId)
-                .setStatus(IMConstant.QRCODE_SCANNED)
+                .setStatus(IMConstant.QRCODE_AUTHORIZED)
                 .setExpireAt(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(30)));
     }
 
@@ -293,8 +293,8 @@ public class AuthServiceImpl implements AuthService {
                     .setStatus(IMConstant.QRCODE_EXPIRED));
         }
 
-        // 如果已扫描且未确认登录，生成临时密码并标记为已授权
-        if (IMConstant.QRCODE_SCANNED.equals(qr.getStatus())) {
+        // 如果已扫描且确认登录，生成临时密码并标记为已授权
+        if (IMConstant.QRCODE_AUTHORIZED.equals(qr.getStatus())) {
 
             // 生成临时密码
             String tempPwd = String.valueOf((int) ((Math.random() * 9 + 1) * 100000));

@@ -121,7 +121,7 @@ public final class IMConstant {
 
 
     private IMConstant() {
-        // 私有构造，防止实例化
+        // 私有构造，防止实例化 
     }
 
 }

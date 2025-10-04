@@ -47,11 +47,11 @@ public class ChatController {
     @GetMapping("/one")
     @Operation(summary = "查询用户会话", tags = {"chat"}, description = "请使用此接口获取用户会话")
     @Parameters({
-            @Parameter(name = "fromId", description = "对象", required = true, in = ParameterIn.DEFAULT),
+            @Parameter(name = "ownerId", description = "对象", required = true, in = ParameterIn.DEFAULT),
             @Parameter(name = "toId", description = "对象", required = true, in = ParameterIn.DEFAULT)
     })
-    public ChatVo one(@RequestParam("fromId") String fromId, @RequestParam("toId") String toId) {
-        return chatService.one(fromId, toId);
+    public ChatVo one(@RequestParam("ownerId") String ownerId, @RequestParam("toId") String toId) {
+        return chatService.one(ownerId, toId);
     }
 
     @PostMapping("/create")

@@ -14,6 +14,6 @@ public interface ChatService {
 
     ChatVo create(ChatDto ChatDto);
 
-    ChatVo one(String fromId, String toId);
+    ChatVo one(String ownerId, String toId);
 
 }

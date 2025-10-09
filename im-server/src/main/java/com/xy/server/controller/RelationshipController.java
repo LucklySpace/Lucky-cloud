@@ -33,8 +33,8 @@ public class RelationshipController {
             @Parameter(name = "userId", description = "请求对象", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "sequence", description = "时序", required = true, in = ParameterIn.QUERY)
     })
-    public Result contacts(@RequestParam("userId") String userId) {
-        return relationshipService.contacts(userId);
+    public Result contacts(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
+        return relationshipService.contacts(userId, sequence);
     }
 
     @GetMapping("/groups/list")

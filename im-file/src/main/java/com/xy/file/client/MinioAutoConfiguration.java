@@ -2,6 +2,7 @@ package com.xy.file.client;
 
 import io.minio.MinioAsyncClient;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.ConnectionPool;
 import okhttp3.Dispatcher;
 import okhttp3.OkHttpClient;
@@ -16,6 +17,7 @@ import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 
+@Slf4j
 @EnableConfigurationProperties(MinioProperties.class)
 @Configuration
 public class MinioAutoConfiguration {
@@ -28,28 +30,53 @@ public class MinioAutoConfiguration {
     @ConditionalOnMissingBean({MinioAsyncClient.class})
     public MinioAsyncClient minioClient() {
         Dispatcher dispatcher = new Dispatcher();
-        // 设置最大请求数量
         dispatcher.setMaxRequests(minioProperties.getHttpMaxRequest());
-        // 设置每台主机的最大请求数量
         dispatcher.setMaxRequestsPerHost(minioProperties.getHttpMaxRequestsPerHost());
-        OkHttpClient okHttpClient = new OkHttpClient.Builder()
-                // 取消https验证
-                //.sslSocketFactory(SSLUtils.getSSLSocketFactory(), SSLUtils.getX509TrustManager())
-                //.hostnameVerifier(SSLUtils.getHostnameVerifier())
 
+        OkHttpClient.Builder httpBuilder = new OkHttpClient.Builder()
                 .connectTimeout(minioProperties.getConnectTimeout(), TimeUnit.SECONDS)
                 .writeTimeout(minioProperties.getWriteTimeout(), TimeUnit.SECONDS)
                 .readTimeout(minioProperties.getReadTimeout(), TimeUnit.SECONDS)
-                // 支持协议
                 .protocols(Collections.singletonList(Protocol.HTTP_1_1))
-                // 最大空闲连接，保持活动时间
-                .connectionPool(new ConnectionPool(minioProperties.getMaxIdleConnections(), minioProperties.getKeepAliveDuration(), TimeUnit.MINUTES))
-                .dispatcher(dispatcher).build();
+                .connectionPool(new ConnectionPool(minioProperties.getMaxIdleConnections(),
+                        minioProperties.getKeepAliveDuration(), TimeUnit.MINUTES))
+                .dispatcher(dispatcher)
+                .addInterceptor(chain -> {
+                    var request = chain.request();
+                    var newRequest = request.newBuilder()
+                            .header("User-Agent", "MinIO (Java; amd64) minio-java/8.5.7")
+                            .header("Accept", "*/*")
+                            .build();
+                    return chain.proceed(newRequest);
+                });
 
-        return MinioAsyncClient.builder().endpoint(minioProperties.getEndpoint())
-                .credentials(minioProperties.getAccessKey(), minioProperties.getSecretKey())
-                .httpClient(okHttpClient)
-                .build();
+        // 可选：在调试时加入 OkHttp 日志拦截器（部署时请移除或降低级别，避免泄露敏感 header）
+        // HttpLoggingInterceptor logging = new HttpLoggingInterceptor(message -> log.debug("OKHTTP: {}", message));
+        // logging.setLevel(HttpLoggingInterceptor.Level.HEADERS);
+        // httpBuilder.addInterceptor(logging);
+
+        OkHttpClient okHttpClient = httpBuilder.build();
+
+        String endpoint = minioProperties.getEndpoint() == null ? null : minioProperties.getEndpoint().trim();
+        String ak = minioProperties.getAccessKey() == null ? null : minioProperties.getAccessKey().trim();
+        String sk = minioProperties.getSecretKey() == null ? null : minioProperties.getSecretKey().trim();
+
+        MinioAsyncClient client = MinioAsyncClient.builder()
+                    .endpoint(endpoint)
+                    .credentials(ak, sk)
+                    .httpClient(okHttpClient)
+                    .build();
+
+        // 强制 path-style（如果你的 MinIO 没启用 MINIO_DOMAIN，可以禁用 virtual-style）
+        // 这通常能解决多数“签名计算不一致”的问题（Host/path 不一致）
+        try {
+            client.disableVirtualStyleEndpoint();
+            log.info("MinIO client: virtual-style endpoint disabled (using path-style requests).");
+        } catch (Exception ex) {
+            log.warn("Disable virtual-style failed or not supported: {}", ex.getMessage());
+        }
+
+        return client;
     }
 
 
@@ -65,4 +92,3 @@ public class MinioAutoConfiguration {
 
 
 }
-

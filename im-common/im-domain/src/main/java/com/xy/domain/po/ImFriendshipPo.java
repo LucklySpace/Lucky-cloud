@@ -42,10 +42,11 @@ public class ImFriendshipPo implements Serializable {
     private String remark;
 
     /**
-     * 状态（1正常，2删除）
+     * 删除标识（1正常，0删除）
      */
-    @TableField(value = "status")
-    private Integer status;
+    @TableLogic(value = "1", delval = "0")
+    @TableField(value = "del_flag")
+    private Integer delFlag;
 
     /**
      * 黑名单状态（1正常，2拉黑）

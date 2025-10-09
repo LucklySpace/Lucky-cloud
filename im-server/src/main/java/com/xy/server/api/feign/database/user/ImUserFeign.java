@@ -26,6 +26,25 @@ public interface ImUserFeign {
 
 
     /**
+     * 创建用户信息
+     *
+     * @param userDataPo 用户信息
+     * @return 用户信息
+     */
+    @PostMapping("/data/insert")
+    Boolean insert(@RequestBody ImUserDataPo userDataPo);
+
+    /**
+     * 更新用户信息
+     *
+     * @param userDataPo 用户信息
+     * @return 用户信息
+     */
+    @PostMapping("/data/update")
+    Boolean update(@RequestBody ImUserDataPo userDataPo);
+
+
+    /**
      * 获取用户信息
      *
      * @param keyword 关键词

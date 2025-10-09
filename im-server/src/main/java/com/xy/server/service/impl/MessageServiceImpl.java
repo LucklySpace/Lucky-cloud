@@ -263,7 +263,7 @@ public class MessageServiceImpl implements MessageService {
             stopWatch.start("getGroupMembers");
             List<ImGroupMemberPo> members = imGroupFeign.getGroupMemberList(dto.getGroupId());
             stopWatch.stop();
-            
+
             if (CollectionUtil.isEmpty(members)) {
                 log.warn("群:{} 没有成员，无法发送消息", dto.getGroupId());
                 stopWatch.start("logTiming");
@@ -363,7 +363,7 @@ public class MessageServiceImpl implements MessageService {
             stopWatch.start("checkOnlineStatus");
             Object redisObj = redisUtil.get(USER_CACHE_PREFIX + videoMessage.getToId());
             stopWatch.stop();
-            
+
             if (ObjectUtil.isEmpty(redisObj)) {
                 log.info("用户 [{}] 未登录，消息发送失败", videoMessage.getToId());
                 stopWatch.start("logTiming");
@@ -570,7 +570,7 @@ public class MessageServiceImpl implements MessageService {
     private void broadcastRecall(IMessageAction dto, String messageId, Long recallTime, List<String> recipientIds, Integer messageType) {
         StopWatch stopWatch = new StopWatch("broadcastRecall");
         stopWatch.start("overall");
-        
+
         dto.setMessageTime(recallTime).setMessageId(messageId);
 
         stopWatch.stop();
@@ -810,7 +810,7 @@ public class MessageServiceImpl implements MessageService {
             stopWatch.start("getPendingMessages");
             List<IMOutboxPo> pending = imOutboxGrpcClient.listByStatus("PENDING", 100);
             stopWatch.stop();
-            
+
             if (CollectionUtil.isEmpty(pending)) {
                 stopWatch.start("logTiming");
                 stopWatch.stop();

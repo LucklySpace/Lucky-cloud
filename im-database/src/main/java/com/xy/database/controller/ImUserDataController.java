@@ -43,4 +43,15 @@ public class ImUserDataController {
     public List<ImUserDataPo> getUserByIds(@RequestBody List<String> userIdList) {
         return imUserDataService.listByIds(userIdList);
     }
+
+    /**
+     * 更新用户信息
+     *
+     * @param po 用户信息
+     * @return 是否更新成功
+     */
+    @PostMapping("/update")
+    public boolean update(@RequestBody ImUserDataPo po) {
+        return imUserDataService.updateById(po);
+    }
 }

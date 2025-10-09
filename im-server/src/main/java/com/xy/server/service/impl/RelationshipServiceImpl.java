@@ -16,6 +16,7 @@ import com.xy.server.api.feign.database.friend.ImRelationshipFeign;
 import com.xy.server.api.feign.database.user.ImUserFeign;
 import com.xy.server.exception.GlobalException;
 import com.xy.server.service.RelationshipService;
+import com.xy.utils.DateTimeUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
@@ -54,7 +55,7 @@ public class RelationshipServiceImpl implements RelationshipService {
      * 获取联系人列表（加读锁防并发读写冲突）
      */
     @Override
-    public Result contacts(String ownerId) {
+    public Result contacts(String ownerId, Long sequence) {
         long start = System.currentTimeMillis();
         log.debug("contacts() 开始 -> ownerId={}", ownerId);
 
@@ -65,7 +66,7 @@ public class RelationshipServiceImpl implements RelationshipService {
                 return Result.success(Collections.emptyList()); // 降级返回空
             }
 
-            List<ImFriendshipPo> friendships = imRelationshipFeign.contacts(ownerId);
+            List<ImFriendshipPo> friendships = imRelationshipFeign.contacts(ownerId, sequence);
             if (isEmpty(friendships)) {
                 log.debug("没有好友关系 -> ownerId={}, 耗时 {} ms", ownerId, System.currentTimeMillis() - start);
                 return Result.success(Collections.emptyList());
@@ -579,6 +580,7 @@ public class RelationshipServiceImpl implements RelationshipService {
      * 创建好友请求对象（不变）
      */
     private ImFriendshipRequestPo createFriendRequest(FriendRequestDto dto) {
+        long currentUTCTimestamp = DateTimeUtil.getCurrentUTCTimestamp();
         ImFriendshipRequestPo request = new ImFriendshipRequestPo();
         request.setId(UUID.randomUUID().toString());
         request.setFromId(dto.getFromId());
@@ -588,8 +590,8 @@ public class RelationshipServiceImpl implements RelationshipService {
         request.setReadStatus(0);
         request.setDelFlag(1);
         request.setRemark(dto.getRemark());
-        request.setUpdateTime(System.currentTimeMillis());
-        request.setCreateTime(System.currentTimeMillis());
+        request.setUpdateTime(currentUTCTimestamp);
+        request.setCreateTime(currentUTCTimestamp);
         return request;
     }
 
@@ -599,30 +601,33 @@ public class RelationshipServiceImpl implements RelationshipService {
     private void updateExistingRequest(ImFriendshipRequestPo existing, FriendRequestDto dto) {
         existing.setMessage(dto.getMessage());
         existing.setRemark(dto.getRemark());
-        existing.setUpdateTime(System.currentTimeMillis());
+        existing.setUpdateTime(DateTimeUtil.getCurrentUTCTimestamp());
     }
 
     /**
      * 创建双向好友关系（不变）
      */
     private void createBidirectionalFriendship(String fromId, String toId, String remark) {
+
+        long currentUTCTimestamp = DateTimeUtil.getCurrentUTCTimestamp();
+
         ImFriendshipPo friendship1 = new ImFriendshipPo();
         friendship1.setOwnerId(fromId);
         friendship1.setToId(toId);
         friendship1.setRemark(remark);
-        friendship1.setStatus(1);
+        friendship1.setDelFlag(1);
         friendship1.setBlack(1);
-        friendship1.setSequence(System.currentTimeMillis());
-        friendship1.setCreateTime(System.currentTimeMillis());
+        friendship1.setSequence(currentUTCTimestamp);
+        friendship1.setCreateTime(currentUTCTimestamp);
 
         ImFriendshipPo friendship2 = new ImFriendshipPo();
         friendship2.setOwnerId(toId);
         friendship2.setToId(fromId);
         friendship2.setRemark("");
-        friendship2.setStatus(1);
+        friendship2.setDelFlag(1);
         friendship2.setBlack(1);
-        friendship2.setSequence(System.currentTimeMillis());
-        friendship2.setCreateTime(System.currentTimeMillis());
+        friendship2.setSequence(currentUTCTimestamp);
+        friendship2.setCreateTime(currentUTCTimestamp);
 
         imRelationshipFeign.createFriendship(friendship1);
         imRelationshipFeign.createFriendship(friendship2);

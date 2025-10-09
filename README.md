@@ -376,7 +376,7 @@ docker-compose up -d
 
 ## 📞 联系我们
 
-- **项目主页**: [https://github.com/Luckly-XYZ](https://github.com/dennis9486/Lynk)
+- **项目主页**: [https://github.com/Luckly-XYZ](https://github.com/Luckly-XYZ)
 
 - **问题反馈**: [Issues](https://github.com/Luckly-XYZ/Lucky-cloud/issues)
 

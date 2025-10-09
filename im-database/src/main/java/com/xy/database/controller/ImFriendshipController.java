@@ -27,8 +27,8 @@ public class ImFriendshipController {
      * 查询所有好友
      */
     @GetMapping("/list")
-    public List<ImFriendshipPo> list(@RequestParam("ownerId") String ownerId) {
-        return imFriendshipService.list(ownerId);
+    public List<ImFriendshipPo> list(@RequestParam("ownerId") String ownerId, @RequestParam("sequence") Long sequence) {
+        return imFriendshipService.list(ownerId, sequence);
     }
 
 

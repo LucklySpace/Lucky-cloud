@@ -54,7 +54,12 @@ public class PearlMinioClient extends MinioAsyncClient {
      */
     @Override
     public CompletableFuture<ObjectWriteResponse> completeMultipartUploadAsync(String bucketName, String region, String objectName, String uploadId, Part[] parts, Multimap<String, String> extraHeaders, Multimap<String, String> extraQueryParams) throws NoSuchAlgorithmException, InsufficientDataException, IOException, InvalidKeyException, XmlParserException, InternalException {
-        return super.completeMultipartUploadAsync(bucketName, region, objectName, uploadId, parts, extraHeaders, extraQueryParams);
+        // 修复签名错误：确保请求头正确设置
+        Multimap<String, String> updatedHeaders = extraHeaders;
+        if (updatedHeaders == null) {
+            updatedHeaders = com.google.common.collect.HashMultimap.create();
+        }
+        return super.completeMultipartUploadAsync(bucketName, region, objectName, uploadId, parts, updatedHeaders, extraQueryParams);
     }
 
     /**

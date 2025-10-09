@@ -4,8 +4,6 @@ import com.xy.core.model.IMetaId;
 import com.xy.grpc.client.annotation.GrpcCall;
 import com.xy.grpc.client.annotation.GrpcClient;
 
-import java.util.List;
-
 /**
  * gRPC 客户端接口，用于生成各种类型的ID
  * 通过 gRPC 协议与 im-generator 服务进行通信
@@ -15,6 +13,7 @@ public interface ImIdGeneratorGrpcClient {
 
     /**
      * 调用远程接口获取一个 ID
+     *
      * @return 生成的ID
      */
     @GrpcCall("/generator/id")

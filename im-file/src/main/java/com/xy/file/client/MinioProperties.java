@@ -18,6 +18,11 @@ public class MinioProperties {
     private String endpoint;
 
     /**
+     * 访问方式，http/https
+     */
+    private String extranet;
+
+    /**
      * 用户名
      */
     private String accessKey;
@@ -41,22 +46,22 @@ public class MinioProperties {
     /**
      * 是否创建缩略图
      */
-    private Boolean createThumbnail = Boolean.TRUE;
+    private Boolean createThumbnail = Boolean.FALSE;
 
     /**
      * 是否创建水印
      */
-    private Boolean createWatermark = Boolean.TRUE;
+    private Boolean createWatermark = Boolean.FALSE;
 
     /**
      * 是否压缩
      */
-    private Boolean isCompress = Boolean.TRUE;
+    private Boolean isCompress = Boolean.FALSE;
 
     /**
      * 是否检查
      */
-    private Boolean isChecked = Boolean.TRUE;
+    private Boolean isChecked = Boolean.FALSE;
 
     /**
      * 是否计算音视频时长

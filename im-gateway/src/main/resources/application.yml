@@ -79,6 +79,15 @@ spring:
             # 去除一个前缀
             - StripPrefix=1
 
+        - id: im-file  # id生成服务
+          uri: lb://im-file
+          predicates:
+            - Path=/upload/**
+          filters:
+            # 去除一个前缀
+            - StripPrefix=1
+
+
 
 # TODO: log settings
 logging:

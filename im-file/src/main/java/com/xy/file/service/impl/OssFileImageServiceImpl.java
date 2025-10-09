@@ -7,11 +7,12 @@ import com.xy.file.handler.ImageProcessingStrategy;
 import com.xy.file.service.OssFileImageService;
 import com.xy.file.util.MinioUtils;
 import com.xy.file.util.RedisRepo;
+import com.xy.general.response.domain.Result;
+import com.xy.general.response.domain.ResultCode;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.*;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -106,10 +107,10 @@ public class OssFileImageServiceImpl implements OssFileImageService {
      * 上传图片主入口
      */
     @Override
-    public ResponseEntity<?> uploadImage(MultipartFile file) {
+    public Result<?> uploadImage(MultipartFile file) {
         // minimal checks
         if (file == null || file.isEmpty()) {
-            return ResponseEntity.badRequest().body("文件为空");
+            return Result.failed("文件为空");
         }
 
         long start = System.nanoTime();
@@ -120,8 +121,7 @@ public class OssFileImageServiceImpl implements OssFileImageService {
 
         // objectName & bucket
         String objectName = minioUtils.getObjectName(minioUtils.generatePath(), file.getOriginalFilename());
-        String fileType = file.getOriginalFilename() == null ? "png" :
-                file.getOriginalFilename().substring(Math.max(0, file.getOriginalFilename().lastIndexOf(".") + 1));
+
         String bucketName = minioUtils.getOrCreateBucketByFileType("image");
 
         // prepare source supplier: either byte[] or temp file
@@ -153,7 +153,7 @@ public class OssFileImageServiceImpl implements OssFileImageService {
                 ResponseEntity<?> checkRes = checkImageUsingSupplier(sourceSupplier, file.getSize(), file.getOriginalFilename());
                 // expected body may contain valid flag; adapt behavior (fail if invalid)
                 if (!checkRes.getStatusCode().is2xxSuccessful()) {
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body("图片校验未通过: " + checkRes.getBody());
+                    return Result.failed(ResultCode.FORBIDDEN, "图片校验未通过: " + checkRes.getBody());
                 }
                 // If check API returns a map with "valid": true meaning violation (legacy code had inverted semantics),
                 // user may adapt. For now: if body contains Map with "valid"==true => forbid.
@@ -161,15 +161,10 @@ public class OssFileImageServiceImpl implements OssFileImageService {
                 if (body instanceof Map) {
                     Object valid = ((Map<?, ?>) body).get("valid");
                     if (Boolean.TRUE.equals(valid)) {
-                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("图片包含违规内容 :"+ body);
+                        return Result.failed(ResultCode.FORBIDDEN, "图片包含违规内容 :" + body);
                     }
                 }
             }
-
-            // 2) Parallel processing:
-            // - thumbnail: generates separate image and uploads (if enabled)
-            // - main pipeline: watermark (optional) then compress (optional) then upload
-            List<CompletableFuture<Void>> uploadFutures = new ArrayList<>(2);
 
             // main pipeline supplier must provide fresh stream per use
             Supplier<InputStream> mainSupplier = sourceSupplier;
@@ -236,13 +231,13 @@ public class OssFileImageServiceImpl implements OssFileImageService {
 
             long elapsed = (System.nanoTime() - start) / 1_000_000L;
             log.info("图片上传处理完成 file={}, elapsedMs={}", file.getOriginalFilename(), elapsed);
-            return ResponseEntity.ok(ossFile);
+            return Result.success(ossFile);
         } catch (RuntimeException re) {
             log.error("上传处理失败", re);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("图片上传失败: " + re.getMessage());
+            return Result.failed(ResultCode.SERVICE_EXCEPTION, "图片上传失败: " + re.getMessage());
         } catch (Exception e) {
             log.error("上传处理异常", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("图片上传失败");
+            return Result.failed(ResultCode.SERVICE_EXCEPTION, "图片上传失败: " + e.getMessage());
         } finally {
             // cleanup temp file if created
             // important: cleanup even if upload succeeded (we use tempFile only as source)
@@ -352,6 +347,17 @@ public class OssFileImageServiceImpl implements OssFileImageService {
             log.error("checkImageUsingSupplier error", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("校验异常: " + e.getMessage());
         }
+    }
+
+    /**
+     * 生成文件访问地址
+     *
+     * @param bucketName 存储桶名
+     * @param fileName   文件名
+     * @return 访问地址
+     */
+    public String generatorUrl(String bucketName, String fileName) {
+        return minioProperties.getExtranet() + "/" + bucketName + "/" + fileName;
     }
 
     // --------------- 以下为原始辅助方法（保留，仅作调用） ----------------

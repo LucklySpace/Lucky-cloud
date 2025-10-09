@@ -12,7 +12,7 @@ import java.util.List;
  */
 public interface ImFriendshipService extends IService<ImFriendshipPo> {
 
-    List<ImFriendshipPo> list(String ownerId);
+    List<ImFriendshipPo> list(String ownerId, Long sequence);
 
 
     ImFriendshipPo getOne(String ownerId, String toId);

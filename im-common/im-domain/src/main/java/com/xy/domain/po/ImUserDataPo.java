@@ -50,6 +50,8 @@ public class ImUserDataPo implements Serializable {
     /**
      * 生日
      */
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     @TableField(value = "birthday")
     private String birthday;
 

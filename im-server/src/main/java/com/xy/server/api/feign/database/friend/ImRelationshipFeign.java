@@ -24,7 +24,7 @@ public interface ImRelationshipFeign {
      * @return 用户好友信息列表
      */
     @GetMapping("/friend/list")
-    List<ImFriendshipPo> contacts(@RequestParam("ownerId") String ownerId);
+    List<ImFriendshipPo> contacts(@RequestParam("ownerId") String ownerId, @RequestParam("sequence") Long sequence);
 
 
     /**

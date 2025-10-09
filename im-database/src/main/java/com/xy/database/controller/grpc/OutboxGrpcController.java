@@ -5,7 +5,6 @@ import com.xy.domain.po.IMOutboxPo;
 import com.xy.grpc.server.annotation.GrpcRoute;
 import com.xy.grpc.server.annotation.GrpcRouteMapping;
 import jakarta.annotation.Resource;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 

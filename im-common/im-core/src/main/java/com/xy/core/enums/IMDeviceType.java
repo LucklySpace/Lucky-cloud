@@ -19,4 +19,13 @@ public enum IMDeviceType {
     IMDeviceType(String device) {
         this.device = device;
     }
+
+    public static IMDeviceType getByDevice(String device) {
+        for (IMDeviceType type : IMDeviceType.values()) {
+            if (type.device.equals(device)) {
+                return type;
+            }
+        }
+        return null;
+    }
 }

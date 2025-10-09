@@ -12,7 +12,7 @@ import java.util.List;
 
 public interface RelationshipService {
 
-    Result<List<FriendVo>> contacts(String userId);
+    Result<List<FriendVo>> contacts(String userId, Long sequence);
 
     Result<List<GroupVo>> groups(String userId);
 

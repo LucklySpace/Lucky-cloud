@@ -15,7 +15,7 @@ import java.util.List;
 @Mapper
 public interface ImFriendshipMapper extends BaseMapper<ImFriendshipPo> {
 
-    List<ImFriendshipPo> selectFriendList(@Param("ownerId") String ownerId);
+    List<ImFriendshipPo> selectFriendList(@Param("ownerId") String ownerId, @Param("sequence") Long sequence);
 }
 
 

@@ -21,7 +21,7 @@ public class UserVo {
 
     private Integer gender;
 
-    private String birthDay;
+    private String birthday;
 
     private String location;
 

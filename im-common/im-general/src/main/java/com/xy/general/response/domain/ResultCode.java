@@ -22,6 +22,8 @@ public enum ResultCode implements IResult {
     INTERNAL_SERVER_ERROR(500, "http.internal_server_error"), // 服务器内部错误
     SERVICE_UNAVAILABLE(503, "http.service_unavailable"),     // 服务不可用，可能是维护中或负载过高
 
+    // ========== 参数相关 ==========
+
     // ========== 用户相关 ==========
     INVALID_CREDENTIALS(1001, "user.invalid_credentials"), // 用户名或密码错误
     ACCOUNT_DISABLED(1002, "user.account_disabled"),        // 账户已被禁用

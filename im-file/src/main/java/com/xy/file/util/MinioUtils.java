@@ -12,6 +12,8 @@ import com.xy.file.domain.OssFile;
 import com.xy.file.domain.OssFileUploadProgress;
 import com.xy.file.enums.StorageBucketEnum;
 import io.minio.*;
+import io.minio.errors.ErrorResponseException;
+import io.minio.errors.MinioException;
 import io.minio.http.Method;
 import io.minio.messages.Part;
 import jakarta.annotation.Resource;
@@ -238,15 +240,19 @@ public class MinioUtils {
             // 2. 合并分片
             Part[] parts = partList.toArray(new Part[0]);
 
+            // 修复签名错误：确保请求头正确设置
+            HashMultimap<String, String> headers = HashMultimap.create();
+            headers.put("Content-Type", "application/octet-stream");
+
             pearlMinioClient.completeMultipartUploadAsync(
                     bucketName,
                     null,
                     objectName,
                     uploadId,
                     parts,
-                    null,
+                    headers, // 添加正确的请求头
                     null
-            );
+            ).get(); // 等待完成操作
 
             // 3. 清理分片
             try {
@@ -287,9 +293,9 @@ public class MinioUtils {
     public String createBucket(String bucketName) {
         try {
             // 检查桶是否已存在
-            if (pearlMinioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build()).get()) {
-                return bucketName; // 如果桶存在，返回桶名称
-            }
+//            if (bucketExists(bucketName)) {
+//                return bucketName; // 如果桶存在，返回桶名称
+//            }
             pearlMinioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build()); // 创建新桶
             return bucketName; // 返回新创建的桶名称
         } catch (Exception e) {
@@ -297,6 +303,27 @@ public class MinioUtils {
             throw new RuntimeException(e); // 抛出运行时异常
         }
     }
+
+    /**
+     * 查看存储bucket是否存在
+     *
+     * @return boolean
+     */
+
+    public boolean bucketExists(String bucketName) {
+        try {
+            // bucketExists 返回 CompletableFuture<Boolean>（取决于 SDK 版本）
+            boolean found = pearlMinioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build()).get();
+            return found;
+        } catch (MinioException e) {
+            log.error("MinIO Exception: {}", e.getMessage(), e);
+            return false;
+        } catch (Exception e) {
+            log.error("其他异常: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
 
 
     /**

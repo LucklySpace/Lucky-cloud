@@ -1,211 +1,249 @@
 package com.xy.connect.channel;
 
 import com.xy.connect.config.LogConstant;
+import com.xy.connect.domain.IMUserChannel;
+import com.xy.connect.domain.IMUserChannel.UserChannel;
 import com.xy.core.constants.IMConstant;
+import com.xy.core.enums.IMDeviceType;
 import com.xy.spring.annotations.core.Component;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.AttributeKey;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
- * 用户与 Channel 的映射管理类（支持单端/多端）。
- * - 默认单端（deviceType = "default"）。
- * - 若启用多端（配置 netty.multi-device.enabled=true），一个用户可绑定多个设备（如 "desktop"、"web"、"mobile"）。
- * - 通过 deviceType 参数区分，支持无缝切换。
- * <p>
- * 数据结构：
- * userChannels: userId -> ( deviceType -> Channel )
- * channelIndex: channelId -> UserDevice (用于通过 channel 反向查找 userId/deviceType)
- * <p>
- * 语义：
- * - addChannel 会把新的 Channel 绑定到 user+device；若存在旧 Channel 会被关闭（“踢掉旧连接”）
- * - removeChannel 支持按 user+device 或直接按 Channel 移除
- * - 会在 Channel 的 closeFuture 上注册清理回调，确保映射不会泄露
+ * 用户 -> 多设备 Channel 管理
+ * - 同组设备互斥由 IMDeviceType.isConflicting 决定
+ * - 新连接会替换冲突或相同类型的旧连接并优雅关闭旧连接
+ * - Channel.closeFuture 注册幂等清理
  */
 @Slf4j(topic = LogConstant.Channel)
 @Component
 public class UserChannelMap {
 
-    // channel attribute keys for convenience
     private static final AttributeKey<String> USER_ATTR = AttributeKey.valueOf(IMConstant.IM_USER);
-
     private static final AttributeKey<String> DEVICE_ATTR = AttributeKey.valueOf(IMConstant.IM_DEVICE_TYPE);
 
-    // userId -> ( deviceType -> Channel )
-    private final ConcurrentHashMap<String, ConcurrentHashMap<String, Channel>> userChannels = new ConcurrentHashMap<>();
-
-    // channelId(asLongText) -> (userId, deviceType) 反向索引，便于通过 channel 清理
-    private final ConcurrentHashMap<String, UserDevice> channelIndex = new ConcurrentHashMap<>();
+    // 用户 -> 多设备映射
+    private final ConcurrentHashMap<String, IMUserChannel> userChannels = new ConcurrentHashMap<>();
 
     /**
-     * 把 Channel 与 userId/deviceType 绑定（若该 user+device 已有旧连接，则踢掉旧连接）
-     *
-     * @param userId     用户 id（非空）
-     * @param ctx        当前 ChannelHandlerContext（非空）
-     * @param deviceType 设备类型（若为 null 或空，则使用 "default"）
+     * 添加用户通道
+     * - 默认到 WEB
+     * - 新连接会替换冲突或相同类型的旧连接并优雅关闭旧连接
+     * - Channel.closeFuture 注册幂等清理
      */
-    public void addChannel(String userId, ChannelHandlerContext ctx, String deviceType) {
+    public void addChannel(String userId, ChannelHandlerContext ctx, String deviceTypeString) {
         Objects.requireNonNull(userId, "userId");
         Objects.requireNonNull(ctx, "ctx");
-        Channel ch = ctx.channel();
+        addChannel(userId, ctx.channel(), IMDeviceType.getByDevice(deviceTypeString));
+    }
+
+    /**
+     * 添加用户通道
+     * - 新连接会替换冲突或相同类型的旧连接并优雅关闭旧连接
+     * - Channel.closeFuture 注册幂等清理
+     */
+    public void addChannel(String userId, Channel ch, IMDeviceType deviceType) {
+        Objects.requireNonNull(userId, "userId");
+        Objects.requireNonNull(ch, "channel");
+
+        // 默认到 WEB
+        final IMDeviceType dt = deviceType == null ? IMDeviceType.WEB : deviceType;
+        final String deviceKey = dt.getType();
+
         if (!ch.isActive()) {
-            log.warn("尝试绑定一个未激活的 channel: userId={}, channelId={}", userId, ch.id().asLongText());
-            // 仍然继续绑定（视场景可改为直接返回）
+            log.warn("绑定未激活 channel: userId={}, channelId={}", userId, ch.id().asLongText());
         }
-        final String dType = (deviceType == null || deviceType.isEmpty()) ? "default" : deviceType;
 
-        // 设置 channel 属性（便于后续从 channel 获取 info）
+        // 在 channel 上标记信息，方便调试/诊断
         ch.attr(USER_ATTR).set(userId);
-        ch.attr(DEVICE_ATTR).set(dType);
+        ch.attr(DEVICE_ATTR).set(deviceKey);
 
-        // 将 channel 放入 userChannels 的 device map 中（并获取旧的 channel）
-        ConcurrentHashMap<String, Channel> deviceMap =
-                userChannels.computeIfAbsent(userId, k -> new ConcurrentHashMap<>());
+        // 获取或创建用户映射
+        IMUserChannel imUserChannel = userChannels.computeIfAbsent(userId, k -> {
+            IMUserChannel u = new IMUserChannel();
+            u.setUserId(userId);
+            u.setUserChannelMap(new ConcurrentHashMap<>());
+            return u;
+        });
 
-        Channel previous = deviceMap.put(dType, ch);
+        // 收集需要被踢掉的旧连接（同组互斥或相同 deviceType）
+        List<UserChannel> toKick = imUserChannel.getUserChannelMap().values().stream()
+                .filter(uc -> uc != null && uc.getDeviceType() != null && uc.getChannel() != null)
+                .filter(uc -> !uc.getChannel().id().asLongText().equals(ch.id().asLongText()))
+                .filter(uc -> uc.getDeviceType().isConflicting(dt) || uc.getDeviceType() == dt)
+                .collect(Collectors.toList());
 
-        // 更新反向索引
-        channelIndex.put(ch.id().asLongText(), new UserDevice(userId, dType));
-
-        // 如果存在旧连接且不是同一个 channel，则关闭旧连接并移除其反向索引
-        if (previous != null && previous != ch) {
+        // 逐个移除并优雅关闭旧连接
+        toKick.forEach(old -> {
             try {
-                String prevId = previous.id().asLongText();
-                channelIndex.remove(prevId);
-                log.info("发现已存在旧连接，准备关闭旧连接: userId={}, deviceType={}, prevChannelId={}", userId, dType, prevId);
-                // 优雅关闭旧 channel（异步）
-                previous.close().addListener((ChannelFutureListener) future -> {
-                    log.info("旧连接已关闭: userId={}, deviceType={}, prevChannelId={}, success={}", userId, dType, prevId, future.isSuccess());
-                });
-            } catch (Exception e) {
-                log.warn("关闭旧连接时出错: userId={}, deviceType={}", userId, dType, e);
-            }
-        }
-
-        // 注册 channel 关闭时的清理回调（幂等）
-        ch.closeFuture().addListener(cf -> {
-            try {
-                // 在 close 回调中再次移除（防止竞态）
-                removeByChannel(ch);
+                String prevId = old.getChannel().id().asLongText();
+                imUserChannel.getUserChannelMap().remove(old.getDeviceType().getType(), old);
+                old.getChannel().close().addListener((ChannelFutureListener) future -> 
+                    log.info("被替换旧连接已关闭: userId={}, deviceType={}, prevChannelId={}, success={}",
+                            userId, old.getDeviceType().getType(), prevId, future.isSuccess()));
             } catch (Exception ex) {
-                log.debug("channel close cleanup failed for {}: {}", ch.id().asLongText(), ex.getMessage());
+                log.warn("关闭替换旧连接时出错 userId={}, deviceType={}", userId, old.getDeviceType(), ex);
             }
         });
 
-        log.info("bind channel -> userId={}, deviceType={}, channelId={}", userId, dType, ch.id().asLongText());
+        // 放入新连接并注册 closeFuture 清理
+        UserChannel newUc = new UserChannel(ch.id().asLongText(), dt, ch);
+        imUserChannel.getUserChannelMap().put(IMDeviceType.getByDevice(deviceKey), newUc);
+
+        ch.closeFuture().addListener(future -> {
+            try {
+                removeByChannel(ch);
+            } catch (Exception e) {
+                log.debug("channel close cleanup failed for {}: {}", ch.id().asLongText(), e.getMessage());
+            }
+        });
+
+        log.info("绑定 channel -> userId={}, deviceType={}, channelId={}", userId, deviceKey, ch.id().asLongText());
     }
 
     /**
-     * 按 userId 与 deviceType 获取 Channel（可能为 null）
+     * 获取用户通道
      */
-    public Channel getChannel(String userId, String deviceType) {
-        if (userId == null || deviceType == null) return null;
-        Map<String, Channel> dm = userChannels.get(userId);
-        return dm == null ? null : dm.get(deviceType);
+    public Channel getChannel(String userId, String deviceTypeString) {
+        if (userId == null || deviceTypeString == null) return null;
+        IMUserChannel im = userChannels.get(userId);
+        if (im == null) return null;
+        UserChannel uc = im.getUserChannelMap().get(deviceTypeString);
+        return uc == null ? null : uc.getChannel();
     }
 
     /**
-     * 按 userId 获取该用户所有 device 的 Channel（只读视图）
+     * 获取用户通道
+     */
+    public Channel getChannel(String userId, IMDeviceType deviceType) {
+        return deviceType == null ? null : getChannel(userId, deviceType.getType());
+    }
+
+    /**
+     * 获取用户所有通道
      */
     public Collection<Channel> getChannelsByUser(String userId) {
         if (userId == null) return Collections.emptyList();
-        Map<String, Channel> dm = userChannels.get(userId);
-        if (dm == null) return Collections.emptyList();
-        return Collections.unmodifiableCollection(dm.values());
+        IMUserChannel im = userChannels.get(userId);
+        if (im == null) return Collections.emptyList();
+        
+        List<Channel> channels = im.getUserChannelMap().values().stream()
+                .filter(uc -> uc != null && uc.getChannel() != null)
+                .map(UserChannel::getChannel)
+                .collect(Collectors.toList());
+                
+        return Collections.unmodifiableCollection(channels);
     }
 
     /**
-     * 获取系统中所有活跃 Channel（只读视图）
+     * 获取所有通道
      */
     public Collection<Channel> getAllChannels() {
-        // 汇总所有 device map 的 values（注意：可能存在重复但逻辑上不应）
-        ConcurrentHashMap<String, Channel> snapshot = new ConcurrentHashMap<>();
-        userChannels.forEach((user, map) -> {
-            map.forEach((device, ch) -> snapshot.put(ch.id().asLongText(), ch));
-        });
+        Map<String, Channel> snapshot = new HashMap<>();
+        userChannels.forEach((uid, im) -> 
+            im.getUserChannelMap().forEach((k, uc) -> {
+                if (uc != null && uc.getChannel() != null) {
+                    snapshot.put(uc.getChannel().id().asLongText(), uc.getChannel());
+                }
+            })
+        );
         return Collections.unmodifiableCollection(snapshot.values());
     }
 
     /**
-     * 按 userId + deviceType 移除并可选择关闭 channel（如果存在）
-     *
-     * @param userId     用户 id
-     * @param deviceType 设备类型
-     * @param close      是否在移除后关闭 channel
-     * @return 被移除的 Channel （若不存在返回 null）
+     * 获取在线用户数
+     */
+    public int getOnlineUserCount() {
+        return userChannels.size();
+    }
+
+    /**
+     * 获取总连接数
+     */
+    public int getTotalConnectionCount() {
+        return userChannels.values().stream()
+                .mapToInt(im -> im.getUserChannelMap().size())
+                .sum();
+    }
+
+    // ---------------- 移除 ----------------
+
+    /**
+     * 按 userId + deviceTypeString 移除（可选择关闭）
      */
     public Channel removeChannel(String userId, String deviceType, boolean close) {
         if (userId == null || deviceType == null) return null;
-        ConcurrentHashMap<String, Channel> dm = userChannels.get(userId);
-        if (dm == null) return null;
-        Channel removed = dm.remove(deviceType);
-        if (removed != null) {
-            channelIndex.remove(removed.id().asLongText());
-            if (dm.isEmpty()) {
-                userChannels.remove(userId, dm);
-            }
-            if (close && removed.isActive()) {
-                try {
-                    removed.close().addListener((ChannelFutureListener) future -> {
-                        log.info("removeChannel close result: userId={}, deviceType={}, success={}", userId, deviceType, future.isSuccess());
-                    });
-                } catch (Exception e) {
-                    log.warn("关闭移除的 channel 出错 userId={}, deviceType={}", userId, deviceType, e);
-                }
+        IMUserChannel im = userChannels.get(userId);
+        if (im == null) return null;
+
+        UserChannel removed = im.getUserChannelMap().remove(deviceType);
+        if (removed == null) return null;
+
+        if (im.getUserChannelMap().isEmpty()) {
+            userChannels.remove(userId, im);
+        }
+
+        Channel ch = removed.getChannel();
+        if (close && ch != null && ch.isActive()) {
+            try {
+                ch.close().addListener((ChannelFutureListener) future -> 
+                    log.info("removeChannel close result: userId={}, deviceType={}, success={}", 
+                            userId, deviceType, future.isSuccess()));
+            } catch (Exception e) {
+                log.warn("关闭移除的 channel 出错 userId={}, deviceType={}", userId, deviceType, e);
             }
         }
-        return removed;
+        return ch;
     }
 
     /**
-     * 通过 Channel 对象反向移除映射（通常由 closeFuture 的回调触发）
-     *
-     * @param channel 要移除的 channel
-     * @return true 表示曾存在并被移除
+     * 通过 Channel 对象扫描并移除对应映射（无索引版本）
      */
     public boolean removeByChannel(Channel channel) {
         if (channel == null) return false;
-        String chId = channel.id().asLongText();
-        UserDevice ud = channelIndex.remove(chId);
-        if (ud == null) {
-            // 可能已经被主动 remove
-            return false;
-        }
-        ConcurrentHashMap<String, Channel> dm = userChannels.get(ud.getUserId());
-        if (dm != null) {
-            dm.remove(ud.getDeviceType(), channel);
-            if (dm.isEmpty()) {
-                userChannels.remove(ud.getUserId(), dm);
+        final String chId = channel.id().asLongText();
+
+        for (Map.Entry<String, IMUserChannel> entry : userChannels.entrySet()) {
+            String userId = entry.getKey();
+            IMUserChannel im = entry.getValue();
+            if (im == null) continue;
+
+            // 寻找并删除匹配的 device 条目
+            Iterator<Map.Entry<IMDeviceType, UserChannel>> it = im.getUserChannelMap().entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<IMDeviceType, UserChannel> e = it.next();
+                UserChannel uc = e.getValue();
+                if (uc != null && chId.equals(uc.getChannelId())) {
+                    it.remove();
+                    log.info("channel cleanup removed mapping: userId={}, deviceType={}, channelId={}", 
+                            userId, e.getKey(), chId);
+                    // 如果该用户无设备则移除用户条目
+                    if (im.getUserChannelMap().isEmpty()) {
+                        userChannels.remove(userId, im);
+                    }
+                    return true;
+                }
             }
         }
-        log.info("channel cleanup removed mapping: userId={}, deviceType={}, channelId={}", ud.getUserId(), ud.getDeviceType(), chId);
-        return true;
+        return false;
     }
 
-    /**
-     * 给指定用户的（指定设备或所有设备）发送消息（异步）
-     *
-     * @param userId     目标用户
-     * @param deviceType 设备类型，若为 null 则发送给该用户所有设备
-     * @param data       要发送的数据（直接传给 Channel.writeAndFlush）
-     * @return 发送到的 channel 数量
-     */
+    // ---------------- 发送 ----------------
+
     public int sendToUser(String userId, String deviceType, Object data) {
         if (userId == null) return 0;
         if (deviceType == null) {
             Collection<Channel> channels = getChannelsByUser(userId);
-            channels.forEach(ch -> {
-                if (ch.isActive()) ch.writeAndFlush(data);
-            });
+            channels.stream()
+                    .filter(Channel::isActive)
+                    .forEach(ch -> ch.writeAndFlush(data));
             return channels.size();
         } else {
             Channel ch = getChannel(userId, deviceType);
@@ -217,30 +255,8 @@ public class UserChannelMap {
         }
     }
 
-    /**
-     * 查询当前在线用户数（有至少一个 device 在线即计为在线）
-     */
-    public int getOnlineUserCount() {
-        return userChannels.size();
+    public int sendToUser(String userId, IMDeviceType deviceType, Object data) {
+        return deviceType == null ? 0 : sendToUser(userId, deviceType.getType(), data);
     }
 
-    /**
-     * 查询当前总连接数（所有用户的所有设备连接之和）
-     */
-    public int getTotalConnectionCount() {
-        int sum = 0;
-        for (ConcurrentHashMap<String, Channel> dm : userChannels.values()) {
-            sum += dm.size();
-        }
-        return sum;
-    }
-
-    /**
-     * 内部用的 POJO：记录 channelId -> userId/deviceType 的映射
-     */
-    @Data
-    private static class UserDevice {
-        private final String userId;
-        private final String deviceType;
-    }
 }

@@ -9,6 +9,11 @@ spring:
       eager: true
       transport:
         dashboard: ${SENTINEL_DASHBOARD_URL:@sentinel.dashboard.url@}
+    discovery:
+      client:
+        simple:
+          local:
+            instance-id: ${spring.application.name}-${random.value}
     nacos:
       discovery:
         server-addr: ${NACOS_DISCOVERY_SERVER_ADDR:@nacos.config.server-addr@}
@@ -21,12 +26,6 @@ spring:
         group: ${NACOS_CONFIG_GROUP:@nacos.config.group@}
         name: ${spring.application.name}-@app.profiles.active@
         file-extension: yml
-
-    discovery:
-      client:
-        simple:
-          local:
-            instance-id: ${spring.application.name}
 
 server:
   port: ${SERVER_PORT:8085}

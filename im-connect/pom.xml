@@ -19,7 +19,7 @@
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <netty.version>4.1.108.final</netty.version>
+        <netty.version>4.2.6.Final</netty.version>
         <mysql.version>8.0.16</mysql.version>
         <slf4j.version>1.7.25</slf4j.version>
         <logback.version>1.4.12</logback.version>
@@ -151,6 +151,14 @@
 
 
     <build>
+
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+
         <plugins>
             <!-- 原生编译支持 -->
             <plugin>
@@ -172,6 +180,71 @@
             </plugin>
         </plugins>
     </build>
+
+    <!-- Profiles配置 -->
+    <profiles>
+        <!-- 开发环境 -->
+        <profile>
+            <id>dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <!-- Nacos 配置中心配置 -->
+                <nacos.config.server-addr>localhost:8848</nacos.config.server-addr>
+                <nacos.config.namespace>public</nacos.config.namespace>
+                <nacos.config.group>DEFAULT_GROUP</nacos.config.group>
+
+                <!-- Nacos 服务发现配置 -->
+                <nacos.discovery.server-addr>localhost:8848</nacos.discovery.server-addr>
+                <nacos.discovery.username>nacos</nacos.discovery.username>
+                <nacos.discovery.password>Lucky20251001</nacos.discovery.password>
+
+                <sentinel.dashboard.url>http://localhost:20000</sentinel.dashboard.url>
+
+                <!-- 应用 Profile -->
+                <app.profiles.active>dev</app.profiles.active>
+            </properties>
+        </profile>
+
+        <!-- 测试环境 -->
+        <profile>
+            <id>test</id>
+            <properties>
+                <!-- Nacos 配置中心配置 -->
+                <nacos.config.server-addr>test.nacos.server:8848</nacos.config.server-addr>
+                <nacos.config.namespace>test</nacos.config.namespace>
+                <nacos.config.group>TEST_GROUP</nacos.config.group>
+
+                <!-- Nacos 服务发现配置 -->
+                <nacos.discovery.server-addr>test.nacos.server:8848</nacos.discovery.server-addr>
+                <nacos.discovery.username>nacos</nacos.discovery.username>
+                <nacos.discovery.password>nacos</nacos.discovery.password>
+
+                <!-- 应用 Profile -->
+                <app.profiles.active>test</app.profiles.active>
+            </properties>
+        </profile>
+
+        <!-- 生产环境 -->
+        <profile>
+            <id>prod</id>
+            <properties>
+                <!-- Nacos 配置中心配置 -->
+                <nacos.config.server-addr>prod.nacos.server:8848</nacos.config.server-addr>
+                <nacos.config.namespace>prod</nacos.config.namespace>
+                <nacos.config.group>PROD_GROUP</nacos.config.group>
+
+                <!-- Nacos 服务发现配置 -->
+                <nacos.discovery.server-addr>prod.nacos.server:8848</nacos.discovery.server-addr>
+                <nacos.discovery.username></nacos.discovery.username>
+                <nacos.discovery.password></nacos.discovery.password>
+
+                <!-- 应用 Profile -->
+                <app.profiles.active>prod</app.profiles.active>
+            </properties>
+        </profile>
+    </profiles>
 
 
 </project>

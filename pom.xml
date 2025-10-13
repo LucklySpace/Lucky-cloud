@@ -232,7 +232,21 @@
     <build>
         <resources>
             <resource>
+                <directory>src/main/java</directory>
+                <includes>
+                    <include>**/*.yml</include>
+                    <include>**/*.properties</include>
+                    <include>**/*.xml</include>
+                </includes>
+                <filtering>true</filtering>
+            </resource>
+            <resource>
                 <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*.yml</include>
+                    <include>**/*.properties</include>
+                    <include>**/*.xml</include>
+                </includes>
                 <filtering>true</filtering>
             </resource>
         </resources>
@@ -335,7 +349,7 @@
                 <nacos.discovery.username>nacos</nacos.discovery.username>
                 <nacos.discovery.password>nacos</nacos.discovery.password>
 
-                <sentinel.dashboard.url>http://localhost:8085</sentinel.dashboard.url>
+                <sentinel.dashboard.url>http://localhost:20000</sentinel.dashboard.url>
 
                 <!-- 应用 Profile -->
                 <app.profiles.active>dev</app.profiles.active>

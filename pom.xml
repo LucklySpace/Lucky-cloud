@@ -348,6 +348,8 @@
                 <nacos.discovery.server-addr>localhost:8848</nacos.discovery.server-addr>
                 <nacos.discovery.username>nacos</nacos.discovery.username>
                 <nacos.discovery.password>nacos</nacos.discovery.password>
+                <nacos.discovery.namespace>public</nacos.discovery.namespace>
+                <nacos.discovery.group>DEFAULT_GROUP</nacos.discovery.group>
 
                 <sentinel.dashboard.url>http://localhost:20000</sentinel.dashboard.url>
 
@@ -369,6 +371,8 @@
                 <nacos.discovery.server-addr>test.nacos.server:8848</nacos.discovery.server-addr>
                 <nacos.discovery.username>nacos</nacos.discovery.username>
                 <nacos.discovery.password>nacos</nacos.discovery.password>
+                <nacos.discovery.namespace>test</nacos.discovery.namespace>
+                <nacos.discovery.group>TEST_GROUP</nacos.discovery.group>
 
                 <!-- 应用 Profile -->
                 <app.profiles.active>test</app.profiles.active>
@@ -388,6 +392,8 @@
                 <nacos.discovery.server-addr>prod.nacos.server:8848</nacos.discovery.server-addr>
                 <nacos.discovery.username></nacos.discovery.username>
                 <nacos.discovery.password></nacos.discovery.password>
+                <nacos.discovery.namespace>prod</nacos.discovery.namespace>
+                <nacos.discovery.group>PROD_GROUP</nacos.discovery.group>
 
                 <!-- 应用 Profile -->
                 <app.profiles.active>prod</app.profiles.active>

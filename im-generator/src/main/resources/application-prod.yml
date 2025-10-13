@@ -28,10 +28,10 @@ spring:
       max-file-size: 10MB
 
   datasource:
-    username: root
-    password: 19940806
-    url: jdbc:mysql://localhost:3306/im-core?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://127.0.0.1:5432/im-core
+    username: postgres # 数据库账号
+    password: 123456 # 数据库密码
   jpa:
     hibernate:
       #     更新或者创建数据表结构
@@ -47,16 +47,6 @@ spring:
         pool:
           max-active: 100
           max-wait: -1ms
-
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
-    virtualHost: /
-    publisher-returns: true #设置publisher-returns消息成功则会向发布者发送成功，失败时不会将消息丢弃，而是返回给发布者，发布者根据需求处理
-    publisher-confirm-type: correlated #开启发布确认模式，具体有三个值，具体的可以去百度
-
 
 # TODO: log settings
 logging:

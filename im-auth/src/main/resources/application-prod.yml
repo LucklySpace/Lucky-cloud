@@ -26,15 +26,6 @@ spring:
   servlet:
     multipart:
       max-file-size: 10MB
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
-    virtualHost: /
-    publisher-returns: true #设置publisher-returns消息成功则会向发布者发送成功，失败时不会将消息丢弃，而是返回给发布者，发布者根据需求处理
-    publisher-confirm-type: correlated #开启发布确认模式，具体有三个值，具体的可以去百度
-
   data:
     redis:
       host: localhost

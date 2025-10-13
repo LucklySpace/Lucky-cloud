@@ -29,6 +29,13 @@
             <scope>compile</scope>
         </dependency>
 
+        <!-- postgresql 数据库依赖 -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgresql.version}</version>
+        </dependency>
+
         <!--    MySQL依赖    -->
         <dependency>
             <groupId>com.mysql</groupId>

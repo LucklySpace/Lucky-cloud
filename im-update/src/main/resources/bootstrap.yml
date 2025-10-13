@@ -19,6 +19,8 @@ spring:
         server-addr: ${NACOS_DISCOVERY_SERVER_ADDR:@nacos.config.server-addr@}
         username: ${NACOS_DISCOVERY_USERNAME:@nacos.discovery.username@}
         password: ${NACOS_DISCOVERY_PASSWORD:@nacos.discovery.password@}
+        namespace: ${NACOS_DISCOVERY_NAMESPACE:@nacos.discovery.namespace@}
+        group: ${NACOS_DISCOVERY_GROUP:@nacos.discovery.group@}
 
       config:
         server-addr: ${NACOS_CONFIG_SERVER_ADDR:@nacos.config.server-addr@}

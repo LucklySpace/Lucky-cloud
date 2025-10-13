@@ -28,13 +28,34 @@ import java.time.Duration;
 @Configuration
 public class RedisConfig extends CachingConfigurerSupport {
 
-    @Value("${spring.data.redis.redisson.address}")
-    private String address;
+//    @Value("${spring.data.redis.redisson.address}")
+//    private String address;
+//
+//    @Bean(destroyMethod = "shutdown")
+//    public RedissonClient redisson() throws IOException {
+//        return Redisson.create(
+//                Config.fromYAML(new ClassPathResource(address).getInputStream()));
+//    }
+
+   @Value("${spring.data.redis.redisson.address}")
+   private String address;
+
+   @Value("${spring.data.redis.password}")
+    private String password;
 
     @Bean(destroyMethod = "shutdown")
-    public RedissonClient redisson() throws IOException {
-        return Redisson.create(
-                Config.fromYAML(new ClassPathResource(address).getInputStream()));
+    public RedissonClient redisson() {
+        Config config = new Config();
+
+        // 普通单节点（非 TLS）
+        config.useSingleServer()
+                .setAddress(address)
+                // 如果你的 Redis 仅需密码（老方式），只需 setPassword：
+                .setPassword(password)
+                .setDatabase(0)
+                .setTimeout(3000);
+
+        return Redisson.create(config);
     }
 
     @Bean

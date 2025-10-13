@@ -1,5 +1,4 @@
 server:
-  port: 9999   #  配置启动端口号
   compression:
     # http响应的gzip压缩
     enabled: true

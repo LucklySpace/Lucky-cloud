@@ -1,29 +1,31 @@
-# Spring
 spring:
   application:
-    # 应用名称
     name: im-analysis
   profiles:
-    # 环境配置
-    active: ${APP_PROFILES_ACTIVE:dev}
+    active: ${APP_PROFILES_ACTIVE:@app.profiles.active@}
+
   cloud:
     sentinel:
-      # 取消控制台懒加载
       eager: true
       transport:
-        # sentinel控制台地址
-        dashboard: localhost:8858
+        dashboard: ${SENTINEL_DASHBOARD_URL:@sentinel.dashboard.url@}
+    discovery:
+      client:
+        simple:
+          local:
+            instance-id: ${spring.application.name}-${random.value}
     nacos:
       discovery:
-        # 服务注册地址
-        server-addr: localhost:8848
-        username: nacos
-        password: nacos
+        server-addr: ${NACOS_DISCOVERY_SERVER_ADDR:@nacos.config.server-addr@}
+        username: ${NACOS_DISCOVERY_USERNAME:@nacos.discovery.username@}
+        password: ${NACOS_DISCOVERY_PASSWORD:@nacos.discovery.password@}
+
       config:
-        # 配置中心地址
-        server-addr: localhost:8848
-        # 配置文件格式
+        server-addr: ${NACOS_CONFIG_SERVER_ADDR:@nacos.config.server-addr@}
+        namespace: ${NACOS_CONFIG_NAMESPACE:@nacos.config.namespace@}
+        group: ${NACOS_CONFIG_GROUP:@nacos.config.group@}
+        name: ${spring.application.name}-@app.profiles.active@
         file-extension: yml
-        # 共享配置
-        shared-configs:
-          - application-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}
+
+server:
+  port: ${SERVER_PORT:8082}

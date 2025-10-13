@@ -1,6 +1,3 @@
-server:
-  port: 3210
-
 spring:
   data:
     redis:

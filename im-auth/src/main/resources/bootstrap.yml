@@ -1,93 +1,31 @@
-# =========================================
-# 公共配置（适用于所有环境）
-# =========================================
 spring:
   application:
     name: im-auth
-  # 指定当前激活的环境（可通过启动参数覆盖）
   profiles:
-    active: ${APP_PROFILES_ACTIVE:dev}
+    active: ${APP_PROFILES_ACTIVE:@app.profiles.active@}
+
   cloud:
     sentinel:
-      # 启动时立即建立与控制台连接
       eager: true
       transport:
-        # Sentinel 控制台地址
-        dashboard: localhost:8858
-    nacos:
-      discovery:
-        # 注册中心地址（使用占位符，实际值在环境段中指定）
-        server-addr: ${nacos.discovery.server-addr}
-        username: ${nacos.discovery.username}
-        password: ${nacos.discovery.password}
-      config:
-        # 配置中心地址
-        server-addr: ${nacos.config.server-addr}
-        # 配置文件格式
-        file-extension: yml
-        # 配置组名（带默认值）
-        group: ${nacos.config.group:DEFAULT_GROUP}
-        # 命名空间 ID
-        namespace: ${nacos.config.namespace}
-        # 当前服务在当前环境下的专属配置文件名，例如 im-service-dev.yml
-        name: ${spring.application.name}-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}
-        # 引用共享配置，例如 application-dev.yml
-        shared-configs:
-          - application-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}
-
+        dashboard: ${SENTINEL_DASHBOARD_URL:@sentinel.dashboard.url@}
     discovery:
       client:
         simple:
           local:
-            # 本地服务实例 ID，用于服务发现时标识实例
-            instance-id: ${spring.application.name}
+            instance-id: ${spring.application.name}-${random.value}
+    nacos:
+      discovery:
+        server-addr: ${NACOS_DISCOVERY_SERVER_ADDR:@nacos.config.server-addr@}
+        username: ${NACOS_DISCOVERY_USERNAME:@nacos.discovery.username@}
+        password: ${NACOS_DISCOVERY_PASSWORD:@nacos.discovery.password@}
 
-# =========================================
-# 开发环境配置（dev）
-# 通过 spring.config.activate.on-profile 激活
-# =========================================
----
-spring:
-  config:
-    activate:
-      on-profile: dev
+      config:
+        server-addr: ${NACOS_CONFIG_SERVER_ADDR:@nacos.config.server-addr@}
+        namespace: ${NACOS_CONFIG_NAMESPACE:@nacos.config.namespace@}
+        group: ${NACOS_CONFIG_GROUP:@nacos.config.group@}
+        name: ${spring.application.name}-@app.profiles.active@
+        file-extension: yml
 
-nacos:
-  discovery:
-    # 开发环境 Nacos 注册中心地址
-    server-addr: localhost:8848
-    username: nacos
-    password: nacos
-
-  config:
-    # 开发环境 Nacos 配置中心地址
-    server-addr: localhost:8848
-    # Nacos 控制台中的开发环境命名空间 ID
-    namespace: dev-namespace-id
-    # 配置组名（开发环境）
-    group: DEV_GROUP
-
-# =========================================
-# 生产环境配置（prod）
-# 通过 spring.config.activate.on-profile 激活
-# =========================================
----
-spring:
-  config:
-    activate:
-      on-profile: prod
-
-nacos:
-  discovery:
-    # 生产环境 Nacos 注册中心地址
-    server-addr: nacos.prod.company.com:8848
-    username: prod-user
-    password: prod-pass
-
-  config:
-    # 生产环境 Nacos 配置中心地址
-    server-addr: nacos.prod.company.com:8848
-    # Nacos 控制台中的生产命名空间 ID
-    namespace: prod-namespace-id
-    # 配置组名（生产环境）
-    group: PROD_GROUP
+server:
+  port: ${SERVER_PORT:8084}

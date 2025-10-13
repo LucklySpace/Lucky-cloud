@@ -1,5 +1,4 @@
 server:
-  port: 8082   #  配置启动端口号
   compression:
     enabled: true #  开启gzip压缩
     mime-types: application/json,application/xml,text/html,text/xml,text/plain

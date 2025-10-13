@@ -5,7 +5,6 @@ spring: #springboot的配置
   jackson:
     default-property-inclusion: non_null
 
-
 grpc:
   server:
     port: 7085

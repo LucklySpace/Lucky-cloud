@@ -17,7 +17,7 @@ IM-Server 是一个基于 **Spring Boot 3 + Spring Cloud Alibaba** 构建的高�
 - **Spring Boot 3.2.0**: 原生支持JDK 21，优化容器化部署
 - **Spring Cloud Alibaba**: 完整的微服务治理解决方案
 - **微服务架构**: 模块化设计，支持独立部署和扩展
-- **高并发支持**: 基于WebSocket的长连接管理，支持万级并发
+- **高并发支持**: 基于WebSocket的长连接管理，支持亿万级并发
 
 ### 💬 通讯功能
 

@@ -1,11 +1,8 @@
 server:
-  port: 8083   #  配置启动端口号
   compression:
     enabled: true #  开启gzip压缩
     mime-types: application/json,application/xml,text/html,text/xml,text/plain
     min-response-size: 1024
-
-
 
 spring: #springboot的配置
   banner:

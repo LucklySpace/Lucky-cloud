@@ -12,7 +12,6 @@ import com.xy.file.domain.OssFile;
 import com.xy.file.domain.OssFileUploadProgress;
 import com.xy.file.enums.StorageBucketEnum;
 import io.minio.*;
-import io.minio.errors.ErrorResponseException;
 import io.minio.errors.MinioException;
 import io.minio.http.Method;
 import io.minio.messages.Part;

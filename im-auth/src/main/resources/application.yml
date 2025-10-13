@@ -1,0 +1,6 @@
+spring:
+  profiles:
+    active: ${APP_PROFILES_ACTIVE:dev}
+    include: undertow  # 引用其他的yml文件
+  jackson:
+    default-property-inclusion: non_null

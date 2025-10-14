@@ -42,9 +42,7 @@ public class NacosTemplate {
     private final ConcurrentMap<Integer, Instance> instances = new ConcurrentHashMap<>();
     // Nacos 服务地址配置（通过注入）
     @Value("${nacos.config.address}")
-    private String serverIp;
-    @Value("${nacos.config.port}")
-    private Integer serverPort;
+    private String serverAddr;
     @Value("${nacos.config.name}")
     private String serviceName;
     @Value("${nacos.config.version:}")
@@ -68,12 +66,6 @@ public class NacosTemplate {
      */
     public boolean registerNacos(Integer port) {
         Objects.requireNonNull(port, "port");
-
-        // 校验基本配置
-        if (!validateConfig()) {
-            log.error("nacos 配置不完整，无法注册 port={}", port);
-            return false;
-        }
 
         if (shutdown) {
             log.warn("NacosTemplate 已 shutdown，忽略 registerNacos({}) 请求", port);
@@ -292,12 +284,11 @@ public class NacosTemplate {
         if (existing != null) return existing;
 
         // 校验 server 地址
-        if (serverIp == null || serverIp.isEmpty() || serverPort == null) {
-            log.error("Nacos server config is incomplete: serverIp={}, serverPort={}", serverIp, serverPort);
+        if (serverAddr == null) {
+            log.error("Nacos server config is incomplete: serverAddr={}", serverAddr);
             return null;
         }
 
-        final String serverAddr = serverIp + ":" + serverPort;
         try {
             NamingService ns = NamingFactory.createNamingService(serverAddr);
             namingServiceRef.set(ns);
@@ -373,10 +364,6 @@ public class NacosTemplate {
     private boolean validateConfig() {
         if (serviceName == null || serviceName.isEmpty()) {
             log.error("nacos.config.name (serviceName) is not configured");
-            return false;
-        }
-        if (serverIp == null || serverIp.isEmpty() || serverPort == null) {
-            log.error("nacos server address/port not configured");
             return false;
         }
         return true;

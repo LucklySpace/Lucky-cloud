@@ -20,6 +20,7 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -51,9 +52,12 @@ public class RedisConfig extends CachingConfigurerSupport {
         config.useSingleServer()
                 .setAddress(address)
                 // 如果你的 Redis 仅需密码（老方式），只需 setPassword：
-                .setPassword(password)
                 .setDatabase(0)
                 .setTimeout(3000);
+
+        if (StringUtils.hasText(password)) {
+            config.useSingleServer().setPassword(password);
+        }
 
         return Redisson.create(config);
     }

@@ -14,7 +14,7 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 @ConfigurationProperties(
         prefix = "security"
 )
-public class SecurityProperties {
+public class IMSecurityProperties {
 
     /**
      * 过滤器忽略地址
@@ -32,5 +32,5 @@ public class SecurityProperties {
     private Integer expiration;
 
 
-    private RSAKeyProperties RSAKeyProperties;
+    private IMRSAKeyProperties IMRSAKeyProperties;
 }

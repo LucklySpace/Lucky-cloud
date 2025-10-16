@@ -165,23 +165,18 @@
             <optional>true</optional>
         </dependency>
 
-
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
             <version>${hutool.version}</version>
             <scope>compile</scope>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
-
-        <!--        <dependency>-->
-        <!--            <groupId>org.springframework</groupId>-->
-        <!--            <artifactId>spring-webflux</artifactId>-->
-        <!--        </dependency>-->
     </dependencies>
 
     <build>

@@ -2,18 +2,16 @@ package com.xy.auth.service.impl;
 
 
 import cn.hutool.core.date.DateField;
-import cn.hutool.extra.qrcode.QrCodeException;
-import cn.hutool.extra.qrcode.QrCodeUtil;
-import cn.hutool.extra.qrcode.QrConfig;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.xy.auth.api.database.user.ImUserFeign;
 import com.xy.auth.domain.*;
-import com.xy.auth.security.RSAKeyProperties;
-import com.xy.auth.security.SecurityProperties;
+import com.xy.auth.security.IMRSAKeyProperties;
+import com.xy.auth.security.IMSecurityProperties;
 import com.xy.auth.security.token.MobileAuthenticationToken;
 import com.xy.auth.security.token.QrScanAuthenticationToken;
 import com.xy.auth.security.token.UserAuthenticationToken;
 import com.xy.auth.service.AuthService;
+import com.xy.auth.utils.QRCodeUtil;
 import com.xy.auth.utils.RedisCache;
 import com.xy.core.constants.IMConstant;
 import com.xy.core.constants.NacosInstanceMetadataConstants;
@@ -27,18 +25,17 @@ import com.xy.general.response.domain.ResultCode;
 import com.xy.utils.JacksonUtil;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -55,17 +52,15 @@ import static com.xy.core.constants.IMConstant.USER_CACHE_PREFIX;
 public class AuthServiceImpl implements AuthService {
 
     @Resource
-    private QrConfig qrConfig;
-    @Resource
     private ImUserFeign imUserFeign;
     @Resource
     private RedisCache redisCache;
     @Resource
     private AuthenticationManager authenticationManager;
     @Resource
-    private SecurityProperties securityProperties;
+    private IMSecurityProperties IMSecurityProperties;
     @Resource
-    private RSAKeyProperties rsaKeyProperties;
+    private IMRSAKeyProperties IMRSAKeyProperties;
     @Resource
     private DiscoveryClient discoveryClient;
 
@@ -247,7 +242,7 @@ public class AuthServiceImpl implements AuthService {
             return Result.failed(ResultCode.TOKEN_IS_NULL);
         }
 
-        String newToken = JwtUtil.refreshToken(oldToken, securityProperties.getExpiration(), DateField.HOUR);
+        String newToken = JwtUtil.refreshToken(oldToken, IMSecurityProperties.getExpiration(), DateField.HOUR);
 
         log.info("Token 刷新成功");
 
@@ -263,7 +258,7 @@ public class AuthServiceImpl implements AuthService {
      */
     @Override
     public Result<?> getPublicKey() {
-        String pubKey = rsaKeyProperties.getPublicKeyStr();
+        String pubKey = IMRSAKeyProperties.getPublicKeyStr();
 
         log.debug("获取 RSA 公钥");
 
@@ -408,14 +403,14 @@ public class AuthServiceImpl implements AuthService {
         String userId = auth.getPrincipal().toString();
 
         // 生成token
-        String token = JwtUtil.createToken(userId, securityProperties.getExpiration(), DateField.HOUR);
+        String token = JwtUtil.createToken(userId, IMSecurityProperties.getExpiration(), DateField.HOUR);
 
         log.debug("生成 JWT Token：userId={}", userId);
 
         return new IMLoginResult()
                 .setUserId(userId)
                 .setAccessToken(token)
-                .setExpiration(securityProperties.getExpiration());
+                .setExpiration(IMSecurityProperties.getExpiration());
     }
 
     /**
@@ -443,23 +438,15 @@ public class AuthServiceImpl implements AuthService {
      */
     private String createCodeToBase64(String content) {
         try {
-            return QrCodeUtil.generateAsBase64(content, qrConfig, QrCodeUtil.QR_TYPE_SVG);
+
+            return  QRCodeUtil.generateQRCodeBase64(content, "png");
         } catch (Exception e) {
             log.error("二维码生成失败：content={}", content, e);
             return null;
         }
     }
 
-    /**
-     * 输出二维码到 HTTP 响应流
-     */
-    public void createCodeToStream(String content, HttpServletResponse resp) {
-        try {
-            QrCodeUtil.generate(content, qrConfig, "png", resp.getOutputStream());
-        } catch (IOException | QrCodeException e) {
-            log.error("二维码写入流失败：content={}", content, e);
-        }
-    }
+
 
     @Override
     public Result<?> sendSms(String phone) {

@@ -1,7 +1,7 @@
 package com.xy.auth.security.handle;
 
 
-import com.xy.auth.utils.ResponseUtils;
+import com.xy.auth.utils.ResponseUtil;
 import com.xy.general.response.domain.Result;
 import com.xy.general.response.domain.ResultCode;
 import com.xy.utils.JacksonUtil;
@@ -21,7 +21,7 @@ public class LoginAccessDefineHandler implements AccessDeniedHandler {
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) {
 
-        ResponseUtils.renderString(response, JacksonUtil.toJSONString(Result.failed(ResultCode.UNAUTHORIZED)));
+        ResponseUtil.renderString(response, JacksonUtil.toJSONString(Result.failed(ResultCode.UNAUTHORIZED)));
 
     }
 }

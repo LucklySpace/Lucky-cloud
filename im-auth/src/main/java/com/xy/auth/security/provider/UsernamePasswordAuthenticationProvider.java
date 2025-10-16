@@ -2,7 +2,7 @@ package com.xy.auth.security.provider;
 
 
 import com.xy.auth.api.database.user.ImUserFeign;
-import com.xy.auth.security.RSAKeyProperties;
+import com.xy.auth.security.IMRSAKeyProperties;
 import com.xy.auth.security.exception.AuthenticationFailException;
 import com.xy.auth.utils.RSAUtil;
 import com.xy.domain.po.ImUserPo;
@@ -29,7 +29,7 @@ public class UsernamePasswordAuthenticationProvider implements AuthenticationPro
     private ImUserFeign imUserFeign;
 
     @Resource
-    private RSAKeyProperties rsaKeyProperties;
+    private IMRSAKeyProperties IMRSAKeyProperties;
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
@@ -85,7 +85,7 @@ public class UsernamePasswordAuthenticationProvider implements AuthenticationPro
         try {
             // 处理 Base64 编码问题（URL 传递时 "+" 号会被编码成空格）
             String decodedPassword = encryptedPassword.replaceAll(" ", "+");
-            return RSAUtil.decrypt(decodedPassword, rsaKeyProperties.getPrivateKeyStr());
+            return RSAUtil.decrypt(decodedPassword, IMRSAKeyProperties.getPrivateKeyStr());
         } catch (Exception e) {
             log.error("Failed to decrypt password", e);
             throw new AuthenticationFailException(ResultCode.INVALID_CREDENTIALS);

@@ -15,7 +15,7 @@ import java.net.URLEncoder;
  * @author lyn
  */
 @Slf4j
-public class ResponseUtils {
+public class ResponseUtil {
 
     /**
      * 使用response输出JSON

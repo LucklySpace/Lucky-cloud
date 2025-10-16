@@ -1,6 +1,6 @@
 package com.xy.auth.security.filter;
 
-import com.xy.auth.security.SecurityProperties;
+import com.xy.auth.security.IMSecurityProperties;
 import com.xy.auth.security.exception.AuthenticationFailException;
 import com.xy.core.constants.IMConstant;
 import com.xy.core.utils.JwtUtil;
@@ -29,10 +29,10 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
     /**
      * 存储忽略的URL配置
      */
-    private final SecurityProperties securityProperties;
+    private final IMSecurityProperties IMSecurityProperties;
 
-    public TokenAuthenticationFilter(SecurityProperties securityProperties) {
-        this.securityProperties = securityProperties;
+    public TokenAuthenticationFilter(IMSecurityProperties IMSecurityProperties) {
+        this.IMSecurityProperties = IMSecurityProperties;
     }
 
     /**
@@ -142,7 +142,7 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
      */
     public boolean isIgnoredUrl(String ignoreUrl) {
         // 获取配置中的忽略 URL 列表
-        String[] ignoreUrls = securityProperties.getIgnore();
+        String[] ignoreUrls = IMSecurityProperties.getIgnore();
 
         // 如果没有配置忽略 URL，或者传入的 URL 不符合任何规则，则返回 false
         if (!StringUtils.hasText(ignoreUrl) || ignoreUrls.length == 0) {

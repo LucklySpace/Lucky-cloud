@@ -2,7 +2,7 @@ package com.xy.auth.controller;
 
 
 import com.xy.auth.domain.IMLoginRequest;
-import com.xy.auth.security.RSAKeyProperties;
+import com.xy.auth.security.IMRSAKeyProperties;
 import com.xy.auth.service.AuthService;
 import com.xy.auth.utils.RSAUtil;
 import com.xy.general.response.domain.Result;
@@ -38,7 +38,7 @@ public class AuthController {
     private AuthService authService;
 
     @Resource
-    private RSAKeyProperties rsaKeyProperties;
+    private IMRSAKeyProperties IMRSAKeyProperties;
 
     /**
      * 统一登录接口，根据 authType 选择认证方式
@@ -204,7 +204,7 @@ public class AuthController {
             @Parameter(name = "password", description = "密码原文", required = true, in = ParameterIn.DEFAULT)
     })
     public Result<?> passwordEncode(@RequestParam("password") String password) throws Exception {
-        return Result.success(RSAUtil.encrypt(password, rsaKeyProperties.getPublicKeyStr()));
+        return Result.success(RSAUtil.encrypt(password, IMRSAKeyProperties.getPublicKeyStr()));
     }
 //    /**
 //     * 密码加密

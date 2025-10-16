@@ -25,14 +25,14 @@ import java.util.stream.Collectors;
  * @author vinjcent
  * @since 2023/3/28
  */
-public final class BeanCopierUtils {
+public final class BeanCopierUtil {
 
     /**
      * BeanCopier 缓存键：源类型 -> 目标类型
      */
     private static final Map<Key, BeanCopier> BEAN_COPIER_CACHE = new ConcurrentHashMap<>();
 
-    private BeanCopierUtils() {
+    private BeanCopierUtil() {
         // 工具类静态方法，无需实例化
     }
 

@@ -2,7 +2,7 @@ package com.xy.auth.security.provider;
 
 
 import com.xy.auth.api.database.user.ImUserFeign;
-import com.xy.auth.security.RSAKeyProperties;
+import com.xy.auth.security.IMRSAKeyProperties;
 import com.xy.auth.security.exception.AuthenticationFailException;
 import com.xy.auth.security.token.MobileAuthenticationToken;
 import com.xy.auth.utils.RSAUtil;
@@ -31,7 +31,7 @@ public class MobileAuthenticationProvider implements AuthenticationProvider {
     private ImUserFeign imUserFeign;
 
     @Resource
-    private RSAKeyProperties rsaKeyProperties;
+    private IMRSAKeyProperties IMRSAKeyProperties;
 
     @Resource
     private RedisCache redisCache;
@@ -139,7 +139,7 @@ public class MobileAuthenticationProvider implements AuthenticationProvider {
             // Base64 编码时使用加号，URL 中的加号会被当成空格，需要替换
             String str = password.replaceAll(" ", "+");
 
-            return RSAUtil.decrypt(str, rsaKeyProperties.getPrivateKeyStr());
+            return RSAUtil.decrypt(str, IMRSAKeyProperties.getPrivateKeyStr());
 
         } catch (Exception e) {
 

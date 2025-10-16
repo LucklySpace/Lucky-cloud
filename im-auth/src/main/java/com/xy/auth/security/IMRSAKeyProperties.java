@@ -17,7 +17,7 @@ import java.util.Base64;
 @Data
 @Slf4j
 @ConfigurationProperties(prefix = "security.rsa.key")
-public class RSAKeyProperties {
+public class IMRSAKeyProperties {
 
     // 指定密钥长度
     private static final int KEY_SIZE = 2048;

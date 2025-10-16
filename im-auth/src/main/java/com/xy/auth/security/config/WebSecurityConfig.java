@@ -1,7 +1,7 @@
 package com.xy.auth.security.config;
 
 
-import com.xy.auth.security.SecurityProperties;
+import com.xy.auth.security.IMSecurityProperties;
 import com.xy.auth.security.filter.TokenAuthenticationFilter;
 import com.xy.auth.security.handle.LoginAccessDefineHandler;
 import com.xy.auth.security.handle.LoginAuthenticationHandler;
@@ -55,7 +55,7 @@ public class WebSecurityConfig {
     private TokenAuthenticationFilter tokenAuthenticationFilter;
 
     @Resource
-    private SecurityProperties securityProperties;
+    private IMSecurityProperties IMSecurityProperties;
 
     @Resource
     private MobileAuthenticationProvider mobileAuthenticationProvider;
@@ -92,7 +92,7 @@ public class WebSecurityConfig {
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         // 配置路径访问权限，忽略某些路径的认证
         http.authorizeHttpRequests(requestMatcherRegistry ->
-                requestMatcherRegistry.requestMatchers(securityProperties.getIgnore()).permitAll() // 忽略的路径
+                requestMatcherRegistry.requestMatchers(IMSecurityProperties.getIgnore()).permitAll() // 忽略的路径
                         .anyRequest().authenticated() // 其他路径需认证
         );
 

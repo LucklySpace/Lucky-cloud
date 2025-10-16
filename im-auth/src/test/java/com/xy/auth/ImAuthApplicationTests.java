@@ -1,15 +1,9 @@
 package com.xy.auth;
 
-import cn.hutool.core.date.DateField;
-import com.xy.core.utils.JwtUtil;
+
 import org.junit.jupiter.api.Test;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.nio.file.Paths;
 
-//import org.springframework.boot.test.context.SpringBootTest;
-//
 //@SpringBootTest
 class ImAuthApplicationTests {
 
@@ -30,33 +24,5 @@ class ImAuthApplicationTests {
     @Test
     void generateUidAndTokenToCsv() throws Exception {
 
-        /**
-         * 生成多少条 UID + Token
-         */
-        Integer COUNT = 50000;
-
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(Paths.get(CSV_PATH).toFile()))) {
-            // 写 CSV 头
-            writer.write("uid,token");
-
-            writer.newLine();
-
-            Integer startId = 10000;
-
-            for (int i = 0; i < COUNT; i++) {
-                // 生成 UID
-                String uid = String.valueOf(startId + i);
-
-                // 使用 JwtUtil 工具类创建 Token（你自己的工具类）
-                String token = JwtUtil.createToken(uid, EXPIRE_HOURS, DateField.HOUR);
-
-                // 写入 CSV 一行
-                writer.write(String.format("%s,%s", uid, token));
-
-                writer.newLine();
-            }
-
-            System.out.println("✅ 成功生成 " + COUNT + " 条 UID 与 Token，并写入到：" + CSV_PATH);
-        }
     }
 }

@@ -7,6 +7,7 @@ import com.alibaba.nacos.api.naming.pojo.Instance;
 import com.xy.connect.channel.UserChannelMap;
 import com.xy.connect.config.LogConstant;
 import com.xy.connect.utils.IPAddressUtil;
+import com.xy.core.constants.NacosInstanceMetadataConstants;
 import com.xy.spring.annotations.core.Autowired;
 import com.xy.spring.annotations.core.Component;
 import com.xy.spring.annotations.core.Value;
@@ -94,10 +95,13 @@ public class NacosTemplate {
         instance.setWeight(1.0);
         // metadata
         Map<String, String> meta = instance.getMetadata();
-        meta.put("brokerId", brokerId == null ? "" : brokerId);
-        meta.put("version", version == null ? "" : version);
-        meta.put("protocol", "websocket"); // 或由调用方传入
-        meta.put("connection", "0");
+        meta.put(NacosInstanceMetadataConstants.BROKER_ID, brokerId == null ? "" : brokerId);
+        meta.put(NacosInstanceMetadataConstants.VERSION, version == null ? "" : version);
+        meta.put(NacosInstanceMetadataConstants.PROTOCOLS, "[\"websocket\"]"); // json array format
+        meta.put(NacosInstanceMetadataConstants.CONNECTION, "0");
+        meta.put(NacosInstanceMetadataConstants.CREATED_AT, String.valueOf(System.currentTimeMillis() / 1000L));
+        meta.put(NacosInstanceMetadataConstants.REGION, ""); // eg. cn-shenzhen
+        meta.put(NacosInstanceMetadataConstants.PRIORITY, "1");
 
         // 把实例放到 map（但尚未注册成功）
         instances.put(port, instance);

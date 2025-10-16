@@ -1,8 +1,9 @@
 package com.xy.auth.security.handle;
 
-import com.xy.auth.utils.JsonUtil;
+
 import com.xy.auth.utils.ResponseUtils;
 import com.xy.general.response.domain.Result;
+import com.xy.utils.JacksonUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.AuthenticationException;
@@ -18,7 +19,7 @@ public class LoginAuthenticationHandler implements AuthenticationEntryPoint {
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) {
 
-        ResponseUtils.renderString(response, JsonUtil.toJSONString(Result.failed(authException.getMessage())));
+        ResponseUtils.renderString(response, JacksonUtil.toJSONString(Result.failed(authException.getMessage())));
 
     }
 }

@@ -14,6 +14,6 @@ public class JsonMessageEncoder extends MessageToMessageEncoder<IMessageWrap> {
     @Override
     protected void encode(ChannelHandlerContext channelHandlerContext, IMessageWrap message,
                           List<Object> list) throws Exception {
-        list.add(new TextWebSocketFrame(JacksonUtil.toJson(message)));
+        list.add(new TextWebSocketFrame(JacksonUtil.toJSONString(message)));
     }
 }

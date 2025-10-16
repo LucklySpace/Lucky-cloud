@@ -97,10 +97,12 @@ public class NacosTemplate {
         Map<String, String> meta = instance.getMetadata();
         meta.put(NacosInstanceMetadataConstants.BROKER_ID, brokerId == null ? "" : brokerId);
         meta.put(NacosInstanceMetadataConstants.VERSION, version == null ? "" : version);
+
+        // # TODO 待完善
         meta.put(NacosInstanceMetadataConstants.PROTOCOLS, "[\"websocket\"]"); // json array format
         meta.put(NacosInstanceMetadataConstants.CONNECTION, "0");
         meta.put(NacosInstanceMetadataConstants.CREATED_AT, String.valueOf(System.currentTimeMillis() / 1000L));
-        meta.put(NacosInstanceMetadataConstants.REGION, ""); // eg. cn-shenzhen
+        meta.put(NacosInstanceMetadataConstants.REGION, "cn-shanghai");
         meta.put(NacosInstanceMetadataConstants.PRIORITY, "1");
 
         // 把实例放到 map（但尚未注册成功）

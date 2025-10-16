@@ -15,6 +15,6 @@ public class JsonMessageDecoder extends MessageToMessageDecoder<TextWebSocketFra
     protected void decode(ChannelHandlerContext channelHandlerContext,
                           TextWebSocketFrame textWebSocketFrame,
                           List<Object> list) throws Exception {
-        list.add(JacksonUtil.fromJson(textWebSocketFrame.text(), IMessageWrap.class));
+        list.add(JacksonUtil.parseObject(textWebSocketFrame.text(), IMessageWrap.class));
     }
 }

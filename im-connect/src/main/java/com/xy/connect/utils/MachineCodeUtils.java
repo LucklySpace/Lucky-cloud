@@ -80,7 +80,7 @@ public class MachineCodeUtils {
         // 添加随机UUID生成器
         codeMap.put("randomUUID", UUID.randomUUID().toString());
 
-        String codeMapStr = JacksonUtil.toJson(codeMap);
+        String codeMapStr = JacksonUtil.toJSONString(codeMap);
         String serials = DigestUtil.md5Hex(codeMapStr);
         return getSplitString(serials, "-", 4).toUpperCase();
     }

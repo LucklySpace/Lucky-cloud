@@ -18,7 +18,7 @@ public class JsonMessageHandler extends ChannelDuplexHandler {
         if (msg instanceof TextWebSocketFrame) {
             TextWebSocketFrame frame = (TextWebSocketFrame) msg;
             try {
-                IMessageWrap pojo = JacksonUtil.fromJson(frame.text(), IMessageWrap.class);
+                IMessageWrap pojo = JacksonUtil.parseObject(frame.text(), IMessageWrap.class);
                 // 替换消息为 POJO 并 forward
                 ctx.fireChannelRead(pojo);
             } catch (Exception e) {
@@ -42,7 +42,7 @@ public class JsonMessageHandler extends ChannelDuplexHandler {
                     ctx.write(msg, promise);
                     return;
                 }
-                String json = JacksonUtil.toJson(imMsg);
+                String json = JacksonUtil.toJSONString(imMsg);
                 TextWebSocketFrame frame = new TextWebSocketFrame(json);
                 ctx.write(frame, promise);
             } catch (Exception e) {

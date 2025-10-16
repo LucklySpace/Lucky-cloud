@@ -20,9 +20,9 @@ import com.xy.server.api.grpc.id.ImIdGeneratorGrpcClient;
 import com.xy.server.api.grpc.outbox.IMOutboxGrpcClient;
 import com.xy.server.config.RabbitTemplateFactory;
 import com.xy.server.service.MessageService;
-import com.xy.server.utils.JsonUtil;
 import com.xy.server.utils.RedisUtil;
 import com.xy.utils.DateTimeUtil;
+import com.xy.utils.JacksonUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -167,7 +167,7 @@ public class MessageServiceImpl implements MessageService {
             // 异步插入消息和更新会话
             stopWatch.start("asyncSchedule");
             CompletableFuture.runAsync(() -> {
-                createOutbox(String.valueOf(messageId), JsonUtil.toJSONString(dto), MQ_EXCHANGE_NAME, "single.message." + dto.getToId(), messageTime);
+                createOutbox(String.valueOf(messageId), JacksonUtil.toJSONString(dto), MQ_EXCHANGE_NAME, "single.message." + dto.getToId(), messageTime);
                 insertImSingleMessage(messagePo);
                 createOrUpdateImChat(dto.getFromId(), dto.getToId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
                 createOrUpdateImChat(dto.getToId(), dto.getFromId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
@@ -176,7 +176,7 @@ public class MessageServiceImpl implements MessageService {
 
             // 检查接收者在线状态（Redis）
             stopWatch.start("redisCheck");
-            Object redisObj = redisUtil.get(USER_CACHE_PREFIX + dto.getToId());
+            IMRegisterUser redisObj = redisUtil.get(USER_CACHE_PREFIX + dto.getToId());
             stopWatch.stop();
 
             if (Objects.isNull(redisObj)) {
@@ -187,21 +187,15 @@ public class MessageServiceImpl implements MessageService {
                 return Result.success(ResultCode.USER_OFFLINE.getMessage(), dto);
             }
 
-            // 解析 register user
-            stopWatch.start("parseRegisterUser");
-            IMRegisterUser registerUser = JsonUtil.parseObject(redisObj, IMRegisterUser.class);
-            String brokerId = registerUser.getBrokerId();
-            stopWatch.stop();
-
             // 包装消息并序列化
             stopWatch.start("serialization");
             IMessageWrap<Object> wrapper = new IMessageWrap<>().setCode(IMessageType.SINGLE_MESSAGE.getCode()).setData(dto).setIds(List.of(dto.getToId()));
-            String payload = JsonUtil.toJSONString(wrapper);
+            String payload = JacksonUtil.toJSONString(wrapper);
             stopWatch.stop();
 
             // 发布到 broker
             stopWatch.start("publishToBroker");
-            publishToBroker(MQ_EXCHANGE_NAME, brokerId, payload, String.valueOf(messageId));
+            publishToBroker(MQ_EXCHANGE_NAME, redisObj.getBrokerId(), payload, String.valueOf(messageId));
             stopWatch.stop();
 
             stopWatch.start("logSuccess");
@@ -286,7 +280,7 @@ public class MessageServiceImpl implements MessageService {
                 insertImGroupMessage(dto);
                 setGroupReadStatus(String.valueOf(messageId), dto.getGroupId(), members);
                 updateGroupChats(dto.getGroupId(), messageTime, members);
-                createOutbox(String.valueOf(messageId), JsonUtil.toJSONString(dto), MQ_EXCHANGE_NAME, "group.message." + dto.getGroupId(), messageTime);
+                createOutbox(String.valueOf(messageId), JacksonUtil.toJSONString(dto), MQ_EXCHANGE_NAME, "group.message." + dto.getGroupId(), messageTime);
             }, asyncTaskExecutor);
             stopWatch.stop();
 
@@ -296,7 +290,7 @@ public class MessageServiceImpl implements MessageService {
             Map<String, List<String>> brokerMap = new HashMap<>();
             for (Object obj : userObjs) {
                 if (Objects.nonNull(obj)) {
-                    IMRegisterUser user = JsonUtil.parseObject(obj, IMRegisterUser.class);
+                    IMRegisterUser user = JacksonUtil.parseObject(obj, IMRegisterUser.class);
                     brokerMap.computeIfAbsent(user.getBrokerId(), k -> new ArrayList<>()).add(user.getUserId());
                 }
             }
@@ -308,7 +302,7 @@ public class MessageServiceImpl implements MessageService {
                 String brokerId = entry.getKey();
                 dto.setToList(entry.getValue());
                 IMessageWrap<Object> wrapper = new IMessageWrap<>().setCode(IMessageType.GROUP_MESSAGE.getCode()).setData(dto).setIds(entry.getValue());
-                publishToBroker(MQ_EXCHANGE_NAME, brokerId, JsonUtil.toJSONString(wrapper), String.valueOf(messageId));
+                publishToBroker(MQ_EXCHANGE_NAME, brokerId, JacksonUtil.toJSONString(wrapper), String.valueOf(messageId));
             }
             stopWatch.stop();
 
@@ -373,7 +367,7 @@ public class MessageServiceImpl implements MessageService {
             }
 
             stopWatch.start("parseTargetUser");
-            IMRegisterUser targetUser = JsonUtil.parseObject(redisObj, IMRegisterUser.class);
+            IMRegisterUser targetUser = JacksonUtil.parseObject(redisObj, IMRegisterUser.class);
             String brokerId = targetUser.getBrokerId();
             stopWatch.stop();
 
@@ -417,7 +411,7 @@ public class MessageServiceImpl implements MessageService {
                 return msg;
             };
 
-            rabbitTemplate.convertAndSend(MQ_EXCHANGE_NAME, brokerId, JsonUtil.toJSONString(wrapMsg), mpp);
+            rabbitTemplate.convertAndSend(MQ_EXCHANGE_NAME, brokerId, JacksonUtil.toJSONString(wrapMsg), mpp);
             stopWatch.stop();
 
             stopWatch.start("logSuccess");
@@ -508,7 +502,7 @@ public class MessageServiceImpl implements MessageService {
                     if (Boolean.TRUE.equals(body.get("_recalled"))) return Result.success("消息已撤回");
 
                     recallPayload.put("messageBody", msg.getMessageBody());
-                    ImSingleMessagePo update = new ImSingleMessagePo().setMessageId(messageId).setMessageBody(JsonUtil.toJSONString(recallPayload)).setUpdateTime(recallTime);
+                    ImSingleMessagePo update = new ImSingleMessagePo().setMessageId(messageId).setMessageBody(JacksonUtil.toJSONString(recallPayload)).setUpdateTime(recallTime);
                     imMessageFeign.singleMessageSaveOrUpdate(update);
 
                     // 广播给双方
@@ -531,7 +525,7 @@ public class MessageServiceImpl implements MessageService {
                     if (Boolean.TRUE.equals(body.get("_recalled"))) return Result.success("消息已撤回");
 
                     recallPayload.put("groupId", msg.getGroupId());
-                    ImGroupMessagePo update = new ImGroupMessagePo().setMessageId(messageId).setMessageBody(JsonUtil.toJSONString(recallPayload)).setUpdateTime(recallTime);
+                    ImGroupMessagePo update = new ImGroupMessagePo().setMessageId(messageId).setMessageBody(JacksonUtil.toJSONString(recallPayload)).setUpdateTime(recallTime);
                     imMessageFeign.groupMessageSaveOrUpdate(update);
 
                     // 广播给群成员
@@ -583,7 +577,7 @@ public class MessageServiceImpl implements MessageService {
         Map<String, List<String>> brokerMap = new HashMap<>();
         for (Object obj : redisObjs) {
             if (Objects.nonNull(obj)) {
-                IMRegisterUser user = JsonUtil.parseObject(obj, IMRegisterUser.class);
+                IMRegisterUser user = JacksonUtil.parseObject(obj, IMRegisterUser.class);
                 brokerMap.computeIfAbsent(user.getBrokerId(), k -> new ArrayList<>()).add(user.getUserId());
             }
         }
@@ -592,7 +586,7 @@ public class MessageServiceImpl implements MessageService {
         stopWatch.start("publishToBrokers");
         for (Map.Entry<String, List<String>> entry : brokerMap.entrySet()) {
             IMessageWrap<Object> wrap = new IMessageWrap<>().setCode(messageType).setData(dto).setIds(entry.getValue());
-            publishToBroker(MQ_EXCHANGE_NAME, entry.getKey(), JsonUtil.toJSONString(wrap), messageId);
+            publishToBroker(MQ_EXCHANGE_NAME, entry.getKey(), JacksonUtil.toJSONString(wrap), messageId);
         }
         stopWatch.stop();
 

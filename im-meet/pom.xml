@@ -44,6 +44,12 @@
     </properties>
     <dependencies>
 
+        <dependency>
+            <groupId>com.xy</groupId>
+            <artifactId>im-utils</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+
         <!-- 引入jackson依赖包-->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

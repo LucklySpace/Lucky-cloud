@@ -96,7 +96,7 @@ public class LoginProcess implements WebsocketProcess {
                 // 设备类型
                 .setDeviceType(deviceType);
 
-        redisTemplate.setEx(USER_CACHE_PREFIX + userId, JacksonUtil.toJson(imRegisterUser), heartBeatTime * 2);
+        redisTemplate.setEx(USER_CACHE_PREFIX + userId, JacksonUtil.toJSONString(imRegisterUser), heartBeatTime * 2);
 
         // 响应ws
         MessageUtils.send(ctx, sendInfo.setCode(IMessageType.LOGIN.getCode()));

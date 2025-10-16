@@ -1,9 +1,10 @@
 package com.xy.auth.security.handle;
 
-import com.xy.auth.utils.JsonUtil;
+
 import com.xy.auth.utils.ResponseUtils;
 import com.xy.general.response.domain.Result;
 import com.xy.general.response.domain.ResultCode;
+import com.xy.utils.JacksonUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.access.AccessDeniedException;
@@ -20,7 +21,7 @@ public class LoginAccessDefineHandler implements AccessDeniedHandler {
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) {
 
-        ResponseUtils.renderString(response, JsonUtil.toJSONString(Result.failed(ResultCode.UNAUTHORIZED)));
+        ResponseUtils.renderString(response, JacksonUtil.toJSONString(Result.failed(ResultCode.UNAUTHORIZED)));
 
     }
 }

@@ -43,13 +43,9 @@ public class GroupMessageProcess implements MessageProcess {
 
                     // 4. 推送消息到接收者
                     if (ctx != null && ctx.isOpen()) {
+
                         // 推送消息到用户
-                        IMessageWrap<Object> wsConnMessage = IMessageWrap.builder()
-                                .code(IMessageType.GROUP_MESSAGE.getCode())
-                                .data(messageWrap.getData())
-                                .build();
-                        ctx.writeAndFlush(wsConnMessage);
-                        // 消息发送成功确认
+                        ctx.writeAndFlush(messageWrap);
 
                     } else {
                         // 消息推送失败确认

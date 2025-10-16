@@ -9,10 +9,13 @@ import com.xy.connect.message.process.impl.VideoMessageProcess;
 import com.xy.connect.utils.JacksonUtil;
 import com.xy.core.enums.IMessageType;
 import com.xy.core.model.IMessageWrap;
+import com.xy.core.utils.StringUtils;
 import com.xy.spring.annotations.core.Autowired;
 import com.xy.spring.annotations.core.Component;
 import com.xy.spring.annotations.event.EventListener;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Objects;
 
 @Slf4j(topic = LogConstant.Message)
 @Component
@@ -34,27 +37,21 @@ public class MessageHandler {
     public void handleMessage(MessageEvent messageEvent) {
 
         final String body = messageEvent.getBody();
-        if (body == null || body.trim().isEmpty()) {
+        if (StringUtils.isBlank(body) || body.trim().isEmpty()) {
             log.warn("收到空消息体，忽略处理");
             return;
         }
 
-        IMessageWrap<Object> messageWrap;
-        try {
-            messageWrap = JacksonUtil.fromJson(body, IMessageWrap.class);
-        } catch (Exception e) {
-            log.error("消息反序列化失败，body={}, error={}", safeTruncate(body), e.getMessage(), e);
-            return;
-        }
+        IMessageWrap<Object> messageWrap = JacksonUtil.parseObject(body, IMessageWrap.class);
 
-        if (messageWrap == null) {
+        if (Objects.isNull(messageWrap) ) {
             log.warn("反序列化结果为 null，body={}", safeTruncate(body));
             return;
         }
 
         IMessageType msgType = IMessageType.getByCode(messageWrap.getCode());
 
-        if (msgType == null) {
+        if (Objects.isNull(msgType)) {
             log.warn("未知的消息类型 code={}, body={}", messageWrap.getCode(), safeTruncate(body));
             return;
         }

@@ -1,12 +1,10 @@
 package com.xy.auth.service.impl;
 
 
-import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateField;
 import cn.hutool.extra.qrcode.QrCodeException;
 import cn.hutool.extra.qrcode.QrCodeUtil;
 import cn.hutool.extra.qrcode.QrConfig;
-import com.alibaba.nacos.common.utils.JacksonUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.xy.auth.api.database.user.ImUserFeign;
 import com.xy.auth.domain.*;
@@ -26,6 +24,7 @@ import com.xy.domain.po.ImUserDataPo;
 import com.xy.domain.vo.UserVo;
 import com.xy.general.response.domain.Result;
 import com.xy.general.response.domain.ResultCode;
+import com.xy.utils.JacksonUtil;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -36,6 +35,7 @@ import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
@@ -111,11 +111,8 @@ public class AuthServiceImpl implements AuthService {
         // 生成用户认证信息
         IMLoginResult loginResult = generateAuthInfo(auth);
 
-        String cacheStr = redisCache.get(USER_CACHE_PREFIX + loginResult.getUserId());
-        IMRegisterUser imRegisterUser = null;
-        if (StringUtils.hasLength(cacheStr)) {
-            imRegisterUser = JacksonUtils.toObj(cacheStr, IMRegisterUser.class);
-        }
+        IMRegisterUser imRegisterUser = redisCache.get(USER_CACHE_PREFIX + loginResult.getUserId());
+
         loginResult.setConnectEndpoints(fetchConnectServerEndpoints(imRegisterUser));
 
         log.info("登录成功：userId={}", loginResult.getUserId());
@@ -125,13 +122,14 @@ public class AuthServiceImpl implements AuthService {
 
     /**
      * 获取用户连接服务端信息
+     *
      * @param imRegisterUser
      * @return
      */
     private List<IMConnectEndpointMetadata> fetchConnectServerEndpoints(IMRegisterUser imRegisterUser) {
         boolean isConnectedServer = imRegisterUser != null && StringUtils.hasLength(imRegisterUser.getBrokerId());
         List<ServiceInstance> instances = discoveryClient.getInstances(ServiceNameConstants.SVC_IM_CONNECT);
-        if (CollUtil.isEmpty(instances)) {
+        if (CollectionUtils.isEmpty(instances)) {
             return Collections.emptyList();
         }
 
@@ -165,13 +163,20 @@ public class AuthServiceImpl implements AuthService {
         return result;
     }
 
+    /**
+     * 构建连接元数据。
+     *
+     * @param instance 服务实例
+     * @return 连接元数据
+     */
     private IMConnectEndpointMetadata buildIMConnectEndpointMetadata(ServiceInstance instance) {
         Map<String, String> instanceMetadata = instance.getMetadata();
         return IMConnectEndpointMetadata.builder()
                 .region(instanceMetadata.get(NacosInstanceMetadataConstants.REGION))
                 .priority(Integer.parseInt(instanceMetadata.get(NacosInstanceMetadataConstants.PRIORITY)))
                 .endpoint(instance.getHost() + ":" + instance.getPort())
-                .protocols(JacksonUtils.toObj(instanceMetadata.get(NacosInstanceMetadataConstants.PROTOCOLS), new TypeReference<>() {}))
+                .protocols(JacksonUtil.parseObject(instanceMetadata.get(NacosInstanceMetadataConstants.PROTOCOLS), new TypeReference<List<String>>() {
+                }))
                 .createdAt(Long.parseLong(instanceMetadata.get(NacosInstanceMetadataConstants.CREATED_AT)))
                 .build();
     }

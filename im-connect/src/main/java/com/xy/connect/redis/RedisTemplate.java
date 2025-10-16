@@ -98,7 +98,7 @@ public class RedisTemplate {
             Pipeline pipeline = jedis.pipelined();
             for (String key : objMap.keySet()) {
                 String fullKey = prefix + key;
-                pipeline.set(fullKey, JacksonUtil.toJson(objMap.get(key)), SetParams.setParams().nx().ex(expireSeconds));
+                pipeline.set(fullKey, JacksonUtil.toJSONString(objMap.get(key)), SetParams.setParams().nx().ex(expireSeconds));
             }
             pipeline.sync();
         });

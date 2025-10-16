@@ -1,7 +1,6 @@
 package com.xy.server.service.impl;
 
-import cn.hutool.core.collection.CollectionUtil;
-import cn.hutool.core.util.ObjectUtil;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xy.core.enums.IMStatus;
@@ -36,6 +35,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StopWatch;
 
 import java.util.*;
@@ -179,7 +179,7 @@ public class MessageServiceImpl implements MessageService {
             Object redisObj = redisUtil.get(USER_CACHE_PREFIX + dto.getToId());
             stopWatch.stop();
 
-            if (ObjectUtil.isEmpty(redisObj)) {
+            if (Objects.isNull(redisObj)) {
                 log.info("单聊目标不在线 from:{} to:{}", dto.getFromId(), dto.getToId());
                 stopWatch.start("logTiming");
                 stopWatch.stop();
@@ -264,7 +264,7 @@ public class MessageServiceImpl implements MessageService {
             List<ImGroupMemberPo> members = imGroupFeign.getGroupMemberList(dto.getGroupId());
             stopWatch.stop();
 
-            if (CollectionUtil.isEmpty(members)) {
+            if (CollectionUtils.isEmpty(members)) {
                 log.warn("群:{} 没有成员，无法发送消息", dto.getGroupId());
                 stopWatch.start("logTiming");
                 stopWatch.stop();
@@ -295,7 +295,7 @@ public class MessageServiceImpl implements MessageService {
             List<Object> userObjs = redisUtil.batchGet(toList);
             Map<String, List<String>> brokerMap = new HashMap<>();
             for (Object obj : userObjs) {
-                if (ObjectUtil.isNotEmpty(obj)) {
+                if (Objects.nonNull(obj)) {
                     IMRegisterUser user = JsonUtil.parseObject(obj, IMRegisterUser.class);
                     brokerMap.computeIfAbsent(user.getBrokerId(), k -> new ArrayList<>()).add(user.getUserId());
                 }
@@ -364,7 +364,7 @@ public class MessageServiceImpl implements MessageService {
             Object redisObj = redisUtil.get(USER_CACHE_PREFIX + videoMessage.getToId());
             stopWatch.stop();
 
-            if (ObjectUtil.isEmpty(redisObj)) {
+            if (Objects.isNull(redisObj)) {
                 log.info("用户 [{}] 未登录，消息发送失败", videoMessage.getToId());
                 stopWatch.start("logTiming");
                 stopWatch.stop();
@@ -536,7 +536,7 @@ public class MessageServiceImpl implements MessageService {
 
                     // 广播给群成员
                     List<ImGroupMemberPo> members = imGroupFeign.getGroupMemberList(msg.getGroupId());
-                    if (CollectionUtil.isNotEmpty(members)) {
+                    if (!CollectionUtils.isEmpty(members)) {
                         List<String> memberIds = members.stream().map(ImGroupMemberPo::getMemberId).collect(Collectors.toList());
                         broadcastRecall(dto, messageId, recallTime, memberIds, IMessageType.GROUP_MESSAGE.getCode());
                     }
@@ -582,7 +582,7 @@ public class MessageServiceImpl implements MessageService {
         stopWatch.start("groupUsersByBroker");
         Map<String, List<String>> brokerMap = new HashMap<>();
         for (Object obj : redisObjs) {
-            if (ObjectUtil.isNotEmpty(obj)) {
+            if (Objects.nonNull(obj)) {
                 IMRegisterUser user = JsonUtil.parseObject(obj, IMRegisterUser.class);
                 brokerMap.computeIfAbsent(user.getBrokerId(), k -> new ArrayList<>()).add(user.getUserId());
             }
@@ -618,14 +618,14 @@ public class MessageServiceImpl implements MessageService {
         stopWatch.stop();
         stopWatch.start("getSingleMessages");
         List<ImSingleMessagePo> singleMessages = imMessageFeign.getSingleMessageList(userId, sequence);
-        if (!CollectionUtil.isEmpty(singleMessages)) {
+        if (!CollectionUtils.isEmpty(singleMessages)) {
             map.put(IMessageType.SINGLE_MESSAGE.getCode(), singleMessages);
         }
         stopWatch.stop();
 
         stopWatch.start("getGroupMessages");
         List<ImGroupMessagePo> groupMessages = imMessageFeign.getGroupMessageList(userId, sequence);
-        if (!CollectionUtil.isEmpty(groupMessages)) {
+        if (!CollectionUtils.isEmpty(groupMessages)) {
             map.put(IMessageType.GROUP_MESSAGE.getCode(), groupMessages);
         }
         stopWatch.stop();
@@ -811,7 +811,7 @@ public class MessageServiceImpl implements MessageService {
             List<IMOutboxPo> pending = imOutboxGrpcClient.listByStatus("PENDING", 100);
             stopWatch.stop();
 
-            if (CollectionUtil.isEmpty(pending)) {
+            if (CollectionUtils.isEmpty(pending)) {
                 stopWatch.start("logTiming");
                 stopWatch.stop();
                 log.info("retryPendingMessages timing summary: {}", stopWatch.prettyPrint());

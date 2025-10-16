@@ -1,8 +1,6 @@
 package com.xy.server.service.impl;
 
-import cn.hutool.core.collection.CollectionUtil;
-import cn.hutool.core.util.IdUtil;
-import cn.hutool.core.util.RandomUtil;
+
 import com.xy.core.constants.IMConstant;
 import com.xy.core.enums.*;
 import com.xy.core.model.IMGroupMessage;
@@ -27,6 +25,7 @@ import com.xy.server.service.GroupService;
 import com.xy.server.service.MessageService;
 import com.xy.utils.DateTimeUtil;
 import com.xy.utils.GroupHeadImageUtil;
+import com.xy.utils.IdUtils;
 import jakarta.annotation.Resource;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +36,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -93,13 +93,13 @@ public class GroupServiceImpl implements GroupService {
                 log.debug("缓存命中群成员 groupId={}", groupId);
             } else {
                 members = imGroupFeign.getGroupMemberList(groupId);
-                if (CollectionUtil.isNotEmpty(members)) {
+                if (!CollectionUtils.isEmpty(members)) {
                     cache.fastPut(groupId, members, CACHE_TTL_SECONDS, TimeUnit.SECONDS); // 原子put + TTL
                 }
                 log.debug("缓存未命中，DB查询群成员 groupId={}", groupId);
             }
 
-            if (CollectionUtil.isEmpty(members)) {
+            if (CollectionUtils.isEmpty(members)) {
                 return Result.success(Collections.emptyMap());
             }
 
@@ -192,12 +192,14 @@ public class GroupServiceImpl implements GroupService {
     public Result<String> createGroup(@NonNull GroupInviteDto dto) {
         long startTime = System.currentTimeMillis();
         try {
-            if (CollectionUtil.isEmpty(dto.getMemberIds())) {
+            if (CollectionUtils.isEmpty(dto.getMemberIds())) {
                 throw new GlobalException(ResultCode.FAIL, "至少需要一个被邀请人");
             }
 
             String groupId = imIdGeneratorFeign.getId(IdGeneratorConstant.uuid, IdGeneratorConstant.group_message_id, String.class);
-            String groupName = "默认群聊-" + RandomUtil.randomNumbers(6);
+
+            // # TODO: 群名称
+            String groupName = "默认群聊" + IdUtils.randomUUID();
             long now = DateTimeUtil.getCurrentUTCTimestamp();
 
             String ownerId = dto.getUserId();
@@ -431,7 +433,7 @@ public class GroupServiceImpl implements GroupService {
     // 私有方法：构建成员（不变）
     private ImGroupMemberPo buildMember(String groupId, String memberId, IMemberStatus role, long joinTime) {
         return new ImGroupMemberPo()
-                .setGroupId(groupId).setGroupMemberId(IdUtil.getSnowflakeNextIdStr()).setMemberId(memberId)
+                .setGroupId(groupId).setGroupMemberId(IdUtils.snowflakeIdStr()).setMemberId(memberId)
                 .setRole(role.getCode()).setMute(IMStatus.NO.getCode()).setDelFlag(IMStatus.YES.getCode())
                 .setJoinTime(joinTime);
     }
@@ -472,7 +474,7 @@ public class GroupServiceImpl implements GroupService {
             List<IMSingleMessage> messages = new ArrayList<>(invitees.size());
             for (String inviteeId : invitees) {
                 IMSingleMessage msg = IMSingleMessage.builder()
-                        .messageTempId(IdUtil.getSnowflakeNextIdStr()).fromId(inviterId).toId(inviteeId)
+                        .messageTempId(IdUtils.snowflakeIdStr()).fromId(inviterId).toId(inviteeId)
                         .messageContentType(IMessageContentType.GROUP_INVITE.getCode())
                         .messageTime(DateTimeUtil.getCurrentUTCTimestamp()).messageType(IMessageType.SINGLE_MESSAGE.getCode())
                         .build();
@@ -510,7 +512,7 @@ public class GroupServiceImpl implements GroupService {
         RMapCache<String, Object> memberCache = redissonClient.getMapCache(GROUP_MEMBERS_PREFIX);
         Object cachedMembers = memberCache.get(groupId);
         List<ImGroupMemberPo> members = cachedMembers != null ? (List<ImGroupMemberPo>) cachedMembers : imGroupFeign.getGroupMemberList(groupId);
-        if (CollectionUtil.isEmpty(members)) return;
+        if (CollectionUtils.isEmpty(members)) return;
 
         List<String> adminIds = members.stream()
                 .filter(m -> IMemberStatus.GROUP_OWNER.getCode().equals(m.getRole()) || IMemberStatus.ADMIN.getCode().equals(m.getRole()))
@@ -525,7 +527,7 @@ public class GroupServiceImpl implements GroupService {
         List<IMSingleMessage> msgs = new ArrayList<>(adminIds.size());
         for (String adminId : adminIds) {
             IMSingleMessage msg = IMSingleMessage.builder()
-                    .messageTempId(IdUtil.getSnowflakeNextIdStr()).fromId(inviterId).toId(adminId)
+                    .messageTempId(IdUtils.snowflakeIdStr()).fromId(inviterId).toId(adminId)
                     .messageContentType(IMessageContentType.GROUP_JOIN_APPROVE.getCode())
                     .messageTime(DateTimeUtil.getCurrentUTCTimestamp()).build();
             IMessage.MessageBody body = new IMessage.GroupInviteMessageBody()

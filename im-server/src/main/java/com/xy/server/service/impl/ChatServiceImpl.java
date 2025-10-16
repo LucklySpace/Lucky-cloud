@@ -1,6 +1,5 @@
 package com.xy.server.service.impl;
 
-import cn.hutool.core.util.ObjectUtil;
 import com.xy.core.enums.IMStatus;
 import com.xy.core.enums.IMessageReadStatus;
 import com.xy.core.enums.IMessageType;
@@ -114,7 +113,7 @@ public class ChatServiceImpl implements ChatService {
             }
 
             ImChatPo imChatPO = imChatFeign.getOne(chatDto.getFromId(), chatDto.getToId(), chatDto.getChatType());
-            if (ObjectUtil.isEmpty(imChatPO)) {
+            if (Objects.isNull(imChatPO)) {
                 imChatPO = new ImChatPo();
                 String chatId = UUID.randomUUID().toString();
                 imChatPO.setChatId(chatId)
@@ -251,14 +250,14 @@ public class ChatServiceImpl implements ChatService {
         ImSingleMessagePo singleMessageDto = imMessageFeign.plast(ownerId, toId);
 
         chatVo.setMessageTime(0L);
-        if (ObjectUtil.isNotEmpty(singleMessageDto)) {
+        if (Objects.nonNull(singleMessageDto)) {
             chatVo.setMessage(singleMessageDto.getMessageBody());
             chatVo.setMessageContentType(singleMessageDto.getMessageContentType());
             chatVo.setMessageTime(singleMessageDto.getMessageTime());
         }
 
         Integer unread = imMessageFeign.pSelectReadStatus(toId, ownerId, IMessageReadStatus.UNREAD.getCode());
-        chatVo.setUnread(ObjectUtil.defaultIfNull(unread, 0));
+        chatVo.setUnread(Objects.requireNonNullElse(unread, 0));
 
         String targetUserId = ownerId.equals(toId) ? chatVo.getOwnerId() : chatVo.getToId();
         ImUserDataPo imUserDataPo = imUserFeign.getOne(targetUserId);
@@ -284,13 +283,13 @@ public class ChatServiceImpl implements ChatService {
         ImGroupMessagePo groupMessageDto = imMessageFeign.glast(ownerId, groupId);
 
         chatVo.setMessageTime(0L);
-        if (ObjectUtil.isNotEmpty(groupMessageDto)) {
+        if (Objects.nonNull(groupMessageDto)) {
             chatVo.setMessage(groupMessageDto.getMessageBody());
             chatVo.setMessageTime(groupMessageDto.getMessageTime());
         }
 
         Integer unread = imMessageFeign.gSelectReadStatus(groupId, ownerId, IMessageReadStatus.UNREAD.getCode());
-        chatVo.setUnread(ObjectUtil.defaultIfNull(unread, 0));
+        chatVo.setUnread(Objects.requireNonNullElse(unread, 0));
 
         ImGroupPo imGroupPo = imGroupFeign.getOneGroup(groupId);
         if (imGroupPo != null) {

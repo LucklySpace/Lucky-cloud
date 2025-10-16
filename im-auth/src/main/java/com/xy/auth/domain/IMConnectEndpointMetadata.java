@@ -28,7 +28,10 @@ public class IMConnectEndpointMetadata {
     @Schema(description = "端点")
     private String endpoint;
 
-    @Schema(description = "协议", example = "[\"websocket\"]")
+    @Schema(description = "websocket 路径")
+    private String wsPath;
+
+    @Schema(description = "协议", example = "[\"proto\",\"json\"]")
     private List<String> protocols;
 
     @Schema(description = "创建时间戳")

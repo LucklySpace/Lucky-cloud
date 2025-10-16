@@ -1,8 +1,11 @@
 package com.xy.core.constants;
 
-public class NacosInstanceMetadataConstants {
+public class NacosMetadataConstants {
 
-    private NacosInstanceMetadataConstants() {}
+    private NacosMetadataConstants() {}
+
+
+    public static final String WS_PATH= "wsPath";
 
     public static final String REGION= "region";
 

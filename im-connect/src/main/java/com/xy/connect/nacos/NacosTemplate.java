@@ -7,13 +7,14 @@ import com.alibaba.nacos.api.naming.pojo.Instance;
 import com.xy.connect.channel.UserChannelMap;
 import com.xy.connect.config.LogConstant;
 import com.xy.connect.utils.IPAddressUtil;
-import com.xy.core.constants.NacosInstanceMetadataConstants;
+import com.xy.core.constants.NacosMetadataConstants;
 import com.xy.spring.annotations.core.Autowired;
 import com.xy.spring.annotations.core.Component;
 import com.xy.spring.annotations.core.Value;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetAddress;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.*;
@@ -50,6 +51,13 @@ public class NacosTemplate {
     private String version;
     @Value("${brokerId:}")
     private String brokerId;
+    @Value("${netty.config.protocol:proto}")
+    protected String protocolType;
+    @Value("${netty.config.path:/im}")
+    protected String wsPath;
+    @Value("nacos.config.group")
+    private String groupName;
+
     // 上报任务句柄（用于停止）
     private volatile ScheduledFuture<?> reporterFuture;
     // 最多尝试创建 NamingService 多少次？这里我们采用无限重试，直到成功或 shutdown。
@@ -95,15 +103,16 @@ public class NacosTemplate {
         instance.setWeight(1.0);
         // metadata
         Map<String, String> meta = instance.getMetadata();
-        meta.put(NacosInstanceMetadataConstants.BROKER_ID, brokerId == null ? "" : brokerId);
-        meta.put(NacosInstanceMetadataConstants.VERSION, version == null ? "" : version);
+        meta.put(NacosMetadataConstants.BROKER_ID, brokerId == null ? "" : brokerId);
+        meta.put(NacosMetadataConstants.VERSION, version == null ? "" : version);
+        meta.put(NacosMetadataConstants.WS_PATH, wsPath);
 
         // # TODO 待完善
-        meta.put(NacosInstanceMetadataConstants.PROTOCOLS, "[\"websocket\"]"); // json array format
-        meta.put(NacosInstanceMetadataConstants.CONNECTION, "0");
-        meta.put(NacosInstanceMetadataConstants.CREATED_AT, String.valueOf(System.currentTimeMillis() / 1000L));
-        meta.put(NacosInstanceMetadataConstants.REGION, "cn-shanghai");
-        meta.put(NacosInstanceMetadataConstants.PRIORITY, "1");
+        meta.put(NacosMetadataConstants.PROTOCOLS, List.of(protocolType).toString()); // json array format
+        meta.put(NacosMetadataConstants.CONNECTION, "0");
+        meta.put(NacosMetadataConstants.CREATED_AT, String.valueOf(System.currentTimeMillis() / 1000L));
+        meta.put(NacosMetadataConstants.REGION, "cn-shanghai");
+        meta.put(NacosMetadataConstants.PRIORITY, "1");
 
         // 把实例放到 map（但尚未注册成功）
         instances.put(port, instance);
@@ -136,7 +145,7 @@ public class NacosTemplate {
                     scheduleRetry(port, instance, RETRY_BASE_DELAY_MS);
                     return;
                 }
-                ns.registerInstance(serviceName, instance);
+                ns.registerInstance(serviceName, groupName, instance);
                 log.info("Service registered to Nacos successfully: {}:{} (port={})", instance.getIp(), serviceName, port);
             } catch (NacosException e) {
                 log.warn("Nacos register failed (port={}), will retry: {}", port, e.getMessage());

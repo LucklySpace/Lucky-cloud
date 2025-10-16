@@ -2,6 +2,7 @@ package com.xy.auth.service.impl;
 
 
 import cn.hutool.core.date.DateField;
+import com.alibaba.nacos.common.utils.JacksonUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.xy.auth.api.database.user.ImUserFeign;
 import com.xy.auth.domain.*;
@@ -14,7 +15,7 @@ import com.xy.auth.service.AuthService;
 import com.xy.auth.utils.QRCodeUtil;
 import com.xy.auth.utils.RedisCache;
 import com.xy.core.constants.IMConstant;
-import com.xy.core.constants.NacosInstanceMetadataConstants;
+import com.xy.core.constants.NacosMetadataConstants;
 import com.xy.core.constants.ServiceNameConstants;
 import com.xy.core.model.IMRegisterUser;
 import com.xy.core.utils.JwtUtil;
@@ -22,14 +23,12 @@ import com.xy.domain.po.ImUserDataPo;
 import com.xy.domain.vo.UserVo;
 import com.xy.general.response.domain.Result;
 import com.xy.general.response.domain.ResultCode;
-import com.xy.utils.JacksonUtil;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -130,7 +129,7 @@ public class AuthServiceImpl implements AuthService {
 
         Map<String, List<ServiceInstance>> brokerGroups = instances.stream()
                 .collect(Collectors.groupingBy(instance ->
-                        instance.getMetadata().getOrDefault(NacosInstanceMetadataConstants.BROKER_ID, instance.getHost())));
+                        instance.getMetadata().getOrDefault(NacosMetadataConstants.BROKER_ID, instance.getHost())));
 
         if (isConnectedServer) {
             return brokerGroups
@@ -167,12 +166,13 @@ public class AuthServiceImpl implements AuthService {
     private IMConnectEndpointMetadata buildIMConnectEndpointMetadata(ServiceInstance instance) {
         Map<String, String> instanceMetadata = instance.getMetadata();
         return IMConnectEndpointMetadata.builder()
-                .region(instanceMetadata.get(NacosInstanceMetadataConstants.REGION))
-                .priority(Integer.parseInt(instanceMetadata.get(NacosInstanceMetadataConstants.PRIORITY)))
+                .region(instanceMetadata.get(NacosMetadataConstants.REGION))
+                .priority(Integer.parseInt(instanceMetadata.get(NacosMetadataConstants.PRIORITY)))
+                .wsPath(instanceMetadata.get(NacosMetadataConstants.WS_PATH))
                 .endpoint(instance.getHost() + ":" + instance.getPort())
-                .protocols(JacksonUtil.parseObject(instanceMetadata.get(NacosInstanceMetadataConstants.PROTOCOLS), new TypeReference<List<String>>() {
+                .protocols(JacksonUtils.toObj(instanceMetadata.get(NacosMetadataConstants.PROTOCOLS), new TypeReference<List<String>>() {
                 }))
-                .createdAt(Long.parseLong(instanceMetadata.get(NacosInstanceMetadataConstants.CREATED_AT)))
+                .createdAt(Long.parseLong(instanceMetadata.get(NacosMetadataConstants.CREATED_AT)))
                 .build();
     }
 

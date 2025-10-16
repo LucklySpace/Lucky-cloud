@@ -15,7 +15,8 @@ nacos:
   enable: true
   config:
     name: im-connect
-    address: localhost:8848
+    address: localhost
+    port: 8848
     group: DEFAULT_GROUP
     username: nacos
     password: nacos
@@ -34,6 +35,7 @@ netty:
         - 9001
         - 9002
     websocket:
+      path: /im
       enable: true
       port:
         - 19000

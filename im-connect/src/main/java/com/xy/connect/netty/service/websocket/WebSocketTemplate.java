@@ -57,6 +57,8 @@ public class WebSocketTemplate extends AbstractRemoteServer {
     // 协议类型配置: json 或 proto
     @Value("${netty.config.protocol:proto}")
     protected String protocolType;
+    @Value("${netty.config.path:/im}")
+    protected String wsPath;
     @Value("${brokerId:}")
     private String brokerId;
     @Autowired
@@ -120,7 +122,7 @@ public class WebSocketTemplate extends AbstractRemoteServer {
                         pipeline.addLast("auth", authHandler);
 
                         // WebSocket 协议处理（path /im）
-                        pipeline.addLast("ws-protocol", new WebSocketServerProtocolHandler("/im", protocolType, true,
+                        pipeline.addLast("ws-protocol", new WebSocketServerProtocolHandler(wsPath, protocolType, true,
                                 65536 * 10));
 
                         ChannelOutboundHandler handler =

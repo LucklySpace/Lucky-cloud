@@ -1,15 +1,16 @@
 package com.xy.auth.service.impl;
 
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateField;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.qrcode.QrCodeException;
 import cn.hutool.extra.qrcode.QrCodeUtil;
 import cn.hutool.extra.qrcode.QrConfig;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.nacos.common.utils.JacksonUtils;
 import com.xy.auth.api.database.user.ImUserFeign;
-import com.xy.auth.domain.IMLoginRequest;
-import com.xy.auth.domain.IMLoginResult;
-import com.xy.auth.domain.IMQRCode;
-import com.xy.auth.domain.IMQRCodeResult;
+import com.xy.auth.domain.*;
 import com.xy.auth.security.RSAKeyProperties;
 import com.xy.auth.security.SecurityProperties;
 import com.xy.auth.security.token.MobileAuthenticationToken;
@@ -18,6 +19,9 @@ import com.xy.auth.security.token.UserAuthenticationToken;
 import com.xy.auth.service.AuthService;
 import com.xy.auth.utils.RedisCache;
 import com.xy.core.constants.IMConstant;
+import com.xy.core.constants.NacosInstanceMetadataConstants;
+import com.xy.core.constants.ServiceNameConstants;
+import com.xy.core.model.IMRegisterUser;
 import com.xy.core.utils.JwtUtil;
 import com.xy.domain.po.ImUserDataPo;
 import com.xy.domain.vo.UserVo;
@@ -28,15 +32,19 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import static com.xy.core.constants.IMConstant.USER_CACHE_PREFIX;
 
 /**
  * AuthServiceImpl 实现类，负责处理用户认证、二维码登录等逻辑。
@@ -59,6 +67,8 @@ public class AuthServiceImpl implements AuthService {
     private SecurityProperties securityProperties;
     @Resource
     private RSAKeyProperties rsaKeyProperties;
+    @Resource
+    private DiscoveryClient discoveryClient;
 
     // --------------------------------------------------
     // 1. 统一登录接口
@@ -102,9 +112,69 @@ public class AuthServiceImpl implements AuthService {
         // 生成用户认证信息
         IMLoginResult loginResult = generateAuthInfo(auth);
 
+        String cacheStr = redisCache.get(USER_CACHE_PREFIX + loginResult.getUserId());
+        IMRegisterUser imRegisterUser = null;
+        if (StrUtil.isNotBlank(cacheStr)) {
+            imRegisterUser = JacksonUtils.toObj(cacheStr, IMRegisterUser.class);
+        }
+        loginResult.setConnectEndpoints(fetchConnectServerEndpoints(imRegisterUser));
+
         log.info("登录成功：userId={}", loginResult.getUserId());
 
         return Result.success(loginResult);
+    }
+
+    /**
+     * 获取用户连接服务端信息
+     * @param imRegisterUser
+     * @return
+     */
+    private List<IMConnectEndpointMetadata> fetchConnectServerEndpoints(IMRegisterUser imRegisterUser) {
+        boolean isConnectedServer = imRegisterUser != null && StrUtil.isNotBlank(imRegisterUser.getBrokerId());
+        List<ServiceInstance> instances = discoveryClient.getInstances(ServiceNameConstants.SVC_IM_CONNECT);
+        if (CollUtil.isEmpty(instances)) {
+            return Collections.emptyList();
+        }
+
+        Map<String, List<ServiceInstance>> brokerGroups = instances.stream()
+                .collect(Collectors.groupingBy(instance ->
+                        instance.getMetadata().getOrDefault(NacosInstanceMetadataConstants.BROKER_ID, instance.getHost())));
+
+        if (isConnectedServer) {
+            return brokerGroups
+                    .get(imRegisterUser.getBrokerId())
+                    .stream()
+                    .map(this::buildIMConnectEndpointMetadata)
+                    .collect(Collectors.toList());
+        }
+
+        List<IMConnectEndpointMetadata> result = new ArrayList<>();
+        List<String> brokerKeys = new ArrayList<>(brokerGroups.keySet());
+        Random random = new Random();
+
+        for (int i = 0; i < 3; i++) {
+            String brokerKey = brokerKeys.get(i % brokerKeys.size());
+            List<ServiceInstance> brokerInstances = brokerGroups.get(brokerKey);
+
+            ServiceInstance selectedInstance = brokerInstances.get(
+                    random.nextInt(brokerInstances.size()));
+
+            IMConnectEndpointMetadata endpointMetadata = buildIMConnectEndpointMetadata(selectedInstance);
+            result.add(endpointMetadata);
+        }
+
+        return result;
+    }
+
+    private IMConnectEndpointMetadata buildIMConnectEndpointMetadata(ServiceInstance instance) {
+        Map<String, String> instanceMetadata = instance.getMetadata();
+        return IMConnectEndpointMetadata.builder()
+                .region(instanceMetadata.get(NacosInstanceMetadataConstants.REGION))
+                .priority(Integer.parseInt(instanceMetadata.get(NacosInstanceMetadataConstants.PRIORITY)))
+                .endpoint(instance.getHost() + ":" + instance.getPort())
+                .protocols(JSON.parseArray(instanceMetadata.get(NacosInstanceMetadataConstants.PROTOCOLS), String.class))
+                .createdAt(Long.parseLong(instanceMetadata.get(NacosInstanceMetadataConstants.CREATED_AT)))
+                .build();
     }
 
     // --------------------------------------------------

@@ -9,6 +9,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+import java.util.List;
+
 /**
  * 登录响应
  */
@@ -33,5 +35,8 @@ public class IMLoginResult {
 
     @Schema(description = "refreshToken")
     private String refreshToken;
+
+    @Schema(description = "im-connect endpoints")
+    private List<IMConnectEndpointMetadata> connectEndpoints;
 
 }

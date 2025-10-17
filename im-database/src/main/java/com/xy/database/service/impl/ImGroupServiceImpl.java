@@ -30,8 +30,44 @@ public class ImGroupServiceImpl extends ServiceImpl<ImGroupMapper, ImGroupPo>
     public List<String> selectNinePeople(String groupId) {
         return imGroupMapper.selectNinePeople(groupId);
     }
+    
+    @Override
+    public boolean insert(ImGroupPo groupPo) {
+        return this.save(groupPo);
+    }
+    
+    @Override
+    public boolean batchInsert(List<ImGroupPo> groupPoList) {
+        return this.saveBatch(groupPoList);
+    }
+    
+    @Override
+    public ImGroupPo selectOne(String groupId) {
+        return this.getById(groupId);
+    }
+    
+    @Override
+    public ImGroupPo selectById(String groupId) {
+        return this.getById(groupId);
+    }
+    
+    @Override
+    public long count() {
+        return this.count();
+    }
+    
+    @Override
+    public List<ImGroupPo> selectList() {
+        return this.list();
+    }
+    
+    @Override
+    public boolean update(ImGroupPo groupPo) {
+        return this.updateById(groupPo);
+    }
+    
+    @Override
+    public boolean deleteById(String groupId) {
+        return this.removeById(groupId);
+    }
 }
-
-
-
-

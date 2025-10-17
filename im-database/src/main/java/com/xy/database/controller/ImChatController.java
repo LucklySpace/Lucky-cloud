@@ -1,7 +1,6 @@
 package com.xy.database.controller;
 
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xy.database.security.SecurityInner;
 import com.xy.database.service.ImChatService;
 import com.xy.domain.po.ImChatPo;
@@ -11,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Objects;
 
 @Slf4j
 @RestController
@@ -22,6 +20,16 @@ public class ImChatController {
 
     private final ImChatService imChatService;
 
+    /**
+     * 查询用户所有会话
+     *
+     * @param ownerId  所属用户id
+     * @param sequence 时序
+     */
+    @GetMapping("/selectList")
+    public List<ImChatPo> selectList(@RequestParam("ownerId") String ownerId, @RequestParam("sequence") Long sequence) {
+        return imChatService.selectList(ownerId, sequence);
+    }
 
     /**
      * 查询会话
@@ -31,27 +39,11 @@ public class ImChatController {
      * @param chatType 会话类型
      * @return 会话信息
      */
-    @GetMapping("/getOne")
-    public ImChatPo getOne(@RequestParam("ownerId") String ownerId, @RequestParam("toId") String toId, @RequestParam(value = "chatType", required = false) Integer chatType) {
-        QueryWrapper<ImChatPo> query = new QueryWrapper<>();
-        query.eq("owner_id", ownerId)
-                .eq("to_id", toId);
-        if (Objects.nonNull(chatType)) {
-            query.eq("chat_type", chatType);
-        }
-        return imChatService.getOne(query);
+    @GetMapping("/selectOne")
+    public ImChatPo selectOne(@RequestParam("ownerId") String ownerId, @RequestParam("toId") String toId, @RequestParam(value = "chatType", required = false) Integer chatType) {
+        return imChatService.selectOne(ownerId, toId, chatType);
     }
 
-    /**
-     * 查询用户所有会话
-     *
-     * @param ownerId  所属用户id
-     * @param sequence 时序
-     */
-    @GetMapping("/list")
-    public List<ImChatPo> list(@RequestParam("ownerId") String ownerId, @RequestParam("sequence") Long sequence) {
-        return imChatService.list(ownerId, sequence);
-    }
 
 
     /**
@@ -61,7 +53,7 @@ public class ImChatController {
      */
     @PostMapping("/insert")
     public Boolean insert(@RequestBody ImChatPo chatPo) {
-        return imChatService.save(chatPo);
+        return imChatService.insert(chatPo);
     }
 
 
@@ -71,20 +63,20 @@ public class ImChatController {
      * @param chatPo 会话信息
      */
     @SecurityInner
-    @PutMapping("/updateById")
-    public Boolean updateById(@RequestBody ImChatPo chatPo) {
-        return imChatService.updateById(chatPo);
+    @PutMapping("/update")
+    public Boolean update(@RequestBody ImChatPo chatPo) {
+        return imChatService.update(chatPo);
     }
 
 
     /**
      * 删除会话信息
      *
-     * @param chatId 会话id
+     * @param id 会话id
      */
-    @DeleteMapping("/{chatId}")
-    public Boolean deleteById(@PathVariable String chatId) {
-        return imChatService.removeById(chatId);
+    @DeleteMapping("/deleteById")
+    public Boolean deleteById(@RequestParam("id") String id) {
+        return imChatService.deleteById(id);
     }
 
 }

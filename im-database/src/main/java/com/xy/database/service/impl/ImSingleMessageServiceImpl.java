@@ -22,8 +22,33 @@ public class ImSingleMessageServiceImpl extends ServiceImpl<ImSingleMessageMappe
     private ImSingleMessageMapper imSingleMessageMapper;
 
     @Override
-    public List<ImSingleMessagePo> list(String userId, Long sequence) {
+    public List<ImSingleMessagePo> selectList(String userId, Long sequence) {
         return imSingleMessageMapper.selectSingleMessage(userId, sequence);
+    }
+
+    @Override
+    public ImSingleMessagePo selectOne(String messageId) {
+        return this.getById(messageId);
+    }
+
+    @Override
+    public boolean insert(ImSingleMessagePo singleMessagePo) {
+        return this.save(singleMessagePo);
+    }
+    
+    @Override
+    public boolean batchInsert(List<ImSingleMessagePo> singleMessagePoList) {
+        return this.saveBatch(singleMessagePoList);
+    }
+
+    @Override
+    public boolean update(ImSingleMessagePo singleMessagePo) {
+        return this.updateById(singleMessagePo);
+    }
+    
+    @Override
+    public boolean deleteById(String messageId) {
+        return this.removeById(messageId);
     }
 
     @Override
@@ -36,7 +61,3 @@ public class ImSingleMessageServiceImpl extends ServiceImpl<ImSingleMessageMappe
         return imSingleMessageMapper.selectReadStatus(fromId, toId, code);
     }
 }
-
-
-
-

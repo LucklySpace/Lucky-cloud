@@ -32,4 +32,39 @@ public class IMOutboxServiceImpl extends ServiceImpl<IMOutboxPoMapper, IMOutboxP
         query.eq("status", status).last("limit " + limit);
         return this.list(query);
     }
+    
+    @Override
+    public boolean insert(IMOutboxPo outboxPo) {
+        return this.save(outboxPo);
+    }
+    
+    @Override
+    public boolean batchInsert(List<IMOutboxPo> outboxPoList) {
+        return this.saveBatch(outboxPoList);
+    }
+    
+    @Override
+    public IMOutboxPo selectOne(Long id) {
+        return this.getById(id);
+    }
+    
+    @Override
+    public IMOutboxPo selectById(Long id) {
+        return this.getById(id);
+    }
+
+    @Override
+    public List<IMOutboxPo> selectList() {
+        return this.list();
+    }
+    
+    @Override
+    public boolean update(IMOutboxPo outboxPo) {
+        return this.updateById(outboxPo);
+    }
+    
+    @Override
+    public boolean deleteById(Long id) {
+        return this.removeById(id);
+    }
 }

@@ -41,6 +41,26 @@ public class ImGroupMemberServiceImpl extends ServiceImpl<ImGroupMemberMapper, I
         imGroupMemberPoQueryWrapper.eq("member_id", memberId);
         return this.getOne(imGroupMemberPoQueryWrapper);
     }
+
+    @Override
+    public Boolean insert(ImGroupMemberPo groupMember) {
+        return this.insert(groupMember);
+    }
+
+    @Override
+    public Boolean update(ImGroupMemberPo groupMember) {
+        return this.updateById(groupMember);
+    }
+
+    @Override
+    public Boolean batchInsert(List<ImGroupMemberPo> groupMemberList) {
+        return this.batchInsert(groupMemberList);
+    }
+
+    @Override
+    public Boolean deleteById(String memberId) {
+        return this.deleteById(memberId);
+    }
 }
 
 

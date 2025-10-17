@@ -16,6 +16,8 @@ import jakarta.annotation.Resource;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * @author dense
  * @description 针对表【im_user】的数据库操作Service实现
@@ -79,9 +81,45 @@ public class ImUserServiceImpl extends ServiceImpl<ImUserMapper, ImUserPo>
         LoginVo loginVo = new LoginVo().setUserId(username).setToken(refreshToken);
         return loginVo;
     }
+    
+    @Override
+    public boolean insert(ImUserPo userPo) {
+        return this.save(userPo);
+    }
+    
+    @Override
+    public boolean batchInsert(List<ImUserPo> userPoList) {
+        return this.saveBatch(userPoList);
+    }
+    
+    @Override
+    public ImUserPo selectOne(String userId) {
+        return this.getById(userId);
+    }
+    
+    @Override
+    public ImUserPo selectById(String userId) {
+        return this.getById(userId);
+    }
+    
+    @Override
+    public long count() {
+        return this.count();
+    }
+    
+    @Override
+    public List<ImUserPo> selectList() {
+        return this.list();
+    }
+    
+    @Override
+    public boolean update(ImUserPo userPo) {
+        return this.updateById(userPo);
+    }
+    
+    @Override
+    public boolean deleteById(String userId) {
+        return this.removeById(userId);
+    }
 
 }
-
-
-
-

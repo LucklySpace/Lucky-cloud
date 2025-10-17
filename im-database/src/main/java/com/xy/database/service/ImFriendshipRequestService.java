@@ -12,8 +12,15 @@ import java.util.List;
  */
 public interface ImFriendshipRequestService extends IService<ImFriendshipRequestPo> {
 
-    List<ImFriendshipRequestPo> list(String userId);
+    List<ImFriendshipRequestPo> selectList(String userId);
 
-    ImFriendshipRequestPo getOne(ImFriendshipRequestPo requestPo);
+    ImFriendshipRequestPo selectOne(ImFriendshipRequestPo requestPo);
 
+    Boolean insert(ImFriendshipRequestPo requestPo);
+
+    Boolean update(ImFriendshipRequestPo requestPo);
+
+    Boolean batchInsert(List<ImFriendshipRequestPo> requestPoList);
+
+    Boolean deleteById(String requestId);
 }

@@ -23,14 +23,15 @@ public class ImFriendshipRequestServiceImpl extends ServiceImpl<ImFriendshipRequ
     @Resource
     private ImFriendshipRequestMapper imFriendshipRequestMapper;
 
-    public List<ImFriendshipRequestPo> list(String userId) {
+    @Override
+    public List<ImFriendshipRequestPo> selectList(String userId) {
         QueryWrapper<ImFriendshipRequestPo> imFriendshipRequestQuery = new QueryWrapper<>();
         imFriendshipRequestQuery.eq("to_id", userId);
         return this.list(imFriendshipRequestQuery);
     }
 
     @Override
-    public ImFriendshipRequestPo getOne(ImFriendshipRequestPo requestPo) {
+    public ImFriendshipRequestPo selectOne(ImFriendshipRequestPo requestPo) {
 
         QueryWrapper<ImFriendshipRequestPo> imFriendshipRequestQuery = new QueryWrapper<>();
 
@@ -43,6 +44,27 @@ public class ImFriendshipRequestServiceImpl extends ServiceImpl<ImFriendshipRequ
 
         return this.getOne(imFriendshipRequestQuery);
     }
+
+    @Override
+    public Boolean insert(ImFriendshipRequestPo requestPo) {
+        return this.insert(requestPo);
+    }
+
+    @Override
+    public Boolean update(ImFriendshipRequestPo requestPo) {
+        return this.updateById(requestPo);
+    }
+
+    @Override
+    public Boolean batchInsert(List<ImFriendshipRequestPo> requestPoList) {
+        return this.batchInsert(requestPoList);
+    }
+
+    @Override
+    public Boolean deleteById(String requestId) {
+        return this.deleteById(requestId);
+    }
+
 
 }
 

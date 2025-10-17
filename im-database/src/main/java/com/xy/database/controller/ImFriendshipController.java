@@ -26,9 +26,9 @@ public class ImFriendshipController {
     /**
      * 查询所有好友
      */
-    @GetMapping("/selectList")
-    public List<ImFriendshipPo> selectList(@RequestParam("ownerId") String ownerId, @RequestParam("sequence") Long sequence) {
-        return imFriendshipService.selectList(ownerId, sequence);
+    @GetMapping("/list")
+    public List<ImFriendshipPo> list(@RequestParam("ownerId") String ownerId, @RequestParam("sequence") Long sequence) {
+        return imFriendshipService.list(ownerId, sequence);
     }
 
 
@@ -39,9 +39,9 @@ public class ImFriendshipController {
      * @param toId 好友id
      * @return
      */
-    @GetMapping("/ship/selectOne")
-    public ImFriendshipPo selectOne(@RequestParam("ownerId") String ownerId, @RequestParam("toId") String toId) {
-        return imFriendshipService.selectOne(ownerId, toId);
+    @GetMapping("/ship/getOne")
+    public ImFriendshipPo getOne(@RequestParam("ownerId") String ownerId, @RequestParam("toId") String toId) {
+        return imFriendshipService.getOne(ownerId, toId);
     }
 
     /**
@@ -51,8 +51,8 @@ public class ImFriendshipController {
      * @param ids     好友ID列表
      * @return 好友关系列表
      */
-    @GetMapping("/ship/selectList")
-    public List<ImFriendshipPo> shipSelectList(@RequestParam("ownerId") String ownerId, @RequestParam("ids") List<String> ids) {
+    @GetMapping("/ship/list")
+    public List<ImFriendshipPo> shipList(@RequestParam("ownerId") String ownerId, @RequestParam("ids") List<String> ids) {
         return imFriendshipService.getFriendshipList(ownerId, ids);
     }
 
@@ -88,20 +88,9 @@ public class ImFriendshipController {
      *
      * @param friendship 好友关系信息
      */
-    @PostMapping("/insert")
-    public void insert(@RequestBody ImFriendshipPo friendship) {
+    @PostMapping("/create")
+    public void createFriendship(@RequestBody ImFriendshipPo friendship) {
         imFriendshipService.saveFriendship(friendship);
-    }
-
-    /**
-     * 更新好友关系
-     *
-     * @param friendship 好友关系信息
-     * @return 是否更新成功
-     */
-    @PutMapping("/update")
-    public Boolean update(@RequestBody ImFriendshipPo friendship) {
-        return imFriendshipService.update(friendship);
     }
 
     /**
@@ -110,9 +99,8 @@ public class ImFriendshipController {
      * @param ownerId  用户ID
      * @param friendId 好友ID
      */
-    @DeleteMapping("/deleteById")
-    public Boolean deleteById(@RequestParam("ownerId") String ownerId, @RequestParam("friendId") String friendId) {
+    @PostMapping("/delete")
+    public Boolean deleteFriendship(@RequestParam("ownerId") String ownerId, @RequestParam("friendId") String friendId) {
         return imFriendshipService.deleteFriendship(ownerId, friendId);
     }
-
 }

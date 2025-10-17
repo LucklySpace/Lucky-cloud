@@ -12,20 +12,10 @@ import java.util.List;
  */
 public interface ImFriendshipService extends IService<ImFriendshipPo> {
 
-    /**
-     * 查询所有好友
-     */
-    List<ImFriendshipPo> selectList(String ownerId, Long sequence);
+    List<ImFriendshipPo> list(String ownerId, Long sequence);
 
 
-    /**
-     * 获取好友关系
-     *
-     * @param ownerId  用户ID
-     * @param toId 好友id
-     * @return
-     */
-    ImFriendshipPo selectOne(String ownerId, String toId);
+    ImFriendshipPo getOne(String ownerId, String toId);
 
     /**
      * 保存好友请求
@@ -67,12 +57,4 @@ public interface ImFriendshipService extends IService<ImFriendshipPo> {
     List<ImFriendshipPo> getFriendshipList(String ownerId, List<String> ids);
 
     void updateFriendRequest(ImFriendshipRequestPo request);
-
-    /**
-     * 更新好友关系
-     *
-     * @param friendship 好友关系信息
-     * @return 是否更新成功
-     */
-    Boolean update(ImFriendshipPo friendship);
 }

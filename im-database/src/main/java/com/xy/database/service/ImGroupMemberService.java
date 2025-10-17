@@ -18,11 +18,4 @@ public interface ImGroupMemberService extends IService<ImGroupMemberPo> {
 
     ImGroupMemberPo getGroupMember(String groupId, String memberId);
 
-    Boolean insert(ImGroupMemberPo groupMember);
-
-    Boolean update(ImGroupMemberPo groupMember);
-
-    Boolean batchInsert(List<ImGroupMemberPo> groupMemberList);
-
-    Boolean deleteById(String memberId);
 }

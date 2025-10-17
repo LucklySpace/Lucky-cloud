@@ -21,33 +21,8 @@ public class ImGroupMessageServiceImpl extends ServiceImpl<ImGroupMessageMapper,
     private ImGroupMessageMapper imGroupMessageMapper;
 
     @Override
-    public List<ImGroupMessagePo> selectList(String userId, Long sequence) {
+    public List<ImGroupMessagePo> list(String userId, Long sequence) {
         return imGroupMessageMapper.selectGroupMessage(userId, sequence);
-    }
-
-    @Override
-    public ImGroupMessagePo selectOne(String messageId) {
-        return this.getById(messageId);
-    }
-
-    @Override
-    public boolean insert(ImGroupMessagePo groupMessagePo) {
-        return this.save(groupMessagePo);
-    }
-
-    @Override
-    public boolean batchInsert(List<ImGroupMessagePo> groupMessagePoList) {
-        return this.saveBatch(groupMessagePoList);
-    }
-
-    @Override
-    public boolean update(ImGroupMessagePo groupMessagePo) {
-        return this.updateById(groupMessagePo);
-    }
-
-    @Override
-    public boolean deleteById(String messageId) {
-        return this.removeById(messageId);
     }
 
     @Override
@@ -61,3 +36,7 @@ public class ImGroupMessageServiceImpl extends ServiceImpl<ImGroupMessageMapper,
     }
 
 }
+
+
+
+

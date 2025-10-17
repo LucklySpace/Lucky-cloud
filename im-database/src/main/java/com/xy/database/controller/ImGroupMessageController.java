@@ -30,9 +30,9 @@ public class ImGroupMessageController {
      * @param messageId 消息id
      * @return 群聊消息
      */
-    @GetMapping("/selectOne")
-    public ImGroupMessagePo selectOne(@RequestParam("messageId") String messageId) {
-        return imGroupMessageService.selectOne(messageId);
+    @GetMapping("/getById")
+    public ImGroupMessagePo getById(@RequestParam("messageId") String messageId) {
+        return imGroupMessageService.getById(messageId);
     }
 
     /**
@@ -42,9 +42,9 @@ public class ImGroupMessageController {
      * @param sequence 时间序列
      * @return 用户私聊消息
      */
-    @GetMapping("/selectList")
-    public List<ImGroupMessagePo> selectList(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
-        return imGroupMessageService.selectList(userId, sequence);
+    @GetMapping("/list")
+    public List<ImGroupMessagePo> list(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
+        return imGroupMessageService.list(userId, sequence);
     }
 
     /**
@@ -52,39 +52,9 @@ public class ImGroupMessageController {
      *
      * @param messagePo 群聊消息
      */
-    @PostMapping("/insert")
-    public Boolean insert(@RequestBody ImGroupMessagePo messagePo) {
-        return imGroupMessageService.insert(messagePo);
-    }
-
-    /**
-     * 批量插入群聊消息
-     *
-     * @param messagePoList 群聊消息列表
-     */
-    @PostMapping("/batchInsert")
-    public Boolean batchInsert(@RequestBody List<ImGroupMessagePo> messagePoList) {
-        return imGroupMessageService.batchInsert(messagePoList);
-    }
-
-    /**
-     * 更新群聊消息
-     *
-     * @param messagePo 群聊消息
-     */
-    @PutMapping("/update")
-    public Boolean update(@RequestBody ImGroupMessagePo messagePo) {
-        return imGroupMessageService.update(messagePo);
-    }
-
-    /**
-     * 删除群聊消息
-     *
-     * @param messageId 消息ID
-     */
-    @DeleteMapping("/deleteById")
-    public Boolean deleteById(@RequestParam("messageId") String messageId) {
-        return imGroupMessageService.deleteById(messageId);
+    @PostMapping("/saveOrUpdate")
+    public Boolean saveOrUpdate(@RequestBody ImGroupMessagePo messagePo) {
+        return imGroupMessageService.saveOrUpdate(messagePo);
     }
 
     /**
@@ -122,4 +92,6 @@ public class ImGroupMessageController {
     public Boolean groupMessageStatusBatchInsert(@RequestBody List<ImGroupMessageStatusPo> groupReadStatusList) {
         return imGroupMessageStatusService.saveBatch(groupReadStatusList);
     }
+
+
 }

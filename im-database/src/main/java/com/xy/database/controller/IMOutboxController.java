@@ -20,24 +20,14 @@ public class IMOutboxController {
     private final IMOutboxService imOutboxService;
 
     /**
-     * 查询消息列表
-     *
-     * @return 消息列表
-     */
-    @GetMapping("/selectList")
-    public List<IMOutboxPo> selectList() {
-        return imOutboxService.selectList();
-    }
-
-    /**
      * 获取单个
      *
      * @param id
      * @return
      */
-    @GetMapping("/selectOne")
-    public IMOutboxPo selectOne(@RequestParam("id") Long id) {
-        return imOutboxService.selectById(id);
+    @GetMapping("/getOne")
+    public IMOutboxPo getOne(@RequestParam("id") Long id) {
+        return imOutboxService.getById(id);
     }
 
     /**
@@ -46,42 +36,20 @@ public class IMOutboxController {
      * @param outboxPo
      * @return
      */
-    @PostMapping("/insert")
-    public Boolean insert(@RequestBody IMOutboxPo outboxPo) {
-        return imOutboxService.insert(outboxPo);
-    }
-
-    /**
-     * 批量插入消息
-     *
-     * @param outboxPoList 消息列表
-     * @return 是否插入成功
-     */
-    @PostMapping("/batchInsert")
-    public Boolean batchInsert(@RequestBody List<IMOutboxPo> outboxPoList) {
-        return imOutboxService.batchInsert(outboxPoList);
-    }
-
-    /**
-     * 更新消息
-     *
-     * @param outboxPo 消息
-     * @return 是否更新成功
-     */
-    @PutMapping("/update")
-    public Boolean update(@RequestBody IMOutboxPo outboxPo) {
-        return imOutboxService.update(outboxPo);
+    @PostMapping("/saveOrUpdate")
+    public Boolean saveOrUpdate(@RequestBody IMOutboxPo outboxPo) {
+        return imOutboxService.saveOrUpdate(outboxPo);
     }
 
     /**
      * 删除
      *
-     * @param id
+     * @param outboxPo
      * @return
      */
-    @DeleteMapping("/deleteById")
-    public Boolean deleteById(@RequestParam("id") Long id) {
-        return imOutboxService.deleteById(id);
+    @PostMapping("/delete")
+    public Boolean delete(@RequestBody IMOutboxPo outboxPo) {
+        return imOutboxService.removeById(outboxPo);
     }
 
     /**
@@ -91,8 +59,8 @@ public class IMOutboxController {
      * @param limit  限制数量
      * @return 消息列表
      */
-    @GetMapping("/selectListByStatus")
-    public List<IMOutboxPo> selectListByStatus(@RequestParam("status") String status, @RequestParam("limit") Integer limit) {
+    @GetMapping("/listByStatus")
+    public List<IMOutboxPo> listByStatus(@RequestParam("status") String status, @RequestParam("limit") Integer limit) {
         return imOutboxService.listByStatus(status, limit);
     }
 
@@ -104,7 +72,7 @@ public class IMOutboxController {
      * @param attempts 尝试次数
      * @return 是否更新成功
      */
-    @PutMapping("/updateStatus")
+    @PostMapping("/updateStatus")
     public Boolean updateStatus(@RequestParam("id") Long id, @RequestParam("status") String status, @RequestParam("attempts") Integer attempts) {
         return imOutboxService.updateStatus(id, status, attempts);
     }
@@ -117,7 +85,7 @@ public class IMOutboxController {
      * @param attempts  尝试次数
      * @return 是否更新成功
      */
-    @PutMapping("/markAsFailed")
+    @PostMapping("/markAsFailed")
     public Boolean markAsFailed(@RequestParam("id") Long id, @RequestParam("lastError") String lastError, @RequestParam("attempts") Integer attempts) {
         return imOutboxService.markAsFailed(id, lastError, attempts);
     }

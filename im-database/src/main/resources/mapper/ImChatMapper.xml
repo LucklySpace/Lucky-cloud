@@ -4,7 +4,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.xy.database.mapper.ImChatMapper">
 
-    <select id="selectList" resultType="com.xy.domain.po.ImChatPo">
+    <select id="list" resultType="com.xy.domain.po.ImChatPo">
         SELECT *
         FROM im_chat
         WHERE owner_id = #{ownerId}

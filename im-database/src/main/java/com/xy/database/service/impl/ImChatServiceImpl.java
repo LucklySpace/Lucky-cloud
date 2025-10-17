@@ -1,12 +1,9 @@
 package com.xy.database.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.database.mapper.*;
 import com.xy.database.service.ImChatService;
 import com.xy.domain.po.ImChatPo;
-import com.xy.dubbo.api.database.chat.ImChatDubboService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,44 +15,18 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ImChatServiceImpl extends ServiceImpl<ImChatMapper, ImChatPo>
-        implements ImChatService, ImChatDubboService {
+        implements ImChatService {
 
     private final ImChatMapper imChatMapper;
-//    private final ImSingleMessageMapper imSingleMessageMapper;
-//    private final ImGroupMessageStatusMapper imGroupMessageStatusMapper;
-//    private final ImGroupMessageMapper imGroupMessageMapper;
-//    private final ImGroupMapper imGroupMapper;
-//    private final ImUserDataMapper imUserDataMapper;
+    private final ImSingleMessageMapper imSingleMessageMapper;
+    private final ImGroupMessageStatusMapper imGroupMessageStatusMapper;
+    private final ImGroupMessageMapper imGroupMessageMapper;
+    private final ImGroupMapper imGroupMapper;
+    private final ImUserDataMapper imUserDataMapper;
 
     @Override
-    public List<ImChatPo> selectList(String ownerId, Long sequence) {
-        return imChatMapper.selectList(ownerId, sequence);
-    }
-
-    @Override
-    public ImChatPo selectOne(String ownerId, String toId, Integer chatType) {
-        QueryWrapper<ImChatPo> query = new QueryWrapper<>();
-        query.eq("owner_id", ownerId)
-                .eq("to_id", toId);
-        if (java.util.Objects.nonNull(chatType)) {
-            query.eq("chat_type", chatType);
-        }
-        return imChatMapper.selectOne(query);
-    }
-
-    @Override
-    public Boolean insert(ImChatPo chatPo) {
-        return this.save(chatPo);
-    }
-
-    @Override
-    public Boolean update(ImChatPo chatPo) {
-        return updateById(chatPo);
-    }
-
-    @Override
-    public Boolean deleteById(String id) {
-        return removeById(id);
+    public List<ImChatPo> list(String ownerId, Long sequence) {
+        return imChatMapper.list(ownerId, sequence);
     }
 
 

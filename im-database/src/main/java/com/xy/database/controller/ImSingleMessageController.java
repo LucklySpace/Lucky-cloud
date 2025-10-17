@@ -28,9 +28,9 @@ public class ImSingleMessageController {
      * @param messageId 私聊消息id
      * @return 私聊消息
      */
-    @GetMapping("/selectOne")
-    public ImSingleMessagePo selectOne(@RequestParam("messageId") String messageId) {
-        return imSingleMessageService.selectOne(messageId);
+    @GetMapping("/getById")
+    public ImSingleMessagePo getById(@RequestParam("messageId") String messageId) {
+        return imSingleMessageService.getById(messageId);
     }
 
     /**
@@ -40,9 +40,9 @@ public class ImSingleMessageController {
      * @param sequence 时间序列
      * @return 用户私聊消息
      */
-    @GetMapping("/selectList")
-    public List<ImSingleMessagePo> selectList(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
-        return imSingleMessageService.selectList(userId, sequence);
+    @GetMapping("/list")
+    public List<ImSingleMessagePo> list(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
+        return imSingleMessageService.list(userId, sequence);
     }
 
     /**
@@ -71,13 +71,13 @@ public class ImSingleMessageController {
     }
 
     /**
-     * 插入私聊消息
+     * 保存或更新私聊消息
      *
      * @param messagePo 私聊消息
      */
-    @PostMapping("/insert")
-    public Boolean insert(@RequestBody ImSingleMessagePo messagePo) {
-        return imSingleMessageService.insert(messagePo);
+    @PostMapping("/saveOrUpdate")
+    public Boolean saveOrUpdate(@RequestBody ImSingleMessagePo messagePo) {
+        return imSingleMessageService.saveOrUpdate(messagePo);
     }
 
 
@@ -86,29 +86,9 @@ public class ImSingleMessageController {
      *
      * @param messageId 私聊消息id
      */
-    @DeleteMapping("/deleteById")
-    public Boolean deleteById(@RequestParam("messageId") String messageId) {
-        return imSingleMessageService.deleteById(messageId);
-    }
-    
-    /**
-     * 批量插入私聊消息
-     *
-     * @param messagePoList 私聊消息列表
-     */
-    @PostMapping("/batchInsert")
-    public Boolean batchInsert(@RequestBody List<ImSingleMessagePo> messagePoList) {
-        return imSingleMessageService.batchInsert(messagePoList);
-    }
-    
-    /**
-     * 更新私聊消息
-     *
-     * @param messagePo 私聊消息
-     */
-    @PutMapping("/update")
-    public Boolean update(@RequestBody ImSingleMessagePo messagePo) {
-        return imSingleMessageService.update(messagePo);
+    @DeleteMapping("/{messageId}")
+    public Boolean deleteById(@PathVariable String messageId) {
+        return imSingleMessageService.removeById(messageId);
     }
 
 }

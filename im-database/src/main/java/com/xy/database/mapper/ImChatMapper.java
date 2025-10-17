@@ -16,7 +16,7 @@ import java.util.List;
 public interface ImChatMapper extends BaseMapper<ImChatPo> {
 
 
-    List<ImChatPo> selectList(@Param("ownerId") String ownerId, @Param("sequence") Long sequence);
+    List<ImChatPo> list(@Param("ownerId") String ownerId, @Param("sequence") Long sequence);
 }
 
 

@@ -27,9 +27,9 @@ public class ImUserDataController {
      * @param userId 用户id
      * @return 用户信息集合
      */
-    @GetMapping("/selectOne")
-    public ImUserDataPo selectOne(@RequestParam("userId") String userId) {
-        return imUserDataService.selectById(userId);
+    @GetMapping("/getOne")
+    public ImUserDataPo getOne(@RequestParam("userId") String userId) {
+        return imUserDataService.getById(userId);
     }
 
 
@@ -39,8 +39,8 @@ public class ImUserDataController {
      * @param userIdList 用户id集合
      * @return 用户信息集合
      */
-    @PostMapping("/selectListByIds")
-    public List<ImUserDataPo> selectListByIds(@RequestBody List<String> userIdList) {
+    @PostMapping("/getUserByIds")
+    public List<ImUserDataPo> getUserByIds(@RequestBody List<String> userIdList) {
         return imUserDataService.listByIds(userIdList);
     }
 
@@ -53,38 +53,5 @@ public class ImUserDataController {
     @PostMapping("/update")
     public boolean update(@RequestBody ImUserDataPo po) {
         return imUserDataService.updateById(po);
-    }
-    
-    /**
-     * 插入用户数据信息
-     *
-     * @param userDataPo 用户数据信息
-     * @return 是否插入成功
-     */
-    @PostMapping("/insert")
-    public Boolean insert(@RequestBody ImUserDataPo userDataPo) {
-        return imUserDataService.insert(userDataPo);
-    }
-    
-    /**
-     * 批量插入用户数据信息
-     *
-     * @param userDataPoList 用户数据信息列表
-     * @return 是否插入成功
-     */
-    @PostMapping("/batchInsert")
-    public Boolean batchInsert(@RequestBody List<ImUserDataPo> userDataPoList) {
-        return imUserDataService.batchInsert(userDataPoList);
-    }
-
-    /**
-     * 删除用户数据信息
-     *
-     * @param userId 用户ID
-     * @return 是否删除成功
-     */
-    @DeleteMapping("/deleteById")
-    public Boolean deleteById(@RequestParam("userId") String userId) {
-        return imUserDataService.deleteById(userId);
     }
 }

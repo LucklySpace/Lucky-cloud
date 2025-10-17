@@ -30,12 +30,12 @@ public class ImFriendshipServiceImpl extends ServiceImpl<ImFriendshipMapper, ImF
     private ImFriendshipRequestMapper imFriendshipRequestMapper;
 
     @Override
-    public List<ImFriendshipPo> selectList(String ownerId, Long sequence) {
+    public List<ImFriendshipPo> list(String ownerId, Long sequence) {
         return imFriendshipMapper.selectFriendList(ownerId, sequence);
     }
 
     @Override
-    public ImFriendshipPo selectOne(String ownerId, String toId) {
+    public ImFriendshipPo getOne(String ownerId, String toId) {
         QueryWrapper<ImFriendshipPo> query = new QueryWrapper<>();
         query.eq("owner_id", ownerId)
                 .eq("to_id", toId);
@@ -79,10 +79,5 @@ public class ImFriendshipServiceImpl extends ServiceImpl<ImFriendshipMapper, ImF
     @Override
     public void updateFriendRequest(ImFriendshipRequestPo request) {
         imFriendshipRequestMapper.updateById(request);
-    }
-
-    @Override
-    public Boolean update(ImFriendshipPo friendship) {
-        return this.updateById(friendship);
     }
 }

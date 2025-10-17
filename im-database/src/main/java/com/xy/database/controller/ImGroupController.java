@@ -19,21 +19,21 @@ public class ImGroupController {
     private final ImGroupService imGroupService;
 
     /**
-     * 查询群列表
+     * 查询所有好友
      */
-    @GetMapping("/selectList")
-    public List<ImGroupPo> selectList(@RequestParam("userId") String userId) {
+    @GetMapping("/list")
+    public List<ImGroupPo> list(@RequestParam("userId") String userId) {
         return imGroupService.list(userId);
     }
 
     /**
      * 获取群信息
      *
-     * @param groupId 群id
+     * @param groupId 成员id
      */
-    @GetMapping("/selectOne")
-    public ImGroupPo selectOne(@RequestParam("groupId") String groupId) {
-        return imGroupService.selectById(groupId);
+    @GetMapping("/getOne")
+    public ImGroupPo getOne(@RequestParam("groupId") String groupId) {
+        return imGroupService.getById(groupId);
     }
 
 
@@ -44,7 +44,7 @@ public class ImGroupController {
      */
     @PostMapping("/insert")
     public Boolean insert(@RequestBody ImGroupPo groupPo) {
-        return imGroupService.insert(groupPo);
+        return imGroupService.save(groupPo);
     }
 
     /**
@@ -52,9 +52,9 @@ public class ImGroupController {
      *
      * @param groupPo 群信息
      */
-    @PutMapping("/update")
-    public Boolean update(@RequestBody ImGroupPo groupPo) {
-        return imGroupService.update(groupPo);
+    @PutMapping("/updateById")
+    public Boolean updateById(@RequestBody ImGroupPo groupPo) {
+        return imGroupService.updateById(groupPo);
     }
 
     /**
@@ -62,9 +62,9 @@ public class ImGroupController {
      *
      * @param groupId 群id
      */
-    @DeleteMapping("/deleteById")
-    public Boolean deleteById(@RequestParam("groupId") String groupId) {
-        return imGroupService.deleteById(groupId);
+    @DeleteMapping("/{groupId}")
+    public Boolean deleteById(@PathVariable String groupId) {
+        return imGroupService.removeById(groupId);
     }
 
 

@@ -14,7 +14,6 @@ import com.xy.spring.annotations.core.Value;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetAddress;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.*;
@@ -108,9 +107,8 @@ public class NacosTemplate {
         meta.put(NacosMetadataConstants.WS_PATH, wsPath);
 
         // # TODO 待完善
-        meta.put(NacosMetadataConstants.PROTOCOLS, List.of(protocolType).toString()); // json array format
+        meta.put(NacosMetadataConstants.PROTOCOLS, "[\"proto\"]"); // json array format
         meta.put(NacosMetadataConstants.CONNECTION, "0");
-        meta.put(NacosMetadataConstants.CREATED_AT, String.valueOf(System.currentTimeMillis() / 1000L));
         meta.put(NacosMetadataConstants.REGION, "cn-shanghai");
         meta.put(NacosMetadataConstants.PRIORITY, "1");
 

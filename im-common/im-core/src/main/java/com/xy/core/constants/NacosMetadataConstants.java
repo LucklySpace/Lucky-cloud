@@ -18,6 +18,4 @@ public class NacosMetadataConstants {
     public static final String PRIORITY= "priority";
 
     public static final String CONNECTION= "connection";
-
-    public static final String CREATED_AT= "createdAt";
 }

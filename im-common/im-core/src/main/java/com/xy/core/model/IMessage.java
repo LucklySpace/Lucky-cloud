@@ -143,7 +143,7 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class TextMessageBody extends MessageBody {
+    public static class TextMessageBody extends MessageBody implements Serializable {
         @NotBlank(message = "消息内容不能为空")
         private String text;
     }
@@ -157,7 +157,7 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class ImageMessageBody extends MessageBody {
+    public static class ImageMessageBody extends MessageBody implements Serializable {
         @NotBlank(message = "图片 path 不能为空")
         private String path;
         private String name;
@@ -173,7 +173,7 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class VideoMessageBody extends MessageBody {
+    public static class VideoMessageBody extends MessageBody implements Serializable {
 
         @NotBlank(message = "视频 URL 不能为空")
         private String path;
@@ -193,7 +193,7 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class AudioMessageBody extends MessageBody {
+    public static class AudioMessageBody extends MessageBody implements Serializable {
 
         @NotBlank(message = "视频 URL 不能为空")
         private String path;
@@ -213,7 +213,7 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class FileMessageBody extends MessageBody {
+    public static class FileMessageBody extends MessageBody implements Serializable {
 
         @NotBlank(message = "视频 URL 不能为空")
         private String path;
@@ -231,7 +231,7 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class SystemMessageBody extends MessageBody {
+    public static class SystemMessageBody extends MessageBody implements Serializable {
         @NotBlank(message = "系统消息不能为空")
         private String text;
     }
@@ -245,7 +245,7 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class GroupInviteMessageBody extends MessageBody {
+    public static class GroupInviteMessageBody extends MessageBody implements Serializable {
 
         @NotBlank(message = "邀请ID不能为空")
         private String requestId;
@@ -282,7 +282,7 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class LocationMessageBody extends MessageBody {
+    public static class LocationMessageBody extends MessageBody implements Serializable {
         @NotBlank(message = "位置标题不能为空")
         private String title;
 
@@ -303,7 +303,7 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class ComplexMessageBody extends MessageBody {
+    public static class ComplexMessageBody extends MessageBody implements Serializable {
 
         /**
          * 可选统一的 parts：数组的顺序即为消息内容的展示顺序

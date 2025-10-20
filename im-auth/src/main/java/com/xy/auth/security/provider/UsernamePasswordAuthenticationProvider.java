@@ -1,14 +1,15 @@
 package com.xy.auth.security.provider;
 
 
-import com.xy.auth.api.database.user.ImUserFeign;
 import com.xy.auth.security.IMRSAKeyProperties;
 import com.xy.auth.security.exception.AuthenticationFailException;
 import com.xy.auth.utils.RSAUtil;
 import com.xy.domain.po.ImUserPo;
+import com.xy.dubbo.api.database.user.ImUserDubboService;
 import com.xy.general.response.domain.ResultCode;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -25,8 +26,8 @@ import java.util.Objects;
 @Component
 public class UsernamePasswordAuthenticationProvider implements AuthenticationProvider {
 
-    @Resource
-    private ImUserFeign imUserFeign;
+    @DubboReference
+    private ImUserDubboService imUserDubboService;
 
     @Resource
     private IMRSAKeyProperties IMRSAKeyProperties;
@@ -66,8 +67,7 @@ public class UsernamePasswordAuthenticationProvider implements AuthenticationPro
      * @throws AuthenticationFailException 如果用户不存在
      */
     private ImUserPo getUserByUserId(String userId) {
-        ImUserPo user = imUserFeign.getOneUser(userId);
-
+        ImUserPo user = imUserDubboService.selectOne(userId);
         if (Objects.isNull(user)) {
             log.warn("Account not found for userId: {}", userId);
             throw new AuthenticationFailException(ResultCode.ACCOUNT_NOT_FOUND);

@@ -3,7 +3,7 @@ package com.xy.database.controller;
 import com.xy.database.service.ImGroupService;
 import com.xy.domain.po.ImGroupPo;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,17 +13,17 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/{version}/database/group")
 @Tag(name = "ImGroup", description = "群数据库接口")
-@RequiredArgsConstructor
 public class ImGroupController {
 
-    private final ImGroupService imGroupService;
+    @Resource
+    private ImGroupService imGroupService;
 
     /**
      * 查询群列表
      */
     @GetMapping("/selectList")
     public List<ImGroupPo> selectList(@RequestParam("userId") String userId) {
-        return imGroupService.list(userId);
+        return imGroupService.selectList(userId);
     }
 
     /**
@@ -33,9 +33,8 @@ public class ImGroupController {
      */
     @GetMapping("/selectOne")
     public ImGroupPo selectOne(@RequestParam("groupId") String groupId) {
-        return imGroupService.selectById(groupId);
+        return imGroupService.selectOne(groupId);
     }
-
 
     /**
      * 插入群信息
@@ -66,6 +65,5 @@ public class ImGroupController {
     public Boolean deleteById(@RequestParam("groupId") String groupId) {
         return imGroupService.deleteById(groupId);
     }
-
 
 }

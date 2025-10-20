@@ -4,24 +4,22 @@ package com.xy.database.controller;
 import com.xy.database.security.SecurityInner;
 import com.xy.database.service.ImFriendshipService;
 import com.xy.domain.po.ImFriendshipPo;
-import com.xy.domain.po.ImFriendshipRequestPo;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @SecurityInner
 @RestController
 @RequestMapping("/api/{version}/database/friend")
 @Tag(name = "ImFriendShip", description = "好友关系数据库接口")
-@RequiredArgsConstructor
 public class ImFriendshipController {
 
-    private final ImFriendshipService imFriendshipService;
+    @Resource
+    private ImFriendshipService imFriendshipService;
 
     /**
      * 查询所有好友
@@ -30,7 +28,6 @@ public class ImFriendshipController {
     public List<ImFriendshipPo> selectList(@RequestParam("ownerId") String ownerId, @RequestParam("sequence") Long sequence) {
         return imFriendshipService.selectList(ownerId, sequence);
     }
-
 
     /**
      * 获取好友关系
@@ -51,36 +48,9 @@ public class ImFriendshipController {
      * @param ids     好友ID列表
      * @return 好友关系列表
      */
-    @GetMapping("/ship/selectList")
-    public List<ImFriendshipPo> shipSelectList(@RequestParam("ownerId") String ownerId, @RequestParam("ids") List<String> ids) {
-        return imFriendshipService.getFriendshipList(ownerId, ids);
-    }
-
-    /**
-     * 添加好友请求
-     *
-     * @param request 好友请求信息
-     */
-    @PostMapping("/request/add")
-    public void addFriendRequest(@RequestBody ImFriendshipRequestPo request) {
-        request.setId(UUID.randomUUID().toString());
-        imFriendshipService.saveFriendRequest(request);
-    }
-
-    @PostMapping("/request/update")
-    public void updateFriendRequest(@RequestBody ImFriendshipRequestPo request) {
-        imFriendshipService.updateFriendRequest(request);
-    }
-
-    /**
-     * 更新好友请求状态
-     *
-     * @param requestId 请求ID
-     * @param status    审批状态
-     */
-    @PutMapping("/request/updateStatus")
-    public void updateFriendRequestStatus(@RequestParam("requestId") String requestId, @RequestParam("status") Integer status) {
-        imFriendshipService.updateFriendRequestStatus(requestId, status);
+    @GetMapping("/ship/selectByIds")
+    public List<ImFriendshipPo> selectByIds(@RequestParam("ownerId") String ownerId, @RequestParam("ids") List<String> ids) {
+        return imFriendshipService.selectByIds(ownerId, ids);
     }
 
     /**
@@ -90,7 +60,7 @@ public class ImFriendshipController {
      */
     @PostMapping("/insert")
     public void insert(@RequestBody ImFriendshipPo friendship) {
-        imFriendshipService.saveFriendship(friendship);
+        imFriendshipService.insert(friendship);
     }
 
     /**
@@ -110,9 +80,9 @@ public class ImFriendshipController {
      * @param ownerId  用户ID
      * @param friendId 好友ID
      */
-    @DeleteMapping("/deleteById")
-    public Boolean deleteById(@RequestParam("ownerId") String ownerId, @RequestParam("friendId") String friendId) {
-        return imFriendshipService.deleteFriendship(ownerId, friendId);
+    @DeleteMapping("/delete")
+    public Boolean delete(@RequestParam("ownerId") String ownerId, @RequestParam("friendId") String friendId) {
+        return imFriendshipService.delete(ownerId, friendId);
     }
 
 }

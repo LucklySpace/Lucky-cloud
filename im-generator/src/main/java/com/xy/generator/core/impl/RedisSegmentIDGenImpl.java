@@ -31,9 +31,15 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.stream.Collectors;
 
 /**
- * 高性能 Redis Segment ID 生成器（双 buffer + 异步预加载 + 持久化 debounced）
- * <p>
- * 关键点：
+ * 高性能 Redis Segment ID 生成器
+ *
+ * 特性：
+ * - 双缓冲区设计，提高并发性能
+ * - 异步预加载，减少等待时间
+ * - 本地缓存和持久化，提高系统可靠性
+ * - 基于Redis的分布式锁，确保多节点安全
+ *
+ * 核心设计：
  * - LocalSegment 使用 AtomicLong，无锁 next()
  * - 使用共享 loaderPool 来异步加载号段
  * - 持久化到文件使用定时批量 flush，避免每次 get 请求都写文件
@@ -48,39 +54,52 @@ public class RedisSegmentIDGenImpl implements IDGen {
 
     private static final String LOCK_PREFIX = "lock:idgen:calibrate:";
 
-    // local cache for segments
+    // 本地缓存的段
     private final ConcurrentHashMap<String, SegmentPair> segmentCache = new ConcurrentHashMap<>();
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // thread pools
-    // loaderPool: fixed size to avoid过多并发 DB/Redis 操作；默认 CPU*2
+    // 线程池
+    // loaderPool: 固定大小，避免过多并发 DB/Redis 操作；默认 CPU*2
     private final ExecutorService loaderPool;
-    // scheduler for periodic tasks (persist)
+
+    // 定时任务调度器（用于持久化）
     private final ScheduledExecutorService scheduler;
-    // persist dirty flag
+
+    // 持久化脏数据标记
     private final AtomicBoolean dirty = new AtomicBoolean(false);
+
     @Resource
     private ReactiveRedisTemplate<String, Object> reactiveRedisTemplate;
+
     @Resource
     private IdMetaInfoRepository idMetaInfoRepository;
+
     @Resource
     private RedissonClient redissonClient;
+
     @Value("${generate.step:1000}")
     private int defaultStep;
+
     @Value("${generate.initialId:0}")
     private long initialId;
+
     @Value("${generate.prefetchThreshold:0.2}")
     private double prefetchThreshold;
+
     @Value("${generate.lockWaitSeconds:5}")
     private long lockWaitSeconds;
+
     @Value("${generate.lockLeaseSeconds:60}")
     private long lockLeaseSeconds;
 
-    // ctor
+    /**
+     * 构造函数
+     * 初始化线程池
+     */
     public RedisSegmentIDGenImpl() {
         int cpu = Math.max(1, Runtime.getRuntime().availableProcessors());
-        // loaderPool: allow some parallelism but avoid冲击 redis/db
+        // loaderPool: 允许一定并行度但避免冲击 redis/db
         this.loaderPool = Executors.newFixedThreadPool(Math.min(16, cpu * 2),
                 r -> {
                     Thread t = new Thread(r, "IDGen-Loader");
@@ -98,14 +117,14 @@ public class RedisSegmentIDGenImpl implements IDGen {
     @SneakyThrows
     @PostConstruct
     public boolean init() {
-        // load state from file quickly (best-effort)
+        // 从文件快速加载状态（尽力而为）
         loadCacheFromFile();
 
-        // schedule periodic persistence (debounced)
+        // 安排定期持久化任务（防抖动）
         scheduler.scheduleAtFixedRate(this::persistCacheIfDirty, DEFAULT_PERSIST_INTERVAL_SECONDS,
                 DEFAULT_PERSIST_INTERVAL_SECONDS, TimeUnit.SECONDS);
 
-        // test redis connectivity in background (don't block startup)
+        // 在后台测试redis连接（不阻塞启动）
         loaderPool.submit(() -> {
             try {
                 String pong = reactiveRedisTemplate.getConnectionFactory()
@@ -122,6 +141,9 @@ public class RedisSegmentIDGenImpl implements IDGen {
         return true;
     }
 
+    /**
+     * 从文件加载缓存
+     */
     private void loadCacheFromFile() {
         try {
             File f = Paths.get(CACHE_FILE).toFile();
@@ -141,12 +163,17 @@ public class RedisSegmentIDGenImpl implements IDGen {
         }
     }
 
-    // periodic persist if something changed
+    /**
+     * 定期持久化（如果数据有变化）
+     */
     private void persistCacheIfDirty() {
         if (!dirty.getAndSet(false)) return;
         persistCacheToFile();
     }
 
+    /**
+     * 持久化缓存到文件
+     */
     private synchronized void persistCacheToFile() {
         try {
             Map<String, SegmentSnapshot> snap = segmentCache.entrySet().stream()
@@ -155,7 +182,7 @@ public class RedisSegmentIDGenImpl implements IDGen {
             log.debug("Persisted {} segments to {}", snap.size(), CACHE_FILE);
         } catch (Throwable t) {
             log.error("Persist cache to file failed: {}", t.getMessage(), t);
-            dirty.set(true); // mark dirty for retry
+            dirty.set(true); // 标记为脏数据，用于重试
         }
     }
 
@@ -166,15 +193,17 @@ public class RedisSegmentIDGenImpl implements IDGen {
 
     @Override
     public IMetaId getId(String key) {
-        // fast path get-or-create pair
+        // 快速路径获取或创建段对
         SegmentPair pair = segmentCache.computeIfAbsent(key, SegmentPair::new);
         long id = pair.nextId();
-        // debounce persistence: mark dirty, actual write happens periodically
+        // 防抖动持久化：标记为脏数据，实际写入定期执行
         dirty.set(true);
         return IMetaId.builder().longId(id).build();
     }
 
-    // shutdown helper (optional)
+    /**
+     * 关闭服务时清理资源
+     */
     public void shutdown() {
         try {
             loaderPool.shutdownNow();
@@ -187,13 +216,13 @@ public class RedisSegmentIDGenImpl implements IDGen {
     }
 
     // ----------------------------
-    // Snapshot structure for persistence
+    // 用于持久化的快照结构
     // ----------------------------
     @Data
     public static class SegmentSnapshot {
         private long currentStart;
         private long currentEnd;
-        private long currentCursor; // next value to use
+        private long currentCursor; // 下一个要使用的值
         private int currentStep;
 
         private Long nextStart;
@@ -202,7 +231,7 @@ public class RedisSegmentIDGenImpl implements IDGen {
     }
 
     /**
-     * LocalSegment: 内存轻量、线程安全、无锁的号段实现
+     * 本地段：内存轻量、线程安全、无锁的号段实现
      */
     private static final class LocalSegment {
         static final long EXHAUSTED = Long.MIN_VALUE;
@@ -210,16 +239,16 @@ public class RedisSegmentIDGenImpl implements IDGen {
         final long start;
         final long end;
         final int step;
-        final AtomicLong cursor; // next id to return
+        final AtomicLong cursor; // 下一个要返回的ID
 
         LocalSegment(long start, long end, int step) {
             this.start = start;
             this.end = end;
             this.step = step;
-            this.cursor = new AtomicLong(Math.max(start, start)); // next to return
+            this.cursor = new AtomicLong(Math.max(start, start)); // 下一个要返回的
         }
 
-        // construct with known current cursor
+        // 使用已知当前游标构造
         LocalSegment(long start, long end, int step, long currentCursor) {
             this.start = start;
             this.end = end;
@@ -227,65 +256,82 @@ public class RedisSegmentIDGenImpl implements IDGen {
             this.cursor = new AtomicLong(Math.max(currentCursor, start));
         }
 
+        /**
+         * 获取下一个ID
+         *
+         * @return 下一个ID，如果段已耗尽则返回EXHAUSTED
+         */
         long next() {
             while (true) {
                 long cur = cursor.get();
                 if (cur > end) return EXHAUSTED;
-                long next = cur;
                 if (cursor.compareAndSet(cur, cur + 1)) {
-                    return next;
+                    return cur;
                 }
-                // CAS 失败，重试（极少数）
+                // CAS 失败，重试（极少数情况）
             }
         }
 
+        /**
+         * 获取剩余ID数量
+         * @return 剩余ID数量
+         */
         long remaining() {
             long cur = cursor.get();
             long rem = end - cur + 1;
             return Math.max(0, rem);
         }
 
+        /**
+         * 获取步长
+         * @return 步长
+         */
         int getStep() {
             return this.step;
         }
     }
 
     // ----------------------------
-    // SegmentPair and LocalSegment
+    // 段对和本地段
     // ----------------------------
     private class SegmentPair {
         private final String key;
 
-        // flags
+        // 加载标记
         private final AtomicBoolean loading = new AtomicBoolean(false);
 
-        // use volatile for visibility; LocalSegment is thread-safe
+        // 使用volatile保证可见性；LocalSegment是线程安全的
         private volatile LocalSegment current;
         private volatile LocalSegment nextSegment;
 
         SegmentPair(String key) {
             this.key = key;
-            // load initial synchronously but on loaderPool to avoid blocking caller thread if DB/Redis slow
+            // 同步加载初始段，但在loaderPool中执行以避免阻塞调用线程（如果DB/Redis较慢）
             Future<LocalSegment> f = loaderPool.submit(this::loadSegmentBlocking);
             try {
-                this.current = f.get(3, TimeUnit.SECONDS); // small timeout for initial load
+                this.current = f.get(3, TimeUnit.SECONDS); // 初始加载的小超时
             } catch (Throwable t) {
                 log.warn("[{}] initial load slow or failed, creating fallback empty segment", key);
-                // fallback to an empty segment that will trigger async load on first access
+                // 回退到一个空段，将在首次访问时触发异步加载
                 this.current = new LocalSegment(initialId + 1, initialId, defaultStep);
-                triggerAsyncLoad(); // proactively load
+                triggerAsyncLoad(); // 主动加载
             }
         }
 
         SegmentPair(String key, SegmentSnapshot snap) {
             this.key = key;
-            this.current = new LocalSegment(snap.getCurrentStart(), snap.getCurrentEnd(), snap.getCurrentStep(), snap.getCurrentCursor());
+            this.current = new LocalSegment(snap.getCurrentStart(), snap.getCurrentEnd(),
+                    snap.getCurrentStep(), snap.getCurrentCursor());
             if (snap.getNextStart() != null) {
-                this.nextSegment = new LocalSegment(snap.getNextStart(), snap.getNextEnd(), snap.getNextStep());
+                this.nextSegment = new LocalSegment(snap.getNextStart(), snap.getNextEnd(),
+                        snap.getNextStep());
             }
         }
 
-
+        /**
+         * 获取下一个ID
+         * @return 下一个ID
+         */
         long nextId() {
             int retry = 0;
 
@@ -305,7 +351,7 @@ public class RedisSegmentIDGenImpl implements IDGen {
                 // 当前段耗尽，尝试快速切换到已加载的 nextSegment（如果存在）
                 LocalSegment ns = this.nextSegment;
                 if (ns != null) {
-                    // 在临界区内再次确认并执行切换（double-check）
+                    // 在临界区内再次确认并执行切换（双重检查）
                     synchronized (this) {
                         if (this.current == seg && this.nextSegment != null) {
                             this.current = this.nextSegment;
@@ -321,9 +367,9 @@ public class RedisSegmentIDGenImpl implements IDGen {
                 // 没有可切换的 nextSegment，则触发异步加载（若尚未进行）
                 triggerAsyncLoad();
 
-                // 轻量等待：短自旋 + 退避（避免 busy loop）
+                // 轻量等待：短自旋 + 退避（避免忙等）
                 retry++;
-                if (retry > 200) { // 调整上限，可配置
+                if (retry > 200) { // 可配置的上限
                     throw new IllegalStateException("Segment exhausted and new segment not ready for key=" + key);
                 }
                 // parkNanos 做短暂停顿，避免调用线程完全忙等
@@ -334,6 +380,9 @@ public class RedisSegmentIDGenImpl implements IDGen {
             }
         }
 
+        /**
+         * 触发异步加载
+         */
         private void triggerAsyncLoad() {
             // 仅当 nextSegment 为空并且没有正在加载时提交加载任务
             if (this.nextSegment == null && loading.compareAndSet(false, true)) {
@@ -346,10 +395,13 @@ public class RedisSegmentIDGenImpl implements IDGen {
                                 this.nextSegment = seg;
                             } else {
                                 // 如果已有 nextSegment（极小概率），丢弃新加载段或可合并策略
-                                log.debug("[{}] nextSegment already present, discarding loaded segment {}-{}", key, seg.start, seg.end);
+                                log.debug("[{}] nextSegment already present, discarding loaded segment {}-{}",
+                                        key, seg.start, seg.end);
                             }
                         }
-                        if (log.isDebugEnabled()) log.debug("[{}] async prefetch done: {}-{}", key, seg.start, seg.end);
+                        if (log.isDebugEnabled()) {
+                            log.debug("[{}] async prefetch done: {}-{}", key, seg.start, seg.end);
+                        }
                     } catch (Throwable t) {
                         log.error("[{}] async load failed", key, t);
                     } finally {
@@ -359,9 +411,9 @@ public class RedisSegmentIDGenImpl implements IDGen {
             }
         }
 
-
         /**
-         * blocking segment load - runs in loaderPool threads
+         * 阻塞式段加载 - 在loaderPool线程中运行
+         * @return 加载的本地段
          */
         private LocalSegment loadSegmentBlocking() {
             String lockName = LOCK_PREFIX + key;
@@ -373,7 +425,7 @@ public class RedisSegmentIDGenImpl implements IDGen {
                     throw new IllegalStateException("Failed to acquire distributed lock: " + lockName);
                 }
 
-                // 1. load meta from DB (sync)
+                // 1. 从数据库加载元数据（同步）
                 IdMetaInfo meta = idMetaInfoRepository.findById(key).orElseGet(() -> {
                     IdMetaInfo m = new IdMetaInfo();
                     m.setId(key);
@@ -387,14 +439,14 @@ public class RedisSegmentIDGenImpl implements IDGen {
 
                 int step = Math.max(1, meta.getStep() == null ? defaultStep : meta.getStep());
 
-                // 2. check redis current value (block here but running in loader thread)
+                // 2. 检查redis当前值（在此阻塞但在线程池中运行）
                 Object redisValObj = reactiveRedisTemplate.opsForValue().get(key).block(Duration.ofSeconds(2));
                 if (redisValObj == null) {
-                    // initialize redis with meta.maxId
+                    // 使用meta.maxId初始化redis
                     reactiveRedisTemplate.opsForValue().set(key, meta.getMaxId()).block(Duration.ofSeconds(2));
                 }
 
-                // 3. increment redis to allocate new range
+                // 3. 增加redis以分配新范围
                 Long newMax = reactiveRedisTemplate.opsForValue().increment(key, step).block(Duration.ofSeconds(3));
                 if (newMax == null) {
                     throw new IllegalStateException("Redis increment returned null for key=" + key);
@@ -402,7 +454,7 @@ public class RedisSegmentIDGenImpl implements IDGen {
                 long start = newMax - step + 1;
                 long end = newMax;
 
-                // 4. persist meta.maxId asynchronously (do not block caller)
+                // 4. 异步持久化meta.maxId（不阻塞调用者）
                 try {
                     scheduler.submit(() -> {
                         try {
@@ -417,7 +469,7 @@ public class RedisSegmentIDGenImpl implements IDGen {
                     log.warn("[{}] persist meta scheduling rejected, will persist later", key);
                 }
 
-                // return new LocalSegment
+                // 返回新的本地段
                 return new LocalSegment(start, end, step);
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
@@ -432,6 +484,10 @@ public class RedisSegmentIDGenImpl implements IDGen {
             }
         }
 
+        /**
+         * 创建快照
+         * @return 段快照
+         */
         SegmentSnapshot snapshot() {
             SegmentSnapshot snap = new SegmentSnapshot();
             LocalSegment cur = current;

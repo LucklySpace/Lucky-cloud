@@ -1,78 +1,60 @@
 package com.xy.database.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xy.database.mapper.ImFriendshipMapper;
 import com.xy.domain.po.ImFriendshipPo;
-import com.xy.domain.po.ImFriendshipRequestPo;
+import com.xy.dubbo.api.database.friend.ImFriendshipDubboService;
+import com.xy.utils.DateTimeUtil;
+import jakarta.annotation.Resource;
+import org.apache.dubbo.config.annotation.DubboService;
 
 import java.util.List;
 
-/**
- * @author dense
- * @description 针对表【im_friendship】的数据库操作Service
- */
-public interface ImFriendshipService extends IService<ImFriendshipPo> {
+@DubboService
+public class ImFriendshipService extends ServiceImpl<ImFriendshipMapper, ImFriendshipPo>
+        implements ImFriendshipDubboService, IService<ImFriendshipPo> {
 
-    /**
-     * 查询所有好友
-     */
-    List<ImFriendshipPo> selectList(String ownerId, Long sequence);
+    @Resource
+    private ImFriendshipMapper imFriendshipMapper;
 
 
-    /**
-     * 获取好友关系
-     *
-     * @param ownerId  用户ID
-     * @param toId 好友id
-     * @return
-     */
-    ImFriendshipPo selectOne(String ownerId, String toId);
+    public List<ImFriendshipPo> selectList(String ownerId, Long sequence) {
+        return imFriendshipMapper.selectFriendList(ownerId, sequence);
+    }
 
-    /**
-     * 保存好友请求
-     *
-     * @param request 好友请求信息
-     */
-    void saveFriendRequest(ImFriendshipRequestPo request);
 
-    /**
-     * 更新好友请求状态
-     *
-     * @param requestId 请求ID
-     * @param status    审批状态
-     */
-    void updateFriendRequestStatus(String requestId, Integer status);
+    public List<ImFriendshipPo> selectByIds(String ownerId, List<String> ids) {
+        QueryWrapper<ImFriendshipPo> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("owner_id", ownerId).in("to_id", ids);
+        return this.list(queryWrapper);
+    }
 
-    /**
-     * 保存好友关系
-     *
-     * @param friendship 好友关系信息
-     */
-    void saveFriendship(ImFriendshipPo friendship);
 
-    /**
-     * 删除好友关系
-     *
-     * @param ownerId  用户ID
-     * @param friendId 好友ID
-     */
-    Boolean deleteFriendship(String ownerId, String friendId);
+    public ImFriendshipPo selectOne(String ownerId, String toId) {
+        QueryWrapper<ImFriendshipPo> query = new QueryWrapper<>();
+        query.eq("owner_id", ownerId)
+                .eq("to_id", toId);
+        return this.getOne(query);
+    }
 
-    /**
-     * 批量查询好友关系
-     *
-     * @param ownerId 用户ID
-     * @param ids     好友ID列表
-     * @return 好友关系列表
-     */
-    List<ImFriendshipPo> getFriendshipList(String ownerId, List<String> ids);
 
-    void updateFriendRequest(ImFriendshipRequestPo request);
+    public Boolean insert(ImFriendshipPo friendship) {
+        return this.save(friendship);
+    }
 
-    /**
-     * 更新好友关系
-     *
-     * @param friendship 好友关系信息
-     * @return 是否更新成功
-     */
-    Boolean update(ImFriendshipPo friendship);
+    public Boolean update(ImFriendshipPo friendship) {
+        return this.updateById(friendship);
+    }
+
+
+    public Boolean delete(String ownerId, String friendId) {
+        UpdateWrapper<ImFriendshipPo> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("owner_id", ownerId).eq("to_id", friendId);
+        updateWrapper.set("sequence", DateTimeUtil.getCurrentUTCTimestamp());
+        updateWrapper.set("del_flag", 0);
+        return this.update(updateWrapper);
+    }
 }

@@ -5,7 +5,7 @@ import com.xy.database.security.SecurityInner;
 import com.xy.database.service.ImFriendshipRequestService;
 import com.xy.domain.po.ImFriendshipRequestPo;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,10 +16,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/{version}/database/friend/request")
 @Tag(name = "ImFriendShipRequest", description = "好友关系数据库接口")
-@RequiredArgsConstructor
 public class ImFriendShipRequestController {
 
-    private final ImFriendshipRequestService imFriendshipRequestService;
+    @Resource
+    private ImFriendshipRequestService imFriendshipRequestService;
 
     /**
      * 查询添加好友请求
@@ -53,18 +53,7 @@ public class ImFriendShipRequestController {
     public Boolean insert(@RequestBody ImFriendshipRequestPo requestPo) {
         return imFriendshipRequestService.insert(requestPo);
     }
-    
-    /**
-     * 批量插入好友请求
-     *
-     * @param requestPoList 好友请求列表
-     * @return 是否插入成功
-     */
-    @PostMapping("/batchInsert")
-    public Boolean batchInsert(@RequestBody List<ImFriendshipRequestPo> requestPoList) {
-        return imFriendshipRequestService.batchInsert(requestPoList);
-    }
-    
+
     /**
      * 更新好友请求
      *
@@ -86,4 +75,34 @@ public class ImFriendShipRequestController {
     public Boolean deleteById(@RequestParam("requestId") String requestId) {
         return imFriendshipRequestService.deleteById(requestId);
     }
+
+
+//
+//    /**
+//     * 添加好友请求
+//     *
+//     * @param request 好友请求信息
+//     */
+//    @PostMapping("/request/add")
+//    public void addFriendRequest(@RequestBody ImFriendshipRequestPo request) {
+//        request.setId(UUID.randomUUID().toString());
+//        imFriendshipService.insert(request);
+//    }
+//
+//    @PostMapping("/request/update")
+//    public void updateFriendRequest(@RequestBody ImFriendshipRequestPo request) {
+//        imFriendshipService.updateFriendRequest(request);
+//    }
+//
+//    /**
+//     * 更新好友请求状态
+//     *
+//     * @param requestId 请求ID
+//     * @param status    审批状态
+//     */
+//    @PutMapping("/request/updateStatus")
+//    public void updateFriendRequestStatus(@RequestParam("requestId") String requestId, @RequestParam("status") Integer status) {
+//        imFriendshipService.updateFriendRequestStatus(requestId, status);
+//    }
+
 }

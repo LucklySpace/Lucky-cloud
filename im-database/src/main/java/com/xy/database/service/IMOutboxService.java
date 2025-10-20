@@ -1,63 +1,68 @@
 package com.xy.database.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xy.database.mapper.IMOutboxPoMapper;
 import com.xy.domain.po.IMOutboxPo;
+import com.xy.dubbo.api.database.outbox.IMOutboxDubboService;
+import jakarta.annotation.Resource;
+import org.apache.dubbo.config.annotation.DubboService;
 
 import java.util.List;
 
-public interface IMOutboxService extends IService<IMOutboxPo> {
-    
-    /**
-     * 插入消息
-     * @param outboxPo 消息
-     * @return 是否成功
-     */
-    boolean insert(IMOutboxPo outboxPo);
 
-    /**
-     * 批量插入消息
-     * @param outboxPoList 消息列表
-     * @return 是否成功
-     */
-    boolean batchInsert(List<IMOutboxPo> outboxPoList);
+@DubboService
+public class IMOutboxService extends ServiceImpl<IMOutboxPoMapper, IMOutboxPo> implements IMOutboxDubboService, IService<IMOutboxPo> {
 
-    /**
-     * 查询单条消息
-     * @param id 消息ID
-     * @return 消息
-     */
-    IMOutboxPo selectOne(Long id);
-    
-    /**
-     * 根据ID查询消息
-     * @param id 消息ID
-     * @return 消息
-     */
-    IMOutboxPo selectById(Long id);
+    @Resource
+    private IMOutboxPoMapper imOutboxPoMapper;
 
-    /**
-     * 查询消息列表
-     * @return 消息列表
-     */
-    List<IMOutboxPo> selectList();
-    
-    /**
-     * 更新消息
-     * @param outboxPo 消息
-     * @return 是否成功
-     */
-    boolean update(IMOutboxPo outboxPo);
-    
-    /**
-     * 根据ID删除消息
-     * @param id 消息ID
-     * @return 是否成功
-     */
-    boolean deleteById(Long id);
-    
-    Boolean updateStatus(Long id, String status, Integer attempts);
+    public List<IMOutboxPo> selectList() {
+        return this.list();
+    }
 
-    Boolean markAsFailed(Long id, String lastError, Integer attempts);
+    public IMOutboxPo selectOne(Long id) {
+        return this.getById(id);
+    }
 
-    List<IMOutboxPo> listByStatus(String status, Integer limit);
+    public boolean saveOrUpdate(IMOutboxPo outboxPo) {
+        return imOutboxPoMapper.insertOrUpdate(outboxPo);
+    }
+
+    public Boolean insert(IMOutboxPo outboxPo) {
+        return this.save(outboxPo);
+    }
+
+    public Boolean batchInsert(List<IMOutboxPo> list) {
+        return !imOutboxPoMapper.insert(list).isEmpty();
+    }
+
+    public Boolean update(IMOutboxPo outboxPo) {
+        return this.updateById(outboxPo);
+    }
+
+    public Boolean deleteById(Long id) {
+        return this.removeById(id);
+    }
+
+    public Boolean updateStatus(Long id, String status, Integer attempts) {
+        UpdateWrapper<IMOutboxPo> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.set("status", status).set("attempts", attempts).eq("id", id);
+        return this.update(updateWrapper);
+    }
+
+    public Boolean markAsFailed(Long id, String lastError, Integer attempts) {
+        UpdateWrapper<IMOutboxPo> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.set("last_error", lastError).set("attempts", attempts).eq("id", id);
+        return this.update(updateWrapper);
+    }
+
+    public List<IMOutboxPo> listByStatus(String status, Integer limit) {
+        QueryWrapper<IMOutboxPo> query = new QueryWrapper<>();
+        query.eq("status", status).last("limit " + limit);
+        return this.list(query);
+    }
+
 }

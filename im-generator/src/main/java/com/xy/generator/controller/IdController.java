@@ -1,81 +1,59 @@
 package com.xy.generator.controller;
 
 import com.xy.core.model.IMetaId;
-import com.xy.generator.core.IDGen;
-import com.xy.generator.utils.StrategyContext;
-import org.springframework.beans.factory.annotation.Qualifier;
+import com.xy.generator.service.IdService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Mono;
 
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
- * id 接口
+ * ID生成接口控制器
+ * 提供多种ID生成策略的REST API接口
  */
+@Tag(name = "ID Generator", description = "ID生成服务接口")
 @RestController
-@RequestMapping("/api/{version}/generator")
+@RequestMapping("/api/v1/generator")
 public class IdController {
 
-    private final StrategyContext<IDGen> strategyContext;
+    @Resource
+    private IdService idService;
 
     /**
-     * 构造器注入：所有 IDGen 实现通过 Map 注入，key 对应请求参数 type
-     */
-    public IdController(
-            @Qualifier("snowflakeIDGen") IDGen snowflakeGen,
-            @Qualifier("redisSegmentIDGen") IDGen redisGen,
-            @Qualifier("uidIDGen") IDGen uidGen,
-            @Qualifier("uuidIDGen") IDGen uuidGen
-
-    ) {
-        this.strategyContext = new StrategyContext<>();
-        // 在构造时统一注册并初始化
-        this.strategyContext
-                .register("snowflake", snowflakeGen)
-                .register("redis", redisGen)
-                .register("uid", uidGen)
-                .register("uuid", uuidGen);
-
-        // 一次性调用 init，确保各实现完成内部准备
-        this.strategyContext.getAllStrategies().values().forEach(IDGen::init);
-    }
-
-    /**
-     * 根据 type 和 key 异步返回 ID
+     * 根据类型和业务标识异步生成单个ID
      *
-     * @param type 策略类型：snowflake | redis | uid
+     * @param type 策略类型：snowflake | redis | uid | uuid
      * @param key  业务标识
+     * @return ID对象
      */
+    @Operation(summary = "生成单个ID", description = "根据指定策略和业务标识生成单个ID")
     @GetMapping("/id")
-    public Mono<IMetaId> getId(@RequestParam("type") String type,
-                               @RequestParam("key") String key) {
-
-        IDGen strategy = strategyContext.getStrategy(type);
-        if (strategy == null) {
-            return Mono.error(new IllegalArgumentException(
-                    "Unknown IDGen type: " + type));
-        }
-        return strategy.get(key);
+    public IMetaId generateId(
+            @Parameter(description = "策略类型") @RequestParam("type") String type,
+            @Parameter(description = "业务标识") @RequestParam("key") String key) {
+        return idService.generateId(type, key);
     }
 
     /**
-     * 批量获取id
+     * 批量获取ID
      *
      * @param type  策略类型：snowflake | redis | uid | uuid
      * @param key   业务标识
      * @param count 获取数量
+     * @return ID列表
      */
+    @Operation(summary = "批量生成ID", description = "根据指定策略和业务标识批量生成ID")
     @GetMapping("/ids")
-    public List<Object> getBatchIds(@RequestParam("type") String type,
-                                    @RequestParam("key") String key, @RequestParam("count") Integer count) {
-        return IntStream.range(0, count)
-                .mapToObj(i -> getId(type, key))
-                .collect(Collectors.toList());
+    public List<IMetaId> generateBatchIds(
+            @Parameter(description = "策略类型") @RequestParam("type") String type,
+            @Parameter(description = "业务标识") @RequestParam("key") String key,
+            @Parameter(description = "生成数量") @RequestParam("count") Integer count) {
+        return idService.generateIds(type, key, count);
     }
-
 }

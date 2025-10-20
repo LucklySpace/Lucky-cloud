@@ -8,6 +8,10 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/**
+ * ID元信息实体类
+ * 用于存储Redis Segment ID生成器的相关元信息
+ */
 @Data
 @Entity
 @Table(name = "id_meta_info")
@@ -16,20 +20,27 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class IdMetaInfo {
 
-    // ID类型枚举
+    /**
+     * ID类型标识
+     */
     @Id
-//    @Enumerated(EnumType.STRING)
     private String id;
 
-    // 当前最大ID
+    /**
+     * 当前最大ID
+     */
     @Column(name = "max_id", nullable = false)
     private Long maxId;
 
-    // 号段步长
+    /**
+     * 号段步长
+     */
     @Column(name = "step", nullable = false)
     private Integer step;
 
-
+    /**
+     * 更新时间
+     */
     @Column(name = "update_time", nullable = false)
     private LocalDateTime updateTime;
 
@@ -39,4 +50,3 @@ public class IdMetaInfo {
     @Version
     private Integer version;
 }
-

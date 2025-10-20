@@ -6,7 +6,7 @@ import com.xy.database.service.ImGroupMessageStatusService;
 import com.xy.domain.po.ImGroupMessagePo;
 import com.xy.domain.po.ImGroupMessageStatusPo;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,12 +17,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/{version}/database/group/message")
 @Tag(name = "ImGroup", description = "群聊消息数据库接口")
-@RequiredArgsConstructor
 public class ImGroupMessageController {
 
-    private final ImGroupMessageService imGroupMessageService;
-    private final ImGroupMessageStatusService imGroupMessageStatusService;
+    @Resource
+    private ImGroupMessageService imGroupMessageService;
 
+    @Resource
+    private ImGroupMessageStatusService imGroupMessageStatusService;
 
     /**
      * 获取群聊消息
@@ -63,7 +64,7 @@ public class ImGroupMessageController {
      * @param messagePoList 群聊消息列表
      */
     @PostMapping("/batchInsert")
-    public Boolean batchInsert(@RequestBody List<ImGroupMessagePo> messagePoList) {
+    public Boolean batchInsert(@RequestBody List<ImGroupMessageStatusPo> messagePoList) {
         return imGroupMessageService.batchInsert(messagePoList);
     }
 
@@ -90,13 +91,13 @@ public class ImGroupMessageController {
     /**
      * 获取最后一条消息
      *
-     * @param userId  用户id
      * @param groupId 群聊id
+     * @param userId  用户id
      * @return 私聊消息
      */
     @GetMapping("/last")
-    public ImGroupMessagePo last(@RequestParam("userId") String userId, @RequestParam("groupId") String groupId) {
-        return imGroupMessageService.last(userId, groupId);
+    public ImGroupMessagePo last(@RequestParam("groupId") String groupId, @RequestParam("userId") String userId) {
+        return imGroupMessageService.last(groupId, userId);
     }
 
     /**
@@ -111,7 +112,6 @@ public class ImGroupMessageController {
     public Integer selectReadStatus(@RequestParam("groupId") String groupId, @RequestParam("toId") String toId, @RequestParam("code") Integer code) {
         return imGroupMessageService.selectReadStatus(groupId, toId, code);
     }
-
 
     /**
      * 插入群聊消息状态

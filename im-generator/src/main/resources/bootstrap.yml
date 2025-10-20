@@ -29,5 +29,21 @@ spring:
         name: ${spring.application.name}-@app.profiles.active@
         file-extension: yml
 
+dubbo:
+  application:
+    name: ${spring.application.name}
+    serialize-check-status: WARN
+  protocol:
+    name: dubbo # 通信协议
+    port: -1 # dubbo协议端口
+  consumer:
+    check: false    # 让 consumer 不在启动时校验 provider 是否存在
+    timeout: 5000
+  registry:
+    address: nacos://${NACOS_DISCOVERY_SERVER_ADDR:@nacos.config.server-addr@}
+    register-mode: instance # 注册模式
+
 server:
+  http2:
+    enabled: true
   port: ${SERVER_PORT:9999}

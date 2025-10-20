@@ -4,6 +4,7 @@ package com.xy.database.controller;
 import com.xy.database.service.IMOutboxService;
 import com.xy.domain.po.IMOutboxPo;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -14,10 +15,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/{version}/database/outbox")
 @Tag(name = "IMOutbox", description = "用户会话数据库接口")
-@RequiredArgsConstructor
 public class IMOutboxController {
 
-    private final IMOutboxService imOutboxService;
+    @Resource
+    private IMOutboxService imOutboxService;
 
     /**
      * 查询消息列表
@@ -37,7 +38,7 @@ public class IMOutboxController {
      */
     @GetMapping("/selectOne")
     public IMOutboxPo selectOne(@RequestParam("id") Long id) {
-        return imOutboxService.selectById(id);
+        return imOutboxService.selectOne(id);
     }
 
     /**

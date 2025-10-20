@@ -1,78 +1,56 @@
 package com.xy.database.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xy.domain.dto.LoginDto;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xy.database.mapper.ImUserMapper;
 import com.xy.domain.po.ImUserPo;
-import com.xy.domain.vo.LoginVo;
-import com.xy.domain.vo.UserVo;
+import com.xy.dubbo.api.database.user.ImUserDubboService;
+import jakarta.annotation.Resource;
+import org.apache.dubbo.config.annotation.DubboService;
 
 import java.util.List;
 
-/**
- * @author dense
- * @description 针对表【im_user】的数据库操作Service
- * @createDate 2024-03-17 01:34:00
- */
-public interface ImUserService extends IService<ImUserPo> {
+@DubboService
+public class ImUserService extends ServiceImpl<ImUserMapper, ImUserPo>
+        implements ImUserDubboService, IService<ImUserPo> {
 
-    /**
-     * 插入用户信息
-     * @param userPo 用户信息
-     * @return 是否成功
-     */
-    boolean insert(ImUserPo userPo);
+    @Resource
+    private ImUserMapper imUserMapper;
 
-    /**
-     * 批量插入用户信息
-     * @param userPoList 用户信息列表
-     * @return 是否成功
-     */
-    boolean batchInsert(List<ImUserPo> userPoList);
+    public List<ImUserPo> selectList() {
+        return this.list();
+    }
 
-    /**
-     * 查询单条用户信息
-     * @param userId 用户ID
-     * @return 用户信息
-     */
-    ImUserPo selectOne(String userId);
-    
-    /**
-     * 根据ID查询用户信息
-     * @param userId 用户ID
-     * @return 用户信息
-     */
-    ImUserPo selectById(String userId);
-    
-    /**
-     * 统计用户数量
-     * @return 用户数量
-     */
-    long count();
-    
-    /**
-     * 查询用户列表
-     * @return 用户列表
-     */
-    List<ImUserPo> selectList();
-    
-    /**
-     * 更新用户信息
-     * @param userPo 用户信息
-     * @return 是否成功
-     */
-    boolean update(ImUserPo userPo);
-    
-    /**
-     * 根据ID删除用户
-     * @param userId 用户ID
-     * @return 是否成功
-     */
-    boolean deleteById(String userId);
+    public ImUserPo selectOne(String userId) {
+        return this.getById(userId);
+    }
 
-    LoginVo login(LoginDto loginDto);
+    public Boolean insert(ImUserPo userPo) {
+        return this.save(userPo);
+    }
 
-    UserVo info(String userId);
+    public Boolean batchInsert(List<ImUserPo> userPoList) {
+        return !imUserMapper.insert(userPoList).isEmpty();
+    }
 
-    LoginVo refreshToken(String token);
+    public Boolean update(ImUserPo userPo) {
+        return this.updateById(userPo);
+    }
+
+    @Override
+    public ImUserPo selectOneByMobile(String phoneNumber) {
+        QueryWrapper<ImUserPo> userPoQueryWrapper = new QueryWrapper<>();
+        userPoQueryWrapper.eq("mobile", phoneNumber);
+        return this.getOne(userPoQueryWrapper);
+    }
+
+    public Boolean deleteById(String userId) {
+        return this.removeById(userId);
+    }
+
+    public long count() {
+        return this.count();
+    }
 
 }

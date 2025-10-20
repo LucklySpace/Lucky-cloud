@@ -21,7 +21,7 @@ public interface ImGroupFeign {
      * @param memberId 成员id
      * @return 单个群成员
      */
-    @GetMapping("/member/getOne")
+    @GetMapping("/member/selectOne")
     ImGroupMemberPo getOneMember(@RequestParam("groupId") String groupId, @RequestParam("memberId") String memberId);
 
     /**
@@ -30,7 +30,7 @@ public interface ImGroupFeign {
      * @param groupId 成员id
      * @return
      */
-    @GetMapping("/getOne")
+    @GetMapping("/selectOne")
     ImGroupPo getOneGroup(@RequestParam("groupId") String groupId);
 
     /**
@@ -76,7 +76,7 @@ public interface ImGroupFeign {
      * @param groupId 群id
      * @return 群成员集合
      */
-    @GetMapping("/member/list")
+    @GetMapping("/member/selectList")
     List<ImGroupMemberPo> getGroupMemberList(@RequestParam("groupId") String groupId);
 
 
@@ -112,7 +112,7 @@ public interface ImGroupFeign {
      * @param requestId 申请id
      * @return 群成员申请信息
      */
-    @GetMapping("/invite/getOne")
+    @GetMapping("/invite/selectOne")
     ImGroupInviteRequestPo getOneInviteById(@RequestParam("requestId") String requestId);
 
 

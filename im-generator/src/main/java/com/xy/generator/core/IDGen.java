@@ -4,19 +4,24 @@ import com.xy.core.model.IMetaId;
 import reactor.core.publisher.Mono;
 
 /**
- * id 生成器接口
- *
- * @param
+ * ID生成器接口
+ * 定义ID生成器的标准接口，支持同步和异步两种方式
  */
 public interface IDGen {
     /**
      * 异步获取一个唯一ID
      *
-     * @param key 业务 key，用于不同场景分隔
-     * @return Mono 包裹的 ID
+     * @param key 业务key，用于不同场景分隔
+     * @return Mono包装的ID对象
      */
     Mono<IMetaId> get(String key);
 
+    /**
+     * 同步获取一个唯一ID
+     *
+     * @param key 业务key，用于不同场景分隔
+     * @return ID对象
+     */
     IMetaId getId(String key);
 
     /**

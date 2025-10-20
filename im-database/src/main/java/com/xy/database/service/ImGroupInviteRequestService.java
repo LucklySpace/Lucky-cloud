@@ -1,25 +1,47 @@
 package com.xy.database.service;
 
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xy.database.mapper.ImGroupInviteRequestMapper;
 import com.xy.domain.po.ImGroupInviteRequestPo;
+import com.xy.dubbo.api.database.group.ImGroupInviteRequestDubboService;
+import jakarta.annotation.Resource;
+import org.springframework.stereotype.Service;
 
-/**
- * 群聊邀请请求服务类
- */
-public interface ImGroupInviteRequestService extends IService<ImGroupInviteRequestPo> {
+import java.util.List;
 
-    /**
-     * 保存群聊邀请请求
-     */
-    boolean saveOrUpdate(ImGroupInviteRequestPo imGroupInviteRequestPo);
+@Service
+public class ImGroupInviteRequestService extends ServiceImpl<ImGroupInviteRequestMapper, ImGroupInviteRequestPo> implements ImGroupInviteRequestDubboService, IService<ImGroupInviteRequestPo> {
 
-    /**
-     * 根据ID删除群聊邀请请求
-     */
-    boolean remove(String requestId);
+    @Resource
+    private ImGroupInviteRequestMapper imGroupInviteRequestMapper;
 
-    /**
-     * 根据ID查询群聊邀请请求
-     */
-    ImGroupInviteRequestPo getOne(ImGroupInviteRequestPo imGroupInviteRequestPo);
+    public List<ImGroupInviteRequestPo> selectList(String userId) {
+        QueryWrapper<ImGroupInviteRequestPo> groupInviteRequestPoQueryWrapper = new QueryWrapper<>();
+        groupInviteRequestPoQueryWrapper.eq("to_id", userId);
+        return this.list(groupInviteRequestPoQueryWrapper);
+    }
+
+    public ImGroupInviteRequestPo selectOne(ImGroupInviteRequestPo imGroupInviteRequestPo) {
+        return this.getById(imGroupInviteRequestPo);
+    }
+
+    public Boolean insert(ImGroupInviteRequestPo imGroupInviteRequestPo) {
+        return this.save(imGroupInviteRequestPo);
+    }
+
+    public Boolean update(ImGroupInviteRequestPo imGroupInviteRequestPo) {
+        return this.updateById(imGroupInviteRequestPo);
+    }
+
+    public Boolean deleteById(String requestId) {
+        return this.removeById(requestId);
+    }
+
+    @Override
+    public Boolean batchInsert(List<ImGroupInviteRequestPo> list) {
+        return !imGroupInviteRequestMapper.insert(list).isEmpty();
+    }
 }

@@ -1,14 +1,17 @@
 package com.xy.database.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xy.database.mapper.ImGroupMessageStatusMapper;
 import com.xy.domain.po.ImGroupMessageStatusPo;
+import org.springframework.stereotype.Service;
 
-
-/**
- * @author dense
- * @description 针对表【im_group_message_status】的数据库操作Service
- * @createDate 2024-03-28 23:00:15
- */
-public interface ImGroupMessageStatusService extends IService<ImGroupMessageStatusPo> {
+@Service
+public class ImGroupMessageStatusService extends ServiceImpl<ImGroupMessageStatusMapper, ImGroupMessageStatusPo>
+        implements IService<ImGroupMessageStatusPo> {
 
 }
+
+
+
+

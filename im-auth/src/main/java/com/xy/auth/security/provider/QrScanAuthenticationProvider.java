@@ -1,16 +1,17 @@
 package com.xy.auth.security.provider;
 
 
-import com.xy.auth.api.database.user.ImUserFeign;
 import com.xy.auth.domain.IMQRCode;
 import com.xy.auth.security.exception.AuthenticationFailException;
 import com.xy.auth.security.token.QrScanAuthenticationToken;
 import com.xy.auth.utils.RedisCache;
 import com.xy.core.constants.IMConstant;
 import com.xy.domain.po.ImUserPo;
+import com.xy.dubbo.api.database.user.ImUserDubboService;
 import com.xy.general.response.domain.ResultCode;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -26,8 +27,8 @@ import java.util.Objects;
 @Component
 public class QrScanAuthenticationProvider implements AuthenticationProvider {
 
-    @Resource
-    private ImUserFeign imUserFeign;
+    @DubboReference
+    private ImUserDubboService imUserDubboService;
 
     @Resource
     private RedisCache redisCache;
@@ -115,7 +116,7 @@ public class QrScanAuthenticationProvider implements AuthenticationProvider {
         }
 
         // 从用户服务获取用户信息
-        ImUserPo user = imUserFeign.getOneUser(userId);
+        ImUserPo user = imUserDubboService.selectOne(userId);
         if (Objects.isNull(user)) {
             log.warn("Account not found for user ID: {}", userId);
             throw new AuthenticationFailException(ResultCode.ACCOUNT_NOT_FOUND); // 账户未找到

@@ -1,73 +1,54 @@
 package com.xy.database.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xy.database.mapper.ImGroupMapper;
 import com.xy.domain.po.ImGroupPo;
+import com.xy.dubbo.api.database.group.ImGroupDubboService;
+import jakarta.annotation.Resource;
+import org.apache.dubbo.config.annotation.DubboService;
 
 import java.util.List;
 
-/**
- * @author dense
- * @description 针对表【im_group】的数据库操作Service
- * @createDate 2024-03-17 01:34:00
- */
-public interface ImGroupService extends IService<ImGroupPo> {
+@DubboService
+public class ImGroupService extends ServiceImpl<ImGroupMapper, ImGroupPo>
+        implements ImGroupDubboService, IService<ImGroupPo> {
 
-    /**
-     * 插入群信息
-     * @param groupPo 群信息
-     * @return 是否成功
-     */
-    boolean insert(ImGroupPo groupPo);
+    @Resource
+    private ImGroupMapper imGroupMapper;
 
-    /**
-     * 批量插入群信息
-     * @param groupPoList 群信息列表
-     * @return 是否成功
-     */
-    boolean batchInsert(List<ImGroupPo> groupPoList);
+    public List<ImGroupPo> selectList(String userId) {
+        return imGroupMapper.selectGroupsByUserId(userId);
+    }
 
-    /**
-     * 查询单条群信息
-     * @param groupId 群ID
-     * @return 群信息
-     */
-    ImGroupPo selectOne(String groupId);
-    
-    /**
-     * 根据ID查询群信息
-     * @param groupId 群ID
-     * @return 群信息
-     */
-    ImGroupPo selectById(String groupId);
-    
-    /**
-     * 统计群数量
-     * @return 群数量
-     */
-    long count();
-    
-    /**
-     * 查询群列表
-     * @return 群列表
-     */
-    List<ImGroupPo> selectList();
-    
-    /**
-     * 更新群信息
-     * @param groupPo 群信息
-     * @return 是否成功
-     */
-    boolean update(ImGroupPo groupPo);
-    
-    /**
-     * 根据ID删除群
-     * @param groupId 群ID
-     * @return 是否成功
-     */
-    boolean deleteById(String groupId);
 
-    List<ImGroupPo> list(String userId);
+    public ImGroupPo selectOne(String groupId) {
+        return this.getById(groupId);
+    }
 
-    // 查询九人
-    List<String> selectNinePeople(String groupId);
+
+    public Boolean insert(ImGroupPo groupPo) {
+        return this.save(groupPo);
+    }
+
+
+    public Boolean batchInsert(List<ImGroupPo> list) {
+        return !imGroupMapper.insert(list).isEmpty();
+    }
+
+
+    public Boolean update(ImGroupPo groupPo) {
+        return this.updateById(groupPo);
+    }
+
+
+    public Boolean deleteById(String groupId) {
+        return this.removeById(groupId);
+    }
+
+
+    public long count() {
+        return imGroupMapper.selectCount(null);
+    }
+
 }

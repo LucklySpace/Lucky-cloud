@@ -1,16 +1,16 @@
 package com.xy.database;
 
 import com.github.xiaoymin.knife4j.spring.annotations.EnableKnife4j;
+import org.apache.dubbo.config.spring.context.annotation.EnableDubbo;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @EnableKnife4j
 @EnableAsync
-@ComponentScan(basePackages = {"com.xy.database", "com.xy.grpc"})
+@EnableDubbo(scanBasePackages = "com.xy.database.service")
 @EnableTransactionManagement  //开启事务管理
 @SpringBootApplication(exclude = {SecurityAutoConfiguration.class}) //去除不必要的组件
 public class ImDatabaseApplication {

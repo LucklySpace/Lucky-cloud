@@ -10,14 +10,15 @@ import com.xy.core.enums.IMessageType;
 import com.xy.core.model.*;
 import com.xy.domain.dto.ChatDto;
 import com.xy.domain.po.*;
+import com.xy.dubbo.api.database.chat.ImChatDubboService;
+import com.xy.dubbo.api.database.group.ImGroupMemberDubboService;
+import com.xy.dubbo.api.database.message.ImGroupMessageDubboService;
+import com.xy.dubbo.api.database.message.ImSingleMessageDubboService;
+import com.xy.dubbo.api.database.outbox.IMOutboxDubboService;
+import com.xy.dubbo.api.id.ImIdDubboService;
 import com.xy.general.response.domain.Result;
 import com.xy.general.response.domain.ResultCode;
 import com.xy.server.api.IdGeneratorConstant;
-import com.xy.server.api.feign.database.chat.ImChatFeign;
-import com.xy.server.api.feign.database.group.ImGroupFeign;
-import com.xy.server.api.feign.database.message.ImMessageFeign;
-import com.xy.server.api.grpc.id.ImIdGeneratorGrpcClient;
-import com.xy.server.api.grpc.outbox.IMOutboxGrpcClient;
 import com.xy.server.config.RabbitTemplateFactory;
 import com.xy.server.service.MessageService;
 import com.xy.server.utils.RedisUtil;
@@ -26,6 +27,7 @@ import com.xy.utils.JacksonUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.core.MessageDeliveryMode;
@@ -62,12 +64,25 @@ public class MessageServiceImpl implements MessageService {
     private static final long LOCK_LEASE_TIME = 5L; // 锁持有10s
     private final Map<String, Long> messageToOutboxIdMap = new ConcurrentHashMap<>();
 
-    @Resource
-    private ImMessageFeign imMessageFeign;
-    @Resource
-    private ImChatFeign imChatFeign;
-    @Resource
-    private ImGroupFeign imGroupFeign;
+
+    @DubboReference
+    private ImChatDubboService imChatDubboService;
+
+    @DubboReference
+    private ImGroupMemberDubboService imGroupMemberDubboService;
+
+    @DubboReference
+    private ImSingleMessageDubboService imSingleMessageDubboService;
+
+    @DubboReference
+    private ImGroupMessageDubboService imGroupMessageDubboService;
+
+    @DubboReference
+    private IMOutboxDubboService imOutboxDubboService;
+
+    @DubboReference
+    private ImIdDubboService imIdDubboService;
+
     @Resource
     private RedisUtil redisUtil;
     @Resource
@@ -75,10 +90,6 @@ public class MessageServiceImpl implements MessageService {
     @Resource
     @Qualifier("asyncTaskExecutor")
     private Executor asyncTaskExecutor;
-    @Resource
-    private IMOutboxGrpcClient imOutboxGrpcClient;
-    @Resource
-    private ImIdGeneratorGrpcClient imIdGeneratorGrpcClient;
 
     @Resource
     private RabbitTemplateFactory rabbitTemplateFactory;
@@ -146,7 +157,7 @@ public class MessageServiceImpl implements MessageService {
 
             // id 生成
             stopWatch.start("idGeneration");
-            Long messageId = imIdGeneratorGrpcClient.getId(IdGeneratorConstant.snowflake, IdGeneratorConstant.private_message_id).getLongId();
+            Long messageId = imIdDubboService.generateId(IdGeneratorConstant.snowflake, IdGeneratorConstant.private_message_id).getLongId();
             Long messageTime = DateTimeUtil.getCurrentUTCTimestamp();
             stopWatch.stop();
 
@@ -244,7 +255,7 @@ public class MessageServiceImpl implements MessageService {
             stopWatch.stop();
 
             stopWatch.start("idGeneration");
-            Long messageId = imIdGeneratorGrpcClient.getId(IdGeneratorConstant.snowflake, IdGeneratorConstant.group_message_id).getLongId();
+            Long messageId = imIdDubboService.generateId(IdGeneratorConstant.snowflake, IdGeneratorConstant.group_message_id).getLongId();
             Long messageTime = DateTimeUtil.getCurrentUTCTimestamp();
             stopWatch.stop();
 
@@ -255,7 +266,7 @@ public class MessageServiceImpl implements MessageService {
             stopWatch.stop();
 
             stopWatch.start("getGroupMembers");
-            List<ImGroupMemberPo> members = imGroupFeign.getGroupMemberList(dto.getGroupId());
+            List<ImGroupMemberPo> members = imGroupMemberDubboService.selectList(dto.getGroupId());
             stopWatch.stop();
 
             if (CollectionUtils.isEmpty(members)) {
@@ -493,7 +504,7 @@ public class MessageServiceImpl implements MessageService {
 
                 if (messageType.equals(IMessageType.SINGLE_MESSAGE.getCode())) {
                     stopWatch.start("processSingleMessage");
-                    ImSingleMessagePo msg = imMessageFeign.getSingleMessageById(messageId);
+                    ImSingleMessagePo msg = imSingleMessageDubboService.selectOne(messageId);
                     if (Objects.isNull(msg)) return Result.failed("消息不存在");
                     if (!operatorId.equals(msg.getFromId())) return Result.failed("无权撤回");
 
@@ -503,7 +514,7 @@ public class MessageServiceImpl implements MessageService {
 
                     recallPayload.put("messageBody", msg.getMessageBody());
                     ImSingleMessagePo update = new ImSingleMessagePo().setMessageId(messageId).setMessageBody(JacksonUtil.toJSONString(recallPayload)).setUpdateTime(recallTime);
-                    imMessageFeign.singleMessageSaveOrUpdate(update);
+                    imSingleMessageDubboService.update(update);
 
                     // 广播给双方
                     broadcastRecall(dto, messageId, recallTime, List.of(msg.getFromId(), msg.getToId()), IMessageType.SINGLE_MESSAGE.getCode());
@@ -511,7 +522,7 @@ public class MessageServiceImpl implements MessageService {
                 }
                 if (messageType.equals(IMessageType.GROUP_MESSAGE.getCode())) {
                     stopWatch.start("processGroupMessage");
-                    ImGroupMessagePo msg = imMessageFeign.getGroupMessageById(messageId);
+                    ImGroupMessagePo msg = imGroupMessageDubboService.selectOne(messageId);
                     if (Objects.isNull(msg)) return Result.failed("消息不存在");
                     if (!operatorId.equals(msg.getFromId())) return Result.failed("无权撤回");
 
@@ -526,10 +537,10 @@ public class MessageServiceImpl implements MessageService {
 
                     recallPayload.put("groupId", msg.getGroupId());
                     ImGroupMessagePo update = new ImGroupMessagePo().setMessageId(messageId).setMessageBody(JacksonUtil.toJSONString(recallPayload)).setUpdateTime(recallTime);
-                    imMessageFeign.groupMessageSaveOrUpdate(update);
+                    imGroupMessageDubboService.update(update);
 
                     // 广播给群成员
-                    List<ImGroupMemberPo> members = imGroupFeign.getGroupMemberList(msg.getGroupId());
+                    List<ImGroupMemberPo> members = imGroupMemberDubboService.selectList(msg.getGroupId());
                     if (!CollectionUtils.isEmpty(members)) {
                         List<String> memberIds = members.stream().map(ImGroupMemberPo::getMemberId).collect(Collectors.toList());
                         broadcastRecall(dto, messageId, recallTime, memberIds, IMessageType.GROUP_MESSAGE.getCode());
@@ -611,14 +622,14 @@ public class MessageServiceImpl implements MessageService {
 
         stopWatch.stop();
         stopWatch.start("getSingleMessages");
-        List<ImSingleMessagePo> singleMessages = imMessageFeign.getSingleMessageList(userId, sequence);
+        List<ImSingleMessagePo> singleMessages = imSingleMessageDubboService.selectList(userId, sequence);
         if (!CollectionUtils.isEmpty(singleMessages)) {
             map.put(IMessageType.SINGLE_MESSAGE.getCode(), singleMessages);
         }
         stopWatch.stop();
 
         stopWatch.start("getGroupMessages");
-        List<ImGroupMessagePo> groupMessages = imMessageFeign.getGroupMessageList(userId, sequence);
+        List<ImGroupMessagePo> groupMessages = imGroupMessageDubboService.selectList(userId, sequence);
         if (!CollectionUtils.isEmpty(groupMessages)) {
             map.put(IMessageType.GROUP_MESSAGE.getCode(), groupMessages);
         }
@@ -635,7 +646,7 @@ public class MessageServiceImpl implements MessageService {
      */
     private void insertImSingleMessage(ImSingleMessagePo messagePo) {
         try {
-            if (!imMessageFeign.singleMessageSaveOrUpdate(messagePo)) {
+            if (!imSingleMessageDubboService.insert(messagePo)) {
                 log.error("保存私聊消息失败 messageId={}", messagePo.getMessageId());
             }
         } catch (Exception e) {
@@ -650,7 +661,7 @@ public class MessageServiceImpl implements MessageService {
         try {
             ImGroupMessagePo po = new ImGroupMessagePo().setDelFlag(IMStatus.YES.getCode());
             BeanUtils.copyProperties(dto, po);
-            if (!imMessageFeign.groupMessageSaveOrUpdate(po)) {
+            if (!imGroupMessageDubboService.insert(po)) {
                 log.error("保存群消息失败 messageId={}", dto.getMessageId());
             }
         } catch (Exception e) {
@@ -663,10 +674,10 @@ public class MessageServiceImpl implements MessageService {
      */
     private void createOrUpdateImChat(String ownerId, String toId, Long messageTime, Integer chatType) {
         try {
-            ImChatPo chatPo = imChatFeign.getOne(ownerId, toId, chatType);
+            ImChatPo chatPo = imChatDubboService.selectOne(ownerId, toId, chatType);
             if (Objects.isNull(chatPo)) {
                 chatPo = new ImChatPo()
-                        .setChatId(imIdGeneratorGrpcClient.getId(IdGeneratorConstant.uuid, IdGeneratorConstant.chat_id).getStringId())
+                        .setChatId(imIdDubboService.generateId(IdGeneratorConstant.uuid, IdGeneratorConstant.chat_id).getStringId())
                         .setOwnerId(ownerId)
                         .setToId(toId)
                         .setSequence(messageTime)
@@ -674,12 +685,12 @@ public class MessageServiceImpl implements MessageService {
                         .setIsTop(IMStatus.NO.getCode())
                         .setDelFlag(IMStatus.YES.getCode())
                         .setChatType(chatType);
-                if (!imChatFeign.insert(chatPo)) {
+                if (!imChatDubboService.insert(chatPo)) {
                     log.error("保存会话失败 ownerId={} toId={}", ownerId, toId);
                 }
             } else {
                 chatPo.setSequence(messageTime);
-                if (!imChatFeign.updateById(chatPo)) {
+                if (!imChatDubboService.update(chatPo)) {
                     log.error("更新会话失败 ownerId={} toId={}", ownerId, toId);
                 }
             }
@@ -706,7 +717,7 @@ public class MessageServiceImpl implements MessageService {
                     .map(m -> new ImGroupMessageStatusPo().setMessageId(messageId).setGroupId(groupId)
                             .setReadStatus(IMessageReadStatus.UNREAD.getCode()).setToId(m.getMemberId()))
                     .collect(Collectors.toList());
-            imMessageFeign.groupMessageStatusBatchInsert(statusList);
+            imGroupMessageDubboService.batchInsert(statusList);
         } catch (Exception e) {
             log.error("设置群读状态失败 messageId={}", messageId, e);
         }
@@ -729,7 +740,7 @@ public class MessageServiceImpl implements MessageService {
                 .setCreatedAt(messageTime)
                 .setUpdatedAt(messageTime);
 
-        if (!imOutboxGrpcClient.saveOrUpdate(po)) {
+        if (!imOutboxDubboService.saveOrUpdate(po)) {
             log.warn("Outbox保存失败 messageId={}", messageId);
         }
 
@@ -755,7 +766,7 @@ public class MessageServiceImpl implements MessageService {
                 log.error("发布失败 messageId={}", messageId, e);
                 Long outboxId = messageToOutboxIdMap.get(messageId);
                 if (outboxId != null) {
-                    imOutboxGrpcClient.markAsFailed(outboxId, e.getMessage(), 1);
+                    imOutboxDubboService.markAsFailed(outboxId, e.getMessage(), 1);
                 }
             }
         }, asyncTaskExecutor);
@@ -771,10 +782,10 @@ public class MessageServiceImpl implements MessageService {
 
         try {
             if (ack) {
-                imOutboxGrpcClient.updateStatus(outboxId, "SENT", 1);
+                imOutboxDubboService.updateStatus(outboxId, "SENT", 1);
                 messageToOutboxIdMap.remove(messageId);
             } else {
-                imOutboxGrpcClient.updateStatus(outboxId, "PENDING", 0);
+                imOutboxDubboService.updateStatus(outboxId, "PENDING", 0);
             }
         } catch (Exception e) {
             log.error("更新Outbox失败 outboxId={} messageId={}", outboxId, messageId, e);
@@ -802,7 +813,7 @@ public class MessageServiceImpl implements MessageService {
             stopWatch.stop();
 
             stopWatch.start("getPendingMessages");
-            List<IMOutboxPo> pending = imOutboxGrpcClient.listByStatus("PENDING", 100);
+            List<IMOutboxPo> pending = imOutboxDubboService.listByStatus("PENDING", 100);
             stopWatch.stop();
 
             if (CollectionUtils.isEmpty(pending)) {
@@ -823,10 +834,10 @@ public class MessageServiceImpl implements MessageService {
                     };
                     CorrelationData corr = new CorrelationData(o.getMessageId());
                     rabbitTemplate.convertAndSend(o.getExchange(), o.getRoutingKey(), o.getPayload(), mpp, corr);
-                    imOutboxGrpcClient.updateStatus(o.getId(), "SENT", attempts);
+                    imOutboxDubboService.updateStatus(o.getId(), "SENT", attempts);
                 } catch (Exception e) {
                     log.error("重试失败 messageId={}", o.getMessageId(), e);
-                    imOutboxGrpcClient.markAsFailed(o.getId(), e.getMessage(), attempts);
+                    imOutboxDubboService.markAsFailed(o.getId(), e.getMessage(), attempts);
                 }
             }
             stopWatch.stop();

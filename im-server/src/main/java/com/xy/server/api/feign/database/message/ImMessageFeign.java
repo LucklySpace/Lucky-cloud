@@ -44,7 +44,7 @@ public interface ImMessageFeign {
      * @param sequence 序列号
      * @return 用户私聊消息
      */
-    @GetMapping("/single/message/list")
+    @GetMapping("/single/message/selectList")
     List<ImSingleMessagePo> getSingleMessageList(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence);
 
 
@@ -55,7 +55,7 @@ public interface ImMessageFeign {
      * @param sequence 序列号
      * @return 用户群聊消息
      */
-    @GetMapping("/group/message/list")
+    @GetMapping("/group/message/selectList")
     List<ImGroupMessagePo> getGroupMessageList(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence);
 
     /**

@@ -3,11 +3,12 @@ package com.xy.server.service.impl;
 import com.xy.domain.dto.UserDto;
 import com.xy.domain.po.ImUserDataPo;
 import com.xy.domain.vo.UserVo;
+import com.xy.dubbo.api.database.user.ImUserDataDubboService;
 import com.xy.general.response.domain.Result;
-import com.xy.server.api.feign.database.user.ImUserFeign;
 import com.xy.server.service.UserService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
@@ -25,8 +26,8 @@ public class UserServiceImpl implements UserService {
     private static final long LOCK_WAIT_TIME = 3L; // 锁等待时间（秒）
     private static final long LOCK_LEASE_TIME = 10L; // 锁持有时间（秒）
 
-    @Resource
-    private ImUserFeign imUserFeign;
+    @DubboReference
+    private ImUserDataDubboService imUserDataDubboService;
 
     @Resource
     private RedissonClient redissonClient;
@@ -59,7 +60,7 @@ public class UserServiceImpl implements UserService {
                 throw new RuntimeException("用户读取中，请稍后重试");
             }
 
-            ImUserDataPo userDataPo = imUserFeign.getOne(userId);
+            ImUserDataPo userDataPo = imUserDataDubboService.selectOne(userId);
             UserVo userVo = new UserVo();
             if (userDataPo != null) {
                 BeanUtils.copyProperties(userDataPo, userVo);
@@ -110,7 +111,7 @@ public class UserServiceImpl implements UserService {
             ImUserDataPo userDataPo = new ImUserDataPo();
             BeanUtils.copyProperties(userDto, userDataPo);
 
-            if(imUserFeign.update(userDataPo)){
+            if (imUserDataDubboService.update(userDataPo)) {
                 // 实际更新逻辑需要根据业务需求实现
                 log.debug("update用户完成 userId={} 耗时:{}ms", userDto.getUserId(), System.currentTimeMillis() - start);
                 return Result.success(true);

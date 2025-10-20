@@ -22,7 +22,7 @@ public interface IMOutboxFeign {
      *
      * @param id
      */
-    @GetMapping("/getOne")
+    @GetMapping("/selectOne")
     IMOutboxPo getOne(@RequestParam("id") Long id);
 
     /**

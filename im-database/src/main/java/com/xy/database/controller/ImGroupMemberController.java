@@ -4,7 +4,7 @@ import com.xy.database.security.SecurityInner;
 import com.xy.database.service.ImGroupMemberService;
 import com.xy.domain.po.ImGroupMemberPo;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,10 +15,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/{version}/database/group/member")
 @Tag(name = "ImGroupMember", description = "群成员数据库接口")
-@RequiredArgsConstructor
 public class ImGroupMemberController {
 
-    private final ImGroupMemberService imGroupMemberService;
+    @Resource
+    private ImGroupMemberService imGroupMemberService;
 
     /**
      * 查询群成员
@@ -28,7 +28,7 @@ public class ImGroupMemberController {
      */
     @GetMapping("/selectList")
     public List<ImGroupMemberPo> selectList(@RequestParam("groupId") String groupId) {
-        return imGroupMemberService.getGroupMemberList(groupId);
+        return imGroupMemberService.selectList(groupId);
     }
 
     /**
@@ -40,7 +40,7 @@ public class ImGroupMemberController {
      */
     @GetMapping("/selectOne")
     public ImGroupMemberPo selectOne(@RequestParam("groupId") String groupId, @RequestParam("memberId") String memberId) {
-        return imGroupMemberService.getGroupMember(groupId, memberId);
+        return imGroupMemberService.selectOne(groupId, memberId);
     }
 
     /**
@@ -94,19 +94,7 @@ public class ImGroupMemberController {
      */
     @GetMapping("/selectNinePeopleAvatar")
     public List<String> selectNinePeopleAvatar(@RequestParam("groupId") String groupId) {
-        return imGroupMemberService.getNinePeopleAvatar(groupId);
-    }
-
-    /**
-     * 获取群成员信息
-     *
-     * @param groupId  群id
-     * @param memberId 成员id
-     * @return 群成员信息
-     */
-    @GetMapping("/selectGroupMember")
-    public ImGroupMemberPo selectGroupMember(@RequestParam("groupId") String groupId, @RequestParam("memberId") String memberId) {
-        return imGroupMemberService.getGroupMember(groupId, memberId);
+        return imGroupMemberService.selectNinePeopleAvatar(groupId);
     }
 
 }

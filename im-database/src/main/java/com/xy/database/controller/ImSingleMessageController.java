@@ -5,7 +5,7 @@ import com.xy.database.security.SecurityInner;
 import com.xy.database.service.ImSingleMessageService;
 import com.xy.domain.po.ImSingleMessagePo;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,10 +16,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/{version}/database/single/message")
 @Tag(name = "ImPrivate", description = "私聊消息数据库接口")
-@RequiredArgsConstructor
 public class ImSingleMessageController {
 
-    private final ImSingleMessageService imSingleMessageService;
+    @Resource
+    private ImSingleMessageService imSingleMessageService;
 
 
     /**
@@ -99,6 +99,16 @@ public class ImSingleMessageController {
     @PostMapping("/batchInsert")
     public Boolean batchInsert(@RequestBody List<ImSingleMessagePo> messagePoList) {
         return imSingleMessageService.batchInsert(messagePoList);
+    }
+
+    /**
+     * 插入或更新私聊消息
+     *
+     * @param messagePo 私聊消息
+     */
+    @PostMapping("/saveOrUpdate")
+    public Boolean saveOrUpdate(@RequestBody ImSingleMessagePo messagePo) {
+        return imSingleMessageService.saveOrUpdate(messagePo);
     }
     
     /**

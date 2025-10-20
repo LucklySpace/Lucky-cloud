@@ -1,55 +1,59 @@
 package com.xy.database.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xy.database.mapper.ImGroupMessageMapper;
+import com.xy.database.mapper.ImGroupMessageStatusMapper;
 import com.xy.domain.po.ImGroupMessagePo;
+import com.xy.domain.po.ImGroupMessageStatusPo;
+import com.xy.dubbo.api.database.message.ImGroupMessageDubboService;
+import jakarta.annotation.Resource;
+import org.apache.dubbo.config.annotation.DubboService;
 
 import java.util.List;
 
+@DubboService
+public class ImGroupMessageService extends ServiceImpl<ImGroupMessageMapper, ImGroupMessagePo>
+        implements ImGroupMessageDubboService, IService<ImGroupMessagePo> {
 
-/**
- * @author dense
- * @description 针对表【im_group_message】的数据库操作Service
- */
-public interface ImGroupMessageService extends IService<ImGroupMessagePo> {
+    @Resource
+    private ImGroupMessageMapper imGroupMessageMapper;
 
-    /**
-     * 插入群消息
-     * @param groupMessagePo 群消息
-     * @return 是否成功
-     */
-    boolean insert(ImGroupMessagePo groupMessagePo);
+    @Resource
+    private ImGroupMessageStatusMapper imGroupMessageStatusMapper;
 
-    /**
-     * 批量插入群消息
-     * @param groupMessagePoList 群消息列表
-     * @return 是否成功
-     */
-    boolean batchInsert(List<ImGroupMessagePo> groupMessagePoList);
 
-    /**
-     * 查询单条群消息
-     * @param messageId 消息ID
-     * @return 群消息
-     */
-    ImGroupMessagePo selectOne(String messageId);
+    public List<ImGroupMessagePo> selectList(String userId, Long sequence) {
+        return imGroupMessageMapper.selectGroupMessage(userId, sequence);
+    }
 
-    /**
-     * 更新群消息
-     * @param groupMessagePo 群消息
-     * @return 是否成功
-     */
-    boolean update(ImGroupMessagePo groupMessagePo);
-    
-    /**
-     * 根据ID删除群消息
-     * @param messageId 消息ID
-     * @return 是否成功
-     */
-    boolean deleteById(String messageId);
+    public ImGroupMessagePo selectOne(String messageId) {
+        return this.getById(messageId);
+    }
 
-    List<ImGroupMessagePo> selectList(String userId, Long sequence);
+    public boolean insert(ImGroupMessagePo groupMessagePo) {
+        return this.save(groupMessagePo);
+    }
 
-    ImGroupMessagePo last(String userId, String groupId);
+    public boolean batchInsert(List<ImGroupMessageStatusPo> groupMessagePoList) {
+        return !imGroupMessageStatusMapper.insert(groupMessagePoList).isEmpty();
+    }
 
-    Integer selectReadStatus(String groupId, String toId, Integer code);
+    public boolean update(ImGroupMessagePo groupMessagePo) {
+        return this.updateById(groupMessagePo);
+    }
+
+    public boolean deleteById(String messageId) {
+        return this.removeById(messageId);
+    }
+
+    public ImGroupMessagePo last(String userId, String groupId) {
+        return imGroupMessageMapper.selectLastGroupMessage(userId, groupId);
+    }
+
+
+    public Integer selectReadStatus(String groupId, String toId, Integer code) {
+        return imGroupMessageMapper.selectReadStatus(groupId, toId, code);
+    }
+
 }

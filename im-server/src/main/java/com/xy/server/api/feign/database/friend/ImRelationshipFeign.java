@@ -23,7 +23,7 @@ public interface ImRelationshipFeign {
      * @param ownerId 用户id
      * @return 用户好友信息列表
      */
-    @GetMapping("/friend/list")
+    @GetMapping("/friend/selectList")
     List<ImFriendshipPo> contacts(@RequestParam("ownerId") String ownerId, @RequestParam("sequence") Long sequence);
 
 
@@ -33,7 +33,7 @@ public interface ImRelationshipFeign {
      * @param userId 用户id
      * @return 用户好友信息列表
      */
-    @GetMapping("/group/list")
+    @GetMapping("/group/selectList")
     List<ImGroupPo> group(@RequestParam("userId") String userId);
 
 
@@ -44,11 +44,11 @@ public interface ImRelationshipFeign {
      * @param toId
      * @return
      */
-    @GetMapping("/friend/ship/getOne")
+    @GetMapping("/friend/ship/selectOne")
     ImFriendshipPo getOne(@RequestParam("ownerId") String ownerId, @RequestParam("toId") String toId);
 
 
-    @GetMapping("/friend/ship/list")
+    @GetMapping("/friend/ship/selectList")
     List<ImFriendshipPo> shipList(@RequestParam("ownerId") String ownerId, @RequestParam("ids") List<String> ids);
 
     /**
@@ -56,7 +56,7 @@ public interface ImRelationshipFeign {
      *
      * @return
      */
-    @GetMapping("/friend/request/list")
+    @GetMapping("/friend/request/selectList")
     List<ImFriendshipRequestPo> newFriends(@RequestParam("userId") String userId);
 
     /**
@@ -65,7 +65,7 @@ public interface ImRelationshipFeign {
      * @param request
      * @return
      */
-    @PostMapping("/friend/request/getOne")
+    @PostMapping("/friend/request/selectOne")
     ImFriendshipRequestPo getRequestOne(@RequestBody ImFriendshipRequestPo request);
 
     /**

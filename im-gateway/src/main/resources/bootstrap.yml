@@ -30,4 +30,6 @@ spring:
         file-extension: yml
 
 server:
+  http2:
+    enabled: true
   port: ${SERVER_PORT:9191}

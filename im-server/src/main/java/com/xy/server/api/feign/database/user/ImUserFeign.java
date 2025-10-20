@@ -21,7 +21,7 @@ public interface ImUserFeign {
      * @param userId 用户id
      * @return 用户信息集合
      */
-    @GetMapping("/data/getOne")
+    @GetMapping("/data/selectOne")
     ImUserDataPo getOne(@RequestParam("userId") String userId);
 
 
@@ -59,7 +59,7 @@ public interface ImUserFeign {
      * @param userIdList 用户id集合
      * @return 用户信息集合
      */
-    @PostMapping("/data/getUserByIds")
-    List<ImUserDataPo> getUserByIds(@RequestBody List<String> userIdList);
+    @PostMapping("/data/selectListByIds")
+    List<ImUserDataPo> selectListByIds(@RequestBody List<String> userIdList);
 
 }

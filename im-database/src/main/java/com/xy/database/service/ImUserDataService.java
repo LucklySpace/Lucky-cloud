@@ -1,57 +1,57 @@
 package com.xy.database.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xy.database.mapper.ImUserDataMapper;
 import com.xy.domain.po.ImUserDataPo;
+import com.xy.dubbo.api.database.user.ImUserDataDubboService;
+import jakarta.annotation.Resource;
+import org.apache.dubbo.config.annotation.DubboService;
 
 import java.util.List;
 
-public interface ImUserDataService extends IService<ImUserDataPo> {
-    
-    /**
-     * 插入用户数据信息
-     * @param userDataPo 用户数据信息
-     * @return 是否成功
-     */
-    boolean insert(ImUserDataPo userDataPo);
+@DubboService
+public class ImUserDataService extends ServiceImpl<ImUserDataMapper, ImUserDataPo>
+        implements ImUserDataDubboService, IService<ImUserDataPo> {
 
-    /**
-     * 批量插入用户数据信息
-     * @param userDataPoList 用户数据信息列表
-     * @return 是否成功
-     */
-    boolean batchInsert(List<ImUserDataPo> userDataPoList);
+    @Resource
+    private ImUserDataMapper imUserDataMapper;
 
-    /**
-     * 查询单条用户数据信息
-     * @param id 用户数据ID
-     * @return 用户数据信息
-     */
-    ImUserDataPo selectOne(String id);
-    
-    /**
-     * 根据ID查询用户数据信息
-     * @param id 用户数据ID
-     * @return 用户数据信息
-     */
-    ImUserDataPo selectById(String id);
-    
-    /**
-     * 查询用户数据列表
-     * @return 用户数据列表
-     */
-    List<ImUserDataPo> selectList();
-    
-    /**
-     * 更新用户数据信息
-     * @param userDataPo 用户数据信息
-     * @return 是否成功
-     */
-    boolean update(ImUserDataPo userDataPo);
-    
-    /**
-     * 根据ID删除用户数据
-     * @param id 用户数据ID
-     * @return 是否成功
-     */
-    boolean deleteById(String id);
+    public List<ImUserDataPo> selectList() {
+        return this.list();
+    }
+
+    public ImUserDataPo selectOne(String id) {
+        return this.getById(id);
+    }
+
+    public List<ImUserDataPo> search(String keyword) {
+        QueryWrapper<ImUserDataPo> wrapper = new QueryWrapper<>();
+        wrapper.select("user_id", "name", "avatar", "gender", "birthday", "location", "extra");
+        wrapper.eq("user_id", keyword);
+        return this.list(wrapper);
+    }
+
+    public List<ImUserDataPo> selectByIds(List<String> userIdList) {
+        return this.listByIds(userIdList);
+    }
+
+
+    public Boolean insert(ImUserDataPo userDataPo) {
+        return this.save(userDataPo);
+    }
+
+
+    public Boolean batchInsert(List<ImUserDataPo> userDataPoList) {
+        return !imUserDataMapper.insert(userDataPoList).isEmpty();
+    }
+
+    public Boolean update(ImUserDataPo userDataPo) {
+        return this.updateById(userDataPo);
+    }
+
+    public Boolean deleteById(String id) {
+        return this.removeById(id);
+    }
 }

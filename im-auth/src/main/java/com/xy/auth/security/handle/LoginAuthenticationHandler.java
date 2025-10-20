@@ -18,9 +18,7 @@ public class LoginAuthenticationHandler implements AuthenticationEntryPoint {
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) {
-
         ResponseUtil.renderString(response, JacksonUtil.toJSONString(Result.failed(authException.getMessage())));
-
     }
 }
 

@@ -1,28 +1,53 @@
 package com.xy.database.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xy.database.mapper.ImGroupMemberMapper;
 import com.xy.domain.po.ImGroupMemberPo;
+import com.xy.dubbo.api.database.group.ImGroupMemberDubboService;
+import jakarta.annotation.Resource;
+import org.apache.dubbo.config.annotation.DubboService;
 
 import java.util.List;
 
+@DubboService
+public class ImGroupMemberService extends ServiceImpl<ImGroupMemberMapper, ImGroupMemberPo>
+        implements ImGroupMemberDubboService, IService<ImGroupMemberPo> {
 
-/**
- * @author dense
- * @description 针对表【im_group_member】的数据库操作Service
- */
-public interface ImGroupMemberService extends IService<ImGroupMemberPo> {
+    @Resource
+    private ImGroupMemberMapper imGroupMemberMapper;
 
-    List<String> getNinePeopleAvatar(String groupId);
+    public List<ImGroupMemberPo> selectList(String groupId) {
+        QueryWrapper<ImGroupMemberPo> imGroupMemberPoQueryWrapper = new QueryWrapper<>();
+        imGroupMemberPoQueryWrapper.eq("group_id", groupId);
+        return this.list(imGroupMemberPoQueryWrapper);
+    }
 
-    List<ImGroupMemberPo> getGroupMemberList(String groupId);
+    public ImGroupMemberPo selectOne(String groupId, String memberId) {
+        QueryWrapper<ImGroupMemberPo> imGroupMemberPoQueryWrapper = new QueryWrapper<>();
+        imGroupMemberPoQueryWrapper.eq("group_id", groupId);
+        imGroupMemberPoQueryWrapper.eq("member_id", memberId);
+        return this.getOne(imGroupMemberPoQueryWrapper);
+    }
 
-    ImGroupMemberPo getGroupMember(String groupId, String memberId);
+    public List<String> selectNinePeopleAvatar(String groupId) {
+        return imGroupMemberMapper.selectNinePeopleAvatar(groupId);
+    }
 
-    Boolean insert(ImGroupMemberPo groupMember);
+    public Boolean insert(ImGroupMemberPo groupMember) {
+        return this.save(groupMember);
+    }
 
-    Boolean update(ImGroupMemberPo groupMember);
+    public Boolean update(ImGroupMemberPo groupMember) {
+        return this.updateById(groupMember);
+    }
 
-    Boolean batchInsert(List<ImGroupMemberPo> groupMemberList);
+    public Boolean batchInsert(List<ImGroupMemberPo> groupMemberList) {
+        return !imGroupMemberMapper.insert(groupMemberList).isEmpty();
+    }
 
-    Boolean deleteById(String memberId);
+    public Boolean deleteById(String memberId) {
+        return this.removeById(memberId);
+    }
 }

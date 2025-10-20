@@ -4,7 +4,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.xy.database.mapper.ImGroupMemberMapper">
 
-    <select id="getNinePeopleAvatar" resultType="java.lang.String">
+    <select id="selectNinePeopleAvatar" resultType="java.lang.String">
         <choose>
             <when test="_databaseId == 'mysql'">
                 SELECT avatar FROM im_group_member igm

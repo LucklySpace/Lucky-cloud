@@ -4,7 +4,6 @@ package com.xy.auth.service.impl;
 import cn.hutool.core.date.DateField;
 import com.alibaba.nacos.common.utils.JacksonUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.xy.auth.api.database.user.ImUserFeign;
 import com.xy.auth.domain.*;
 import com.xy.auth.security.IMRSAKeyProperties;
 import com.xy.auth.security.IMSecurityProperties;
@@ -21,11 +20,14 @@ import com.xy.core.model.IMRegisterUser;
 import com.xy.core.utils.JwtUtil;
 import com.xy.domain.po.ImUserDataPo;
 import com.xy.domain.vo.UserVo;
+import com.xy.dubbo.api.database.user.ImUserDataDubboService;
+import com.xy.dubbo.api.database.user.ImUserDubboService;
 import com.xy.general.response.domain.Result;
 import com.xy.general.response.domain.ResultCode;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
@@ -50,8 +52,12 @@ import static com.xy.core.constants.IMConstant.USER_CACHE_PREFIX;
 @Service
 public class AuthServiceImpl implements AuthService {
 
-    @Resource
-    private ImUserFeign imUserFeign;
+    @DubboReference
+    private ImUserDubboService imUserDubboService;
+
+    @DubboReference
+    private ImUserDataDubboService imUserDataDubboService;
+
     @Resource
     private RedisCache redisCache;
     @Resource
@@ -172,7 +178,7 @@ public class AuthServiceImpl implements AuthService {
                 .endpoint(instance.getHost() + ":" + instance.getPort())
                 .protocols(JacksonUtils.toObj(instanceMetadata.get(NacosMetadataConstants.PROTOCOLS), new TypeReference<List<String>>() {
                 }))
-                .createdAt(Long.parseLong(instanceMetadata.get(NacosMetadataConstants.CREATED_AT)))
+                .createdAt(System.currentTimeMillis() / 1000L)
                 .build();
     }
 
@@ -192,7 +198,7 @@ public class AuthServiceImpl implements AuthService {
         log.debug("获取用户信息：userId={}", userId);
 
         // 获取用户信息
-        ImUserDataPo data = imUserFeign.getOneUserData(userId);
+        ImUserDataPo data = imUserDataDubboService.selectOne(userId);
 
         UserVo vo = new UserVo();
 

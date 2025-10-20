@@ -20,8 +20,6 @@ public class LoginAccessDefineHandler implements AccessDeniedHandler {
 
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) {
-
         ResponseUtil.renderString(response, JacksonUtil.toJSONString(Result.failed(ResultCode.UNAUTHORIZED)));
-
     }
 }

@@ -50,6 +50,9 @@
         <!-- JSON 处理（Jackson） -->
         <jackson.version>2.17.2</jackson.version>
 
+        <!-- Kotlin 语言版本 -->
+        <kotlin.version>1.6.21</kotlin.version>
+
         <!-- MyBatis / MyBatis-Plus 版本 -->
         <mybatis-plus-spring.version>3.5.11</mybatis-plus-spring.version>
         <mybatis.plus.version>3.5.5</mybatis.plus.version>
@@ -212,8 +215,10 @@
 
             <dependency>
                 <groupId>org.apache.dubbo</groupId>
-                <artifactId>dubbo-spring-boot-starter</artifactId>
+                <artifactId>dubbo-bom</artifactId>
                 <version>${spring-boot-starter-dubbo.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
 
         </dependencies>

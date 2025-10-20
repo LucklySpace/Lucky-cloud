@@ -5,7 +5,7 @@ import com.xy.database.security.SecurityInner;
 import com.xy.database.service.ImChatService;
 import com.xy.domain.po.ImChatPo;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,10 +15,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/{version}/database/chat")
 @Tag(name = "ImChat", description = "用户会话数据库接口")
-@RequiredArgsConstructor
 public class ImChatController {
 
-    private final ImChatService imChatService;
+    @Resource
+    private ImChatService imChatService;
 
     /**
      * 查询用户所有会话
@@ -44,8 +44,6 @@ public class ImChatController {
         return imChatService.selectOne(ownerId, toId, chatType);
     }
 
-
-
     /**
      * 插入会话信息
      *
@@ -55,7 +53,6 @@ public class ImChatController {
     public Boolean insert(@RequestBody ImChatPo chatPo) {
         return imChatService.insert(chatPo);
     }
-
 
     /**
      * 更新会话信息
@@ -67,7 +64,6 @@ public class ImChatController {
     public Boolean update(@RequestBody ImChatPo chatPo) {
         return imChatService.update(chatPo);
     }
-
 
     /**
      * 删除会话信息

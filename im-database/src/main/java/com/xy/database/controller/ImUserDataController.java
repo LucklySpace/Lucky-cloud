@@ -5,7 +5,7 @@ import com.xy.database.security.SecurityInner;
 import com.xy.database.service.ImUserDataService;
 import com.xy.domain.po.ImUserDataPo;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,10 +16,21 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/{version}/database/user/data")
 @Tag(name = "ImUserData", description = "用户数据数据库接口")
-@RequiredArgsConstructor
 public class ImUserDataController {
 
-    private final ImUserDataService imUserDataService;
+    @Resource
+    private ImUserDataService imUserDataService;
+
+    /**
+     * 模糊查询用户信息
+     *
+     * @param keyword 查询关键字，可以是userId或mobile的部分内容
+     * @return 符合条件的用户信息列表
+     */
+    @GetMapping("/selectList")
+    public List<ImUserDataPo> selectList(@RequestParam("keyword") String keyword) {
+        return imUserDataService.selectList();
+    }
 
     /**
      * 获取用户信息
@@ -29,7 +40,7 @@ public class ImUserDataController {
      */
     @GetMapping("/selectOne")
     public ImUserDataPo selectOne(@RequestParam("userId") String userId) {
-        return imUserDataService.selectById(userId);
+        return imUserDataService.selectOne(userId);
     }
 
 

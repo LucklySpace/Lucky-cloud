@@ -1,26 +1,68 @@
 package com.xy.database.service;
 
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xy.core.utils.StringUtils;
+import com.xy.database.mapper.ImFriendshipRequestMapper;
 import com.xy.domain.po.ImFriendshipRequestPo;
+import com.xy.dubbo.api.database.friend.ImFriendshipRequestDubboService;
+import jakarta.annotation.Resource;
+import org.apache.dubbo.config.annotation.DubboService;
 
 import java.util.List;
 
 
-/**
- * @author dense
- * @description 针对表【im_friendship_request】的数据库操作Service
- */
-public interface ImFriendshipRequestService extends IService<ImFriendshipRequestPo> {
+@DubboService
+public class ImFriendshipRequestService extends ServiceImpl<ImFriendshipRequestMapper, ImFriendshipRequestPo>
+        implements ImFriendshipRequestDubboService, IService<ImFriendshipRequestPo> {
 
-    List<ImFriendshipRequestPo> selectList(String userId);
+    @Resource
+    private ImFriendshipRequestMapper imFriendshipRequestMapper;
 
-    ImFriendshipRequestPo selectOne(ImFriendshipRequestPo requestPo);
+    public List<ImFriendshipRequestPo> selectList(String userId) {
+        QueryWrapper<ImFriendshipRequestPo> imFriendshipRequestQuery = new QueryWrapper<>();
+        imFriendshipRequestQuery.eq("to_id", userId);
+        return this.list(imFriendshipRequestQuery);
+    }
 
-    Boolean insert(ImFriendshipRequestPo requestPo);
+    public ImFriendshipRequestPo selectOne(ImFriendshipRequestPo requestPo) {
 
-    Boolean update(ImFriendshipRequestPo requestPo);
+        QueryWrapper<ImFriendshipRequestPo> imFriendshipRequestQuery = new QueryWrapper<>();
 
-    Boolean batchInsert(List<ImFriendshipRequestPo> requestPoList);
+        if (StringUtils.hasText(requestPo.getId())) {
+            imFriendshipRequestQuery.eq("id", requestPo.getId());
+        }
+        if (StringUtils.hasText(requestPo.getFromId()) && StringUtils.hasText(requestPo.getToId())) {
+            imFriendshipRequestQuery.eq("from_id", requestPo.getFromId()).and(wrapper -> wrapper.eq("to_id", requestPo.getToId()));
+        }
 
-    Boolean deleteById(String requestId);
+        return this.getOne(imFriendshipRequestQuery);
+    }
+
+    public Boolean insert(ImFriendshipRequestPo requestPo) {
+        return save(requestPo);
+    }
+
+    public Boolean update(ImFriendshipRequestPo requestPo) {
+        return this.updateById(requestPo);
+    }
+
+    public Boolean updateStatus(String requestId, Integer status) {
+        UpdateWrapper<ImFriendshipRequestPo> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("id", requestId).set("status", status);
+        return this.update(null, updateWrapper);
+    }
+
+    public Boolean deleteById(String requestId) {
+        return this.removeById(requestId);
+    }
+
+
 }
+
+
+
+

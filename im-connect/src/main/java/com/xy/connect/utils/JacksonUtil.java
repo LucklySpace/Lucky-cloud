@@ -100,9 +100,9 @@ public class JacksonUtil {
 
     public static <T> T parseObject(Object obj, TypeReference<T> typeReference) {
         try {
-            String json = mapper.writeValueAsString(obj);
-            return mapper.convertValue(json, typeReference);
-        } catch (JsonProcessingException e) {
+            JsonNode jsonNode = mapper.valueToTree(obj);
+            return mapper.convertValue(jsonNode, typeReference);
+        } catch (Exception e) {
             log.error("对象转换失败，目标类型：{}，对象：{} 错误", typeReference.getType(), obj, e);
             return null;
         }

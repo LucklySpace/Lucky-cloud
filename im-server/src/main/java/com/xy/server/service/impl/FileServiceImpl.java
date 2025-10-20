@@ -58,8 +58,10 @@ public class FileServiceImpl implements FileService {
 
     @Value("${minio.public}")
     private String minIOServer;
+
     @Value("${minio.bucketName}")
     private String bucketName;
+
     @Resource
     private MinioUtil minioUtil;
 

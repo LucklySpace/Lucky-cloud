@@ -6,16 +6,18 @@ import com.xy.core.enums.IMessageType;
 import com.xy.domain.dto.ChatDto;
 import com.xy.domain.po.*;
 import com.xy.domain.vo.ChatVo;
+import com.xy.dubbo.api.database.chat.ImChatDubboService;
+import com.xy.dubbo.api.database.group.ImGroupDubboService;
+import com.xy.dubbo.api.database.message.ImGroupMessageDubboService;
+import com.xy.dubbo.api.database.message.ImSingleMessageDubboService;
+import com.xy.dubbo.api.database.user.ImUserDataDubboService;
 import com.xy.general.response.domain.Result;
 import com.xy.general.response.domain.ResultCode;
-import com.xy.server.api.feign.database.chat.ImChatFeign;
-import com.xy.server.api.feign.database.group.ImGroupFeign;
-import com.xy.server.api.feign.database.message.ImMessageFeign;
-import com.xy.server.api.feign.database.user.ImUserFeign;
 import com.xy.server.exception.GlobalException;
 import com.xy.server.service.ChatService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
@@ -41,16 +43,24 @@ public class ChatServiceImpl implements ChatService {
     private static final long LOCK_WAIT_TIME = 3L; // 锁等待时间（秒）
     private static final long LOCK_LEASE_TIME = 10L; // 锁持有时间（秒）
 
-    @Resource
-    private ImChatFeign imChatFeign;
-    @Resource
-    private ImUserFeign imUserFeign;
-    @Resource
-    private ImGroupFeign imGroupFeign;
-    @Resource
-    private ImMessageFeign imMessageFeign;
+    @DubboReference
+    private ImChatDubboService imChatDubboService;
+
+    @DubboReference
+    private ImUserDataDubboService imUserDataDubboService;
+
+    @DubboReference
+    private ImGroupDubboService imGroupDubboService;
+
+    @DubboReference
+    private ImSingleMessageDubboService imSingleMessageDubboService;
+
+    @DubboReference
+    private ImGroupMessageDubboService imGroupMessageDubboService;
+
     @Resource
     private RedissonClient redissonClient;
+
     @Resource
     @Qualifier("asyncTaskExecutor")
     private Executor asyncTaskExecutor;
@@ -112,7 +122,7 @@ public class ChatServiceImpl implements ChatService {
                 throw new GlobalException(ResultCode.FAIL, "会话创建中，请稍后重试");
             }
 
-            ImChatPo imChatPO = imChatFeign.getOne(chatDto.getFromId(), chatDto.getToId(), chatDto.getChatType());
+            ImChatPo imChatPO = imChatDubboService.selectOne(chatDto.getFromId(), chatDto.getToId(), chatDto.getChatType());
             if (Objects.isNull(imChatPO)) {
                 imChatPO = new ImChatPo();
                 String chatId = UUID.randomUUID().toString();
@@ -124,7 +134,7 @@ public class ChatServiceImpl implements ChatService {
                         .setDelFlag(IMStatus.YES.getCode())
                         .setChatType(chatDto.getChatType());
 
-                boolean success = imChatFeign.insert(imChatPO);
+                boolean success = imChatDubboService.insert(imChatPO);
                 if (success) {
                     log.info("会话信息插入成功 chatId={} from={} to={}", chatId, chatDto.getFromId(), chatDto.getToId());
                 } else {
@@ -165,7 +175,7 @@ public class ChatServiceImpl implements ChatService {
                 throw new GlobalException(ResultCode.FAIL, "会话读取中，请稍后重试");
             }
 
-            ImChatPo imChatPO = imChatFeign.getOne(ownerId, toId, null);
+            ImChatPo imChatPO = imChatDubboService.selectOne(ownerId, toId, null);
             ChatVo chatVo = getChat(imChatPO);
             log.debug("one会话完成 from={} to={} 耗时:{}ms", ownerId, toId, System.currentTimeMillis() - start);
             return chatVo;
@@ -198,7 +208,7 @@ public class ChatServiceImpl implements ChatService {
                 throw new GlobalException(ResultCode.FAIL, "会话列表读取中，请稍后重试");
             }
 
-            List<ImChatPo> imChatPos = imChatFeign.getChatList(chatDto.getFromId(), chatDto.getSequence());
+            List<ImChatPo> imChatPos = imChatDubboService.selectList(chatDto.getFromId(), chatDto.getSequence());
             List<CompletableFuture<ChatVo>> chatFutures = imChatPos.stream()
                     .map(e -> CompletableFuture.supplyAsync(() -> getChat(e), asyncTaskExecutor))
                     .toList();
@@ -247,7 +257,7 @@ public class ChatServiceImpl implements ChatService {
         String ownerId = chatVo.getOwnerId();
         String toId = chatVo.getToId();
 
-        ImSingleMessagePo singleMessageDto = imMessageFeign.plast(ownerId, toId);
+        ImSingleMessagePo singleMessageDto = imSingleMessageDubboService.last(ownerId, toId);
 
         chatVo.setMessageTime(0L);
         if (Objects.nonNull(singleMessageDto)) {
@@ -256,11 +266,11 @@ public class ChatServiceImpl implements ChatService {
             chatVo.setMessageTime(singleMessageDto.getMessageTime());
         }
 
-        Integer unread = imMessageFeign.pSelectReadStatus(toId, ownerId, IMessageReadStatus.UNREAD.getCode());
+        Integer unread = imSingleMessageDubboService.selectReadStatus(toId, ownerId, IMessageReadStatus.UNREAD.getCode());
         chatVo.setUnread(Objects.requireNonNullElse(unread, 0));
 
         String targetUserId = ownerId.equals(toId) ? chatVo.getOwnerId() : chatVo.getToId();
-        ImUserDataPo imUserDataPo = imUserFeign.getOne(targetUserId);
+        ImUserDataPo imUserDataPo = imUserDataDubboService.selectOne(targetUserId);
         if (imUserDataPo != null) {
             chatVo.setName(imUserDataPo.getName());
             chatVo.setAvatar(imUserDataPo.getAvatar());
@@ -280,7 +290,7 @@ public class ChatServiceImpl implements ChatService {
         String ownerId = chatVo.getOwnerId();
         String groupId = chatVo.getToId();
 
-        ImGroupMessagePo groupMessageDto = imMessageFeign.glast(ownerId, groupId);
+        ImGroupMessagePo groupMessageDto = imGroupMessageDubboService.last(ownerId, groupId);
 
         chatVo.setMessageTime(0L);
         if (Objects.nonNull(groupMessageDto)) {
@@ -288,10 +298,10 @@ public class ChatServiceImpl implements ChatService {
             chatVo.setMessageTime(groupMessageDto.getMessageTime());
         }
 
-        Integer unread = imMessageFeign.gSelectReadStatus(groupId, ownerId, IMessageReadStatus.UNREAD.getCode());
+        Integer unread = imGroupMessageDubboService.selectReadStatus(groupId, ownerId, IMessageReadStatus.UNREAD.getCode());
         chatVo.setUnread(Objects.requireNonNullElse(unread, 0));
 
-        ImGroupPo imGroupPo = imGroupFeign.getOneGroup(groupId);
+        ImGroupPo imGroupPo = imGroupDubboService.selectOne(groupId);
         if (imGroupPo != null) {
             chatVo.setName(imGroupPo.getGroupName());
             chatVo.setAvatar(imGroupPo.getAvatar());
@@ -309,14 +319,14 @@ public class ChatServiceImpl implements ChatService {
         BeanUtils.copyProperties(imChatPO, chatVo);
 
         if (chatType.equals(IMessageType.SINGLE_MESSAGE.getCode())) {
-            ImUserDataPo imUserDataPo = imUserFeign.getOne(chatVo.getToId());
+            ImUserDataPo imUserDataPo = imUserDataDubboService.selectOne(chatVo.getToId());
             if (imUserDataPo != null) {
                 chatVo.setName(imUserDataPo.getName());
                 chatVo.setAvatar(imUserDataPo.getAvatar());
                 chatVo.setId(imUserDataPo.getUserId());
             }
         } else if (chatType.equals(IMessageType.GROUP_MESSAGE.getCode())) {
-            ImGroupPo imGroupPo = imGroupFeign.getOneGroup(chatVo.getToId());
+            ImGroupPo imGroupPo = imGroupDubboService.selectOne(chatVo.getToId());
             if (imGroupPo != null) {
                 chatVo.setName(imGroupPo.getGroupName());
                 chatVo.setAvatar(imGroupPo.getAvatar());
@@ -337,7 +347,7 @@ public class ChatServiceImpl implements ChatService {
             updateMessage.setFromId(chatDto.getFromId());
             updateMessage.setToId(chatDto.getToId());
 
-            boolean success = imMessageFeign.singleMessageSaveOrUpdate(updateMessage);
+            boolean success = imSingleMessageDubboService.update(updateMessage);
             log.debug("单聊已读更新 from={} to={} 成功={} 耗时:{}ms", chatDto.getFromId(), chatDto.getToId(), success, System.currentTimeMillis() - start);
             return success ? Result.success("更新成功") : Result.failed("更新失败");
         } catch (Exception e) {
@@ -357,7 +367,7 @@ public class ChatServiceImpl implements ChatService {
             updateMessage.setGroupId(chatDto.getFromId());
             updateMessage.setToId(chatDto.getToId());
 
-            boolean success = imMessageFeign.groupMessageStatusBatchInsert(List.of(updateMessage));
+            boolean success = imGroupMessageDubboService.batchInsert(List.of(updateMessage));
             log.debug("群聊已读更新 groupId={} ownerId={} 成功={} 耗时:{}ms", chatDto.getToId(), chatDto.getFromId(), success, System.currentTimeMillis() - start);
             return success ? Result.success("更新成功") : Result.failed("更新失败");
         } catch (Exception e) {

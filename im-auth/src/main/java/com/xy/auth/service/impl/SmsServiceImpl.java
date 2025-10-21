@@ -12,6 +12,7 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -25,6 +26,7 @@ public class SmsServiceImpl implements SmsService {
     // 短信模板ID和验证码过期时间抽取为常量
     private static final String TEMPLATE_ID = "10120";
     private static final int EXPIRE_MINUTES = 3;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     @Value("${sms.apiUrl}")
     private String apiUrl;
@@ -54,15 +56,13 @@ public class SmsServiceImpl implements SmsService {
         redisCache.set("sms" + phone, randomCode, EXPIRE_MINUTES, TimeUnit.MINUTES);
         log.info("手机号: {} 生成六位随机验证码: {}", phone, randomCode);
 
-        // 发送短信
-        String sendResult = sendSms(phone, randomCode);
-
-        return sendResult;
+        return sendSms(phone, randomCode);
     }
 
-    // 抽取生成随机验证码的方法
-    private String generateRandomCode() {
-        return String.valueOf((int) ((Math.random() * 9 + 1) * 100000));
+    // 抽取生成6位随机验证码的方法
+    public  String generateRandomCode() {
+        int number = SECURE_RANDOM.nextInt(1_000_000);
+        return String.format("%06d", number);
     }
 
     // 抽取发送短信的逻辑为独立的方法

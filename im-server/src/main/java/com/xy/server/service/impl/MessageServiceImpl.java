@@ -60,8 +60,8 @@ public class MessageServiceImpl implements MessageService {
     private static final String LOCK_KEY_SEND_VIDEO = "lock:send:video:";
     private static final String LOCK_KEY_RECALL_MESSAGE = "recall:message:lock:";
     private static final String LOCK_KEY_RETRY_PENDING = "lock:retry:pending";
-    private static final long LOCK_WAIT_TIME = 2L; // 锁等待5s
-    private static final long LOCK_LEASE_TIME = 5L; // 锁持有10s
+    private static final long LOCK_WAIT_TIME = 5L; // 锁等待5s
+    private static final long LOCK_LEASE_TIME = 10L; // 锁持有10s
     private final Map<String, Long> messageToOutboxIdMap = new ConcurrentHashMap<>();
 
 

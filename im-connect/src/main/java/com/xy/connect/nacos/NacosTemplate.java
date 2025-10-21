@@ -279,7 +279,7 @@ public class NacosTemplate {
      */
     private int safeGetCurrentConnectionCount() {
         try {
-            return userChannelMap.getAllChannels().size();
+            return userChannelMap.getOnlineUserCount();
         } catch (Throwable t) {
             log.debug("Failed to get connection count, fallback to 0", t);
             return 0;

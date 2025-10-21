@@ -120,7 +120,7 @@
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
             <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
-            <version>${openapi3.version}</version>
+            <version>${knife4j.version}</version>
         </dependency>
 
         <!--        &lt;!&ndash; spring-jdbc 包含hikari连接池 &ndash;&gt;-->

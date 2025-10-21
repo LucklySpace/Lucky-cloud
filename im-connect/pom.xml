@@ -20,7 +20,6 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <netty.version>4.2.6.Final</netty.version>
-        <mysql.version>8.0.16</mysql.version>
         <slf4j.version>1.7.25</slf4j.version>
         <logback.version>1.4.12</logback.version>
         <hutool.version>5.8.25</hutool.version>

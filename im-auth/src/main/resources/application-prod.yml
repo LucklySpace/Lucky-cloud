@@ -41,30 +41,6 @@ spring:
           max-idle: 5     # 最大空闲连接数
           min-idle: 0     # 最小空闲连接数
 
-#springdoc相关配置
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-    tags-sorter: alpha
-    operations-sorter: alpha
-  api-docs:
-    enabled: true
-    path: /v3/api-docs
-  group-configs:
-    - group: 'server'
-      paths-to-match: '/**'
-      packages-to-scan: com.xy.server  #改成你自己的包名，一般到启动类的包名
-
-# TODO: knife4j相关配置 可以不用改
-knife4j:
-  enable: true        # 开启增强配置
-  production: false   # 开启生产环境屏蔽
-  setting:
-    language: zh_cn   # 默认中文
-    swagger-model-name: 实体类
-
-
-
 # TODO: security
 security:
   crypto:
@@ -85,14 +61,7 @@ security:
     - '/api/auth/publickey'
     - '/api/auth/qrcode'
     - '/api/auth/qrcode/status'
-    - '/api/auth/password'
     - '/api/auth/sms'
-    - '/doc.html'
-    - '/swagger-ui.html'
-    - '/webjars/**'
-    - '/swagger-resources/**'
-    - '/v2/**'
-    - '/v3/**'
   rsa:
     key:
       secret: '1234567890' #RSA加密盐值

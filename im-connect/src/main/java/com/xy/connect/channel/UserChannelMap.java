@@ -14,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * 用户 -> 多设备 Channel 管理
@@ -78,7 +77,7 @@ public class UserChannelMap {
                 .filter(uc -> uc != null && uc.getDeviceType() != null && uc.getChannel() != null)
                 .filter(uc -> !uc.getChannel().id().asLongText().equals(ch.id().asLongText()))
                 .filter(uc -> uc.getDeviceType().isConflicting(dt) || uc.getDeviceType() == dt)
-                .collect(Collectors.toList());
+                .toList();
 
         // 逐个移除并优雅关闭旧连接
         toKick.forEach(old -> {
@@ -137,7 +136,7 @@ public class UserChannelMap {
         List<Channel> channels = im.getUserChannelMap().values().stream()
                 .filter(uc -> uc != null && uc.getChannel() != null)
                 .map(UserChannel::getChannel)
-                .collect(Collectors.toList());
+                .toList();
                 
         return Collections.unmodifiableCollection(channels);
     }

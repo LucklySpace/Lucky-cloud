@@ -53,7 +53,6 @@ spring:
     publisher-returns: true #设置publisher-returns消息成功则会向发布者发送成功，失败时不会将消息丢弃，而是返回给发布者，发布者根据需求处理
     publisher-confirm-type: correlated #开启发布确认模式，具体有三个值，具体的可以去百度
 
-
 # TODO: log settings
 logging:
   config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件
@@ -61,29 +60,6 @@ logging:
     com.xy.*.mapper: debug
     com.xy.*: debug
     org.springframework: warn
-
-#springdoc相关配置
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-    tags-sorter: alpha
-    operations-sorter: alpha
-  api-docs:
-    enabled: true
-    path: /v3/api-docs
-  group-configs:
-    - group: 'server'
-      paths-to-match: '/**'
-      packages-to-scan: com.xy.server  #改成你自己的包名，一般到启动类的包名
-
-# TODO: knife4j相关配置 可以不用改
-knife4j:
-  enable: true        # 开启增强配置
-  production: false   # 开启生产环境屏蔽
-  setting:
-    language: zh_cn   # 默认中文
-    swagger-model-name: 实体类
-
 
 minio:
   endpoint: http://127.0.0.1:9000 #内网地址

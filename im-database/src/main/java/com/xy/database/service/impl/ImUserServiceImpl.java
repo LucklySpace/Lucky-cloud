@@ -16,6 +16,8 @@ import jakarta.annotation.Resource;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
+import java.time.temporal.ChronoUnit;
+
 /**
  * @author dense
  * @description 针对表【im_user】的数据库操作Service实现
@@ -75,7 +77,7 @@ public class ImUserServiceImpl extends ServiceImpl<ImUserMapper, ImUserPo>
     @Override
     public LoginVo refreshToken(String token) {
         String username = JwtUtil.getUsername(token);
-        String refreshToken = JwtUtil.createToken(username, 24, DateField.HOUR);
+        String refreshToken = JwtUtil.createToken(username, 24, ChronoUnit.HOURS);
         LoginVo loginVo = new LoginVo().setUserId(username).setToken(refreshToken);
         return loginVo;
     }

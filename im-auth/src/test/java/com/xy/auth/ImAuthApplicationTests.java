@@ -1,8 +1,6 @@
 package com.xy.auth;
 
-
 import org.junit.jupiter.api.Test;
-
 
 //@SpringBootTest
 class ImAuthApplicationTests {

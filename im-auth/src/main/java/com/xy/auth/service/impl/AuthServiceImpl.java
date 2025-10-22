@@ -1,7 +1,7 @@
 package com.xy.auth.service.impl;
 
 
-import cn.hutool.core.date.DateField;
+
 import com.alibaba.nacos.common.utils.JacksonUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.xy.auth.domain.*;
@@ -36,7 +36,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
-
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -63,9 +63,9 @@ public class AuthServiceImpl implements AuthService {
     @Resource
     private AuthenticationManager authenticationManager;
     @Resource
-    private IMSecurityProperties IMSecurityProperties;
+    private IMSecurityProperties iMSecurityProperties;
     @Resource
-    private IMRSAKeyProperties IMRSAKeyProperties;
+    private IMRSAKeyProperties iMRSAKeyProperties;
     @Resource
     private DiscoveryClient discoveryClient;
 
@@ -248,7 +248,7 @@ public class AuthServiceImpl implements AuthService {
             return Result.failed(ResultCode.TOKEN_IS_NULL);
         }
 
-        String newToken = JwtUtil.refreshToken(oldToken, IMSecurityProperties.getExpiration(), DateField.HOUR);
+        String newToken = JwtUtil.refreshToken(oldToken, iMSecurityProperties.getExpiration(), ChronoUnit.HOURS);
 
         log.info("Token 刷新成功");
 
@@ -264,7 +264,7 @@ public class AuthServiceImpl implements AuthService {
      */
     @Override
     public Result<?> getPublicKey() {
-        String pubKey = IMRSAKeyProperties.getPublicKeyStr();
+        String pubKey = iMRSAKeyProperties.getPublicKeyStr();
 
         log.debug("获取 RSA 公钥");
 
@@ -409,14 +409,14 @@ public class AuthServiceImpl implements AuthService {
         String userId = auth.getPrincipal().toString();
 
         // 生成token
-        String token = JwtUtil.createToken(userId, IMSecurityProperties.getExpiration(), DateField.HOUR);
+        String token = JwtUtil.createToken(userId, iMSecurityProperties.getExpiration(), ChronoUnit.HOURS);
 
         log.debug("生成 JWT Token：userId={}", userId);
 
         return new IMLoginResult()
                 .setUserId(userId)
                 .setAccessToken(token)
-                .setExpiration(IMSecurityProperties.getExpiration());
+                .setExpiration(iMSecurityProperties.getExpiration());
     }
 
     /**
@@ -444,15 +444,12 @@ public class AuthServiceImpl implements AuthService {
      */
     private String createCodeToBase64(String content) {
         try {
-
             return  QRCodeUtil.generateQRCodeBase64(content, "png");
         } catch (Exception e) {
             log.error("二维码生成失败：content={}", content, e);
             return null;
         }
     }
-
-
 
     @Override
     public Result<?> sendSms(String phone) {

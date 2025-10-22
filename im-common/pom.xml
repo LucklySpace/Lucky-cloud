@@ -52,6 +52,7 @@
 
         <!-- 工具包版本 -->
         <hutool.version>5.8.25</hutool.version>
+        <nimbus-jose-jwt.version>10.5</nimbus-jose-jwt.version>
 
         <!-- Redis客户端版本 -->
         <redis.version>4.2.3</redis.version>
@@ -136,6 +137,12 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>${logback.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>nimbus-jose-jwt</artifactId>
+            <version>${nimbus-jose-jwt.version}</version>
         </dependency>
 
     </dependencies>

@@ -39,6 +39,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -242,7 +243,7 @@ public class AuthServiceImpl implements AuthService {
             return Result.failed(ResultCode.TOKEN_IS_NULL);
         }
 
-        String newToken = JwtUtil.refreshToken(oldToken, securityProperties.getExpiration(), DateField.HOUR);
+        String newToken = JwtUtil.refreshToken(oldToken, securityProperties.getExpiration(), ChronoUnit.HOURS);
 
         log.info("Token 刷新成功");
 
@@ -403,7 +404,7 @@ public class AuthServiceImpl implements AuthService {
         String userId = auth.getPrincipal().toString();
 
         // 生成token
-        String token = JwtUtil.createToken(userId, securityProperties.getExpiration(), DateField.HOUR);
+        String token = JwtUtil.createToken(userId, securityProperties.getExpiration(), ChronoUnit.HOURS);
 
         log.debug("生成 JWT Token：userId={}", userId);
 

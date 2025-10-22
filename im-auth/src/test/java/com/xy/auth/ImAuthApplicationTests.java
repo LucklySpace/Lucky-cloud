@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.nio.file.Paths;
+import java.time.temporal.ChronoUnit;
 
 //import org.springframework.boot.test.context.SpringBootTest;
 //
@@ -48,7 +49,7 @@ class ImAuthApplicationTests {
                 String uid = String.valueOf(startId + i);
 
                 // 使用 JwtUtil 工具类创建 Token（你自己的工具类）
-                String token = JwtUtil.createToken(uid, EXPIRE_HOURS, DateField.HOUR);
+                String token = JwtUtil.createToken(uid, EXPIRE_HOURS, ChronoUnit.HOURS);
 
                 // 写入 CSV 一行
                 writer.write(String.format("%s,%s", uid, token));

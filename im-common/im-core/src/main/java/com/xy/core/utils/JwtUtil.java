@@ -1,14 +1,14 @@
 package com.xy.core.utils;
 
+import com.nimbusds.jose.*;
+import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jose.crypto.MACVerifier;
+import lombok.extern.slf4j.Slf4j;
 
-import cn.hutool.core.date.DateField;
-import cn.hutool.core.date.DateTime;
-import cn.hutool.json.JSONObject;
-import cn.hutool.jwt.JWT;
-import cn.hutool.jwt.JWTException;
-import cn.hutool.jwt.JWTPayload;
-import cn.hutool.jwt.JWTUtil;
-
+import java.text.ParseException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,30 +17,55 @@ import java.util.concurrent.TimeUnit;
 /**
  * JWT 工具类
  */
+@Slf4j
 public class JwtUtil {
 
     // 建议从配置文件中注入
     private static final String KEY = "Jiawa12306";
+    private static final byte[] SECRET = Md5Utils.md5(KEY).getBytes();
+
+    // JWT 标准字段常量
+    private static final String ISSUED_AT = "iat";
+    private static final String EXPIRES_AT = "exp";
+    private static final String NOT_BEFORE = "nbf";
+
+    // Create HMAC signer
+    private static final JWSSigner signer;
+
+    static {
+        try {
+            signer = new MACSigner(SECRET);
+        } catch (KeyLengthException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     /**
      * 创建 Token
      *
      * @param username 用户名
      * @param time     有效时间值（例如：30）
-     * @param datePart 时间单位（例如：DateField.MINUTE）
+     * @param chronoUnit 时间单位（例如：DateField.MINUTE）
      * @return token 字符串
      */
-    public static String createToken(String username, Integer time, DateField datePart) {
-        DateTime now = DateTime.now();
-        DateTime expTime = now.offsetNew(datePart, time);
+    public static String createToken(String username, Integer time, ChronoUnit chronoUnit) {
+        try {
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime expTime = now.plus(time, chronoUnit);
 
-        Map<String, Object> payload = new HashMap<>();
-        payload.put(JWTPayload.ISSUED_AT, now);
-        payload.put(JWTPayload.EXPIRES_AT, expTime);
-        payload.put(JWTPayload.NOT_BEFORE, now);
-        payload.put("username", username);
-
-        return JWTUtil.createToken(payload, KEY.getBytes());
+            Map<String, Object> payload = new HashMap<>();
+            payload.put(ISSUED_AT, Date.from(now.atZone(ZoneId.systemDefault()).toInstant()).getTime() / 1000);
+            payload.put(EXPIRES_AT, Date.from(expTime.atZone(ZoneId.systemDefault()).toInstant()).getTime() / 1000);
+            payload.put(NOT_BEFORE, Date.from(now.atZone(ZoneId.systemDefault()).toInstant()).getTime() / 1000);
+            payload.put("username", username);
+            JWSObject jwsObject = new JWSObject(new JWSHeader(JWSAlgorithm.HS256), new Payload(payload));
+            // Apply the HMAC
+            jwsObject.sign(signer);
+            return jwsObject.serialize();
+        } catch (JOSEException e) {
+            log.error("createToken error:", e);
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -48,26 +73,33 @@ public class JwtUtil {
      *
      * @param token    旧的 JWT 字符串
      * @param time     刷新后有效时间值
-     * @param datePart 时间单位
+     * @param chronoUnit 时间单位
      * @return 新的 Token 字符串
      */
-    public static String refreshToken(String token, Integer time, DateField datePart) {
-        // 获取旧 token 中的自定义 payload（不含时间字段）
-        JSONObject claims = getJSONObject(token);
+    public static String refreshToken(String token, Integer time, ChronoUnit chronoUnit) {
+        try {
+            // 获取旧 token 中的自定义 payload（不含时间字段）
+            Map<String, Object> oldPayload = getJSONObject(token).toJSONObject();
 
-        DateTime now = DateTime.now();
-        DateTime expTime = now.offsetNew(datePart, time);
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime expTime = now.plus(time, chronoUnit);
 
-        Map<String, Object> newPayload = new HashMap<>();
-        newPayload.put(JWTPayload.ISSUED_AT, now);
-        newPayload.put(JWTPayload.NOT_BEFORE, now);
-        newPayload.put(JWTPayload.EXPIRES_AT, expTime);
-        // 复制旧的自定义字段
-        for (String key : claims.keySet()) {
-            newPayload.put(key, claims.get(key));
+            Map<String, Object> newPayload = new HashMap<>();
+            newPayload.put(ISSUED_AT, Date.from(now.atZone(ZoneId.systemDefault()).toInstant()).getTime() / 1000);
+            newPayload.put(EXPIRES_AT, Date.from(expTime.atZone(ZoneId.systemDefault()).toInstant()).getTime() / 1000);
+            newPayload.put(NOT_BEFORE, Date.from(now.atZone(ZoneId.systemDefault()).toInstant()).getTime() / 1000);
+            
+            // 复制旧的自定义字段
+            newPayload.putAll(oldPayload);
+
+            JWSObject jwsObject = new JWSObject(new JWSHeader(JWSAlgorithm.HS256), new Payload(newPayload));
+            // Apply the HMAC
+            jwsObject.sign(signer);
+            return jwsObject.serialize();
+        } catch (Exception e) {
+            log.error("refreshToken error:", e);
+            throw new RuntimeException(e);
         }
-
-        return JWTUtil.createToken(newPayload, KEY.getBytes());
     }
 
     /**
@@ -78,9 +110,11 @@ public class JwtUtil {
      */
     public static boolean validate(String token) {
         try {
-            JWT jwt = parse(token);
-            return jwt.verify() && jwt.validate(0);
-        } catch (JWTException e) {
+            JWSObject jwsObject = parse(token);
+            JWSVerifier verifier = new MACVerifier(SECRET);
+            return jwsObject.verify(verifier);
+        } catch (Exception e) {
+            log.error("validate token error:", e);
             return false;
         }
     }
@@ -89,49 +123,59 @@ public class JwtUtil {
      * 获取用户名
      */
     public static String getUsername(String token) {
-        return getPayload(token).getStr("username");
+        try {
+            return getPayload(token).toJSONObject().get("username").toString();
+        } catch (ParseException e) {
+            log.error("getUsername error:", e);
+            return "";
+        }
     }
 
     /**
      * 获取 payload 去除时间字段
      */
-    public static JSONObject getJSONObject(String token) {
-        JSONObject payload = getPayload(token);
-        payload.remove(JWTPayload.ISSUED_AT);
-        payload.remove(JWTPayload.EXPIRES_AT);
-        payload.remove(JWTPayload.NOT_BEFORE);
-        return payload;
+    public static Payload getJSONObject(String token) throws ParseException {
+        Payload payload = getPayload(token);
+        // 创建新的payload map，避免修改原始payload
+        Map<String, Object> payloadMap = new HashMap<>(payload.toJSONObject());
+        payloadMap.remove(ISSUED_AT);
+        payloadMap.remove(EXPIRES_AT);
+        payloadMap.remove(NOT_BEFORE);
+        return new Payload(payloadMap);
     }
 
     /**
      * 获取签发时间
      */
-    public static Date getIssuedAt(String token) {
-        return getPayload(token).getDate(JWTPayload.ISSUED_AT);
+    public static Date getIssuedAt(String token) throws ParseException {
+        Long timestamp = (Long) getPayload(token).toJSONObject().get(ISSUED_AT);
+        return timestamp != null ? new Date(timestamp * 1000) : null;
     }
 
     /**
      * 获取生效时间
      */
-    public static Date getNotBefore(String token) {
-        return getPayload(token).getDate(JWTPayload.NOT_BEFORE);
+    public static Date getNotBefore(String token) throws ParseException {
+        Long timestamp = (Long) getPayload(token).toJSONObject().get(NOT_BEFORE);
+        return timestamp != null ? new Date(timestamp * 1000) : null;
     }
 
     /**
      * 获取过期时间
      */
-    public static Date getExpiresAt(String token) {
-        return getPayload(token).getDate(JWTPayload.EXPIRES_AT);
+    public static Date getExpiresAt(String token) throws ParseException {
+        Long timestamp = (Long) getPayload(token).toJSONObject().get(EXPIRES_AT);
+        return timestamp != null ? new Date(timestamp * 1000) : null;
     }
 
     // 私有辅助方法：统一解析 token 并设置密钥
-    private static JWT parse(String token) {
-        return JWTUtil.parseToken(token).setKey(KEY.getBytes());
+    private static JWSObject parse(String token) throws ParseException {
+        return JWSObject.parse(token);
     }
 
     // 私有辅助方法：获取 payload
-    private static JSONObject getPayload(String token) {
-        return parse(token).getPayloads();
+    private static Payload getPayload(String token) throws ParseException {
+        return parse(token).getPayload();
     }
 
     /**
@@ -140,12 +184,14 @@ public class JwtUtil {
      * @param token JWT字符串
      * @return 剩余毫秒数，若已过期则返回0
      */
-    public static long getRemainingMillis(String token) {
+    public static long getRemainingMillis(String token) throws ParseException {
         Date expiresAt = getExpiresAt(token);
+        if (expiresAt == null) {
+            return 0;
+        }
         long remaining = expiresAt.getTime() - System.currentTimeMillis();
-        return remaining > 0 ? remaining : 0;
+        return Math.max(remaining, 0);
     }
-
 
     /**
      * 获取剩余过期时间，以指定单位返回
@@ -155,7 +201,12 @@ public class JwtUtil {
      * @return 指定单位的剩余时间数，若已过期则返回0
      */
     public static long getRemaining(String token, TimeUnit unit) {
-        long millis = getRemainingMillis(token);
-        return unit.convert(millis, TimeUnit.MILLISECONDS);
+        try {
+            long millis = getRemainingMillis(token);
+            return unit.convert(millis, TimeUnit.MILLISECONDS);
+        } catch (ParseException e) {
+            log.error("getRemaining error:", e);
+            return 0;
+        }
     }
 }

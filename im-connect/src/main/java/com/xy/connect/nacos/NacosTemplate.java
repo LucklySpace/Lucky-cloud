@@ -56,7 +56,7 @@ public class NacosTemplate {
     protected String protocolType;
     @Value("${netty.config.path:/im}")
     protected String wsPath;
-    @Value("nacos.config.group")
+    @Value("${nacos.config.group}")
     private String groupName;
 
     // 上报任务句柄（用于停止）

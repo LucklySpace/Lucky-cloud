@@ -187,13 +187,6 @@ public class WebSocketTemplate extends AbstractRemoteServer {
                 channelFutures.put(port, future);
                 log.info("WebSocket 端口绑定成功: {}", port);
 
-                // 注册到 Nacos（独立 try/catch，注册失败不影响服务绑定）
-                try {
-                    nacosTemplate.registerNacos(port);
-                } catch (Exception e) {
-                    log.error("Nacos 注册失败（port={}），但服务继续运行: {}", port, e.getMessage(), e);
-                }
-
                 // 添加 close future 监听，channel 关闭时清理 map
                 future.channel().closeFuture().addListener((ChannelFutureListener) cf -> {
                     log.warn("WebSocket 端口 [{}] 的 Channel 已关闭", port);
@@ -208,6 +201,11 @@ public class WebSocketTemplate extends AbstractRemoteServer {
                 log.error("WebSocket 端口绑定失败: {}", port, e);
             }
         }
+
+
+        // 单独批量注册到 Nacos
+        nacosTemplate.batchRegisterNacos(webSocketPort);
+
 
         if (channelFutures.isEmpty()) {
             throw new IllegalStateException("未能绑定任何 WebSocket 端口，应用无法提供 WS 服务");

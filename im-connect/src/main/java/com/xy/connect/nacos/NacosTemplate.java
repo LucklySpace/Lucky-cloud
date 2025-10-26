@@ -14,6 +14,8 @@ import com.xy.spring.annotations.core.Value;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.*;
@@ -122,6 +124,63 @@ public class NacosTemplate {
         startReporterIfNeeded();
 
         return false; // 注册是否成功由 tryRegisterWithRetry 最终决定并会被日志记录
+    }
+
+    public boolean batchRegisterNacos(List<Integer> portList) {
+        Objects.requireNonNull(portList, "portList");
+
+        List<Instance> instanceList = new ArrayList<>();
+        for (Integer port : portList) {
+            // 为每一个端口创建一个 Instance
+            if (instances.containsKey(port)) {
+                log.debug("port={} 已注册，跳过重复注册", port);
+                return true;
+            }
+
+            // 开始构建每一个 Instance
+            String ip = safeGetLocalIp();
+            if (ip == null || ip.isEmpty()) {
+                log.warn("未能获取本机 IP，使用 localhost 作为回退");
+                ip = "127.0.0.1";
+            }
+
+            Instance instance = new Instance();
+            instance.setIp(ip);
+            instance.setPort(port);
+            instance.setServiceName(serviceName);
+            instance.setEnabled(true);
+            instance.setHealthy(true);
+            instance.setWeight(1.0);
+            // metadata
+            Map<String, String> meta = instance.getMetadata();
+            meta.put(NacosMetadataConstants.BROKER_ID, brokerId == null ? "" : brokerId);
+            meta.put(NacosMetadataConstants.VERSION, version == null ? "" : version);
+            meta.put(NacosMetadataConstants.WS_PATH, wsPath);
+
+            // # TODO 待完善
+            meta.put(NacosMetadataConstants.PROTOCOLS, "[\"proto\"]"); // json array format
+            meta.put(NacosMetadataConstants.CONNECTION, "0");
+            meta.put(NacosMetadataConstants.REGION, "cn-shanghai");
+            meta.put(NacosMetadataConstants.PRIORITY, "1");
+
+            // 把实例放到 map（但尚未注册成功）
+            instances.put(port, instance);
+            instanceList.add(instance);
+        }
+
+        NamingService ns = ensureNamingService();
+        if (ns == null) {
+            log.warn("NamingService is null");
+            return false;
+        }
+
+        try {
+            ns.batchRegisterInstance(serviceName, groupName, instanceList);
+        } catch (NacosException e) {
+            log.warn("批量注册Instance失败");
+        }
+
+        return false;
     }
 
     /**

@@ -17,6 +17,7 @@
         <module>im-security</module>
         <module>im-general</module>
         <module>im-grpc</module>
+        <module>im-dubbo</module>
     </modules>
 
     <properties>

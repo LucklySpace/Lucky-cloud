@@ -6,16 +6,13 @@
     <parent>
         <groupId>com.xy</groupId>
         <artifactId>Lucky-cloud</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
-
     <artifactId>im-file</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <name>im-file</name>
     <description>im-file</description>
-
-    <url/>
 
     <licenses>
         <license/>
@@ -33,11 +30,9 @@
     </scm>
 
     <dependencies>
-
         <dependency>
             <groupId>com.xy</groupId>
             <artifactId>im-general</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
 

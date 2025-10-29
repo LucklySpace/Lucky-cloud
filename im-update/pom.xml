@@ -6,19 +6,17 @@
     <parent>
         <groupId>com.xy</groupId>
         <artifactId>Lucky-cloud</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>im-update</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <name>im-update</name>
     <description>im-update</description>
-    <url/>
 
     <properties>
         <!-- Java版本 -->
         <java.version>21</java.version>
-
     </properties>
 
     <dependencies>
@@ -26,7 +24,6 @@
         <dependency>
             <groupId>com.xy</groupId>
             <artifactId>im-general</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
 

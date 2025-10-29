@@ -6,14 +6,15 @@
     <parent>
         <groupId>com.xy</groupId>
         <artifactId>Lucky-cloud</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>im-proxy</artifactId>
-
+    <name>im-proxy</name>
+    <description>im-proxy</description>
 
     <dependencies>
-
         <!--Hutool-->
         <dependency>
             <groupId>cn.hutool</groupId>
@@ -24,7 +25,6 @@
         <dependency>
             <groupId>com.xy</groupId>
             <artifactId>im-spring</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
         </dependency>
 
         <!--  lombok-->

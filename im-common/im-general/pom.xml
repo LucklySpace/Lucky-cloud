@@ -6,16 +6,15 @@
     <parent>
         <groupId>com.xy</groupId>
         <artifactId>im-common</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>im-general</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <name>im-general</name>
     <description>im-general</description>
 
     <dependencies>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -35,7 +34,6 @@
             <artifactId>spring-boot-starter-aop</artifactId>
             <version>${spring-boot.version}</version>
         </dependency>
-
     </dependencies>
 
 </project>

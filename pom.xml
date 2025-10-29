@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.xy</groupId>
     <artifactId>Lucky-cloud</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>${revision}</version>
     <name>Lucky-cloud</name>
     <description>Lucky-cloud</description>
     <packaging>pom</packaging>
@@ -24,8 +24,11 @@
         <module>im-ai</module>
         <module>im-connect</module>
     </modules>
-    
+
     <properties>
+        <!-- 项目发布版本 -->
+        <revision>0.0.1-SNAPSHOT</revision>
+
         <!-- Java 目标版本 -->
         <java.version>21</java.version>
 
@@ -147,7 +150,7 @@
     <!-- 依赖声明 -->
     <dependencyManagement>
         <dependencies>
-
+            <!-- 项目第三方包统一版本管理 -->
             <!--    热部署依赖    -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
@@ -218,6 +221,114 @@
                 <scope>import</scope>
             </dependency>
 
+            <!-- 项目内子模块统一版本管理 -->
+            <!-- common模块-->
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-core</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-domain</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-dubbo</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-general</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-grpc-all</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-grpc-client</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-grpc-core</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-grpc-server</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-security</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-spring</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-utils</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <!-- 非common模块-->
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-ai</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-analysis</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-auth</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-database</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-file</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-gateway</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-generator</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-proxy</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-server</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>im-update</artifactId>
+                <version>${revision}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -234,7 +345,6 @@
             <artifactId>native-maven-plugin</artifactId>
             <version>${native-maven-plugin.version}</version>
         </dependency>
-
     </dependencies>
 
 

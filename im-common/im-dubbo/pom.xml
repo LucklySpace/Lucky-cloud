@@ -6,27 +6,25 @@
     <parent>
         <groupId>com.xy</groupId>
         <artifactId>im-common</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <name> im-dubbo</name>
-    <artifactId> im-dubbo</artifactId>
+    <name>im-dubbo</name>
+    <artifactId>im-dubbo</artifactId>
+    <description>im-dubbo</description>
 
     <dependencies>
-
         <dependency>
             <groupId>com.xy</groupId>
             <artifactId>im-domain</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
         </dependency>
 
         <dependency>
             <groupId>com.xy</groupId>
             <artifactId>im-core</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
-
     </dependencies>
 
 

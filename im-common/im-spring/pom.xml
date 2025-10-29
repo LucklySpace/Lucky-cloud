@@ -3,30 +3,18 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.xy</groupId>
+    <parent>
+        <groupId>com.xy</groupId>
+        <artifactId>im-common</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
     <artifactId>im-spring</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <name>im-spring</name>
     <description>im-spring</description>
 
-
-    <properties>
-        <!-- 统一版本号 -->
-        <project.version>1.0-SNAPSHOT</project.version>
-        <java.version>21</java.version>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-
-        <snakeyaml.version>2.2</snakeyaml.version>
-        <lombok.version>1.18.30</lombok.version>
-        <slf4j.version>1.7.25</slf4j.version>
-        <byte-buddy>1.14.6</byte-buddy>
-
-    </properties>
-
-
     <dependencies>
-
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy</artifactId>

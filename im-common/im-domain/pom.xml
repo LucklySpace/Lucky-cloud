@@ -2,19 +2,19 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>com.xy</groupId>
         <artifactId>im-common</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>im-domain</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <name>im-domain</name>
     <description>im-domain</description>
 
     <dependencies>
-
         <!--mybatis-plus 启动器-->
         <dependency>
             <groupId>com.baomidou</groupId>
@@ -29,8 +29,6 @@
             <version>2.2.25</version>
             <scope>compile</scope>
         </dependency>
-
-
     </dependencies>
 
 </project>

@@ -3,10 +3,12 @@
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>com.xy</groupId>
         <artifactId>im-grpc</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>im-grpc-all</artifactId>
@@ -15,14 +17,12 @@
         <dependency>
             <groupId>com.xy</groupId>
             <artifactId>im-grpc-server</artifactId>
-            <version>${im.grpc.server.version}</version>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>com.xy</groupId>
             <artifactId>im-grpc-client</artifactId>
-            <version>${im.grpc.client.version}</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>

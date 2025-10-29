@@ -6,11 +6,11 @@
     <parent>
         <groupId>com.xy</groupId>
         <artifactId>Lucky-cloud</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>im-analysis</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <name>im-analysis</name>
     <description>im-analysis</description>
 

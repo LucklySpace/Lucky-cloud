@@ -2,11 +2,18 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.xy</groupId>
+
+    <parent>
+        <groupId>com.xy</groupId>
+        <artifactId>Lucky-cloud</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
     <artifactId>im-common</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <name>im-common</name>
     <description>im-common</description>
+
     <packaging>pom</packaging>
 
     <modules>
@@ -37,6 +44,18 @@
 
         <!-- MyBatis相关版本 -->
         <mybatis-plus-spring.version>3.5.11</mybatis-plus-spring.version>
+
+        <!-- im-security 安全相关版本-->
+        <jjwt.version>0.9.1</jjwt.version>
+        <java.jwt.version>3.10.1</java.jwt.version>
+        <jaxb.api.version>2.3.1</jaxb.api.version>
+        <bouncycastle.version>1.70</bouncycastle.version>
+
+        <!-- im-spring 相关版本-->
+        <snakeyaml.version>2.2</snakeyaml.version>
+        <lombok.version>1.18.30</lombok.version>
+        <slf4j.version>1.7.25</slf4j.version>
+        <byte-buddy>1.14.6</byte-buddy>
 
         <!-- 代码生成工具版本 -->
         <lombok.version>1.18.34</lombok.version>
@@ -80,9 +99,7 @@
         <grpc.client.version>3.0.0.RELEASE</grpc.client.version>
     </properties>
 
-
     <dependencies>
-
         <!--Hutool-->
         <dependency>
             <groupId>cn.hutool</groupId>

@@ -2,26 +2,19 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>com.xy</groupId>
         <artifactId>im-common</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>im-security</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <name>im-security</name>
     <description>im-security</description>
 
-    <properties>
-        <jjwt.version>0.9.1</jjwt.version>
-        <java.jwt.version>3.10.1</java.jwt.version>
-        <jaxb.api.version>2.3.1</jaxb.api.version>
-        <bouncycastle.version>1.70</bouncycastle.version>
-    </properties>
-
     <dependencies>
-
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt</artifactId>

@@ -2,16 +2,17 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>im-core</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>im-core</name>
-    <description>im-core</description>
 
     <parent>
         <groupId>com.xy</groupId>
         <artifactId>im-common</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
+
+    <artifactId>im-core</artifactId>
+    <name>im-core</name>
+    <description>im-core</description>
 
     <dependencies>
         <dependency>
@@ -20,6 +21,4 @@
             <version>${nimbus-jose-jwt.version}</version>
         </dependency>
     </dependencies>
-
-
 </project>

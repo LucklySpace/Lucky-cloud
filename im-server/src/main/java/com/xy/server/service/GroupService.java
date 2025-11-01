@@ -6,9 +6,6 @@ import com.xy.domain.dto.GroupInviteDto;
 import com.xy.domain.dto.GroupMemberDto;
 import com.xy.general.response.domain.Result;
 
-/**
- * 单聊
- */
 
 public interface GroupService {
 

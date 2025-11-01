@@ -5,8 +5,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface OssFileImageService {
 
-    /**
-     * 上传图片
-     */
     Result uploadImage(MultipartFile file);
+
+    Result uploadAvatar(MultipartFile file);
 }

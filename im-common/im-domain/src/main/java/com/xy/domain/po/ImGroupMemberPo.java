@@ -72,6 +72,12 @@ public class ImGroupMemberPo implements Serializable {
      */
     @TableField(value = "join_type")
     private String joinType;
+
+    /**
+     * 群备注
+     */
+    @TableField(value = "remark")
+    private String remark;
     /**
      * 扩展字段
      */

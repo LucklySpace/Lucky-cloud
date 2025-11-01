@@ -3,6 +3,7 @@ package com.xy.server.controller;
 
 import com.xy.domain.dto.GroupDto;
 import com.xy.domain.dto.GroupInviteDto;
+import com.xy.domain.dto.GroupMemberDto;
 import com.xy.general.response.domain.Result;
 import com.xy.server.service.GroupService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -75,4 +76,12 @@ public class GroupController {
         return groupService.quitGroup(groupDto);
     }
 
+    @PostMapping("/member/update")
+    @Operation(summary = "修改群成员信息", tags = {"group"}, description = "请使用此接口修改群成员的群昵称和备注")
+    @Parameters({
+            @Parameter(name = "groupMemberDto", description = "群成员信息", required = true, in = ParameterIn.DEFAULT)
+    })
+    public Result updateGroupMember(@RequestBody GroupMemberDto groupMemberDto) {
+        return groupService.updateGroupMember(groupMemberDto);
+    }
 }

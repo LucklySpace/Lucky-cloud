@@ -42,6 +42,7 @@ public class RelationshipServiceImpl implements RelationshipService {
     private static final String LOCK_ADD_FRIEND_LOCK_PREFIX = "lock:add:friend:";
     private static final String LOCK_APPROVE_FRIEND_LOCK_PREFIX = "lock:approve:friend:";
     private static final String LOCK_DEL_FRIEND_LOCK_PREFIX = "lock:del:friend:";
+    private static final String LOCK_UPDATE_FRIEND_REMARK_PREFIX = "lock:update:friend:remark:"; // 新增备注更新锁前缀
 
     private static final int BATCH_SIZE = 500;
     private static final long LOCK_WAIT_TIME = 5L; // 锁等待时间（秒）
@@ -410,7 +411,7 @@ public class RelationshipServiceImpl implements RelationshipService {
 
             log.info("approveFriend() 完成 -> requestId={}, approveStatus={}, 耗时 {} ms",
                     friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus(), System.currentTimeMillis() - start);
-            return Result.success("审批好友请求完成");
+            return Result.success();
         } catch (Exception ex) {
             log.error("approveFriend() 处理失败 -> requestId={}, approveStatus={}, 耗时 {} ms",
                     friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus(), System.currentTimeMillis() - start, ex);
@@ -451,6 +452,53 @@ public class RelationshipServiceImpl implements RelationshipService {
             log.error("delFriend() 处理失败 -> fromId={}, toId={}, 耗时 {} ms",
                     friendDto.getFromId(), friendDto.getToId(), System.currentTimeMillis() - start, ex);
             throw new GlobalException(ResultCode.FAIL, "删除好友失败");
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
+    }
+
+    /**
+     * 修改好友备注（加锁防并发修改）
+     */
+    @Override
+    public Result updateFriendRemark(FriendDto friendDto) {
+        long start = System.currentTimeMillis();
+        log.debug("updateFriendRemark() 开始 -> ownerId={}, friendId={}", friendDto.getFromId(), friendDto.getToId());
+
+        String lockKey = LOCK_UPDATE_FRIEND_REMARK_PREFIX + friendDto.getFromId() + ":" + friendDto.getToId();
+        RLock lock = redissonClient.getLock(lockKey);
+        try {
+            if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
+                log.warn("无法获取updateFriendRemark锁 ownerId={} friendId={}", friendDto.getFromId(), friendDto.getToId());
+                return Result.failed("备注更新处理中，请稍后重试");
+            }
+
+            // 查询好友关系是否存在
+            ImFriendshipPo friendshipPo = imFriendshipDubboService.selectOne(friendDto.getFromId(), friendDto.getToId());
+            if (friendshipPo == null) {
+                return Result.failed("好友关系不存在");
+            }
+
+            // 更新备注信息
+            friendshipPo.setRemark(friendDto.getKeyword());
+            friendshipPo.setSequence(DateTimeUtil.getCurrentUTCTimestamp());
+            boolean success = imFriendshipDubboService.update(friendshipPo);
+
+            if (success) {
+                log.info("updateFriendRemark() 完成 -> ownerId={}, friendId={}, remark={}, 耗时 {} ms",
+                        friendDto.getFromId(), friendDto.getToId(), friendDto.getKeyword(), System.currentTimeMillis() - start);
+                return Result.success("备注更新成功");
+            } else {
+                log.warn("updateFriendRemark() 失败 -> ownerId={}, friendId={}, remark={}, 耗时 {} ms",
+                        friendDto.getFromId(), friendDto.getToId(), friendDto.getKeyword(), System.currentTimeMillis() - start);
+                return Result.failed("备注更新失败");
+            }
+        } catch (Exception ex) {
+            log.error("updateFriendRemark() 处理失败 -> ownerId={}, friendId={}, remark={}, 耗时 {} ms",
+                    friendDto.getFromId(), friendDto.getToId(), friendDto.getKeyword(), System.currentTimeMillis() - start, ex);
+            throw new GlobalException(ResultCode.FAIL, "备注更新失败");
         } finally {
             if (lock.isHeldByCurrentThread()) {
                 lock.unlock();

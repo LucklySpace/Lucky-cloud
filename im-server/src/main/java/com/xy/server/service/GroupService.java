@@ -3,6 +3,7 @@ package com.xy.server.service;
 
 import com.xy.domain.dto.GroupDto;
 import com.xy.domain.dto.GroupInviteDto;
+import com.xy.domain.dto.GroupMemberDto;
 import com.xy.general.response.domain.Result;
 
 /**
@@ -21,4 +22,5 @@ public interface GroupService {
 
     Result approveGroupInvite(GroupInviteDto groupInviteDto);
 
+    Result updateGroupMember(GroupMemberDto groupMemberDto);
 }

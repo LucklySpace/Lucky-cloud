@@ -27,4 +27,6 @@ public interface RelationshipService {
     Result approveFriend(FriendRequestDto friendRequestDto);
 
     Result delFriend(FriendDto friendDto);
+
+    Result updateFriendRemark(FriendDto friendDto);
 }

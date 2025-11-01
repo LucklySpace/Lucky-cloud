@@ -103,4 +103,14 @@ public class RelationshipController {
         return relationshipService.delFriend(friendDto);
     }
 
+
+    @PostMapping("/updateFriendRemark")
+    @Operation(summary = "修改好友备注", tags = {"friend"}, description = "请使用此接口修改好友备注")
+    @Parameters({
+            @Parameter(name = "friendDto", description = "好友信息", required = true, in = ParameterIn.DEFAULT)
+    })
+    public Result updateFriendRemark(@RequestBody FriendDto friendDto) {
+        return relationshipService.updateFriendRemark(friendDto);
+    }
+
 }

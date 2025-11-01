@@ -46,7 +46,6 @@ import static com.xy.file.util.ResultCode.UPLOAD_FILE_FAILED;
  * 3. 文件分享链接生成
  * 4. 存储桶(Bucket)管理
  *
- * @author Your Name
  */
 @Slf4j
 @Component
@@ -505,7 +504,17 @@ public class MinioUtils {
             log.error("生成文件预签名地址错误，桶名称：{} 文件名：{}", bucketName, objectName, e);
         }
         return null;
-        //  return StrUtil.format("{}/{}/{}", minioProperties.getEndpoint(), bucketName, objectName);//文件访问路径
+    }
+
+    /**
+     * 获取公开文件下载地址
+     *
+     * @param bucketName 桶名称
+     * @param objectName 文件名
+     * @return
+     */
+    public String getPublicFilePath(String bucketName, String objectName) {
+        return StrUtil.format("{}/{}/{}", minioProperties.getEndpoint(), bucketName, objectName);//文件访问路径
     }
 
     /**
@@ -528,6 +537,17 @@ public class MinioUtils {
             }
         }
         return currentYear + "-" + fileType;
+    }
+
+
+    /**
+     * 设置存储桶为公开访问
+     *
+     * @param bucketName 存储桶名称
+     * @return 设置成功返回 true，否则返回 false
+     */
+    public Boolean setBucketPublic(String bucketName) {
+        return pearlMinioClient.setBucketPublic(bucketName);
     }
 
     /**

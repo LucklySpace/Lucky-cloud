@@ -36,8 +36,22 @@ public class MediaMinioController {
             @Parameter(name = "file", description = "图片文件", required = true, in = ParameterIn.DEFAULT)
     })
     public Result uploadImage(@RequestParam("file") MultipartFile file) {
-        log.info("[文件上传] 图片文件处理");
         return ossImageFileService.uploadImage(file);
+    }
+
+    /**
+     * 上传头像接口
+     *
+     * @param file 文件
+     * @return 上传结果
+     */
+    @PostMapping("/avatar")
+    @Operation(summary = "上传头像文件", tags = {"media"}, description = "请使用此接口上传头像文件")
+    @Parameters({
+            @Parameter(name = "file", description = "头像文件", required = true, in = ParameterIn.DEFAULT)
+    })
+    public Result uploadAvatar(@RequestParam("file") MultipartFile file) {
+        return ossImageFileService.uploadAvatar(file);
     }
 
 }

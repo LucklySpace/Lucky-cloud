@@ -87,7 +87,6 @@ public class MinioUtil {
             return false;
         }
         return true;
-
     }
 
     /**

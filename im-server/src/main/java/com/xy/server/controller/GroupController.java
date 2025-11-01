@@ -66,6 +66,14 @@ public class GroupController {
         return groupService.groupInfo(groupDto);
     }
 
+    @PostMapping("/update")
+    @Operation(summary = "修改群信息", tags = {"group"}, description = "请使用此接口修改群信息")
+    @Parameters({
+            @Parameter(name = "groupDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
+    })
+    public Result updateGroupInfo(@RequestBody GroupDto groupDto) {
+        return groupService.updateGroupInfo(groupDto);
+    }
 
     @PostMapping("/quit")
     @Operation(summary = "群信息", tags = {"group"}, description = "请使用此接口退出群聊")

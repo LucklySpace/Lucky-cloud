@@ -544,6 +544,55 @@ public class GroupServiceImpl implements GroupService {
         }
     }
 
+    /**
+     * 更新群信息
+     */
+    @Override
+    public Result updateGroupInfo(GroupDto groupDto) {
+        long startTime = System.currentTimeMillis();
+        try {
+            String groupId = groupDto.getGroupId();
+            
+            // 检查群组是否存在
+            ImGroupPo existingGroup = imGroupDubboService.selectOne(groupId);
+            if (existingGroup == null) {
+                return Result.failed("群组不存在");
+            }
+            
+            // 构建更新对象
+            ImGroupPo updateGroup = new ImGroupPo().setGroupId(groupId);
+            
+            // 更新群名称
+            if (StringUtils.hasText(groupDto.getGroupName())) {
+                updateGroup.setGroupName(groupDto.getGroupName());
+            }
+            
+            // 更新群头像
+            if (StringUtils.hasText(groupDto.getAvatar())) {
+                updateGroup.setAvatar(groupDto.getAvatar());
+            }
+            
+            // 更新群简介
+            if (StringUtils.hasText(groupDto.getIntroduction())) {
+                updateGroup.setIntroduction(groupDto.getIntroduction());
+            }
+            
+            // 更新群公告
+            if (StringUtils.hasText(groupDto.getNotification())) {
+                updateGroup.setNotification(groupDto.getNotification());
+            }
+            
+            // 更新数据库
+            boolean success = imGroupDubboService.update(updateGroup);
+
+            log.debug("更新群组信息耗时:{}ms", System.currentTimeMillis() - startTime);
+            return success ? Result.success("更新成功") : Result.failed("更新失败");
+        } catch (Exception e) {
+            log.error("更新群组信息异常 groupId={}", groupDto.getGroupId(), e);
+            throw new GlobalException(ResultCode.FAIL, "更新群组信息失败");
+        }
+    }
+
     // 私有方法：构建成员
     private ImGroupMemberPo buildMember(String groupId, String memberId, IMemberStatus role, long joinTime) {
         return new ImGroupMemberPo()

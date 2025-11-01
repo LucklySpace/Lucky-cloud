@@ -17,6 +17,8 @@ public interface GroupService {
 
     Result groupInfo(GroupDto groupDto);
 
+    Result updateGroupInfo(GroupDto groupDto);
+
     Result approveGroupInvite(GroupInviteDto groupInviteDto);
 
     Result updateGroupMember(GroupMemberDto groupMemberDto);

@@ -26,4 +26,16 @@ public class GroupDto implements Serializable {
     @Schema(description = "用户id")
     private String userId;
 
+    @Schema(description = "群名称")
+    private String groupName;
+
+    @Schema(description = "群头像")
+    private String avatar;
+
+    @Schema(description = "群简介")
+    private String introduction;
+
+    @Schema(description = "群公告")
+    private String notification;
+
 }

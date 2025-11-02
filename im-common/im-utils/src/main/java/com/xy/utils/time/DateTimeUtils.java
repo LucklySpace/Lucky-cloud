@@ -1,4 +1,4 @@
-package com.xy.utils;
+package com.xy.utils.time;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -15,7 +15,7 @@ import java.util.Objects;
  *
  * @version 2.0
  */
-public class DateTimeUtil {
+public class DateTimeUtils {
 
     // 常用日期时间格式定义
     public static final String FULL_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";

@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.database.mapper.ImFriendshipMapper;
 import com.xy.domain.po.ImFriendshipPo;
 import com.xy.dubbo.api.database.friend.ImFriendshipDubboService;
-import com.xy.utils.DateTimeUtil;
+import com.xy.utils.time.DateTimeUtils;
 import jakarta.annotation.Resource;
 import org.apache.dubbo.config.annotation.DubboService;
 
@@ -53,7 +53,7 @@ public class ImFriendshipService extends ServiceImpl<ImFriendshipMapper, ImFrien
     public Boolean delete(String ownerId, String friendId) {
         UpdateWrapper<ImFriendshipPo> updateWrapper = new UpdateWrapper<>();
         updateWrapper.eq("owner_id", ownerId).eq("to_id", friendId);
-        updateWrapper.set("sequence", DateTimeUtil.getCurrentUTCTimestamp());
+        updateWrapper.set("sequence", DateTimeUtils.getCurrentUTCTimestamp());
         updateWrapper.set("del_flag", 0);
         return this.update(updateWrapper);
     }

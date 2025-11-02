@@ -2,7 +2,7 @@ package com.xy.meet.netty.service.codec;
 
 
 import com.xy.meet.entity.Message;
-import com.xy.utils.JacksonUtil;
+import com.xy.utils.json.JacksonUtils;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
@@ -15,6 +15,6 @@ public class MessageDecoder extends MessageToMessageDecoder<TextWebSocketFrame> 
     protected void decode(ChannelHandlerContext channelHandlerContext,
                           TextWebSocketFrame textWebSocketFrame,
                           List<Object> list) throws Exception {
-        list.add(JacksonUtil.parseObject(textWebSocketFrame.text(), Message.class));
+        list.add(JacksonUtils.parseObject(textWebSocketFrame.text(), Message.class));
     }
 }

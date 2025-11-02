@@ -26,9 +26,9 @@ import com.xy.server.exception.GlobalException;
 import com.xy.server.service.FileService;
 import com.xy.server.service.GroupService;
 import com.xy.server.service.MessageService;
-import com.xy.utils.DateTimeUtil;
-import com.xy.utils.GroupHeadImageUtil;
-import com.xy.utils.IdUtils;
+import com.xy.utils.time.DateTimeUtils;
+import com.xy.utils.image.GroupHeadImageUtils;
+import com.xy.utils.id.IdUtils;
 import jakarta.annotation.Resource;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -151,7 +151,7 @@ public class GroupServiceImpl implements GroupService {
         }
     }
 
-    private final GroupHeadImageUtil groupHeadImageUtil = new GroupHeadImageUtil();
+    private final GroupHeadImageUtils groupHeadImageUtils = new GroupHeadImageUtils();
 
     @DubboReference
     private ImUserDataDubboService imUserDataDubboService;
@@ -199,7 +199,7 @@ public class GroupServiceImpl implements GroupService {
 
             // 生成群名称
             String groupName = "默认群聊" + IdUtils.randomUUID();
-            long now = DateTimeUtil.getCurrentUTCTimestamp();
+            long now = DateTimeUtils.getCurrentUTCTimestamp();
 
             String ownerId = dto.getUserId();
             List<String> memberIds = dto.getMemberIds();
@@ -298,7 +298,7 @@ public class GroupServiceImpl implements GroupService {
                 }
 
                 // 获取群信息
-                long now = DateTimeUtil.getCurrentUTCTimestamp();
+                long now = DateTimeUtils.getCurrentUTCTimestamp();
                 long expireTime = now + 7L * 24 * 3600;
 
                 RMapCache<String, Object> groupCache = redissonClient.getMapCache(CacheConstants.GROUP_INFO_PREFIX);
@@ -467,7 +467,7 @@ public class GroupServiceImpl implements GroupService {
             }
 
             // 添加新成员
-            long now = DateTimeUtil.getCurrentUTCTimestamp();
+            long now = DateTimeUtils.getCurrentUTCTimestamp();
             ImGroupMemberPo newMember = buildMember(groupId, userId, IMemberStatus.NORMAL, now);
             boolean success = imGroupMemberDubboService.batchInsert(List.of(newMember));
 
@@ -612,7 +612,7 @@ public class GroupServiceImpl implements GroupService {
                 .fromId(IMConstant.SYSTEM)
                 .messageContentType(IMessageContentType.TIP.getCode())
                 .messageType(IMessageType.GROUP_MESSAGE.getCode())
-                .messageTime(DateTimeUtil.getCurrentUTCTimestamp())
+                .messageTime(DateTimeUtils.getCurrentUTCTimestamp())
                 .readStatus(IMessageReadStatus.UNREAD.getCode())
                 .messageBody(new IMessage.TextMessageBody().setText(message))
                 .build();
@@ -622,7 +622,7 @@ public class GroupServiceImpl implements GroupService {
     public void generateGroupAvatarAsync(String groupId) {
         try {
             List<String> avatars = imGroupMemberDubboService.selectNinePeopleAvatar(groupId);
-            File headFile = groupHeadImageUtil.getCombinationOfhead(avatars, "defaultGroupHead" + groupId);
+            File headFile = groupHeadImageUtils.getCombinationOfhead(avatars, "defaultGroupHead" + groupId);
             MultipartFile mpFile = fileService.fileToImageMultipartFile(headFile);
             String avatarUrl = fileService.uploadFile(mpFile).getPath();
 
@@ -654,7 +654,7 @@ public class GroupServiceImpl implements GroupService {
                         .fromId(inviterId)
                         .toId(inviteeId)
                         .messageContentType(IMessageContentType.GROUP_INVITE.getCode())
-                        .messageTime(DateTimeUtil.getCurrentUTCTimestamp())
+                        .messageTime(DateTimeUtils.getCurrentUTCTimestamp())
                         .messageType(IMessageType.SINGLE_MESSAGE.getCode())
                         .build();
 
@@ -732,7 +732,7 @@ public class GroupServiceImpl implements GroupService {
                         .fromId(inviterId)
                         .toId(adminId)
                         .messageContentType(IMessageContentType.GROUP_JOIN_APPROVE.getCode())
-                        .messageTime(DateTimeUtil.getCurrentUTCTimestamp())
+                        .messageTime(DateTimeUtils.getCurrentUTCTimestamp())
                         .build();
 
                 IMessage.MessageBody body = new IMessage.GroupInviteMessageBody()

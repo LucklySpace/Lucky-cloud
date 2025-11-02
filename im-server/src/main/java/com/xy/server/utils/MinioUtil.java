@@ -1,6 +1,6 @@
 package com.xy.server.utils;
 
-import com.xy.utils.DateTimeUtil;
+import com.xy.utils.time.DateTimeUtils;
 import io.minio.*;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -120,7 +120,7 @@ public class MinioUtil {
         String fileName =
                 System.currentTimeMillis() + originalFilename.substring(originalFilename.lastIndexOf("."));
         String objectName =
-                DateTimeUtil.format(LocalDate.now(), DateTimeUtil.PART_DATE_FORMAT_TWO) + "/" + fileName;
+                DateTimeUtils.format(LocalDate.now(), DateTimeUtils.PART_DATE_FORMAT_TWO) + "/" + fileName;
         try {
             PutObjectArgs objectArgs = PutObjectArgs.builder()
                     .bucket(bucketName)
@@ -152,7 +152,7 @@ public class MinioUtil {
 
         String fileName = System.currentTimeMillis() + name.substring(name.lastIndexOf("."));
         String objectName =
-                DateTimeUtil.format(LocalDate.now(), DateTimeUtil.PART_DATE_FORMAT_TWO) + "/" + fileName;
+                DateTimeUtils.format(LocalDate.now(), DateTimeUtils.PART_DATE_FORMAT_TWO) + "/" + fileName;
         try {
             InputStream stream = new ByteArrayInputStream(fileByte);
             PutObjectArgs objectArgs = PutObjectArgs.builder()

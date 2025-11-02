@@ -22,8 +22,8 @@ import com.xy.server.api.IdGeneratorConstant;
 import com.xy.server.config.RabbitTemplateFactory;
 import com.xy.server.service.MessageService;
 import com.xy.server.utils.RedisUtil;
-import com.xy.utils.DateTimeUtil;
-import com.xy.utils.JacksonUtil;
+import com.xy.utils.json.JacksonUtils;
+import com.xy.utils.time.DateTimeUtils;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -158,7 +158,7 @@ public class MessageServiceImpl implements MessageService {
             // id 生成
             stopWatch.start("idGeneration");
             Long messageId = imIdDubboService.generateId(IdGeneratorConstant.snowflake, IdGeneratorConstant.private_message_id).getLongId();
-            Long messageTime = DateTimeUtil.getCurrentUTCTimestamp();
+            Long messageTime = DateTimeUtils.getCurrentUTCTimestamp();
             stopWatch.stop();
 
             // dto 填充
@@ -178,7 +178,7 @@ public class MessageServiceImpl implements MessageService {
             // 异步插入消息和更新会话
             stopWatch.start("asyncSchedule");
             CompletableFuture.runAsync(() -> {
-                createOutbox(String.valueOf(messageId), JacksonUtil.toJSONString(dto), MQ_EXCHANGE_NAME, "single.message." + dto.getToId(), messageTime);
+                createOutbox(String.valueOf(messageId), JacksonUtils.toJSONString(dto), MQ_EXCHANGE_NAME, "single.message." + dto.getToId(), messageTime);
                 insertImSingleMessage(messagePo);
                 createOrUpdateImChat(dto.getFromId(), dto.getToId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
                 createOrUpdateImChat(dto.getToId(), dto.getFromId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
@@ -201,7 +201,7 @@ public class MessageServiceImpl implements MessageService {
             // 包装消息并序列化
             stopWatch.start("serialization");
             IMessageWrap<Object> wrapper = new IMessageWrap<>().setCode(IMessageType.SINGLE_MESSAGE.getCode()).setData(dto).setIds(List.of(dto.getToId()));
-            String payload = JacksonUtil.toJSONString(wrapper);
+            String payload = JacksonUtils.toJSONString(wrapper);
             stopWatch.stop();
 
             // 发布到 broker
@@ -256,7 +256,7 @@ public class MessageServiceImpl implements MessageService {
 
             stopWatch.start("idGeneration");
             Long messageId = imIdDubboService.generateId(IdGeneratorConstant.snowflake, IdGeneratorConstant.group_message_id).getLongId();
-            Long messageTime = DateTimeUtil.getCurrentUTCTimestamp();
+            Long messageTime = DateTimeUtils.getCurrentUTCTimestamp();
             stopWatch.stop();
 
             stopWatch.start("dtoSetup");
@@ -291,7 +291,7 @@ public class MessageServiceImpl implements MessageService {
                 insertImGroupMessage(dto);
                 setGroupReadStatus(String.valueOf(messageId), dto.getGroupId(), members);
                 updateGroupChats(dto.getGroupId(), messageTime, members);
-                createOutbox(String.valueOf(messageId), JacksonUtil.toJSONString(dto), MQ_EXCHANGE_NAME, "group.message." + dto.getGroupId(), messageTime);
+                createOutbox(String.valueOf(messageId), JacksonUtils.toJSONString(dto), MQ_EXCHANGE_NAME, "group.message." + dto.getGroupId(), messageTime);
             }, asyncTaskExecutor);
             stopWatch.stop();
 
@@ -301,7 +301,7 @@ public class MessageServiceImpl implements MessageService {
             Map<String, List<String>> brokerMap = new HashMap<>();
             for (Object obj : userObjs) {
                 if (Objects.nonNull(obj)) {
-                    IMRegisterUser user = JacksonUtil.parseObject(obj, IMRegisterUser.class);
+                    IMRegisterUser user = JacksonUtils.parseObject(obj, IMRegisterUser.class);
                     brokerMap.computeIfAbsent(user.getBrokerId(), k -> new ArrayList<>()).add(user.getUserId());
                 }
             }
@@ -313,7 +313,7 @@ public class MessageServiceImpl implements MessageService {
                 String brokerId = entry.getKey();
                 dto.setToList(entry.getValue());
                 IMessageWrap<Object> wrapper = new IMessageWrap<>().setCode(IMessageType.GROUP_MESSAGE.getCode()).setData(dto).setIds(entry.getValue());
-                publishToBroker(MQ_EXCHANGE_NAME, brokerId, JacksonUtil.toJSONString(wrapper), String.valueOf(messageId));
+                publishToBroker(MQ_EXCHANGE_NAME, brokerId, JacksonUtils.toJSONString(wrapper), String.valueOf(messageId));
             }
             stopWatch.stop();
 
@@ -378,7 +378,7 @@ public class MessageServiceImpl implements MessageService {
             }
 
             stopWatch.start("parseTargetUser");
-            IMRegisterUser targetUser = JacksonUtil.parseObject(redisObj, IMRegisterUser.class);
+            IMRegisterUser targetUser = JacksonUtils.parseObject(redisObj, IMRegisterUser.class);
             String brokerId = targetUser.getBrokerId();
             stopWatch.stop();
 
@@ -422,7 +422,7 @@ public class MessageServiceImpl implements MessageService {
                 return msg;
             };
 
-            rabbitTemplate.convertAndSend(MQ_EXCHANGE_NAME, brokerId, JacksonUtil.toJSONString(wrapMsg), mpp);
+            rabbitTemplate.convertAndSend(MQ_EXCHANGE_NAME, brokerId, JacksonUtils.toJSONString(wrapMsg), mpp);
             stopWatch.stop();
 
             stopWatch.start("logSuccess");
@@ -466,7 +466,7 @@ public class MessageServiceImpl implements MessageService {
             stopWatch.start("extractParams");
             String messageId = dto.getMessageId();
             String operatorId = dto.getOperatorId();
-            Long recallTime = dto.getRecallTime() != null ? dto.getRecallTime() : DateTimeUtil.getCurrentUTCTimestamp();
+            Long recallTime = dto.getRecallTime() != null ? dto.getRecallTime() : DateTimeUtils.getCurrentUTCTimestamp();
             String reason = dto.getReason();
 
             Integer messageType = dto.getMessageType();
@@ -513,7 +513,7 @@ public class MessageServiceImpl implements MessageService {
                     if (Boolean.TRUE.equals(body.get("_recalled"))) return Result.success("消息已撤回");
 
                     recallPayload.put("messageBody", msg.getMessageBody());
-                    ImSingleMessagePo update = new ImSingleMessagePo().setMessageId(messageId).setMessageBody(JacksonUtil.toJSONString(recallPayload)).setUpdateTime(recallTime);
+                    ImSingleMessagePo update = new ImSingleMessagePo().setMessageId(messageId).setMessageBody(JacksonUtils.toJSONString(recallPayload)).setUpdateTime(recallTime);
                     imSingleMessageDubboService.update(update);
 
                     // 广播给双方
@@ -536,7 +536,7 @@ public class MessageServiceImpl implements MessageService {
                     if (Boolean.TRUE.equals(body.get("_recalled"))) return Result.success("消息已撤回");
 
                     recallPayload.put("groupId", msg.getGroupId());
-                    ImGroupMessagePo update = new ImGroupMessagePo().setMessageId(messageId).setMessageBody(JacksonUtil.toJSONString(recallPayload)).setUpdateTime(recallTime);
+                    ImGroupMessagePo update = new ImGroupMessagePo().setMessageId(messageId).setMessageBody(JacksonUtils.toJSONString(recallPayload)).setUpdateTime(recallTime);
                     imGroupMessageDubboService.update(update);
 
                     // 广播给群成员
@@ -588,7 +588,7 @@ public class MessageServiceImpl implements MessageService {
         Map<String, List<String>> brokerMap = new HashMap<>();
         for (Object obj : redisObjs) {
             if (Objects.nonNull(obj)) {
-                IMRegisterUser user = JacksonUtil.parseObject(obj, IMRegisterUser.class);
+                IMRegisterUser user = JacksonUtils.parseObject(obj, IMRegisterUser.class);
                 brokerMap.computeIfAbsent(user.getBrokerId(), k -> new ArrayList<>()).add(user.getUserId());
             }
         }
@@ -597,7 +597,7 @@ public class MessageServiceImpl implements MessageService {
         stopWatch.start("publishToBrokers");
         for (Map.Entry<String, List<String>> entry : brokerMap.entrySet()) {
             IMessageWrap<Object> wrap = new IMessageWrap<>().setCode(messageType).setData(dto).setIds(entry.getValue());
-            publishToBroker(MQ_EXCHANGE_NAME, entry.getKey(), JacksonUtil.toJSONString(wrap), messageId);
+            publishToBroker(MQ_EXCHANGE_NAME, entry.getKey(), JacksonUtils.toJSONString(wrap), messageId);
         }
         stopWatch.stop();
 

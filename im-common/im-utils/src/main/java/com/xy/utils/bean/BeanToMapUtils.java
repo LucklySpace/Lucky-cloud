@@ -1,4 +1,4 @@
-package com.xy.utils;
+package com.xy.utils.bean;
 
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -11,7 +11,7 @@ import java.util.Map;
  * bean转map工具类
  */
 
-public class BeanToMapUtil {
+public class BeanToMapUtils {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 

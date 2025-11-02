@@ -1,4 +1,4 @@
-package com.xy.utils;
+package com.xy.utils.json;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -20,7 +20,7 @@ import java.util.LinkedHashMap;
  * JSON 工具类，封装了 Jackson 的常用方法
  */
 @Slf4j
-public class JacksonUtil {
+public class JacksonUtils {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 

@@ -18,7 +18,7 @@ import com.xy.general.response.domain.Result;
 import com.xy.general.response.domain.ResultCode;
 import com.xy.server.exception.GlobalException;
 import com.xy.server.service.RelationshipService;
-import com.xy.utils.DateTimeUtil;
+import com.xy.utils.time.DateTimeUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -483,7 +483,7 @@ public class RelationshipServiceImpl implements RelationshipService {
 
             // 更新备注信息
             friendshipPo.setRemark(friendDto.getKeyword());
-            friendshipPo.setSequence(DateTimeUtil.getCurrentUTCTimestamp());
+            friendshipPo.setSequence(DateTimeUtils.getCurrentUTCTimestamp());
             boolean success = imFriendshipDubboService.update(friendshipPo);
 
             if (success) {
@@ -639,7 +639,7 @@ public class RelationshipServiceImpl implements RelationshipService {
      * 创建好友请求对象（不变）
      */
     private ImFriendshipRequestPo createFriendRequest(FriendRequestDto dto) {
-        long currentUTCTimestamp = DateTimeUtil.getCurrentUTCTimestamp();
+        long currentUTCTimestamp = DateTimeUtils.getCurrentUTCTimestamp();
         ImFriendshipRequestPo request = new ImFriendshipRequestPo();
         request.setId(UUID.randomUUID().toString());
         request.setFromId(dto.getFromId());
@@ -660,7 +660,7 @@ public class RelationshipServiceImpl implements RelationshipService {
     private void updateExistingRequest(ImFriendshipRequestPo existing, FriendRequestDto dto) {
         existing.setMessage(dto.getMessage());
         existing.setRemark(dto.getRemark());
-        existing.setUpdateTime(DateTimeUtil.getCurrentUTCTimestamp());
+        existing.setUpdateTime(DateTimeUtils.getCurrentUTCTimestamp());
     }
 
     /**
@@ -668,7 +668,7 @@ public class RelationshipServiceImpl implements RelationshipService {
      */
     private void createBidirectionalFriendship(String fromId, String toId, String remark) {
 
-        long currentUTCTimestamp = DateTimeUtil.getCurrentUTCTimestamp();
+        long currentUTCTimestamp = DateTimeUtils.getCurrentUTCTimestamp();
 
         ImFriendshipPo friendship1 = new ImFriendshipPo();
         friendship1.setOwnerId(fromId);

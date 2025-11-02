@@ -93,6 +93,9 @@
         <!-- 注解API版本 -->
         <javax.annotation.api.version>1.3.2</javax.annotation.api.version>
 
+        <!-- IP工具类版本 -->
+        <ip2region.version>2.7.0</ip2region.version>
+
         <!-- gRPC相关版本 -->
         <grpc.spring.version>3.0.0.RELEASE</grpc.spring.version>
         <grpc.starter.version>3.0.0.RELEASE</grpc.starter.version>
@@ -155,6 +158,12 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>${logback.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.lionsoul</groupId>
+            <artifactId>ip2region</artifactId>
+            <version>${ip2region.version}</version>
         </dependency>
 
     </dependencies>

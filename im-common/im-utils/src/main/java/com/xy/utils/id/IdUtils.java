@@ -1,4 +1,4 @@
-package com.xy.utils;
+package com.xy.utils.id;
 
 import java.util.UUID;
 

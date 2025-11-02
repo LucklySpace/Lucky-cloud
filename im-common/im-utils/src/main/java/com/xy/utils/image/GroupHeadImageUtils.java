@@ -1,4 +1,4 @@
-package com.xy.utils;
+package com.xy.utils.image;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -15,7 +15,7 @@ import java.util.List;
  * 参考文章 url: https://blog.csdn.net/weixin_41712724/article/details/103706259
  * 群头像生成工具类
  */
-public class GroupHeadImageUtil {
+public class GroupHeadImageUtils {
     /**
      * 图片宽度
      */

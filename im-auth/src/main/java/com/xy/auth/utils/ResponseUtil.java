@@ -1,6 +1,6 @@
 package com.xy.auth.utils;
 
-import com.xy.utils.JacksonUtil;
+import com.xy.utils.json.JacksonUtils;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +42,7 @@ public class ResponseUtil {
                 return;
             }
             out = httpServletResponse.getWriter();
-            out.println(JacksonUtil.toJSONString(result));
+            out.println(JacksonUtils.toJSONString(result));
         } catch (IOException e) {
             log.error("输出JSON时发生错误", e);
         } finally {

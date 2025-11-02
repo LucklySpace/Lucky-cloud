@@ -5,7 +5,7 @@ import com.alibaba.nacos.api.naming.NamingService;
 import com.alibaba.nacos.api.naming.pojo.Instance;
 import com.xy.spring.annotations.core.Component;
 import com.xy.spring.annotations.core.Value;
-import com.xy.utils.IPAddressUtil;
+import com.xy.utils.ip.IPAddressUtil;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

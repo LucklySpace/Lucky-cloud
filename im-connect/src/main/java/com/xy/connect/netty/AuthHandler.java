@@ -8,6 +8,7 @@ import com.xy.connect.domain.proto.IMessageProto;
 import com.xy.core.constants.IMConstant;
 import com.xy.core.model.IMessageWrap;
 import com.xy.core.utils.JwtUtil;
+import com.xy.core.utils.StringUtils;
 import com.xy.spring.annotations.core.Autowired;
 import com.xy.spring.annotations.core.Component;
 import com.xy.spring.annotations.core.Value;
@@ -22,7 +23,6 @@ import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.AttributeKey;
 import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;

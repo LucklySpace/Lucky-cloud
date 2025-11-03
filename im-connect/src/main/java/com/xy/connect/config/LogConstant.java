@@ -27,4 +27,14 @@ public class LogConstant {
 
     public final static String Channel = "channel";
 
+    public final static String Logout = "logout";
+
+    public final static String Monitoring = "monitoring";
+
+    public final static String Exception = "exception";
+
+    public final static String System = "system";
+
+    public final static String Limiter = "rateLimiter";
+
 }

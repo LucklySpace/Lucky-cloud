@@ -1,8 +1,7 @@
 package com.xy.database.utils;
 
-import cn.hutool.core.date.DateTime;
-import cn.hutool.core.date.DateUtil;
-import cn.hutool.core.util.ObjectUtil;
+
+import com.xy.utils.object.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
 
@@ -955,46 +954,46 @@ public class DateTimeUtils extends DateUtils {
         return localDateTime;
     }
 
-    /**
-     * 获取 一天的开始时间
-     *
-     * @param localDateTime
-     * @return java.time.LocalDateTime
-     * @author BNMZY
-     */
-    public static LocalDateTime getTimeBegin(LocalDateTime localDateTime) {
-        String format = DateUtil.formatLocalDateTime(localDateTime);
-        Date date = DateUtil.parse(format);
-        DateTime dateTime = DateUtil.beginOfDay(date);
-        return DateUtil.toLocalDateTime(dateTime);
-    }
-
-    /**
-     * 获取 一天结束的时间
-     *
-     * @param localDateTime
-     * @return java.time.LocalDateTime
-     * @author BNMZY
-     */
-    public static LocalDateTime getTimeEnd(LocalDateTime localDateTime) {
-        String format = DateUtil.formatLocalDateTime(localDateTime);
-        Date date = DateUtil.parse(format);
-        DateTime dateTime = DateUtil.endOfDay(date);
-        return DateUtil.toLocalDateTime(dateTime);
-    }
-
-    /**
-     * 指定日期所在月的第一天
-     *
-     * @param localDateTime
-     * @return
-     */
-    public static LocalDateTime getMonthStart(LocalDateTime localDateTime) {
-        String format = DateUtil.formatLocalDateTime(localDateTime);
-        Date date = DateUtil.parse(format);
-        DateTime dateTime = DateUtil.beginOfMonth(date);
-        return DateUtil.toLocalDateTime(dateTime);
-    }
+//    /**
+//     * 获取 一天的开始时间
+//     *
+//     * @param localDateTime
+//     * @return java.time.LocalDateTime
+//     * @author BNMZY
+//     */
+//    public static LocalDateTime getTimeBegin(LocalDateTime localDateTime) {
+//        String format = DateUtil.formatLocalDateTime(localDateTime);
+//        Date date = DateUtil.parse(format);
+//        DateTime dateTime = DateUtil.beginOfDay(date);
+//        return DateUtil.toLocalDateTime(dateTime);
+//    }
+//
+//    /**
+//     * 获取 一天结束的时间
+//     *
+//     * @param localDateTime
+//     * @return java.time.LocalDateTime
+//     * @author BNMZY
+//     */
+//    public static LocalDateTime getTimeEnd(LocalDateTime localDateTime) {
+//        String format = DateUtil.formatLocalDateTime(localDateTime);
+//        Date date = DateUtil.parse(format);
+//        DateTime dateTime = DateUtil.endOfDay(date);
+//        return DateUtil.toLocalDateTime(dateTime);
+//    }
+//
+//    /**
+//     * 指定日期所在月的第一天
+//     *
+//     * @param localDateTime
+//     * @return
+//     */
+//    public static LocalDateTime getMonthStart(LocalDateTime localDateTime) {
+//        String format = DateUtil.formatLocalDateTime(localDateTime);
+//        Date date = DateUtil.parse(format);
+//        DateTime dateTime = DateUtil.beginOfMonth(date);
+//        return DateUtil.toLocalDateTime(dateTime);
+//    }
 
     /**
      * 功能描述: <br> LocalDateTime 转String 格式 yyyy-MM-dd HH:mm:ss
@@ -1011,96 +1010,96 @@ public class DateTimeUtils extends DateUtils {
 
     }
 
-    /**
-     * 获取上周一的日期
-     *
-     * @param localDateTime
-     * @return
-     */
-    public static LocalDateTime getLastWeekMonday(LocalDateTime localDateTime) {
-        String format = DateUtil.formatLocalDateTime(localDateTime);
-        Date date = DateUtil.parse(format);
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(date);
-        cal.add(Calendar.DAY_OF_WEEK, -7);
-        date = cal.getTime();
-        DateTime dateTime = DateUtil.beginOfWeek(date);
-        return DateUtil.toLocalDateTime(dateTime);
-    }
-
-    /**
-     * 获取本周一的日期
-     *
-     * @param localDateTime
-     * @return
-     */
-    public static LocalDateTime getThisWeekMonday(LocalDateTime localDateTime) {
-        String format = DateUtil.formatLocalDateTime(localDateTime);
-        Date date = DateUtil.parse(format);
-        DateTime dateTime = DateUtil.beginOfWeek(date);
-        return DateUtil.toLocalDateTime(dateTime);
-    }
-
-    /**
-     * 获取上周最后一天的日期
-     *
-     * @param localDateTime
-     * @return
-     */
-    public static LocalDateTime getLastWeekSunday(LocalDateTime localDateTime) {
-        String format = DateUtil.formatLocalDateTime(localDateTime);
-        Date date = DateUtil.parse(format);
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(date);
-        cal.add(Calendar.DAY_OF_WEEK, -7);
-        date = cal.getTime();
-        DateTime dateTime = DateUtil.endOfWeek(date);
-        return DateUtil.toLocalDateTime(dateTime);
-    }
-
-    /**
-     * 获取本月第一天的日期
-     *
-     * @return
-     */
-    public static LocalDateTime getFirstDayOfMonth(LocalDateTime localDateTime) {
-        String format = DateUtil.formatLocalDateTime(localDateTime);
-        Date date = DateUtil.parse(format);
-        DateTime dateTime = DateUtil.beginOfMonth(date);
-        return DateUtil.toLocalDateTime(dateTime);
-    }
-
-    /**
-     * 获取上月第一天的日期
-     *
-     * @return
-     */
-    public static LocalDateTime getFirstDayLastMonth(LocalDateTime localDateTime) {
-        String format = DateUtil.formatLocalDateTime(localDateTime);
-        Date date = DateUtil.parse(format);
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(date);
-        cal.add(Calendar.MONTH, -1);
-        date = cal.getTime();
-        DateTime dateTime = DateUtil.beginOfMonth(date);
-        return DateUtil.toLocalDateTime(dateTime);
-    }
-
-    /**
-     * 获取上月最后一天的日期
-     *
-     * @return
-     */
-    public static LocalDateTime getLastDayLastMonth(LocalDateTime localDateTime) {
-        String format = DateUtil.formatLocalDateTime(localDateTime);
-        Date date = DateUtil.parse(format);
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(date);
-        cal.add(Calendar.MONTH, -1);
-        date = cal.getTime();
-        DateTime dateTime = DateUtil.endOfMonth(date);
-        return DateUtil.toLocalDateTime(dateTime);
-    }
+//    /**
+//     * 获取上周一的日期
+//     *
+//     * @param localDateTime
+//     * @return
+//     */
+//    public static LocalDateTime getLastWeekMonday(LocalDateTime localDateTime) {
+//        String format = DateUtil.formatLocalDateTime(localDateTime);
+//        Date date = DateUtil.parse(format);
+//        Calendar cal = Calendar.getInstance();
+//        cal.setTime(date);
+//        cal.add(Calendar.DAY_OF_WEEK, -7);
+//        date = cal.getTime();
+//        DateTime dateTime = DateUtil.beginOfWeek(date);
+//        return DateUtil.toLocalDateTime(dateTime);
+//    }
+//
+//    /**
+//     * 获取本周一的日期
+//     *
+//     * @param localDateTime
+//     * @return
+//     */
+//    public static LocalDateTime getThisWeekMonday(LocalDateTime localDateTime) {
+//        String format = DateUtil.formatLocalDateTime(localDateTime);
+//        Date date = DateUtil.parse(format);
+//        DateTime dateTime = DateUtil.beginOfWeek(date);
+//        return DateUtil.toLocalDateTime(dateTime);
+//    }
+//
+//    /**
+//     * 获取上周最后一天的日期
+//     *
+//     * @param localDateTime
+//     * @return
+//     */
+//    public static LocalDateTime getLastWeekSunday(LocalDateTime localDateTime) {
+//        String format = DateUtil.formatLocalDateTime(localDateTime);
+//        Date date = DateUtil.parse(format);
+//        Calendar cal = Calendar.getInstance();
+//        cal.setTime(date);
+//        cal.add(Calendar.DAY_OF_WEEK, -7);
+//        date = cal.getTime();
+//        DateTime dateTime = DateUtil.endOfWeek(date);
+//        return DateUtil.toLocalDateTime(dateTime);
+//    }
+//
+//    /**
+//     * 获取本月第一天的日期
+//     *
+//     * @return
+//     */
+//    public static LocalDateTime getFirstDayOfMonth(LocalDateTime localDateTime) {
+//        String format = DateUtil.formatLocalDateTime(localDateTime);
+//        Date date = DateUtil.parse(format);
+//        DateTime dateTime = DateUtil.beginOfMonth(date);
+//        return DateUtil.toLocalDateTime(dateTime);
+//    }
+//
+//    /**
+//     * 获取上月第一天的日期
+//     *
+//     * @return
+//     */
+//    public static LocalDateTime getFirstDayLastMonth(LocalDateTime localDateTime) {
+//        String format = DateUtil.formatLocalDateTime(localDateTime);
+//        Date date = DateUtil.parse(format);
+//        Calendar cal = Calendar.getInstance();
+//        cal.setTime(date);
+//        cal.add(Calendar.MONTH, -1);
+//        date = cal.getTime();
+//        DateTime dateTime = DateUtil.beginOfMonth(date);
+//        return DateUtil.toLocalDateTime(dateTime);
+//    }
+//
+//    /**
+//     * 获取上月最后一天的日期
+//     *
+//     * @return
+//     */
+//    public static LocalDateTime getLastDayLastMonth(LocalDateTime localDateTime) {
+//        String format = DateUtil.formatLocalDateTime(localDateTime);
+//        Date date = DateUtil.parse(format);
+//        Calendar cal = Calendar.getInstance();
+//        cal.setTime(date);
+//        cal.add(Calendar.MONTH, -1);
+//        date = cal.getTime();
+//        DateTime dateTime = DateUtil.endOfMonth(date);
+//        return DateUtil.toLocalDateTime(dateTime);
+//    }
 
     /**
      * @param startDay 开始日期
@@ -1109,8 +1108,8 @@ public class DateTimeUtils extends DateUtils {
      */
     public static List<LocalDate> getDays(LocalDate startDay, LocalDate endDay) {
         List<LocalDate> days = new ArrayList<>();
-        LocalDate start = ObjectUtil.clone(startDay);
-        LocalDate end = ObjectUtil.clone(endDay);
+        LocalDate start = ObjectUtils.clone(startDay);
+        LocalDate end = ObjectUtils.clone(endDay);
         days.add(start);
         while (start.isBefore(end)) {
             start = start.plusDays(1L);

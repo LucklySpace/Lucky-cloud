@@ -12,9 +12,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.net.URI;
 import java.util.LinkedHashSet;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Spring Cloud Gateway 的全局响应日志过滤器。
@@ -66,17 +68,20 @@ public class ResponseLogFilter implements GlobalFilter, Ordered {
                             .build()
                             .toUriString();
 
-                    // 输出结构化日志
-                    log.info(
-                            "\n" +
-                                    "================ Gateway Response Log ================\n" +
-                                    "Status Code   : {}\n" +
-                                    "Method        : {}\n" +
-                                    "URI           : {}\n" +
-                                    "Duration      : {} ms\n" +
-                                    "======================================================",
-                            statusCode, method, fullUri, duration
-                    );
+                    // 异步记录日志，避免阻塞网关工作线程
+                    Mono.fromRunnable(() -> {
+                        // 输出结构化日志
+                        log.info(
+                                "\n" +
+                                        "================ Gateway Response Log ================\n" +
+                                        "Status Code   : {}\n" +
+                                        "Method        : {}\n" +
+                                        "URI           : {}\n" +
+                                        "Duration      : {} ms\n" +
+                                        "======================================================",
+                                statusCode, method, fullUri, duration
+                        );
+                    }).subscribeOn(Schedulers.boundedElastic()).subscribe();
                 })
         );
     }

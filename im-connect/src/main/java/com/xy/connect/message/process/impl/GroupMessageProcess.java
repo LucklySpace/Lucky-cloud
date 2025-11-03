@@ -25,7 +25,7 @@ public class GroupMessageProcess implements MessageProcess {
     private UserChannelMap userChannelMap;
 
     @Override
-    public void dispose(IMessageWrap<Object> messageWrap) {
+    public void dispose(IMessageWrap messageWrap) {
 
         log.info("接收到消息，接收者:{}，内容:{}", messageWrap.getIds(),
                 messageWrap.getData());
@@ -62,5 +62,8 @@ public class GroupMessageProcess implements MessageProcess {
         }
     }
 
-
+    @Override
+    public IMessageType getSupportedType() {
+        return IMessageType.GROUP_MESSAGE;
+    }
 }

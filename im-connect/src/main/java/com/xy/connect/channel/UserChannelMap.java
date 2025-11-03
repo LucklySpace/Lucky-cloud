@@ -96,6 +96,10 @@ public class UserChannelMap {
         UserChannel newUc = new UserChannel(ch.id().asLongText(), dt, ch);
         imUserChannel.getUserChannelMap().put(IMDeviceType.getByDevice(deviceKey), newUc);
 
+        // 记录连接信息
+        log.info("添加用户通道: userId={}, deviceType={}, channelId={}", userId, dt.getType(), ch.id().asLongText());
+
+        // 注册关闭监听器，确保资源清理
         ch.closeFuture().addListener(future -> {
             try {
                 removeByChannel(ch);
@@ -204,13 +208,36 @@ public class UserChannelMap {
 
     /**
      * 通过 Channel 对象扫描并移除对应映射（无索引版本）
+     * - 增强版本，确保资源完全清理
      */
     public boolean removeByChannel(Channel channel) {
         if (channel == null) return false;
         final String chId = channel.id().asLongText();
 
+        // 尝试从 channel 属性获取信息（快速路径）
+        String userId = channel.attr(USER_ATTR).get();
+        String deviceType = channel.attr(DEVICE_ATTR).get();
+
+        // 如果有用户ID和设备类型，可以直接定位
+        if (userId != null && deviceType != null) {
+            IMUserChannel im = userChannels.get(userId);
+            if (im != null) {
+                UserChannel uc = im.getUserChannelMap().get(deviceType);
+                if (uc != null && chId.equals(uc.getChannelId())) {
+                    im.getUserChannelMap().remove(deviceType);
+                    log.info("快速移除通道映射: userId={}, deviceType={}, channelId={}",
+                            userId, deviceType, chId);
+                    if (im.getUserChannelMap().isEmpty()) {
+                        userChannels.remove(userId, im);
+                    }
+                    return true;
+                }
+            }
+        }
+
+        // 回退到全表扫描
         for (Map.Entry<String, IMUserChannel> entry : userChannels.entrySet()) {
-            String userId = entry.getKey();
+            userId = entry.getKey();
             IMUserChannel im = entry.getValue();
             if (im == null) continue;
 
@@ -221,7 +248,7 @@ public class UserChannelMap {
                 UserChannel uc = e.getValue();
                 if (uc != null && chId.equals(uc.getChannelId())) {
                     it.remove();
-                    log.info("channel cleanup removed mapping: userId={}, deviceType={}, channelId={}", 
+                    log.info("全表扫描移除通道映射: userId={}, deviceType={}, channelId={}",
                             userId, e.getKey(), chId);
                     // 如果该用户无设备则移除用户条目
                     if (im.getUserChannelMap().isEmpty()) {

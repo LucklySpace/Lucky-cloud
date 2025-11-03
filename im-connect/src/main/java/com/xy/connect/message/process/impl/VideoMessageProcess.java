@@ -24,7 +24,7 @@ public class VideoMessageProcess implements MessageProcess {
     private UserChannelMap userChannelMap;
 
     @Override
-    public void dispose(IMessageWrap<Object> messageWrap) {
+    public void dispose(IMessageWrap messageWrap) {
 
         log.info("接收到视频消息，接收者:{}  内容:{}", messageWrap.getIds(), messageWrap.getData());
 
@@ -54,5 +54,10 @@ public class VideoMessageProcess implements MessageProcess {
             log.error("发送异常，接收者:{}，内容:{}", messageWrap.getIds(), messageWrap.getData());
         }
 
+    }
+
+    @Override
+    public IMessageType getSupportedType() {
+        return IMessageType.VIDEO_MESSAGE;
     }
 }

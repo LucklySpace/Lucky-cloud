@@ -1,8 +1,8 @@
 package com.xy.database.security;
 
-import cn.hutool.core.util.StrUtil;
 import com.xy.database.exception.ForbiddenException;
 import com.xy.general.response.domain.ResultCode;
+import com.xy.utils.string.StringUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +38,7 @@ public class SecurityInnerAspect {
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
 
         // 如果需要验证内部调用权限且请求头不匹配，则抛出异常
-        if (inner.value() && !StrUtil.equals(INTERNAL_CALL_FLAG, header)) {
+        if (inner.value() && !StringUtils.equals(INTERNAL_CALL_FLAG, header)) {
             log.warn("访问接口 {} 没有权限", point.getSignature().getName());
             throw new ForbiddenException(ResultCode.FORBIDDEN);
         } else {

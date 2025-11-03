@@ -1,6 +1,7 @@
 package com.xy.utils.string;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 public class StringUtils {
 
@@ -228,6 +229,17 @@ public class StringUtils {
         }
         
         return str.regionMatches(str.length() - suffix.length(), suffix, 0, suffix.length());
+    }
+
+    /**
+     * 比较两个字符串是否相等
+     *
+     * @param str    字符串1
+     * @param other  字符串2
+     * @return 如果两个字符串相等则返回true，否则返回false
+     */
+    public static boolean equals(String str, String other) {
+        return Objects.equals(str, other);
     }
 
 }

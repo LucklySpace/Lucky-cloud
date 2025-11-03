@@ -1,14 +1,6 @@
 package com.xy.utils.collection;
 
-import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.collection.CollectionUtil;
-import cn.hutool.core.util.ObjUtil;
-import cn.iocoder.ty.framework.common.core.KeyValue;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -21,35 +13,16 @@ import java.util.function.Consumer;
 public class MapUtils {
 
     /**
-     * 从哈希表表中，获得 keys 对应的所有 value 数组
-     *
-     * @param multimap 哈希表
-     * @param keys keys
-     * @return value 数组
-     */
-    public static <K, V> List<V> getList(Multimap<K, V> multimap, Collection<K> keys) {
-        List<V> result = new ArrayList<>();
-        keys.forEach(k -> {
-            Collection<V> values = multimap.get(k);
-            if (CollectionUtil.isEmpty(values)) {
-                return;
-            }
-            result.addAll(values);
-        });
-        return result;
-    }
-
-    /**
-     * 从哈希表查找到 key 对应的 value，然后进一步处理
-     * key 为 null 时, 不处理
-     * 注意，如果查找到的 value 为 null 时，不进行处理
+     * 从Map中获取指定key的值，如果值存在则使用consumer处理
      *
      * @param map 哈希表
      * @param key key
      * @param consumer 进一步处理的逻辑
+     * @param <K> 键类型
+     * @param <V> 值类型
      */
     public static <K, V> void findAndThen(Map<K, V> map, K key, Consumer<V> consumer) {
-        if (ObjUtil.isNull(key) || CollUtil.isEmpty(map)) {
+        if (key == null || map == null || map.isEmpty()) {
             return;
         }
         V value = map.get(key);
@@ -59,10 +32,64 @@ public class MapUtils {
         consumer.accept(value);
     }
 
-    public static <K, V> Map<K, V> convertMap(List<KeyValue<K, V>> keyValues) {
-        Map<K, V> map = Maps.newLinkedHashMapWithExpectedSize(keyValues.size());
+    /**
+     * 检查Map是否为空
+     *
+     * @param map 待检查的Map
+     * @return 如果为空返回true，否则返回false
+     */
+    public static boolean isEmpty(Map<?, ?> map) {
+        return map == null || map.isEmpty();
+    }
+
+    /**
+     * 检查Map是否不为空
+     *
+     * @param map 待检查的Map
+     * @return 如果不为空返回true，否则返回false
+     */
+    public static boolean isNotEmpty(Map<?, ?> map) {
+        return !isEmpty(map);
+    }
+
+    /**
+     * 根据键值对列表创建Map
+     *
+     * @param keyValues 键值对列表
+     * @param <K>       键类型
+     * @param <V>       值类型
+     * @return 创建的Map
+     */
+    public static <K, V> Map<K, V> createMap(List<KeyValue<K, V>> keyValues) {
+        if (keyValues == null || keyValues.isEmpty()) {
+            return new HashMap<>();
+        }
+        Map<K, V> map = new HashMap<>(keyValues.size());
         keyValues.forEach(keyValue -> map.put(keyValue.getKey(), keyValue.getValue()));
         return map;
     }
 
+    /**
+     * 键值对封装类
+     *
+     * @param <K> 键类型
+     * @param <V> 值类型
+     */
+    public static class KeyValue<K, V> {
+        private final K key;
+        private final V value;
+
+        public KeyValue(K key, V value) {
+            this.key = key;
+            this.value = value;
+        }
+
+        public K getKey() {
+            return key;
+        }
+
+        public V getValue() {
+            return value;
+        }
+    }
 }

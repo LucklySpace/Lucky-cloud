@@ -24,7 +24,7 @@ public class SingleMessageProcess implements MessageProcess {
     private UserChannelMap userChannelMap;
 
     @Override
-    public void dispose(IMessageWrap<Object> messageWrap) {
+    public void dispose(IMessageWrap messageWrap) {
         // 1. 序列化获取消息
         log.info("接收到消息  接收者:{}，内容:{}", messageWrap.getIds(),
                 messageWrap.getData());
@@ -55,5 +55,10 @@ public class SingleMessageProcess implements MessageProcess {
             log.error("发送异常，接收者:{}，内容:{}", messageWrap.getIds(),
                     messageWrap.getData());
         }
+    }
+
+    @Override
+    public IMessageType getSupportedType() {
+        return IMessageType.SINGLE_MESSAGE;
     }
 }

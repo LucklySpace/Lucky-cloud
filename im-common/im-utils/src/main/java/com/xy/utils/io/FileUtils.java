@@ -1,14 +1,13 @@
 package com.xy.utils.io;
 
-import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.util.IdUtil;
-import lombok.SneakyThrows;
-
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.util.UUID;
 
 /**
  * 文件工具类
- *
  */
 public class FileUtils {
 
@@ -19,11 +18,10 @@ public class FileUtils {
      * @param data 文件内容
      * @return 文件
      */
-    @SneakyThrows
-    public static File createTempFile(String data) {
+    public static File createTempFile(String data) throws IOException {
         File file = createTempFile();
         // 写入内容
-        FileUtil.writeUtf8String(data, file);
+        Files.write(file.toPath(), data.getBytes(), StandardOpenOption.WRITE);
         return file;
     }
 
@@ -34,11 +32,10 @@ public class FileUtils {
      * @param data 文件内容
      * @return 文件
      */
-    @SneakyThrows
-    public static File createTempFile(byte[] data) {
+    public static File createTempFile(byte[] data) throws IOException {
         File file = createTempFile();
         // 写入内容
-        FileUtil.writeBytes(data, file);
+        Files.write(file.toPath(), data, StandardOpenOption.WRITE);
         return file;
     }
 
@@ -48,10 +45,9 @@ public class FileUtils {
      *
      * @return 文件
      */
-    @SneakyThrows
-    public static File createTempFile() {
+    public static File createTempFile() throws IOException {
         // 创建文件，通过 UUID 保证唯一
-        File file = File.createTempFile(IdUtil.simpleUUID(), null);
+        File file = File.createTempFile(UUID.randomUUID().toString(), null);
         // 标记 JVM 退出时，自动删除
         file.deleteOnExit();
         return file;

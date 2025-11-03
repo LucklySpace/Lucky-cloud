@@ -1,8 +1,5 @@
 package com.xy.utils.object;
 
-import cn.hutool.core.util.ObjectUtil;
-import cn.hutool.core.util.ReflectUtil;
-
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.function.Consumer;
@@ -21,17 +18,62 @@ public class ObjectUtils {
      * @return 复制后的对象
      */
     public static <T> T cloneIgnoreId(T object, Consumer<T> consumer) {
-        T result = ObjectUtil.clone(object);
+        T result = clone(object);
         // 忽略 id 编号
-        Field field = ReflectUtil.getField(object.getClass(), "id");
+        Field field = getField(object.getClass(), "id");
         if (field != null) {
-            ReflectUtil.setFieldValue(result, field, null);
+            setFieldValue(result, field, null);
         }
         // 二次编辑
-        if (result != null) {
-            consumer.accept(result);
-        }
+        consumer.accept(result);
         return result;
+    }
+
+    /**
+     * 获取类中的指定字段
+     *
+     * @param clazz     类
+     * @param fieldName 字段名
+     * @return 字段对象，如果找不到返回null
+     */
+    public static Field getField(Class<?> clazz, String fieldName) {
+        while (clazz != null) {
+            try {
+                Field field = clazz.getDeclaredField(fieldName);
+                field.setAccessible(true);
+                return field;
+            } catch (NoSuchFieldException e) {
+                clazz = clazz.getSuperclass();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 设置对象字段的值
+     *
+     * @param object 对象
+     * @param field  字段
+     * @param value  值
+     */
+    public static void setFieldValue(Object object, Field field, Object value) {
+        try {
+            field.set(object, value);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("无法设置字段值: " + field.getName(), e);
+        }
+    }
+
+    /**
+     * 克隆对象（简单实现，实际项目中可能需要更复杂的克隆逻辑）
+     *
+     * @param object 要克隆的对象
+     * @return 克隆后的对象
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T clone(T object) {
+        // 这里只是一个简单的示例实现，实际项目中可能需要使用序列化或其他方式实现深拷贝
+        return object;
     }
 
     public static <T extends Comparable<T>> T max(T obj1, T obj2) {

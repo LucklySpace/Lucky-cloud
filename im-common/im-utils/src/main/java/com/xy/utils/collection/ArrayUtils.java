@@ -1,14 +1,12 @@
 package com.xy.utils.collection;
 
-import cn.hutool.core.collection.CollectionUtil;
-import cn.hutool.core.collection.IterUtil;
-import cn.hutool.core.util.ArrayUtil;
 
+import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static cn.iocoder.ty.framework.common.util.collection.CollectionUtils.convertList;
+
 
 /**
  * Array 工具类
@@ -30,22 +28,39 @@ public class ArrayUtils {
         if (object == null) {
             return newElements;
         }
-        Consumer<T>[] result = ArrayUtil.newArray(Consumer.class, 1 + newElements.length);
+        Consumer<T>[] result = newArray(Consumer.class, 1 + newElements.length);
         result[0] = object;
         System.arraycopy(newElements, 0, result, 1, newElements.length);
         return result;
     }
 
     public static <T, V> V[] toArray(Collection<T> from, Function<T, V> mapper) {
-        return toArray(convertList(from, mapper));
+        return toArray(CollectionUtils.convertList(from, mapper));
     }
 
     @SuppressWarnings("unchecked")
     public static <T> T[] toArray(Collection<T> from) {
-        if (CollectionUtil.isEmpty(from)) {
+        if (CollectionUtils.isEmpty(from)) {
             return (T[]) (new Object[0]);
         }
-        return ArrayUtil.toArray(from, (Class<T>) IterUtil.getElementType(from.iterator()));
+        return toArray(from, (Class<T>) from.iterator().next().getClass());
+    }
+
+    public static <T> T[] toArray(Collection<T> from, Class<T> type) {
+        return from.toArray(newArray(type, from.size()));
+    }
+
+    /**
+     * 根据指定的元素类型和长度创建新数组
+     *
+     * @param type   数组元素类型
+     * @param length 数组长度
+     * @param <T>    数组元素类型
+     * @return 新数组
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T[] newArray(Class<T> type, int length) {
+        return (T[]) Array.newInstance(type, length);
     }
 
     public static <T> T get(T[] array, int index) {

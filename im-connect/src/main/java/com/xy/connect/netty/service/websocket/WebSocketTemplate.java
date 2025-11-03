@@ -48,7 +48,7 @@ public class WebSocketTemplate extends AbstractRemoteServer {
     private final ConcurrentHashMap<Integer, ChannelFuture> channelFutures = new ConcurrentHashMap<>();
     @Value("${netty.config.websocket.enable:true}")
     protected Boolean websocketEnable;
-    @Value("${netty.config.websocket.port:#{null}}")
+    @Value("${netty.config.websocket.port}")
     protected List<Integer> webSocketPort;
     @Value("${netty.config.bossThreadSize:1}")
     protected Integer bossThreadSize;

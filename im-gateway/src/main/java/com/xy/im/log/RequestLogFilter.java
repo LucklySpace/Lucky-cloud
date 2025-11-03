@@ -12,11 +12,13 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.net.URI;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Spring Cloud Gateway 的全局日志过滤器。
@@ -48,27 +50,31 @@ public class RequestLogFilter implements GlobalFilter, Ordered {
         String ip = IPAddressUtil.getIPAddress(request); // 获取客户端 IP
         String method = request.getMethod().toString(); // 获取请求方法
         String uri = getOriginalRequestUrl(exchange); // 获取原始请求 URI（含参数）
-        Map<String, String> headers = request.getHeaders().toSingleValueMap(); // 获取请求头（单值）
-        Map<String, String> queryParams = request.getQueryParams().toSingleValueMap(); // 获取请求参数（单值）
+        Map<String, String> headers = new ConcurrentHashMap<>(request.getHeaders().toSingleValueMap()); // 获取请求头（单值）
+        Map<String, String> queryParams = new ConcurrentHashMap<>(request.getQueryParams().toSingleValueMap()); // 获取请求参数（单值）
 
         // 执行过滤器链并在最后记录日志
         return chain.filter(exchange).doFinally(signalType -> {
-            Long startTime = exchange.getAttribute(START_TIME_ATTR);
-            long duration = (startTime != null) ? System.currentTimeMillis() - startTime : -1;
+                    Long startTime = exchange.getAttribute(START_TIME_ATTR);
+                    long duration = (startTime != null) ? System.currentTimeMillis() - startTime : -1;
 
-            log.info(
-                    "\n" +
-                            "================= Gateway Request Log =================\n" +
-                            "Client IP     : {}\n" +
-                            "Method        : {}\n" +
-                            "URI           : {}\n" +
-                            "Duration      : {} ms\n" +
-                            "Headers       : {}\n" +
-                            "Query Params  : {}\n" +
-                            "======================================================",
-                    ip, method, uri, duration, headers, queryParams
-            );
-        });
+                    // 异步记录日志，避免阻塞网关工作线程
+                    Mono.fromRunnable(() -> {
+                        log.info(
+                                "\n" +
+                                        "================= Gateway Request Log =================\n" +
+                                        "Client IP     : {}\n" +
+                                        "Method        : {}\n" +
+                                        "URI           : {}\n" +
+                                        "Duration      : {} ms\n" +
+                                        "Headers       : {}\n" +
+                                        "Query Params  : {}\n" +
+                                        "======================================================",
+                                ip, method, uri, duration, headers, queryParams
+                        );
+                    }).subscribeOn(Schedulers.boundedElastic()).subscribe();
+                }
+        );
     }
 
     /**

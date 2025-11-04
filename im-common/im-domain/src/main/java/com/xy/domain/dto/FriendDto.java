@@ -27,4 +27,8 @@ public class FriendDto implements Serializable {
 
     @Schema(description = "关键词")
     private String keyword;
+
+    @Schema(description = "备注")
+    private String remark;
+
 }

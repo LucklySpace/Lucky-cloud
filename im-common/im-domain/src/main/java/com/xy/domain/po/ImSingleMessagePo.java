@@ -61,14 +61,14 @@ public class ImSingleMessagePo implements Serializable {
     /**
      * 扩展字段
      */
-    @TableField(value = "extra")
-    private String extra;
+    @TableField(value = "extra", typeHandler = JacksonTypeHandler.class)
+    private Object extra;
 
     /**
      * 被引用的消息 ID
      */
-    @TableField(value = "reply_to")
-    private String replyTo;
+    @TableField(value = "reply_message", typeHandler = JacksonTypeHandler.class)
+    private Object replyMessage;
 
     /**
      * 删除标识（1正常，0删除）

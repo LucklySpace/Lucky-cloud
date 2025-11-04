@@ -20,6 +20,12 @@
             <artifactId>im-utils</artifactId>
         </dependency>
 
+        <!--Hutool-->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+        </dependency>
+
         <!-- IP地址检索 -->
         <dependency>
             <groupId>org.lionsoul</groupId>

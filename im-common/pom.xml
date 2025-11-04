@@ -25,6 +25,7 @@
         <module>im-general</module>
         <module>im-grpc</module>
         <module>im-dubbo</module>
+        <module>im-address</module>
     </modules>
 
     <properties>
@@ -105,6 +106,9 @@
         <grpc.spring.version>3.0.0.RELEASE</grpc.spring.version>
         <grpc.starter.version>3.0.0.RELEASE</grpc.starter.version>
         <grpc.client.version>3.0.0.RELEASE</grpc.client.version>
+
+        <!-- MapStruct版本 -->
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
     </properties>
 
     <dependencyManagement>
@@ -184,6 +188,26 @@
                 <groupId>org.lionsoul</groupId>
                 <artifactId>ip2region</artifactId>
                 <version>${ip2region.version}</version>
+            </dependency>
+
+            <!-- MapStruct -->
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct-processor</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
+
+            <!-- Lombok MapStruct Binding -->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok-mapstruct-binding</artifactId>
+                <version>0.2.0</version>
             </dependency>
 
             <dependency>

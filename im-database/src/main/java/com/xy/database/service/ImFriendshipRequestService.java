@@ -52,7 +52,7 @@ public class ImFriendshipRequestService extends ServiceImpl<ImFriendshipRequestM
 
     public Boolean updateStatus(String requestId, Integer status) {
         UpdateWrapper<ImFriendshipRequestPo> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.eq("id", requestId).set("status", status);
+        updateWrapper.eq("id", requestId).set("approve_status", status);
         return this.update(null, updateWrapper);
     }
 

@@ -23,7 +23,6 @@
         <dependency>
             <groupId>com.xy</groupId>
             <artifactId>im-core</artifactId>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
 

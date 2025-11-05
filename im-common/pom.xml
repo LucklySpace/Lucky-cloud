@@ -29,8 +29,6 @@
     </modules>
 
     <properties>
-        <!-- 统一版本号 -->
-        <project.version>1.0-SNAPSHOT</project.version>
 
         <!-- Java编译版本 -->
         <maven.compiler.source>21</maven.compiler.source>

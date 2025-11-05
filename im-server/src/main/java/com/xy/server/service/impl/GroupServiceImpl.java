@@ -9,6 +9,7 @@ import com.xy.core.model.IMessage;
 import com.xy.domain.dto.GroupDto;
 import com.xy.domain.dto.GroupInviteDto;
 import com.xy.domain.dto.GroupMemberDto;
+import com.xy.domain.mapper.GroupMemberBeanMapper;
 import com.xy.domain.po.ImGroupInviteRequestPo;
 import com.xy.domain.po.ImGroupMemberPo;
 import com.xy.domain.po.ImGroupPo;
@@ -26,9 +27,9 @@ import com.xy.server.exception.GlobalException;
 import com.xy.server.service.FileService;
 import com.xy.server.service.GroupService;
 import com.xy.server.service.MessageService;
-import com.xy.utils.time.DateTimeUtils;
-import com.xy.utils.image.GroupHeadImageUtils;
 import com.xy.utils.id.IdUtils;
+import com.xy.utils.image.GroupHeadImageUtils;
+import com.xy.utils.time.DateTimeUtils;
 import jakarta.annotation.Resource;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +37,6 @@ import org.apache.dubbo.config.annotation.DubboReference;
 import org.redisson.api.RLock;
 import org.redisson.api.RMapCache;
 import org.redisson.api.RedissonClient;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -86,8 +86,7 @@ public class GroupServiceImpl implements GroupService {
             for (ImGroupMemberPo member : members) {
                 ImUserDataPo user = userMap.get(member.getMemberId());
                 if (user != null) {
-                    GroupMemberVo vo = new GroupMemberVo();
-                    BeanUtils.copyProperties(user, vo);
+                    GroupMemberVo vo = GroupMemberBeanMapper.INSTANCE.toGroupMemberVo(member);
                     vo.setRole(member.getRole());
                     vo.setMute(member.getMute());
                     vo.setAlias(member.getAlias());

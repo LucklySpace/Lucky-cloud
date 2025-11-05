@@ -4,6 +4,7 @@ import com.xy.core.enums.IMStatus;
 import com.xy.core.enums.IMessageReadStatus;
 import com.xy.core.enums.IMessageType;
 import com.xy.domain.dto.ChatDto;
+import com.xy.domain.mapper.ChatBeanMapper;
 import com.xy.domain.po.*;
 import com.xy.domain.vo.ChatVo;
 import com.xy.dubbo.api.database.chat.ImChatDubboService;
@@ -20,7 +21,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
@@ -251,8 +251,8 @@ public class ChatServiceImpl implements ChatService {
      * 构建单聊ChatVo
      */
     private ChatVo getSingleMessageChat(ImChatPo chatPo) {
-        ChatVo chatVo = new ChatVo();
-        BeanUtils.copyProperties(chatPo, chatVo);
+
+        ChatVo chatVo = ChatBeanMapper.INSTANCE.toChatVo(chatPo);
 
         String ownerId = chatVo.getOwnerId();
         String toId = chatVo.getToId();
@@ -284,8 +284,8 @@ public class ChatServiceImpl implements ChatService {
      * 构建群聊ChatVo
      */
     private ChatVo getGroupMessageChat(ImChatPo chatPo) {
-        ChatVo chatVo = new ChatVo();
-        BeanUtils.copyProperties(chatPo, chatVo);
+
+        ChatVo chatVo = ChatBeanMapper.INSTANCE.toChatVo(chatPo);
 
         String ownerId = chatVo.getOwnerId();
         String groupId = chatVo.getToId();
@@ -314,9 +314,9 @@ public class ChatServiceImpl implements ChatService {
     /**
      * 构建ChatVo（create专用）
      */
-    private ChatVo buildChatVo(ImChatPo imChatPO, Integer chatType) {
-        ChatVo chatVo = new ChatVo();
-        BeanUtils.copyProperties(imChatPO, chatVo);
+    private ChatVo buildChatVo(ImChatPo chatPo, Integer chatType) {
+
+        ChatVo chatVo = ChatBeanMapper.INSTANCE.toChatVo(chatPo);
 
         if (chatType.equals(IMessageType.SINGLE_MESSAGE.getCode())) {
             ImUserDataPo imUserDataPo = imUserDataDubboService.selectOne(chatVo.getToId());

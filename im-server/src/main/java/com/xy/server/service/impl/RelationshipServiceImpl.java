@@ -3,6 +3,9 @@ package com.xy.server.service.impl;
 import com.xy.core.enums.IMStatus;
 import com.xy.domain.dto.FriendDto;
 import com.xy.domain.dto.FriendRequestDto;
+import com.xy.domain.mapper.FriendRequestBeanMapper;
+import com.xy.domain.mapper.GroupBeanMapper;
+import com.xy.domain.mapper.UserDataBeanMapper;
 import com.xy.domain.po.ImFriendshipPo;
 import com.xy.domain.po.ImFriendshipRequestPo;
 import com.xy.domain.po.ImGroupPo;
@@ -24,7 +27,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -154,8 +156,7 @@ public class RelationshipServiceImpl implements RelationshipService {
             List<GroupVo> result = groups.stream()
                     .filter(Objects::nonNull)
                     .map(group -> {
-                        GroupVo groupVo = new GroupVo();
-                        BeanUtils.copyProperties(group, groupVo);
+                        GroupVo groupVo = GroupBeanMapper.INSTANCE.toGroupVo(group);
                         return groupVo;
                     })
                     .collect(Collectors.toList());
@@ -257,9 +258,9 @@ public class RelationshipServiceImpl implements RelationshipService {
                 log.warn("getFriendInfo: user not found for friendId={}", toId);
                 return Result.success(vo);
             }
-
-            BeanUtils.copyProperties(userDataPo, vo);
-            vo.setUserId(ownerId).setFriendId(userDataPo.getUserId());
+            vo = UserDataBeanMapper.INSTANCE.toFriendVo(userDataPo);
+            vo.setUserId(ownerId)
+                    .setFriendId(userDataPo.getUserId());
 
             ImFriendshipPo friendshipPo = imFriendshipDubboService.selectOne(ownerId, toId);
             if (Objects.nonNull(friendshipPo)) {
@@ -482,17 +483,17 @@ public class RelationshipServiceImpl implements RelationshipService {
             }
 
             // 更新备注信息
-            friendshipPo.setRemark(friendDto.getKeyword());
+            friendshipPo.setRemark(friendDto.getRemark());
             friendshipPo.setSequence(DateTimeUtils.getCurrentUTCTimestamp());
             boolean success = imFriendshipDubboService.update(friendshipPo);
 
             if (success) {
                 log.info("updateFriendRemark() 完成 -> ownerId={}, friendId={}, remark={}, 耗时 {} ms",
-                        friendDto.getFromId(), friendDto.getToId(), friendDto.getKeyword(), System.currentTimeMillis() - start);
+                        friendDto.getFromId(), friendDto.getToId(), friendDto.getRemark(), System.currentTimeMillis() - start);
                 return Result.success("备注更新成功");
             } else {
                 log.warn("updateFriendRemark() 失败 -> ownerId={}, friendId={}, remark={}, 耗时 {} ms",
-                        friendDto.getFromId(), friendDto.getToId(), friendDto.getKeyword(), System.currentTimeMillis() - start);
+                        friendDto.getFromId(), friendDto.getToId(), friendDto.getRemark(), System.currentTimeMillis() - start);
                 return Result.failed("备注更新失败");
             }
         } catch (Exception ex) {
@@ -540,8 +541,7 @@ public class RelationshipServiceImpl implements RelationshipService {
                         return null;
                     }
 
-                    FriendVo vo = new FriendVo();
-                    BeanUtils.copyProperties(user, vo);
+                    FriendVo vo = UserDataBeanMapper.INSTANCE.toFriendVo(user);
                     vo.setUserId(ownerId)
                             .setFriendId(user.getUserId())
                             .setBlack(friendship.getBlack())
@@ -560,9 +560,7 @@ public class RelationshipServiceImpl implements RelationshipService {
     private List<FriendshipRequestVo> buildFriendshipRequestVoList(List<ImFriendshipRequestPo> requests, Map<String, ImUserDataPo> userDataMap) {
         return requests.stream()
                 .map(req -> {
-                    FriendshipRequestVo vo = new FriendshipRequestVo();
-                    BeanUtils.copyProperties(req, vo);
-
+                    FriendshipRequestVo vo = FriendRequestBeanMapper.INSTANCE.toFriendshipRequestVo(req);
                     ImUserDataPo userData = userDataMap.get(req.getFromId());
                     if (Objects.nonNull(userData)) {
                         vo.setName(userData.getName());
@@ -615,8 +613,8 @@ public class RelationshipServiceImpl implements RelationshipService {
     private List<FriendVo> buildFriendVoLists(List<ImUserDataPo> users, Map<String, ImFriendshipPo> relMap, String ownerId) {
         return users.stream()
                 .map(u -> {
-                    FriendVo vo = new FriendVo();
-                    BeanUtils.copyProperties(u, vo);
+                    FriendVo vo = UserDataBeanMapper.INSTANCE.toFriendVo(u);
+
                     vo.setUserId(ownerId);
                     vo.setFriendId(u.getUserId());
 

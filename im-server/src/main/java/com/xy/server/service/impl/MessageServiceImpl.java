@@ -9,6 +9,7 @@ import com.xy.core.enums.IMessageReadStatus;
 import com.xy.core.enums.IMessageType;
 import com.xy.core.model.*;
 import com.xy.domain.dto.ChatDto;
+import com.xy.domain.mapper.MessageBeanMapper;
 import com.xy.domain.po.*;
 import com.xy.dubbo.api.database.chat.ImChatDubboService;
 import com.xy.dubbo.api.database.group.ImGroupMemberDubboService;
@@ -34,7 +35,6 @@ import org.springframework.amqp.core.MessageDeliveryMode;
 import org.springframework.amqp.core.MessagePostProcessor;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -63,7 +63,6 @@ public class MessageServiceImpl implements MessageService {
     private static final long LOCK_WAIT_TIME = 5L; // 锁等待5s
     private static final long LOCK_LEASE_TIME = 10L; // 锁持有10s
     private final Map<String, Long> messageToOutboxIdMap = new ConcurrentHashMap<>();
-
 
     @DubboReference
     private ImChatDubboService imChatDubboService;
@@ -171,8 +170,8 @@ public class MessageServiceImpl implements MessageService {
 
             // bean copy
             stopWatch.start("beanCopy");
-            ImSingleMessagePo messagePo = new ImSingleMessagePo().setDelFlag(IMStatus.YES.getCode());
-            BeanUtils.copyProperties(dto, messagePo);
+            ImSingleMessagePo messagePo = MessageBeanMapper.INSTANCE.toImSingleMessagePo(dto);
+            messagePo.setDelFlag(IMStatus.YES.getCode());
             stopWatch.stop();
 
             // 异步插入消息和更新会话
@@ -288,10 +287,10 @@ public class MessageServiceImpl implements MessageService {
             // 异步插入群消息 异步设置读状态和更新会话
             stopWatch.start("asyncSchedule");
             CompletableFuture.runAsync(() -> {
+                createOutbox(String.valueOf(messageId), JacksonUtils.toJSONString(dto), MQ_EXCHANGE_NAME, "group.message." + dto.getGroupId(), messageTime);
                 insertImGroupMessage(dto);
                 setGroupReadStatus(String.valueOf(messageId), dto.getGroupId(), members);
                 updateGroupChats(dto.getGroupId(), messageTime, members);
-                createOutbox(String.valueOf(messageId), JacksonUtils.toJSONString(dto), MQ_EXCHANGE_NAME, "group.message." + dto.getGroupId(), messageTime);
             }, asyncTaskExecutor);
             stopWatch.stop();
 
@@ -302,7 +301,9 @@ public class MessageServiceImpl implements MessageService {
             for (Object obj : userObjs) {
                 if (Objects.nonNull(obj)) {
                     IMRegisterUser user = JacksonUtils.parseObject(obj, IMRegisterUser.class);
-                    brokerMap.computeIfAbsent(user.getBrokerId(), k -> new ArrayList<>()).add(user.getUserId());
+                    if (user != null) {
+                        brokerMap.computeIfAbsent(user.getBrokerId(), k -> new ArrayList<>()).add(user.getUserId());
+                    }
                 }
             }
             stopWatch.stop();
@@ -659,8 +660,8 @@ public class MessageServiceImpl implements MessageService {
      */
     private void insertImGroupMessage(IMGroupMessage dto) {
         try {
-            ImGroupMessagePo po = new ImGroupMessagePo().setDelFlag(IMStatus.YES.getCode());
-            BeanUtils.copyProperties(dto, po);
+            ImGroupMessagePo po = MessageBeanMapper.INSTANCE.toImGroupMessagePo(dto);
+            po.setDelFlag(IMStatus.YES.getCode());
             if (!imGroupMessageDubboService.insert(po)) {
                 log.error("保存群消息失败 messageId={}", dto.getMessageId());
             }
@@ -728,7 +729,6 @@ public class MessageServiceImpl implements MessageService {
      */
     private void createOutbox(String messageId, String payload, String exchange, String routingKey, Long messageTime) {
         long outboxId = System.nanoTime();
-
         IMOutboxPo po = new IMOutboxPo()
                 .setId(outboxId)
                 .setMessageId(messageId)
@@ -742,9 +742,9 @@ public class MessageServiceImpl implements MessageService {
 
         if (!imOutboxDubboService.saveOrUpdate(po)) {
             log.warn("Outbox保存失败 messageId={}", messageId);
+        } else {
+            messageToOutboxIdMap.put(messageId, outboxId);
         }
-
-        messageToOutboxIdMap.put(messageId, outboxId);
     }
 
     /**
@@ -863,14 +863,14 @@ public class MessageServiceImpl implements MessageService {
         if (raw instanceof String) {
             String s = ((String) raw).trim();
             try {
-                return jacksonMapper.readValue(s, new TypeReference<Map<String, Object>>() {
+                return jacksonMapper.readValue(s, new TypeReference<>() {
                 });
             } catch (Exception e) {
                 return Map.of("raw", s);
             }
         }
         try {
-            return jacksonMapper.convertValue(raw, new TypeReference<Map<String, Object>>() {
+            return jacksonMapper.convertValue(raw, new TypeReference<>() {
             });
         } catch (Exception e) {
             return Map.of("raw", String.valueOf(raw));

@@ -99,6 +99,9 @@
         <commons-imaging.version>1.0-alpha2</commons-imaging.version>
         <commons-io.version>2.18.0</commons-io.version>
 
+        <!-- proguard 混淆工具 -->
+        <proguard.version>6.1.1</proguard.version>
+
         <!-- 库兼容 / 其他 -->
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>

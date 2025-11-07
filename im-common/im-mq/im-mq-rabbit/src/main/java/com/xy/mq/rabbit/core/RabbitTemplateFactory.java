@@ -1,4 +1,4 @@
-package com.xy.server.config;
+package com.xy.mq.rabbit.core;
 
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;

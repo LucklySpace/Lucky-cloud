@@ -18,6 +18,11 @@
 
         <dependency>
             <groupId>com.xy</groupId>
+            <artifactId>im-mq-rabbit</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xy</groupId>
             <artifactId>im-core</artifactId>
         </dependency>
 
@@ -96,12 +101,6 @@
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-stdlib</artifactId>
             <version>${kotlin-stdlib.version}</version>
-        </dependency>
-
-        <!-- rabbitmq -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
 
         <!--引入Knife4j的官方start包,Spring Boot版本 > 3.0,开发者需要注意-->

@@ -26,6 +26,7 @@
         <module>im-grpc</module>
         <module>im-dubbo</module>
         <module>im-address</module>
+        <module>im-mq</module>
     </modules>
 
     <properties>

@@ -1,0 +1,354 @@
+# 根据业务模块进行分库分表配置，支持读写分离
+# 会话库: im_chat
+# 消息库: im_single_message, im_group_message, im_group_message_status
+# 群组库: im_group, im_group_member, im_group_invite_request
+# 用户及好友库: im_user, im_user_data, im_friendship, im_friendship_group, im_friendship_group_member, im_friendship_request
+
+mode:
+  type: Standalone
+
+dataSources:
+  # 会话数据库 - 主库
+  chat_master_ds:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: org.postgresql.Driver
+    jdbcUrl: jdbc:postgresql://127.0.0.1:5432/im_chat_master
+    username: postgres
+    password: 123456
+  
+  # 会话数据库 - 从库1
+  chat_slave_ds_0:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: org.postgresql.Driver
+    jdbcUrl: jdbc:postgresql://127.0.0.1:5432/im_chat_slave_0
+    username: postgres
+    password: 123456
+    
+  # 会话数据库 - 从库2
+  chat_slave_ds_1:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: org.postgresql.Driver
+    jdbcUrl: jdbc:postgresql://127.0.0.1:5432/im_chat_slave_1
+    username: postgres
+    password: 123456
+  
+  # 消息数据库 - 主库
+  message_master_ds:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: org.postgresql.Driver
+    jdbcUrl: jdbc:postgresql://127.0.0.1:5432/im_message_master
+    username: postgres
+    password: 123456
+    
+  # 消息数据库 - 从库1
+  message_slave_ds_0:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: org.postgresql.Driver
+    jdbcUrl: jdbc:postgresql://127.0.0.1:5432/im_message_slave_0
+    username: postgres
+    password: 123456
+    
+  # 消息数据库 - 从库2
+  message_slave_ds_1:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: org.postgresql.Driver
+    jdbcUrl: jdbc:postgresql://127.0.0.1:5432/im_message_slave_1
+    username: postgres
+    password: 123456
+    
+  # 群组数据库 - 主库
+  group_master_ds:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: org.postgresql.Driver
+    jdbcUrl: jdbc:postgresql://127.0.0.1:5432/im_group_master
+    username: postgres
+    password: 123456
+    
+  # 群组数据库 - 从库1
+  group_slave_ds_0:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: org.postgresql.Driver
+    jdbcUrl: jdbc:postgresql://127.0.0.1:5432/im_group_slave_0
+    username: postgres
+    password: 123456
+    
+  # 群组数据库 - 从库2
+  group_slave_ds_1:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: org.postgresql.Driver
+    jdbcUrl: jdbc:postgresql://127.0.0.1:5432/im_group_slave_1
+    username: postgres
+    password: postgres
+    
+  # 用户及好友数据库 - 主库
+  user_master_ds:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: org.postgresql.Driver
+    jdbcUrl: jdbc:postgresql://127.0.0.1:5432/im_user_master
+    username: postgres
+    password: postgres
+    
+  # 用户及好友数据库 - 从库1
+  user_slave_ds_0:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: org.postgresql.Driver
+    jdbcUrl: jdbc:postgresql://127.0.0.1:5432/im_user_slave_0
+    username: postgres
+    password: 123456
+    
+  # 用户及好友数据库 - 从库2
+  user_slave_ds_1:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: org.postgresql.Driver
+    jdbcUrl: jdbc:postgresql://127.0.0.1:5432/im_user_slave_1
+    username: postgres
+    password: 123456
+
+rules:
+  # 读写分离规则
+  - !READWRITE_SPLITTING
+    dataSources:
+      chat_ds:
+        writeDataSourceName: chat_master_ds
+        readDataSourceNames:
+          - chat_slave_ds_0
+          - chat_slave_ds_1
+        transactionalReadQueryStrategy: PRIMARY
+        loadBalancerName: roundRobin
+      message_ds:
+        writeDataSourceName: message_master_ds
+        readDataSourceNames:
+          - message_slave_ds_0
+          - message_slave_ds_1
+        transactionalReadQueryStrategy: PRIMARY
+        loadBalancerName: roundRobin
+      group_ds:
+        writeDataSourceName: group_master_ds
+        readDataSourceNames:
+          - group_slave_ds_0
+          - group_slave_ds_1
+        transactionalReadQueryStrategy: PRIMARY
+        loadBalancerName: roundRobin
+      user_ds:
+        writeDataSourceName: user_master_ds
+        readDataSourceNames:
+          - user_slave_ds_0
+          - user_slave_ds_1
+        transactionalReadQueryStrategy: PRIMARY
+        loadBalancerName: roundRobin
+    loadBalancers:
+      roundRobin:
+        type: ROUND_ROBIN
+
+  # 数据分片规则
+  - !SHARDING
+    tables:
+      # 会话表 - 按用户ID分片
+      im_chat:
+        actualDataNodes: chat_ds.im_chat_${0..3}
+        tableStrategy:
+          standard:
+            shardingColumn: owner_id
+            shardingAlgorithmName: im_chat_table_inline
+        keyGenerateStrategy:
+          column: chat_id
+          keyGeneratorName: snowflake
+      
+      # 单聊消息表 - 按发送者ID分片
+      im_single_message:
+        actualDataNodes: message_ds.im_single_message_${0..3}
+        tableStrategy:
+          standard:
+            shardingColumn: from_id
+            shardingAlgorithmName: im_single_message_table_inline
+        keyGenerateStrategy:
+          column: message_id
+          keyGeneratorName: snowflake
+          
+      # 群聊消息表 - 按群组ID分片
+      im_group_message:
+        actualDataNodes: message_ds.im_group_message_${0..3}
+        tableStrategy:
+          standard:
+            shardingColumn: group_id
+            shardingAlgorithmName: im_group_message_table_inline
+        keyGenerateStrategy:
+          column: message_id
+          keyGeneratorName: snowflake
+          
+      # 群聊消息状态表 - 按群组ID分片
+      im_group_message_status:
+        actualDataNodes: message_ds.im_group_message_status_${0..3}
+        tableStrategy:
+          standard:
+            shardingColumn: group_id
+            shardingAlgorithmName: im_group_message_status_table_inline
+            
+      # 群组表 - 按群组ID分片
+      im_group:
+        actualDataNodes: group_ds.im_group_${0..3}
+        tableStrategy:
+          standard:
+            shardingColumn: group_id
+            shardingAlgorithmName: im_group_table_inline
+        keyGenerateStrategy:
+          column: group_id
+          keyGeneratorName: snowflake
+          
+      # 群成员表 - 按群组ID分片
+      im_group_member:
+        actualDataNodes: group_ds.im_group_member_${0..3}
+        tableStrategy:
+          standard:
+            shardingColumn: group_id
+            shardingAlgorithmName: im_group_member_table_inline
+        keyGenerateStrategy:
+          column: group_member_id
+          keyGeneratorName: snowflake
+          
+      # 群邀请请求表 - 按群组ID分片
+      im_group_invite_request:
+        actualDataNodes: group_ds.im_group_invite_request_${0..3}
+        tableStrategy:
+          standard:
+            shardingColumn: group_id
+            shardingAlgorithmName: im_group_invite_request_table_inline
+        keyGenerateStrategy:
+          column: request_id
+          keyGeneratorName: snowflake
+          
+      # 用户表 - 不分片
+      im_user:
+        actualDataNodes: user_ds.im_user
+      
+      # 用户数据表 - 不分片
+      im_user_data:
+        actualDataNodes: user_ds.im_user_data
+        
+      # 好友关系表 - 按用户ID分片
+      im_friendship:
+        actualDataNodes: user_ds.im_friendship_${0..3}
+        tableStrategy:
+          standard:
+            shardingColumn: owner_id
+            shardingAlgorithmName: im_friendship_table_inline
+            
+      # 好友分组表 - 按用户ID分片
+      im_friendship_group:
+        actualDataNodes: user_ds.im_friendship_group_${0..3}
+        tableStrategy:
+          standard:
+            shardingColumn: from_id
+            shardingAlgorithmName: im_friendship_group_table_inline
+            
+      # 好友分组成员表 - 按用户ID分片
+      im_friendship_group_member:
+        actualDataNodes: user_ds.im_friendship_group_member_${0..3}
+        tableStrategy:
+          standard:
+            shardingColumn: from_id
+            shardingAlgorithmName: im_friendship_group_member_table_inline
+            
+      # 好友请求表 - 按被请求者ID分片
+      im_friendship_request:
+        actualDataNodes: user_ds.im_friendship_request_${0..3}
+        tableStrategy:
+          standard:
+            shardingColumn: to_id
+            shardingAlgorithmName: im_friendship_request_table_inline
+        keyGenerateStrategy:
+          column: request_id
+          keyGeneratorName: snowflake
+
+    # 默认不分库策略
+    defaultDatabaseStrategy:
+      none:
+      
+    # 默认不分表策略
+    defaultTableStrategy:
+      none:
+
+    # 分片算法
+    shardingAlgorithms:
+      # 会话表分表算法 - 根据用户ID哈希取模
+      im_chat_table_inline:
+        type: INLINE
+        props:
+          algorithm-expression: im_chat_${owner_id.hashCode() % 4}
+          
+      # 单聊消息表分表算法 - 根据发送者ID哈希取模
+      im_single_message_table_inline:
+        type: INLINE
+        props:
+          algorithm-expression: im_single_message_${from_id.hashCode() % 4}
+          
+      # 群聊消息表分表算法 - 根据群组ID哈希取模
+      im_group_message_table_inline:
+        type: INLINE
+        props:
+          algorithm-expression: im_group_message_${group_id.hashCode() % 4}
+          
+      # 群聊消息状态表分表算法 - 根据群组ID哈希取模
+      im_group_message_status_table_inline:
+        type: INLINE
+        props:
+          algorithm-expression: im_group_message_status_${group_id.hashCode() % 4}
+          
+      # 群组表分表算法 - 根据群组ID哈希取模
+      im_group_table_inline:
+        type: INLINE
+        props:
+          algorithm-expression: im_group_${group_id.hashCode() % 4}
+          
+      # 群成员表分表算法 - 根据群组ID哈希取模
+      im_group_member_table_inline:
+        type: INLINE
+        props:
+          algorithm-expression: im_group_member_${group_id.hashCode() % 4}
+          
+      # 群邀请请求表分表算法 - 根据群组ID哈希取模
+      im_group_invite_request_table_inline:
+        type: INLINE
+        props:
+          algorithm-expression: im_group_invite_request_${group_id.hashCode() % 4}
+          
+      # 好友关系表分表算法 - 根据用户ID哈希取模
+      im_friendship_table_inline:
+        type: INLINE
+        props:
+          algorithm-expression: im_friendship_${owner_id.hashCode() % 4}
+          
+      # 好友分组表分表算法 - 根据用户ID哈希取模
+      im_friendship_group_table_inline:
+        type: INLINE
+        props:
+          algorithm-expression: im_friendship_group_${from_id.hashCode() % 4}
+          
+      # 好友分组成员表分表算法 - 根据用户ID哈希取模
+      im_friendship_group_member_table_inline:
+        type: INLINE
+        props:
+          algorithm-expression: im_friendship_group_member_${from_id.hashCode() % 4}
+          
+      # 好友请求表分表算法 - 根据被请求者ID哈希取模
+      im_friendship_request_table_inline:
+        type: INLINE
+        props:
+          algorithm-expression: im_friendship_request_${to_id.hashCode() % 4}
+
+    # 主键生成策略
+    keyGenerators:
+      snowflake:
+        type: SNOWFLAKE
+        props:
+          worker-id: 123
+          max-tolerate-time-difference-milliseconds: 100
+
+  # 广播表规则 - 在所有数据源中都存在的表
+  - !BROADCAST
+    tables:
+      - im_dict
+
+props:
+  sql-show: true
+  max-tolerate-time-difference-milliseconds: 10000

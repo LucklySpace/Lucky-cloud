@@ -33,13 +33,11 @@
         <dependency>
             <groupId>com.xy</groupId>
             <artifactId>im-general</artifactId>
-            <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>com.xy</groupId>
             <artifactId>im-utils</artifactId>
-            <scope>compile</scope>
         </dependency>
 
         <!-- postgresql 数据库依赖 -->
@@ -101,7 +99,7 @@
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
             <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
-            <version>4.3.0</version>
+            <version>${knife4j.version}</version>
         </dependency>
 
         <!-- 引入jackson依赖包-->
@@ -171,12 +169,6 @@
             <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
         </dependency>
 
-        <!--openFeign-->
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-openfeign</artifactId>
-        </dependency>
-
         <!--使用nacos + ribbon做负载均衡时添加的loadbalancer依赖-->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
@@ -220,6 +212,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+
     </dependencies>
 
     <dependencyManagement>

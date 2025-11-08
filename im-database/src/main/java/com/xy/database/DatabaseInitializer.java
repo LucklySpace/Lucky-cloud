@@ -28,6 +28,7 @@ public class DatabaseInitializer implements ApplicationRunner {
      * 重试间隔毫秒
      */
     private static final long RETRY_DELAY_MS = 5000L;
+
     @Resource
     private DataSource dataSource;
 

@@ -28,4 +28,4 @@ spring:
         file-extension: yml
 
 server:
-  port: ${SERVER_PORT:3210}
+  port: ${SERVER_PORT:@im-ai.server.port@}

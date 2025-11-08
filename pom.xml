@@ -479,13 +479,29 @@
 
     <!-- Profiles配置 -->
     <profiles>
+
         <!-- 开发环境 -->
         <profile>
             <id>dev</id>
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
+
             <properties>
+                <description>开发环境</description>
+
+                <!-- 服务端口配置 -->
+                <im-auth.server.port>8084</im-auth.server.port>
+                <im-server.server.port>8085</im-server.server.port>
+                <im-generator.server.port>8086</im-generator.server.port>
+                <im-file.server.port>8087</im-file.server.port>
+                <im-ai.server.port>8088</im-ai.server.port>
+                <im-analytics.server.port>8089</im-analytics.server.port>
+                <im-update.server.port>8090</im-update.server.port>
+
+                <im-database.server.port>8100</im-database.server.port>
+                <im-gateway.server.port>9191</im-gateway.server.port>
+
                 <!-- Nacos 配置中心配置 -->
                 <nacos.config.server-addr>localhost:8848</nacos.config.server-addr>
                 <nacos.config.namespace>public</nacos.config.namespace>
@@ -509,6 +525,21 @@
         <profile>
             <id>test</id>
             <properties>
+                <description>测试环境</description>
+
+                <!-- 服务端口配置 -->
+                <im-auth.server.port>8084</im-auth.server.port>
+                <im-server.server.port>8085</im-server.server.port>
+                <im-generator.server.port>8086</im-generator.server.port>
+                <im-file.server.port>8087</im-file.server.port>
+                <im-ai.server.port>8088</im-ai.server.port>
+                <im-analytics.server.port>8089</im-analytics.server.port>
+                <im-update.server.port>8090</im-update.server.port>
+
+                <im-database.server.port>8100</im-database.server.port>
+                <im-gateway.server.port>9191</im-gateway.server.port>
+
+
                 <!-- Nacos 配置中心配置 -->
                 <nacos.config.server-addr>test.nacos.server:8848</nacos.config.server-addr>
                 <nacos.config.namespace>test</nacos.config.namespace>
@@ -530,6 +561,20 @@
         <profile>
             <id>prod</id>
             <properties>
+                <description>生产环境</description>
+
+                <!-- 服务端口配置 -->
+                <im-auth.server.port>8084</im-auth.server.port>
+                <im-server.server.port>8085</im-server.server.port>
+                <im-generator.server.port>8086</im-generator.server.port>
+                <im-file.server.port>8087</im-file.server.port>
+                <im-ai.server.port>8088</im-ai.server.port>
+                <im-analytics.server.port>8089</im-analytics.server.port>
+                <im-update.server.port>8090</im-update.server.port>
+
+                <im-database.server.port>8100</im-database.server.port>
+                <im-gateway.server.port>9191</im-gateway.server.port>
+
                 <!-- Nacos 配置中心配置 -->
                 <nacos.config.server-addr>prod.nacos.server:8848</nacos.config.server-addr>
                 <nacos.config.namespace>prod</nacos.config.namespace>

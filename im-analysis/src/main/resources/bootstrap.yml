@@ -28,4 +28,4 @@ spring:
         file-extension: yml
 
 server:
-  port: ${SERVER_PORT:8082}
+  port: ${SERVER_PORT:@im-analytics.server.port@}

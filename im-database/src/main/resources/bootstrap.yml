@@ -46,4 +46,4 @@ dubbo:
 server:
   http2:
     enabled: true
-  port: ${SERVER_PORT:8086}
+  port: ${SERVER_PORT:@im-database.server.port@}

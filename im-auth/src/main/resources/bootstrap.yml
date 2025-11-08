@@ -46,4 +46,4 @@ dubbo:
 server:
   http2:
     enabled: true
-  port: ${SERVER_PORT:8084}
+  port: ${SERVER_PORT:@im-auth.server.port@}

@@ -32,4 +32,4 @@ spring:
 server:
   http2:
     enabled: true
-  port: ${SERVER_PORT:9191}
+  port: ${SERVER_PORT:@im-gateway.server.port@}

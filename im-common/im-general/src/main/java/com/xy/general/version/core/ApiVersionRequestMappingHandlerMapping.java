@@ -9,9 +9,9 @@ import java.lang.reflect.Method;
 
 /**
  * 自定义 HandlerMapping，支持基于 @Version 注解的接口版本控制
- * <p>
+ *
  * 示例用法：
- * - 类或方法上加 @Version("v1") 表示匹配 /v1/xxx 请求
+ * - 类或方法上加 @Version("1") 表示匹配 /v1/xxx 请求
  */
 public class ApiVersionRequestMappingHandlerMapping extends RequestMappingHandlerMapping {
 
@@ -25,7 +25,8 @@ public class ApiVersionRequestMappingHandlerMapping extends RequestMappingHandle
     protected RequestCondition<?> getCustomTypeCondition(Class<?> handlerType) {
         // 查找类上的 @Version 注解
         Version version = AnnotationUtils.findAnnotation(handlerType, Version.class);
-        return null == version ? super.getCustomTypeCondition(handlerType) : new ApiVersionCondition(version.value());
+        // 如果类上没有@Version注解，则使用父类的实现
+        return version == null ? super.getCustomTypeCondition(handlerType) : new ApiVersionCondition(version.value());
     }
 
     /**
@@ -38,8 +39,7 @@ public class ApiVersionRequestMappingHandlerMapping extends RequestMappingHandle
     protected RequestCondition<?> getCustomMethodCondition(Method method) {
         // 查找方法上的 @Version 注解
         Version version = AnnotationUtils.findAnnotation(method, Version.class);
-        return null == version ? super.getCustomMethodCondition(method) : new ApiVersionCondition(version.value());
+        // 如果方法上没有@Version注解，则使用父类的实现
+        return version == null ? super.getCustomMethodCondition(method) : new ApiVersionCondition(version.value());
     }
-
-
 }

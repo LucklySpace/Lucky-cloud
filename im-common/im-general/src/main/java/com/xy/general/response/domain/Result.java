@@ -21,7 +21,7 @@ import java.time.Instant;
 public class Result<T> {
 
     /**
-     * 状态码，例如 0 表示成功，其他表示错误
+     * 状态码，例如 200 表示成功，其他表示错误
      */
     private Integer code;
 
@@ -43,6 +43,8 @@ public class Result<T> {
 
 
     /**
+     * 全参构造函数
+     *
      * @param code    状态码
      * @param message 消息
      * @param data    数据
@@ -59,6 +61,9 @@ public class Result<T> {
 
     /**
      * 成功无数据
+     *
+     * @param <T> 数据类型
+     * @return Result实例
      */
     public static <T> Result<T> success() {
         return new Result<>(ResultCode.SUCCESS.getCode(), ResultCode.SUCCESS.getMessage(), null);
@@ -66,6 +71,10 @@ public class Result<T> {
 
     /**
      * 成功，带数据
+     *
+     * @param data 数据
+     * @param <T> 数据类型
+     * @return Result实例
      */
     public static <T> Result<T> success(T data) {
         return success(ResultCode.SUCCESS.getMessage(), data);
@@ -73,6 +82,11 @@ public class Result<T> {
 
     /**
      * 成功，自定义消息 + 数据
+     *
+     * @param data 数据
+     * @param message 消息
+     * @param <T> 数据类型
+     * @return Result实例
      */
     public static <T> Result<T> success(String message, T data) {
         return new Result<>(ResultCode.SUCCESS.getCode(), message, data);
@@ -80,6 +94,11 @@ public class Result<T> {
 
     /**
      * 成功，自定义 IResult（用于国际化场景）
+     *
+     * @param result 结果码
+     * @param data 数据
+     * @param <T> 数据类型
+     * @return Result实例
      */
     public static <T> Result<T> success(IResult result, T data) {
         return new Result<>(result.getCode(), result.getMessage(), data);
@@ -87,6 +106,10 @@ public class Result<T> {
 
     /**
      * 成功，自定义 IResult（用于国际化场景）
+     *
+     * @param result 结果码
+     * @param <T> 数据类型
+     * @return Result实例
      */
     public static <T> Result<T> success(IResult result) {
         return new Result<>(result.getCode(), result.getMessage(), null);
@@ -96,6 +119,8 @@ public class Result<T> {
 
     /**
      * 失败，默认错误
+     *
+     * @return Result实例
      */
     public static Result<?> failed() {
         return failed(ResultCode.FAIL);
@@ -103,6 +128,9 @@ public class Result<T> {
 
     /**
      * 失败，自定义消息
+     *
+     * @param message 消息
+     * @return Result实例
      */
     public static Result<?> failed(String message) {
         return new Result<>(ResultCode.FAIL.getCode(), message, null);
@@ -110,6 +138,9 @@ public class Result<T> {
 
     /**
      * 失败，自定义错误结构（如业务码+国际化key）
+     *
+     * @param errorResult 错误结果
+     * @return Result实例
      */
     public static Result<?> failed(IResult errorResult) {
         return new Result<>(errorResult.getCode(), errorResult.getMessage(), null);
@@ -117,6 +148,11 @@ public class Result<T> {
 
     /**
      * 失败，自定义错误结构 + 数据
+     *
+     * @param errorResult 错误结果
+     * @param data 数据
+     * @param <T> 数据类型
+     * @return Result实例
      */
     public static <T> Result<T> failed(IResult errorResult, T data) {
         return new Result<>(errorResult.getCode(), errorResult.getMessage(), data);
@@ -124,6 +160,10 @@ public class Result<T> {
 
     /**
      * 失败，自定义状态码 + 消息
+     *
+     * @param code 状态码
+     * @param message 消息
+     * @return Result实例
      */
     public static Result<?> failed(Integer code, String message) {
         return new Result<>(code, message, null);
@@ -131,6 +171,12 @@ public class Result<T> {
 
     /**
      * 失败，自定义状态码 + 消息 + 数据
+     *
+     * @param code 状态码
+     * @param message 消息
+     * @param data 数据
+     * @param <T> 数据类型
+     * @return Result实例
      */
     public static <T> Result<T> failed(Integer code, String message, T data) {
         return new Result<>(code, message, data);
@@ -140,8 +186,39 @@ public class Result<T> {
 
     /**
      * 自定义响应结构构造器（静态方式）
+     *
+     * @param code 状态码
+     * @param message 消息
+     * @param data 数据
+     * @param <T> 数据类型
+     * @return Result实例
      */
     public static <T> Result<T> instance(Integer code, String message, T data) {
+        return new Result<>(code, message, data);
+    }
+
+    /**
+     * 创建一个只有状态码和消息的Result实例
+     *
+     * @param code    状态码
+     * @param message 消息
+     * @param <T>     数据类型
+     * @return Result实例
+     */
+    public static <T> Result<T> of(Integer code, String message) {
+        return new Result<>(code, message, null);
+    }
+
+    /**
+     * 创建一个包含状态码、消息和数据的Result实例
+     *
+     * @param code    状态码
+     * @param message 消息
+     * @param data    数据
+     * @param <T>     数据类型
+     * @return Result实例
+     */
+    public static <T> Result<T> of(Integer code, String message, T data) {
         return new Result<>(code, message, data);
     }
 }

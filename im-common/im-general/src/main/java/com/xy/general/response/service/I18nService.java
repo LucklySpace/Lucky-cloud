@@ -21,7 +21,7 @@ import java.util.Locale;
 public class I18nService {
 
     // 静态MessageSource实例，用于消息解析
-    private static MessageSource messageSource;
+    private static volatile MessageSource messageSource;
 
     /**
      * 根据消息键获取当前语言环境下的消息
@@ -46,7 +46,7 @@ public class I18nService {
      * @return 对应语言环境下的消息文本(带参数替换)
      */
     public static String getMessage(String key, Object[] args) {
-        return messageSource.getMessage(key, args, Locale.getDefault());
+        return getMessage(key, args, Locale.getDefault());
     }
 
     /**
@@ -56,10 +56,34 @@ public class I18nService {
      * @param args   消息中的参数数组(可为null)
      * @param locale 指定的语言环境
      * @return 指定语言环境下的消息文本(带参数替换)
-     * @throws org.springframework.context.NoSuchMessageException 如果找不到指定键的消息
+     * @throws org.springframework.context.NoSuchMessageException 如果找不到指定键的消息且useCodeAsDefaultMessage为false
      */
     public static String getMessage(String key, Object[] args, Locale locale) {
-        return messageSource.getMessage(key, args, locale);
+        // 添加空值检查，防止NPE
+        if (key == null || messageSource == null) {
+            return key;
+        }
+
+        // 如果locale为null，则使用默认locale
+        if (locale == null) {
+            locale = Locale.getDefault();
+        }
+
+        try {
+            return messageSource.getMessage(key, args, locale);
+        } catch (Exception e) {
+            // 发生异常时返回key本身，保证程序不会崩溃
+            return key;
+        }
+    }
+
+    /**
+     * 获取MessageSource实例（仅供内部测试使用）
+     *
+     * @return 当前的MessageSource实例
+     */
+    static MessageSource getMessageSource() {
+        return messageSource;
     }
 
     /**
@@ -71,7 +95,13 @@ public class I18nService {
      */
     @Autowired
     public void setMessageSource(@Qualifier("messageSource") MessageSource messageSource) {
-        // 将注入的MessageSource实例赋值给静态变量
-        I18nService.messageSource = messageSource;
+        // 使用volatile和双重检查锁定确保线程安全
+        if (I18nService.messageSource != messageSource) {
+            synchronized (I18nService.class) {
+                if (I18nService.messageSource != messageSource) {
+                    I18nService.messageSource = messageSource;
+                }
+            }
+        }
     }
 }

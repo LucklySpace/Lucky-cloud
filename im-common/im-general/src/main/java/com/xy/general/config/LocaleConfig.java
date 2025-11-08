@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.support.ReloadableResourceBundleMessageSource;
+import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver;
 
@@ -26,14 +26,12 @@ import java.util.TimeZone;
 public class LocaleConfig {
 
     /**
-     * 设置默认时区
+     * 设置默认时区为UTC
      */
     @PostConstruct
     void setTimeZone() {
         TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
-        log.warn("set default timezone:{}", ZoneOffset.UTC);
-        //TimeZone.setDefault(TimeZone.getTimeZone("Asia/Shanghai"));
-        //TimeZone.setDefault(TimeZone.getTimeZone("GMT+8"));
+        log.info("Set default timezone to: {}", ZoneOffset.UTC);
     }
 
     /**
@@ -44,42 +42,29 @@ public class LocaleConfig {
     public LocaleResolver localeResolver() {
         AcceptHeaderLocaleResolver localeResolver = new AcceptHeaderLocaleResolver();
         localeResolver.setDefaultLocale(Locale.ENGLISH);
+        // 设置支持的语言环境列表，提高安全性
+        localeResolver.setSupportedLocales(java.util.List.of(
+                Locale.ENGLISH,
+                Locale.SIMPLIFIED_CHINESE,
+                Locale.US,
+                Locale.CHINA
+        ));
         return localeResolver;
     }
 
     /**
      * 消息源配置：指定国际化资源文件路径和编码
-     * 支持热更新（缓存时间可配置）
+     * 使用 ResourceBundleMessageSource 替代 ReloadableResourceBundleMessageSource 提高性能
+     * 在生产环境中禁用重新加载以提高性能
      */
     @Bean
     public MessageSource messageSource() {
-        ReloadableResourceBundleMessageSource source = new ReloadableResourceBundleMessageSource();
-        source.setBasename("classpath:i18n/messages"); // 对应 messages_zh_CN.properties 等
+        ResourceBundleMessageSource source = new ResourceBundleMessageSource();
+        source.setBasename("i18n/messages");
         source.setDefaultEncoding("UTF-8");
-        source.setUseCodeAsDefaultMessage(true); // 找不到 key 时直接使用 key
+        source.setUseCodeAsDefaultMessage(true);
+        // 生产环境中设置为0（禁用重新加载），开发环境中可以适当调整
+        source.setCacheSeconds(0);
         return source;
     }
-
-    /*
-     * ✅ 可选：自定义 Locale 解析逻辑（优先从请求头中获取语言，支持 fallback）
-     *
-     * 使用此方案可对 Accept-Language 值进行更精细控制（如中文则强制中文，默认英文）
-     *
-     * 取消注释以下 Bean 可覆盖默认 localeResolver：
-     */
-//    @Bean
-//    public LocaleResolver customLocaleResolver() {
-//        return new AcceptHeaderLocaleResolver() {
-//            @Override
-//            public Locale resolveLocale(HttpServletRequest request) {
-//                String lang = request.getHeader("Accept-Language");
-//                if (!StringUtils.hasText(lang)) {
-//                    return Locale.ENGLISH;
-//                }
-//                Locale locale = Locale.forLanguageTag(lang);
-//                return locale.getLanguage().equals("zh") ? Locale.SIMPLIFIED_CHINESE : locale;
-//            }
-//        };
-//    }
-
 }

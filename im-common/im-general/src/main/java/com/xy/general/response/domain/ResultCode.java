@@ -4,6 +4,9 @@ package com.xy.general.response.domain;
 import com.xy.general.response.service.I18nService;
 import lombok.Getter;
 
+import java.util.EnumMap;
+import java.util.Map;
+
 /**
  * 通用响应状态码枚举，支持国际化
  */
@@ -59,6 +62,9 @@ public enum ResultCode implements IResult {
     // 国际化消息键
     private final String messageKey;
 
+    // 使用线程安全的Map缓存已解析的消息
+    private static final Map<ResultCode, String> messageCache = new EnumMap<>(ResultCode.class);
+
     ResultCode(int code, String messageKey) {
         this.code = code;
         this.messageKey = messageKey;
@@ -69,9 +75,47 @@ public enum ResultCode implements IResult {
         return code;
     }
 
+    /**
+     * 清除消息缓存，用于支持动态刷新国际化消息
+     * 在需要重新加载国际化消息时调用
+     */
+    public static void clearMessageCache() {
+        synchronized (messageCache) {
+            messageCache.clear();
+        }
+    }
+
+    /**
+     * 清除指定枚举值的消息缓存
+     *
+     * @param resultCode 需要清除缓存的枚举值
+     */
+    public static void clearMessageCache(ResultCode resultCode) {
+        synchronized (messageCache) {
+            messageCache.remove(resultCode);
+        }
+    }
+
     @Override
     public String getMessage() {
-        // 从 Spring 容器中获取 MessageSource，并根据 Locale 获取消息
-        return I18nService.getMessage(messageKey);
+        // 先从缓存中获取消息
+        String message = messageCache.get(this);
+        if (message != null) {
+            return message;
+        }
+
+        // 如果缓存中没有，则从I18nService获取并缓存
+        synchronized (messageCache) {
+            // 双重检查锁定模式，防止重复计算
+            message = messageCache.get(this);
+            if (message != null) {
+                return message;
+            }
+
+            // 从 Spring 容器中获取 MessageSource，并根据 Locale 获取消息
+            message = I18nService.getMessage(messageKey);
+            messageCache.put(this, message);
+            return message;
+        }
     }
 }

@@ -8,6 +8,14 @@ mode:
   type: Standalone
 
 dataSources:
+  # 核心数据库 - 主库
+  core_master_ds:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: org.postgresql.Driver
+    jdbcUrl: jdbc:postgresql://127.0.0.1:5432/im_core
+    username: postgres
+    password: 123456
+
   # 会话数据库 - 主库
   chat_master_ds:
     dataSourceClassName: com.zaxxer.hikari.HikariDataSource
@@ -78,7 +86,7 @@ dataSources:
     driverClassName: org.postgresql.Driver
     jdbcUrl: jdbc:postgresql://127.0.0.1:5432/im_group_slave_1
     username: postgres
-    password: postgres
+    password: 123456
     
   # 用户及好友数据库 - 主库
   user_master_ds:
@@ -86,7 +94,7 @@ dataSources:
     driverClassName: org.postgresql.Driver
     jdbcUrl: jdbc:postgresql://127.0.0.1:5432/im_user_master
     username: postgres
-    password: postgres
+    password: 123456
     
   # 用户及好友数据库 - 从库1
   user_slave_ds_0:
@@ -143,6 +151,11 @@ rules:
   # 数据分片规则
   - !SHARDING
     tables:
+
+      # IMOutbox 表 - 放在 core 库中，不分表
+      IMOutbox:
+        actualDataNodes: core_master.IMOutbox
+
       # 会话表 - 按用户ID分片
       im_chat:
         actualDataNodes: chat_ds.im_chat_${0..3}
@@ -345,9 +358,9 @@ rules:
           max-tolerate-time-difference-milliseconds: 100
 
   # 广播表规则 - 在所有数据源中都存在的表
-  - !BROADCAST
-    tables:
-      - im_dict
+#  - !BROADCAST
+#    tables:
+#      - im_dict
 
 props:
   sql-show: true

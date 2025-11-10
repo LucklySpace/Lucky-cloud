@@ -89,11 +89,11 @@
         </dependency>
 
         <!-- dynamic 多数据源-->
-        <dependency>
-            <groupId>com.baomidou</groupId>
-            <artifactId>dynamic-datasource-spring-boot3-starter</artifactId>
-            <version>${dynamic.version}</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.baomidou</groupId>-->
+<!--            <artifactId>dynamic-datasource-spring-boot3-starter</artifactId>-->
+<!--            <version>${dynamic.version}</version>-->
+<!--        </dependency>-->
 
         <!--引入Knife4j的官方start包,Spring Boot版本 > 3.0,开发者需要注意-->
         <dependency>

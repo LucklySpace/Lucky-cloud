@@ -1,4 +1,4 @@
-# 🍀  Lucky  （IM-Server） - 高性能即时通讯服务端
+# 🍀  Lucky-Cloud  （IM-Server） - 高性能即时通讯服务端
 
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.0-green.svg)](https://spring.io/projects/spring-boot)
@@ -7,7 +7,7 @@
 
 ## 📖 项目简介
 
-IM-Server 是一个基于 **Spring Boot 3 + Spring Cloud Alibaba** 构建的高性能、高可用的即时通讯服务端系统。本系统采用微服务架构设计，支持大规模用户并发连接，提供完整的即时通讯解决方案，包括消息推送、音视频通话、文件传输等核心功能。
+Lucky-Cloud 是一个基于 **Spring Boot 3 + Spring Cloud Alibaba** 构建的高性能、高可用的即时通讯服务端系统。本系统采用微服务架构设计，支持大规模用户并发连接，提供完整的即时通讯解决方案，包括消息推送、音视频通话、文件传输等核心功能。
 
 ## ✨ 核心特性
 
@@ -16,6 +16,7 @@ IM-Server 是一个基于 **Spring Boot 3 + Spring Cloud Alibaba** 构建的高�
 - **Java 21**: 利用最新的Java特性，提供卓越的性能和安全性
 - **Spring Boot 3.2.0**: 原生支持JDK 21，优化容器化部署
 - **Spring Cloud Alibaba**: 完整的微服务治理解决方案
+- **Apache Dubbo** 微服务模块远程rpc调用
 - **微服务架构**: 模块化设计，支持独立部署和扩展
 - **高并发支持**: 基于WebSocket的长连接管理，支持亿万级并发
 
@@ -40,6 +41,7 @@ IM-Server 是一个基于 **Spring Boot 3 + Spring Cloud Alibaba** 构建的高�
 - **可扩展性**: 水平扩展，支持动态扩容
 - **监控告警**: 集成Sentinel，实时监控系统状态
 - **配置管理**: 动态配置，支持热更新
+- **动态数据源**: 支持动态添加、移除、切换数据源，支持健康检查
 
 ## 🏗️ 系统架构
 
@@ -376,9 +378,9 @@ docker-compose up -d
 
 ## 📞 联系我们
 
-- **项目主页**: [https://github.com/Luckly-XYZ](https://github.com/Luckly-XYZ)
+- **项目主页**: [https://github.com/LucklySpace/Lucky-cloud](https://github.com/LucklySpace/Lucky-cloud)
 
-- **问题反馈**: [Issues](https://github.com/Luckly-XYZ/Lucky-cloud/issues)
+- **问题反馈**: [Issues](https://github.com/LucklySpace/Lucky-cloud/issues)
 
 - **邮箱**: 382192293@qq.com
 

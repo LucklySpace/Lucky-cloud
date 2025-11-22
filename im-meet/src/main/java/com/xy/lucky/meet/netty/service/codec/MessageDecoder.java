@@ -1,0 +1,20 @@
+package com.xy.lucky.meet.netty.service.codec;
+
+
+import com.xy.lucky.meet.entity.Message;
+import com.xy.lucky.utils.json.JacksonUtils;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.MessageToMessageDecoder;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+
+import java.util.List;
+
+public class MessageDecoder extends MessageToMessageDecoder<TextWebSocketFrame> {
+
+    @Override
+    protected void decode(ChannelHandlerContext channelHandlerContext,
+                          TextWebSocketFrame textWebSocketFrame,
+                          List<Object> list) throws Exception {
+        list.add(JacksonUtils.parseObject(textWebSocketFrame.text(), Message.class));
+    }
+}

@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.xy</groupId>
+        <groupId>com.xy.lucky</groupId>
         <artifactId>im-framework</artifactId>
         <version>${revision}</version>
         <relativePath>../pom.xml</relativePath>
@@ -16,12 +16,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.xy</groupId>
+            <groupId>com.xy.lucky</groupId>
             <artifactId>im-domain</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>com.xy</groupId>
+            <groupId>com.xy.lucky</groupId>
             <artifactId>im-core</artifactId>
         </dependency>
     </dependencies>

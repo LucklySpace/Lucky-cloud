@@ -1,0 +1,44 @@
+package com.xy.lucky.connect.netty.service.websocket.codec.proto;
+
+import com.xy.lucky.connect.domain.proto.IMessageProto;
+import com.xy.lucky.connect.utils.ProtoJsonUtils;
+import com.xy.lucky.core.model.IMessageWrap;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.MessageToMessageDecoder;
+import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
+
+@Slf4j
+public class ProtobufMessageDecoder extends MessageToMessageDecoder<BinaryWebSocketFrame> {
+
+    @Override
+    protected void decode(ChannelHandlerContext ctx,
+                          BinaryWebSocketFrame frame,
+                          List<Object> out) throws Exception {
+
+        IMessageProto.IMessageWrap proto =
+                IMessageProto.IMessageWrap.parseFrom(frame.content().nioBuffer());
+
+        IMessageWrap<Object> pojo = new IMessageWrap<>();
+        pojo.setCode(proto.getCode());
+        pojo.setToken(proto.getToken());
+        pojo.setRequestId(proto.getRequestId());
+        pojo.setTimestamp(proto.getTimestamp());
+        pojo.setClientIp(proto.getClientIp());
+        pojo.setUserAgent(proto.getUserAgent());
+        if (!proto.getMetadataMap().isEmpty()) {
+            pojo.setMetadata(proto.getMetadataMap());
+        }
+
+        // 只处理 Any（有就解包）
+        if (proto.hasData()) {
+            Object unpacked = ProtoJsonUtils.unpackAny(proto.getData());
+            pojo.setData(unpacked);
+        }
+
+        out.add(pojo);
+    }
+
+}

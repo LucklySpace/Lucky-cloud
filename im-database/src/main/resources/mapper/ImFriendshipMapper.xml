@@ -2,9 +2,9 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.xy.database.mapper.ImFriendshipMapper">
+<mapper namespace="com.xy.lucky.database.mapper.ImFriendshipMapper">
 
-    <select id="selectFriendList" resultType="com.xy.domain.po.ImFriendshipPo">
+    <select id="selectFriendList" resultType="com.xy.lucky.domain.po.ImFriendshipPo">
         select *
         from im_friendship
         <where>

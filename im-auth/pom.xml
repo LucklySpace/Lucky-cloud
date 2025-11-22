@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.xy</groupId>
+        <groupId>com.xy.lucky</groupId>
         <artifactId>Lucky-cloud</artifactId>
         <version>${revision}</version>
         <relativePath>../pom.xml</relativePath>
@@ -18,36 +18,36 @@
 
         <!-- 项目核心模块依赖 -->
         <dependency>
-            <groupId>com.xy</groupId>
+            <groupId>com.xy.lucky</groupId>
             <artifactId>im-core</artifactId>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
-            <groupId>com.xy</groupId>
+            <groupId>com.xy.lucky</groupId>
             <artifactId>im-dubbo</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>com.xy</groupId>
+            <groupId>com.xy.lucky</groupId>
             <artifactId>im-domain</artifactId>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
-            <groupId>com.xy</groupId>
+            <groupId>com.xy.lucky</groupId>
             <artifactId>im-crypto</artifactId>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
-            <groupId>com.xy</groupId>
+            <groupId>com.xy.lucky</groupId>
             <artifactId>im-general</artifactId>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
-            <groupId>com.xy</groupId>
+            <groupId>com.xy.lucky</groupId>
             <artifactId>im-utils</artifactId>
             <scope>compile</scope>
         </dependency>

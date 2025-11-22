@@ -2,7 +2,7 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.xy</groupId>
+    <groupId>com.xy.lucky</groupId>
     <artifactId>im-meet</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>im-meet</name>
@@ -45,7 +45,7 @@
     <dependencies>
 
         <dependency>
-            <groupId>com.xy</groupId>
+            <groupId>com.xy.lucky</groupId>
             <artifactId>im-utils</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
@@ -97,13 +97,13 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xy</groupId>
+            <groupId>com.xy.lucky</groupId>
             <artifactId>im-core</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
 
         <dependency>
-            <groupId>com.xy</groupId>
+            <groupId>com.xy.lucky</groupId>
             <artifactId>im-spring</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>

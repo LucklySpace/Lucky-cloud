@@ -2,7 +2,7 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.xy</groupId>
+    <groupId>com.xy.lucky</groupId>
     <artifactId>Lucky-cloud</artifactId>
     <version>${revision}</version>
     <name>Lucky-cloud</name>
@@ -17,7 +17,7 @@
         <module>im-database</module>
         <module>im-file</module>
         <module>im-analysis</module>
-        <module>im-generator</module>
+        <module>im-leaf</module>
         <module>im-proxy</module>
         <module>im-update</module>
         <module>im-meet</module>
@@ -240,98 +240,98 @@
 
             <!-- framework模块 项目内子模块统一版本管理 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-core</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- 实体类模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-domain</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- dubbo模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-dubbo</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- 通用模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-general</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- grpc模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-grpc-all</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- grpc模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-grpc-client</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- grpc模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-grpc-core</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- grpc模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-grpc-server</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- 接口加解密模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-crypto</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- spring模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-spring</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- 工具类模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-utils</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- mq模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-mq</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- mq模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-mq-rabbit</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- mq模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-mq-kafka</artifactId>
                 <version>${revision}</version>
             </dependency>
@@ -339,70 +339,70 @@
 
             <!-- 非common模块-->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-ai</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- 分析模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-analysis</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- 权限模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-auth</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- 数据库模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-database</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- 文件管理模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-file</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- 网关模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-gateway</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- id生成模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
-                <artifactId>im-generator</artifactId>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-leaf</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- 代理模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-proxy</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- 业务服务模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-server</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- 升级更新模块 -->
             <dependency>
-                <groupId>com.xy</groupId>
+                <groupId>com.xy.lucky</groupId>
                 <artifactId>im-update</artifactId>
                 <version>${revision}</version>
             </dependency>
@@ -543,7 +543,7 @@
                 <!-- 服务端口配置 -->
                 <im-auth.server.port>8084</im-auth.server.port>
                 <im-server.server.port>8085</im-server.server.port>
-                <im-generator.server.port>8086</im-generator.server.port>
+                <im-leaf.server.port>8086</im-leaf.server.port>
                 <im-file.server.port>8087</im-file.server.port>
                 <im-ai.server.port>8088</im-ai.server.port>
                 <im-analytics.server.port>8089</im-analytics.server.port>
@@ -587,7 +587,7 @@
                 <!-- 服务端口配置 -->
                 <im-auth.server.port>8084</im-auth.server.port>
                 <im-server.server.port>8085</im-server.server.port>
-                <im-generator.server.port>8086</im-generator.server.port>
+                <im-leaf.server.port>8086</im-leaf.server.port>
                 <im-file.server.port>8087</im-file.server.port>
                 <im-ai.server.port>8088</im-ai.server.port>
                 <im-analytics.server.port>8089</im-analytics.server.port>
@@ -632,7 +632,7 @@
                 <!-- 服务端口配置 -->
                 <im-auth.server.port>8084</im-auth.server.port>
                 <im-server.server.port>8085</im-server.server.port>
-                <im-generator.server.port>8086</im-generator.server.port>
+                <im-leaf.server.port>8086</im-leaf.server.port>
                 <im-file.server.port>8087</im-file.server.port>
                 <im-ai.server.port>8088</im-ai.server.port>
                 <im-analytics.server.port>8089</im-analytics.server.port>

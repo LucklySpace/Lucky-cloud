@@ -30,4 +30,4 @@ spring:
         file-extension: yml
 
 server:
-  port: ${SERVER_PORT:@im.file.server.port@}
+  port: ${SERVER_PORT:@im-file.server.port@}

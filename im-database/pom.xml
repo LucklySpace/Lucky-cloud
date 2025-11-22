@@ -88,6 +88,12 @@
             </exclusions>
         </dependency>
 
+        <!-- Seata分布式事务 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+        </dependency>
+
         <!-- dynamic 多数据源-->
 <!--        <dependency>-->
 <!--            <groupId>com.baomidou</groupId>-->

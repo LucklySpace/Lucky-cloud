@@ -39,6 +39,8 @@ dubbo:
   consumer:
     check: false    # 让 consumer 不在启动时校验 provider 是否存在
     timeout: 5000
+  provider:
+    delay: -1  # 延迟暴露服务
   registry:
     address: nacos://${NACOS_DISCOVERY_SERVER_ADDR:@nacos.config.server-addr@}
     register-mode: instance # 注册模式

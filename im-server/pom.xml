@@ -103,6 +103,12 @@
             <version>${kotlin-stdlib.version}</version>
         </dependency>
 
+        <!-- Seata分布式事务 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+        </dependency>
+
         <!--引入Knife4j的官方start包,Spring Boot版本 > 3.0,开发者需要注意-->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>

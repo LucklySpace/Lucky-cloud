@@ -3,7 +3,7 @@ package com.xy.auth;
 import com.github.xiaoymin.knife4j.spring.annotations.EnableKnife4j;
 import com.xy.auth.security.IMRSAKeyProperties;
 import com.xy.auth.security.IMSecurityProperties;
-import com.xy.security.CryptoProperties;
+import com.xy.crypto.CryptoProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;

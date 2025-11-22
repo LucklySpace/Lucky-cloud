@@ -6,7 +6,7 @@ import com.xy.auth.security.IMRSAKeyProperties;
 import com.xy.auth.service.AuthService;
 import com.xy.auth.utils.RSAUtil;
 import com.xy.general.response.domain.Result;
-import com.xy.security.sign.annotation.Signature;
+import com.xy.crypto.sign.annotation.Signature;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;

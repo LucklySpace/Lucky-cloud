@@ -36,7 +36,7 @@
 
         <dependency>
             <groupId>com.xy</groupId>
-            <artifactId>im-security</artifactId>
+            <artifactId>im-crypto</artifactId>
             <scope>compile</scope>
         </dependency>
 

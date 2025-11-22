@@ -27,10 +27,28 @@ spring:
     multipart:
       max-file-size: 10MB
   datasource:
+    # 默认数据源配置
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://127.0.0.1:5432/im-core
     username: postgres # 数据库账号
     password: 123456 # 数据库密码
+
+    # HikariCP连接池配置
+    hikari:
+      # 连接池名称
+      pool-name: IM-Database-HikariCP
+      # 连接池最大连接数
+      maximum-pool-size: 20
+      # 连接池最小空闲连接数
+      minimum-idle: 5
+      # 连接超时时间(毫秒)
+      connection-timeout: 30000
+      # 空闲连接超时时间(毫秒)
+      idle-timeout: 600000
+      # 连接最大生存时间(毫秒)
+      max-lifetime: 1800000
+      # 连接泄漏检测阈值(毫秒)
+      leak-detection-threshold: 60000
 
   #    引入sharding配置
   #    driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
@@ -50,7 +68,6 @@ spring:
           max-wait: -1    # 最大阻塞等待时间（负数表示无限制）
           max-idle: 5     # 最大空闲连接数
           min-idle: 0     # 最小空闲连接数
-
 
   # mybatis-plus相关配置
 mybatis-plus:

@@ -151,10 +151,9 @@ rules:
   # 数据分片规则
   - !SHARDING
     tables:
-
       # IMOutbox 表 - 放在 core 库中，不分表
       IMOutbox:
-        actualDataNodes: core_master.IMOutbox
+        actualDataNodes: core_master_ds.IMOutbox
 
       # 会话表 - 按用户ID分片
       im_chat:

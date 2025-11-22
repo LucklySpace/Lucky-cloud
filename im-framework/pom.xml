@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.xy</groupId>
+        <artifactId>Lucky-cloud</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>im-framework</artifactId>
+    <name>im-framework</name>
+    <description>im-framework</description>
+
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>im-core</module>
+        <module>im-domain</module>
+        <module>im-utils</module>
+        <module>im-spring</module>
+        <module>im-crypto</module>
+        <module>im-general</module>
+        <module>im-grpc</module>
+        <module>im-dubbo</module>
+        <module>im-address</module>
+        <module>im-mq</module>
+    </modules>
+
+    <properties>
+
+        <!-- Java编译版本 -->
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <java.version>21</java.version>
+
+        <!-- 项目构建编码 -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Spring框架版本 -->
+        <spring-boot.version>3.2.0</spring-boot.version>
+
+        <!-- MyBatis相关版本 -->
+        <mybatis-plus-spring.version>3.5.11</mybatis-plus-spring.version>
+
+        <!-- im-security 安全相关版本-->
+        <jjwt.version>0.9.1</jjwt.version>
+        <java.jwt.version>3.10.1</java.jwt.version>
+        <jaxb.api.version>2.3.1</jaxb.api.version>
+        <bouncycastle.version>1.70</bouncycastle.version>
+
+        <!-- im-spring 相关版本-->
+        <snakeyaml.version>2.2</snakeyaml.version>
+        <lombok.version>1.18.30</lombok.version>
+        <slf4j.version>1.7.25</slf4j.version>
+        <byte-buddy>1.14.6</byte-buddy>
+
+        <!-- 代码生成工具版本 -->
+        <lombok.version>1.18.34</lombok.version>
+
+        <!-- 网络通信框架版本 -->
+        <netty.version>4.1.86.Final</netty.version>
+
+        <!-- 数据库驱动版本 -->
+        <mysql.version>8.0.16</mysql.version>
+
+        <!-- 日志框架版本 -->
+        <slf4j.version>1.7.25</slf4j.version>
+        <logback.version>1.4.12</logback.version>
+
+        <!-- 工具包版本 -->
+        <hutool.version>5.8.25</hutool.version>
+        <nimbus-jose-jwt.version>10.5</nimbus-jose-jwt.version>
+
+        <!-- Redis客户端版本 -->
+        <redis.version>4.2.3</redis.version>
+
+        <!-- JSON处理库版本 -->
+        <jackson.version>2.15.2</jackson.version>
+
+        <!-- Apache Commons工具包版本 -->
+        <commons.lang3.version>3.9</commons.lang3.version>
+        <commons.io.version>2.11.0</commons.io.version>
+
+        <!-- 验证框架版本 -->
+        <jakarta-validation.version>3.0.2</jakarta-validation.version>
+
+        <!-- Redisson分布式锁版本 -->
+        <redission.version>3.43.0</redission.version>
+
+        <!-- 注解API版本 -->
+        <javax.annotation.api.version>1.3.2</javax.annotation.api.version>
+
+        <!-- IP工具类版本 -->
+        <ip2region.version>2.7.0</ip2region.version>
+
+        <!-- AOP切面编程工具包版本 -->
+        <aspectjweaver.version>1.9.24</aspectjweaver.version>
+
+        <swagger-annotations.version>2.2.36</swagger-annotations.version>
+
+        <!-- gRPC相关版本 -->
+        <grpc.spring.version>3.0.0.RELEASE</grpc.spring.version>
+        <grpc.starter.version>3.0.0.RELEASE</grpc.starter.version>
+        <grpc.client.version>3.0.0.RELEASE</grpc.client.version>
+
+        <!-- MapStruct版本 -->
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-annotations-jakarta</artifactId>
+                <version>${swagger-annotations.version}</version>
+            </dependency>
+
+            <!-- nimbus-jose-jwt-->
+            <dependency>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>${nimbus-jose-jwt.version}</version>
+            </dependency>
+
+            <!--Hutool-->
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-all</artifactId>
+                <version>${hutool.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>jakarta.validation</groupId>
+                <artifactId>jakarta.validation-api</artifactId>
+                <version>${jakarta-validation.version}</version>
+            </dependency>
+
+            <!-- 引入jackson依赖包-->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${commons.io.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons.lang3.version}</version>
+            </dependency>
+
+            <!--  lombok-->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.lionsoul</groupId>
+                <artifactId>ip2region</artifactId>
+                <version>${ip2region.version}</version>
+            </dependency>
+
+            <!-- MapStruct -->
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct-processor</artifactId>
+                <version>${mapstruct.version}</version>
+            </dependency>
+
+            <!-- Lombok MapStruct Binding -->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok-mapstruct-binding</artifactId>
+                <version>0.2.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xy</groupId>
+                <artifactId>Lucky-cloud</artifactId>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.springframework.cloud</groupId>
+                        <artifactId>spring-cloud-starter-bootstrap</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+
+    </dependencies>
+
+
+    <build>
+        <plugins>
+            <!-- 原生编译支持 -->
+            <!--            <plugin>-->
+            <!--                <groupId>org.graalvm.buildtools</groupId>-->
+            <!--                <artifactId>native-maven-plugin</artifactId>-->
+            <!--            </plugin>-->
+
+            <!-- Spring Boot Maven 插件 -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+
+</project>

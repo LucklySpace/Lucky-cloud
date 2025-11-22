@@ -7,16 +7,23 @@
 
 ## 📖 项目简介
 
-Lucky-Cloud 是一个基于 **Spring Boot 3 + Spring Cloud Alibaba** 构建的高性能、高可用的即时通讯服务端系统。本系统采用微服务架构设计，支持大规模用户并发连接，提供完整的即时通讯解决方案，包括消息推送、音视频通话、文件传输等核心功能。
+Lucky-Cloud 是一个基于 **Spring Cloud Alibaba + Spring Boot 3 **
+构建的高性能、高可用的即时通讯服务端系统。本系统采用微服务架构设计，支持大规模用户并发连接，提供完整的即时通讯解决方案，包括消息推送、音视频通话、文件传输等核心功能。
 
 ## ✨ 核心特性
 
 ### 🚀 技术架构
 
 - **Java 21**: 利用最新的Java特性，提供卓越的性能和安全性
-- **Spring Boot 3.2.0**: 原生支持JDK 21，优化容器化部署
+- **Spring Boot 3.2.4**: 原生支持JDK 21，优化容器化部署
 - **Spring Cloud Alibaba**: 完整的微服务治理解决方案
-- **Apache Dubbo** 微服务模块远程rpc调用
+- **Mybatis Plus**: 基于Mybatis的ORM框架
+- **Apache Dubbo**: 微服务模块远程rpc调用
+- **Apache Seata**: 分布式事务管理
+- **Google ProtoBuf**: 高效序列化协议
+- **Netty**: 基于Netty的异步网络通信框架
+- **RabbitMQ**: 集成消息队列，支持高可用、高吞吐量
+- **MinIO**: 集成对象存储，支持文件上传、下载、管理
 - **微服务架构**: 模块化设计，支持独立部署和扩展
 - **高并发支持**: 基于WebSocket的长连接管理，支持亿万级并发
 

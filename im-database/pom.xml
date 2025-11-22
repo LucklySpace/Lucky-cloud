@@ -15,10 +15,6 @@
     <description>im-database</description>
 
     <dependencies>
-        <dependency>
-            <groupId>com.xy.lucky</groupId>
-            <artifactId>im-core</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
@@ -31,13 +27,13 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xy</groupId>
-            <artifactId>im-general</artifactId>
+            <groupId>com.xy.lucky</groupId>
+            <artifactId>im-utils</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>com.xy</groupId>
-            <artifactId>im-utils</artifactId>
+            <groupId>com.xy.lucky</groupId>
+            <artifactId>im-general</artifactId>
         </dependency>
 
         <!-- postgresql 数据库依赖 -->
@@ -217,6 +213,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.xiaoymin</groupId>
+            <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
         </dependency>
 
     </dependencies>

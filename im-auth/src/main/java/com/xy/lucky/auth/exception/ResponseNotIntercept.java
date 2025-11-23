@@ -1,4 +1,4 @@
-package com.xy.lucky.auth.response;
+package com.xy.lucky.auth.exception;
 
 import java.lang.annotation.*;
 

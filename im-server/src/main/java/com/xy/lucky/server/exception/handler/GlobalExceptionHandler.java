@@ -1,16 +1,18 @@
-package com.xy.lucky.server.response.handler;
+package com.xy.lucky.server.exception.handler;
 
 
+import com.xy.lucky.general.exception.BusinessException;
+import com.xy.lucky.general.exception.ForbiddenException;
 import com.xy.lucky.general.response.domain.Result;
 import com.xy.lucky.general.response.domain.ResultCode;
-import com.xy.lucky.server.exception.BusinessException;
-import com.xy.lucky.server.exception.ForbiddenException;
-import com.xy.lucky.server.response.ResponseNotIntercept;
+import com.xy.lucky.server.exception.ResponseNotIntercept;
 import jakarta.servlet.ServletException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
@@ -30,15 +32,22 @@ import java.rmi.ServerException;
 import java.util.stream.Collectors;
 
 /**
- * 全局异常处理器
- * 用于统一返回 API 结果格式
+ * 统一拦截异常
+ */
+
+/**
+ * 全局异常处理
+ *
+ * @author dense
  */
 @Slf4j
-@RestControllerAdvice(basePackages = "com.xy.lucky.server")
-public class GlobalHandler implements ResponseBodyAdvice<Object> {
+@RestControllerAdvice(basePackages = "com.xy.lucky.auth")
+@Order(Ordered.HIGHEST_PRECEDENCE)// 设置最高优先级
+public class GlobalExceptionHandler implements ResponseBodyAdvice<Object> {
+
 
     /**
-     * 处理自定义商务异常
+     * 处理自定义业务异常
      */
     @ExceptionHandler(BusinessException.class)
     public Result<?> handleBusinessException(BusinessException ex) {
@@ -184,4 +193,5 @@ public class GlobalHandler implements ResponseBodyAdvice<Object> {
         }
         return Result.success(body);
     }
+
 }

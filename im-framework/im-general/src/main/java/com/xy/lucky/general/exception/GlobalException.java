@@ -1,4 +1,4 @@
-package com.xy.lucky.server.exception;
+package com.xy.lucky.general.exception;
 
 import com.xy.lucky.general.response.domain.ResultCode;
 import lombok.Data;

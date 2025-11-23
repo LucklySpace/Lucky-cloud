@@ -1,13 +1,16 @@
-package com.xy.lucky.auth.response.handler;
+package com.xy.lucky.auth.exception.handler;
 
 
-import com.xy.lucky.auth.response.ResponseNotIntercept;
+import com.xy.lucky.auth.exception.ResponseNotIntercept;
 import com.xy.lucky.auth.security.exception.AuthenticationFailException;
 import com.xy.lucky.general.response.domain.Result;
 import com.xy.lucky.general.response.domain.ResultCode;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.MethodParameter;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
@@ -30,7 +33,14 @@ import java.rmi.ServerException;
  */
 @Slf4j
 @RestControllerAdvice(basePackages = "com.xy.lucky.auth")
-public class GlobalHandler implements ResponseBodyAdvice<Object> {
+@Order(Ordered.HIGHEST_PRECEDENCE)// 设置最高优先级
+public class GlobalExceptionHandler implements ResponseBodyAdvice<Object> {
+
+    @Value(value = "${spring.servlet.multipart.max-file-size}")
+    String singleMaxFileSize;
+
+    @Value(value = "${spring.servlet.multipart.max-request-size}")
+    String maxRequestSize;
 
     /**
      * 自定义认证异常

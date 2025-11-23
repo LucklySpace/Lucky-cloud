@@ -1,4 +1,4 @@
-package com.xy.lucky.server.response;
+package com.xy.lucky.server.exception;
 
 import java.lang.annotation.*;
 

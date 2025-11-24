@@ -18,7 +18,7 @@
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-mq-rabbit</artifactId>
+            <artifactId>im-starter-mq-rabbit</artifactId>
         </dependency>
 
         <dependency>
@@ -38,7 +38,7 @@
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-utils</artifactId>
+            <artifactId>im-common</artifactId>
         </dependency>
 
         <dependency>
@@ -246,27 +246,6 @@
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
-        </dependency>
-
-        <!--dubbo-->
-        <dependency>
-            <groupId>org.apache.dubbo</groupId>
-            <artifactId>dubbo-spring-boot-starter</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>log4j</groupId>
-                    <artifactId>log4j</artifactId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>spring-context</artifactId>
-                    <groupId>org.springframework</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.dubbo</groupId>
-            <artifactId>dubbo-nacos-spring-boot-starter</artifactId>
         </dependency>
 
         <dependency>

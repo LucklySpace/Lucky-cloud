@@ -12,7 +12,7 @@
 
     <artifactId>im-auth</artifactId>
     <name>im-auth</name>
-    <description>IM Auth Module</description>
+    <description>im-auth</description>
 
     <dependencies>
 
@@ -30,26 +30,27 @@
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
+            <artifactId>im-starter-security</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xy.lucky</groupId>
             <artifactId>im-domain</artifactId>
-            <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
             <artifactId>im-crypto</artifactId>
-            <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
             <artifactId>im-general</artifactId>
-            <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-utils</artifactId>
-            <scope>compile</scope>
+            <artifactId>im-common</artifactId>
         </dependency>
 
         <!-- 短信服务依赖 -->
@@ -81,15 +82,16 @@
             <version>${knife4j.version}</version>
         </dependency>
 
-        <!-- Spring Security，用于安全认证 -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+
+        <!-- Lombok，用于简化代码，如生成 getter/setter 等 -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <!-- Spring Web，用于构建 Web 应用程序 -->
@@ -115,12 +117,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
-        </dependency>
-
-        <!-- Spring Boot Starter -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
         </dependency>
 
         <!-- Redis 数据缓存 -->
@@ -158,39 +154,10 @@
             <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
         </dependency>
 
-        <!--dubbo-->
         <dependency>
-            <groupId>org.apache.dubbo</groupId>
-            <artifactId>dubbo-spring-boot-starter</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>log4j</groupId>
-                    <artifactId>log4j</artifactId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>spring-context</artifactId>
-                    <groupId>org.springframework</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.dubbo</groupId>
-            <artifactId>dubbo-nacos-spring-boot-starter</artifactId>
-        </dependency>
-
-        <!-- Lombok，用于简化代码，如生成 getter/setter 等 -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>cn.hutool</groupId>
-            <artifactId>hutool-all</artifactId>
-            <version>${hutool.version}</version>
-            <scope>compile</scope>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <dependency>

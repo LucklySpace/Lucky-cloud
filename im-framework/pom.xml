@@ -19,14 +19,15 @@
     <modules>
         <module>im-core</module>
         <module>im-domain</module>
-        <module>im-utils</module>
+        <module>im-common</module>
         <module>im-spring</module>
         <module>im-crypto</module>
         <module>im-general</module>
         <module>im-grpc</module>
         <module>im-dubbo</module>
         <module>im-address</module>
-        <module>im-mq</module>
+        <module>im-starter-mq</module>
+        <module>im-starter-security</module>
     </modules>
 
     <properties>

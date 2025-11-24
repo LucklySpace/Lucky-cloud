@@ -2,12 +2,11 @@ package com.xy.lucky.auth.exception.handler;
 
 
 import com.xy.lucky.auth.exception.ResponseNotIntercept;
-import com.xy.lucky.auth.security.exception.AuthenticationFailException;
 import com.xy.lucky.general.response.domain.Result;
 import com.xy.lucky.general.response.domain.ResultCode;
+import com.xy.lucky.security.exception.AuthenticationFailException;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -36,12 +35,6 @@ import java.rmi.ServerException;
 @Order(Ordered.HIGHEST_PRECEDENCE)// 设置最高优先级
 public class GlobalExceptionHandler implements ResponseBodyAdvice<Object> {
 
-    @Value(value = "${spring.servlet.multipart.max-file-size}")
-    String singleMaxFileSize;
-
-    @Value(value = "${spring.servlet.multipart.max-request-size}")
-    String maxRequestSize;
-
     /**
      * 自定义认证异常
      *
@@ -55,7 +48,7 @@ public class GlobalExceptionHandler implements ResponseBodyAdvice<Object> {
         if (ex instanceof AuthenticationFailException e) {
             return Result.failed(e.getResultCode());
         }
-        return Result.failed(1000, ex.getMessage());
+        return Result.failed(ResultCode.FAIL, ex.getMessage());
     }
 
     /**

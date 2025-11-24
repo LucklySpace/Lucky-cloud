@@ -311,28 +311,34 @@
             <!-- 工具类模块 -->
             <dependency>
                 <groupId>com.xy.lucky</groupId>
-                <artifactId>im-utils</artifactId>
+                <artifactId>im-common</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- mq模块 -->
             <dependency>
                 <groupId>com.xy.lucky</groupId>
-                <artifactId>im-mq</artifactId>
+                <artifactId>im-starter-mq</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- mq模块 -->
             <dependency>
                 <groupId>com.xy.lucky</groupId>
-                <artifactId>im-mq-rabbit</artifactId>
+                <artifactId>im-starter-mq-rabbit</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- mq模块 -->
             <dependency>
                 <groupId>com.xy.lucky</groupId>
-                <artifactId>im-mq-kafka</artifactId>
+                <artifactId>im-starter-mq-kafka</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-starter-security</artifactId>
                 <version>${revision}</version>
             </dependency>
 

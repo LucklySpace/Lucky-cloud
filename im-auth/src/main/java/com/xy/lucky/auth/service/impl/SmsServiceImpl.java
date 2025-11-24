@@ -1,9 +1,9 @@
 package com.xy.lucky.auth.service.impl;
 
-import com.xy.lucky.auth.security.exception.AuthenticationFailException;
 import com.xy.lucky.auth.service.SmsService;
 import com.xy.lucky.auth.utils.RedisCache;
 import com.xy.lucky.general.response.domain.ResultCode;
+import com.xy.lucky.security.exception.AuthenticationFailException;
 import com.zhenzi.sms.ZhenziSmsClient;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;

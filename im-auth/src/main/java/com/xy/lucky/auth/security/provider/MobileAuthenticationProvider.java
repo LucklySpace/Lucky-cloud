@@ -1,15 +1,15 @@
 package com.xy.lucky.auth.security.provider;
 
 
-import com.xy.lucky.auth.security.IMRSAKeyProperties;
-import com.xy.lucky.auth.security.exception.AuthenticationFailException;
 import com.xy.lucky.auth.security.token.MobileAuthenticationToken;
-import com.xy.lucky.auth.utils.RSAUtil;
 import com.xy.lucky.auth.utils.RedisCache;
 import com.xy.lucky.core.constants.IMConstant;
 import com.xy.lucky.domain.po.ImUserPo;
 import com.xy.lucky.dubbo.api.database.user.ImUserDubboService;
 import com.xy.lucky.general.response.domain.ResultCode;
+import com.xy.lucky.security.RSAKeyProperties;
+import com.xy.lucky.security.exception.AuthenticationFailException;
+import com.xy.lucky.security.util.RSAUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -32,7 +32,7 @@ public class MobileAuthenticationProvider implements AuthenticationProvider {
     private ImUserDubboService imUserDubboService;
 
     @Resource
-    private IMRSAKeyProperties IMRSAKeyProperties;
+    private RSAKeyProperties RSAKeyProperties;
 
     @Resource
     private RedisCache redisCache;
@@ -138,7 +138,7 @@ public class MobileAuthenticationProvider implements AuthenticationProvider {
             // Base64 编码时使用加号，URL 中的加号会被当成空格，需要替换
             String str = password.replaceAll(" ", "+");
 
-            return RSAUtil.decrypt(str, IMRSAKeyProperties.getPrivateKeyStr());
+            return RSAUtil.decrypt(str, RSAKeyProperties.getPrivateKeyStr());
 
         } catch (Exception e) {
 

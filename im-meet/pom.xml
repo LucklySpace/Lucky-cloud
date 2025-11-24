@@ -46,7 +46,7 @@
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-utils</artifactId>
+            <artifactId>im-common</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
 

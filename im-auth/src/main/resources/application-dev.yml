@@ -70,34 +70,34 @@ security:
   crypto:
     default-encrypt: AES
     default-decrypt: AES
-    aes-key: g64fi7uihebib6d34njcbybfiuyiusyhdf98q38i7unqi7ew
+    aes-key: g64fi7uihebib6d34njcbybfi565645v
   sign:
     secret: g876q3f4fiddybc7684cq87b634fg87
   rsa-public-key:
-    3f3b7uyttuify7634fgb8y87tgbery7475t9h4f5487ygb8y8eyr93uqhuo972o8yubrf9672t45f
+    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0lvuzVF/rtMMxkufrEC3p185fdcQBm2Q66AfOdrKe2Uj9vt+v1wC9LuZjX8nkZLjXYvjCxyneo6BDjbT4hjAGjtNMmyE3xZHV4W52XPhWpTrlMTIavyE0HG5Ch5/8jRhTifo0ROiYTYobkURXLcQNTT6rxm/4JPMWWdUa22p5T2udFyWy60T9gEvN+OqkQHQv3zkcIozeVbMuO8aYskag/6Xt7CaI0g6/zhRTBBFXzl8brEGYlkEEc6Y6+D61QPaja36XIBSgQwQz2U/hGRYumwdp9M+Uu2d9PVgX/s9rh5NNmuzxd7xGKHHY4yLPCBUp61VF82wOE9D0j3KgcBoTQIDAQAB
   rsa-private-key:
-    hd9834678yc98go34i7iifyh96784hfub78438bf7g8457yth79gychu857uy85gtfr883
-  expiration: 30                                                      #JWT过期时间 单位：min
-  secret: 'dasfdffdsfgfadgfshfghfgdsfgxcxfdghhfh'                     #JWT盐值
-  ignore:
-    - '/api/v1/auth/login'
-    - '/api/v1/auth/encrypt'
-    - '/api/v1/auth/publickey'
-    - '/api/v1/auth/qrcode'
-    - '/api/v1/auth/qrcode/status'
-    - '/api/v1/auth/password'
-    - '/api/v1/auth/password2'
-    - '/api/v1/auth/sms'
-    - '/doc.html'
-    - '/swagger-ui.html'
-    - '/webjars/**'
-    - '/swagger-resources/**'
-    - '/v2/**'
-    - '/v3/**'
+    MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDSW+7NUX+u0wzGS5+sQLenXzl91xAGbZDroB852sp7ZSP2+36/XAL0u5mNfyeRkuNdi+MLHKd6joEONtPiGMAaO00ybITfFkdXhbnZc+FalOuUxMhq/ITQcbkKHn/yNGFOJ+jRE6JhNihuRRFctxA1NPqvGb/gk8xZZ1RrbanlPa50XJbLrRP2AS8346qRAdC/fORwijN5Vsy47xpiyRqD/pe3sJojSDr/OFFMEEVfOXxusQZiWQQRzpjr4PrVA9qNrfpcgFKBDBDPZT+EZFi6bB2n0z5S7Z309WBf+z2uHk02a7PF3vEYocdjjIs8IFSnrVUXzbA4T0PSPcqBwGhNAgMBAAECggEADwjbDHmispAK/bEx/FGzzpaTuVbBonP6Q5zyHmRwzFjyNRjMekjNPUibNO29mj3xWiJBW+30WmIM/0MT6bjzIezTG6N966Pf/XVlTxFlLeAu5jcaS+s4Yt196Cc95cWwnrFjhm3s0R3ZzefJ0eKTmfnrYNBqUla96DXmZrczyVp5/09jijiZZb0n4ZOuaToLv31SQLGolXBDkkM5RKtwvuu3Zs7JESYa0HiBQfW31mLcF/q86dKNO1rayAx41e7smwsbbI7p2InF4w77KJnmaQIq+Go/q0P2834ZUZalEk+hOn2cwQstu5MsdPaQ+nTCpTggvPeiWn3qRWDatjeNgQKBgQD15AckUZddGARuAS5wo4paMjF8YqY/sGwAix2SpO3rQSCdLCANHmTvbEG9EAZQXArhdQRqF++q5/YIxzle8+lNwIoPOCgV/g8B+laaFswPnHJEEFnRzsKYCtQ+zzlx7AxSTmYNEe5He/nVyfUOxMshxCU+JRIkquD2lAHux/EziQKBgQDbAfBKYc+PK3Tnwm2FTPokfJ8KmEeSVMkTT1Upvgk8P8f9d8UGktC2/h9dqg8bC8eAXhVHb9L95WoLgLusXNqTQJXmybWsQTSsMNQnhx16JZiRFqR8nHRbbF4UryWO7jFEdteQejqfL7xF+n4FQ6TvAmxv3YGmG4RXHpUMhy9ppQKBgEOf+vbaGa7YtB8s5ADGeX5k34c9+kr50jo0CGYURfq1ZqrTP91bxpayR0If7hybs8Jd1GD5REjUkq3HXNfobPmdQlr9LskdnjMFDlxCeMyyUhq2BH3XR11ZXRYJF9tk996LATYHAGlYh1VsvaDaLqOStktpFpxPAp/OBNoO0x9BAoGBANd1acwTvBoy+5lCS3MYDwO0YtcOh2Mr7IIFy1f8sKNIcF0p5nkYGSPekEcali/af9QHO1IDboUAnTph1MC2vQafRJo/mW6027gHdcDJibNwp08eAobheQu0aj5ZLU8XgPrFHD/0MBYJ5WTHEhHlwa6uKLZJKlKbwa/f02z21itNAoGBAI0hCExAOsQ5o6qkZURNTGkEUwB+mCLwFcKlNkbZOdYSZUEus2kHc+oTmJZmg7a6Qk6rSTrdNsGD9O8L3ufYVn4cprW5ckJlWU4Ap1btqmd8s7wNNPDdl+Ra9X6Jjxja3ab/t7GoAZ9Q2gL0CkvlZHGl2TVoD3zc1anqfYwTtAzZ
   rsa:
     key:
       secret: '1234567890' #RSA加密盐值
-
+  auth:
+    expiration: 30                                                      #JWT过期时间 单位：min
+    secret: 'dasfdffdsfgfadgfshfghfgdsfgxcxfdghhfh'                     #JWT盐值
+    ignore:
+      - '/api/v1/auth/login'
+      - '/api/v1/auth/encrypt'
+      - '/api/v1/auth/publickey'
+      - '/api/v1/auth/qrcode'
+      - '/api/v1/auth/qrcode/status'
+      - '/api/v1/auth/password'
+      - '/api/v1/auth/password2'
+      - '/api/v1/auth/sms'
+      - '/doc.html'
+      - '/swagger-ui.html'
+      - '/webjars/**'
+      - '/swagger-resources/**'
+      - '/v2/**'
+      - '/v3/**'
 
 # TODO: log settings
 logging:

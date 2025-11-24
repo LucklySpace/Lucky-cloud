@@ -45,7 +45,6 @@ import java.util.stream.Collectors;
 @Order(Ordered.HIGHEST_PRECEDENCE)// 设置最高优先级
 public class GlobalExceptionHandler implements ResponseBodyAdvice<Object> {
 
-
     /**
      * 处理自定义业务异常
      */

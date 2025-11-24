@@ -2,11 +2,12 @@ package com.xy.lucky.auth.controller;
 
 
 import com.xy.lucky.auth.domain.IMLoginRequest;
-import com.xy.lucky.auth.security.IMRSAKeyProperties;
 import com.xy.lucky.auth.service.AuthService;
-import com.xy.lucky.auth.utils.RSAUtil;
-import com.xy.lucky.crypto.sign.annotation.Signature;
+import com.xy.lucky.crypto.core.crypto.annotation.Crypto;
+import com.xy.lucky.crypto.core.crypto.domain.CryptoMode;
 import com.xy.lucky.general.response.domain.Result;
+import com.xy.lucky.security.RSAKeyProperties;
+import com.xy.lucky.security.util.RSAUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
@@ -38,7 +39,7 @@ public class AuthController {
     private AuthService authService;
 
     @Resource
-    private IMRSAKeyProperties IMRSAKeyProperties;
+    private RSAKeyProperties RSAKeyProperties;
 
     /**
      * 统一登录接口，根据 authType 选择认证方式
@@ -51,7 +52,7 @@ public class AuthController {
     @Parameters({
             @Parameter(name = "loginRequest", description = "用户登录信息", required = true, in = ParameterIn.DEFAULT)
     })
-    @Signature(verify = false, sign = true)
+    @Crypto(encrypt = CryptoMode.AES, decrypt = CryptoMode.AES)
     public Result<?> login(@RequestBody IMLoginRequest imLoginRequest) {
         return authService.login(imLoginRequest);
     }
@@ -204,7 +205,7 @@ public class AuthController {
             @Parameter(name = "password", description = "密码原文", required = true, in = ParameterIn.DEFAULT)
     })
     public Result<?> passwordEncode(@RequestParam("password") String password) throws Exception {
-        return Result.success(RSAUtil.encrypt(password, IMRSAKeyProperties.getPublicKeyStr()));
+        return Result.success(RSAUtil.encrypt(password, RSAKeyProperties.getPublicKeyStr()));
     }
 //    /**
 //     * 密码加密

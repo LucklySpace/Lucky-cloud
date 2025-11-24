@@ -1,12 +1,12 @@
 package com.xy.lucky.auth.security.provider;
 
 
-import com.xy.lucky.auth.security.IMRSAKeyProperties;
-import com.xy.lucky.auth.security.exception.AuthenticationFailException;
-import com.xy.lucky.auth.utils.RSAUtil;
 import com.xy.lucky.domain.po.ImUserPo;
 import com.xy.lucky.dubbo.api.database.user.ImUserDubboService;
 import com.xy.lucky.general.response.domain.ResultCode;
+import com.xy.lucky.security.RSAKeyProperties;
+import com.xy.lucky.security.exception.AuthenticationFailException;
+import com.xy.lucky.security.util.RSAUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -30,7 +30,7 @@ public class UsernamePasswordAuthenticationProvider implements AuthenticationPro
     private ImUserDubboService imUserDubboService;
 
     @Resource
-    private IMRSAKeyProperties IMRSAKeyProperties;
+    private RSAKeyProperties RSAKeyProperties;
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
@@ -85,7 +85,7 @@ public class UsernamePasswordAuthenticationProvider implements AuthenticationPro
         try {
             // 处理 Base64 编码问题（URL 传递时 "+" 号会被编码成空格）
             String decodedPassword = encryptedPassword.replaceAll(" ", "+");
-            return RSAUtil.decrypt(decodedPassword, IMRSAKeyProperties.getPrivateKeyStr());
+            return RSAUtil.decrypt(decodedPassword, RSAKeyProperties.getPrivateKeyStr());
         } catch (Exception e) {
             log.error("Failed to decrypt password", e);
             throw new AuthenticationFailException(ResultCode.INVALID_CREDENTIALS);

@@ -1,7 +1,8 @@
 package com.xy.lucky.crypto;
 
-import com.xy.lucky.crypto.core.domain.CryptoMode;
+import com.xy.lucky.crypto.core.crypto.domain.CryptoMode;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 
@@ -9,6 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * 加解密配置属性类，支持从 application.yml 中读取配置
  */
 @Data
+@Slf4j
 @ConfigurationProperties(prefix = "security")
 public class CryptoProperties {
 

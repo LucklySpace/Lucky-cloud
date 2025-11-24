@@ -4,8 +4,6 @@ package com.xy.lucky.auth.service.impl;
 import com.alibaba.nacos.common.utils.JacksonUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.xy.lucky.auth.domain.*;
-import com.xy.lucky.auth.security.IMRSAKeyProperties;
-import com.xy.lucky.auth.security.IMSecurityProperties;
 import com.xy.lucky.auth.security.token.MobileAuthenticationToken;
 import com.xy.lucky.auth.security.token.QrScanAuthenticationToken;
 import com.xy.lucky.auth.security.token.UserAuthenticationToken;
@@ -23,6 +21,8 @@ import com.xy.lucky.dubbo.api.database.user.ImUserDataDubboService;
 import com.xy.lucky.dubbo.api.database.user.ImUserDubboService;
 import com.xy.lucky.general.response.domain.Result;
 import com.xy.lucky.general.response.domain.ResultCode;
+import com.xy.lucky.security.RSAKeyProperties;
+import com.xy.lucky.security.SecurityAuthProperties;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -63,9 +63,9 @@ public class AuthServiceImpl implements AuthService {
     @Resource
     private AuthenticationManager authenticationManager;
     @Resource
-    private IMSecurityProperties iMSecurityProperties;
+    private SecurityAuthProperties iMSecurityAuthProperties;
     @Resource
-    private IMRSAKeyProperties iMRSAKeyProperties;
+    private RSAKeyProperties iMRSAKeyProperties;
     @Resource
     private DiscoveryClient discoveryClient;
 
@@ -248,7 +248,7 @@ public class AuthServiceImpl implements AuthService {
             return Result.failed(ResultCode.TOKEN_IS_NULL);
         }
 
-        String newToken = JwtUtil.refreshToken(oldToken, iMSecurityProperties.getExpiration(), ChronoUnit.HOURS);
+        String newToken = JwtUtil.refreshToken(oldToken, iMSecurityAuthProperties.getExpiration(), ChronoUnit.HOURS);
 
         log.info("Token 刷新成功");
 
@@ -409,14 +409,14 @@ public class AuthServiceImpl implements AuthService {
         String userId = auth.getPrincipal().toString();
 
         // 生成token
-        String token = JwtUtil.createToken(userId, iMSecurityProperties.getExpiration(), ChronoUnit.HOURS);
+        String token = JwtUtil.createToken(userId, iMSecurityAuthProperties.getExpiration(), ChronoUnit.HOURS);
 
         log.debug("生成 JWT Token：userId={}", userId);
 
         return new IMLoginResult()
                 .setUserId(userId)
                 .setAccessToken(token)
-                .setExpiration(iMSecurityProperties.getExpiration());
+                .setExpiration(iMSecurityAuthProperties.getExpiration());
     }
 
     /**

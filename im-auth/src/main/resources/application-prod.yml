@@ -53,19 +53,19 @@ security:
     3f3b7uyttuify7634fgb8y87tgbery7475t9h4f5487ygb8y8eyr93uqhuo972o8yubrf9672t45f
   rsa-private-key:
     hd9834678yc98go34i7iifyh96784hfub78438bf7g8457yth79gychu857uy85gtfr883
-  expiration: 30                                                      #JWT过期时间
-  secret: 'dasfdffdsfgfadgfshfghfgdsfgxcxfdghhfh'                     #JWT盐值
-  ignore:
-    - '/api/auth/login'
-    - '/api/auth/encrypt'
-    - '/api/auth/publickey'
-    - '/api/auth/qrcode'
-    - '/api/auth/qrcode/status'
-    - '/api/auth/sms'
   rsa:
     key:
       secret: '1234567890' #RSA加密盐值
-
+  auth:
+    expiration: 30                                                      #JWT过期时间 单位：min
+    secret: 'dasfdffdsfgfadgfshfghfgdsfgxcxfdghhfh'                     #JWT盐值
+    ignore:
+      - '/api/v1/auth/login'
+      - '/api/v1/auth/encrypt'
+      - '/api/v1/auth/publickey'
+      - '/api/v1/auth/qrcode'
+      - '/api/v1/auth/qrcode/status'
+      - '/api/v1/auth/sms'
 
 # TODO: log settings
 logging:

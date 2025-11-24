@@ -1,14 +1,12 @@
 package com.xy.lucky.auth.security.config;
 
 
-import com.xy.lucky.auth.security.IMSecurityProperties;
-import com.xy.lucky.auth.security.filter.TokenAuthenticationFilter;
-import com.xy.lucky.auth.security.handle.LoginAccessDefineHandler;
-import com.xy.lucky.auth.security.handle.LoginAuthenticationHandler;
 import com.xy.lucky.auth.security.provider.MobileAuthenticationProvider;
 import com.xy.lucky.auth.security.provider.QrScanAuthenticationProvider;
 import com.xy.lucky.auth.security.provider.UsernamePasswordAuthenticationProvider;
-import jakarta.annotation.Resource;
+import com.xy.lucky.security.SecurityAuthProperties;
+import com.xy.lucky.security.filter.TokenAuthenticationFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -20,7 +18,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -32,33 +29,21 @@ import java.util.Collections;
 import java.util.List;
 
 @Configuration
+@RequiredArgsConstructor
 @EnableWebSecurity
 @EnableMethodSecurity
 public class WebSecurityConfig {
 
-    @Resource
-    public UsernamePasswordAuthenticationProvider daoAuthenticationProvider;
+    private final UsernamePasswordAuthenticationProvider usernamePasswordAuthenticationProvider;
 
-    @Resource
-    public QrScanAuthenticationProvider qrScanAuthenticationProvider;
+    private final QrScanAuthenticationProvider qrScanAuthenticationProvider;
 
-    @Resource
-    private LoginAuthenticationHandler loginAuthenticationHandler;
+    private final MobileAuthenticationProvider mobileAuthenticationProvider;
 
-    @Resource
-    private LoginAccessDefineHandler loginAccessDefineHandler;
+    private final TokenAuthenticationFilter tokenAuthenticationFilter;
 
-    @Resource
-    private PasswordEncoder passwordEncoder;
+    private final SecurityAuthProperties SecurityAuthProperties;
 
-    @Resource
-    private TokenAuthenticationFilter tokenAuthenticationFilter;
-
-    @Resource
-    private IMSecurityProperties IMSecurityProperties;
-
-    @Resource
-    private MobileAuthenticationProvider mobileAuthenticationProvider;
 
     /**
      * 定义认证管理器 AuthenticationManager
@@ -73,7 +58,7 @@ public class WebSecurityConfig {
         // 手机验证码认证
         authenticationProviders.add(mobileAuthenticationProvider);
         // 用户名密码认证
-        authenticationProviders.add(daoAuthenticationProvider);
+        authenticationProviders.add(usernamePasswordAuthenticationProvider);
         // 二维码认证
         authenticationProviders.add(qrScanAuthenticationProvider);
 
@@ -92,7 +77,7 @@ public class WebSecurityConfig {
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         // 配置路径访问权限，忽略某些路径的认证
         http.authorizeHttpRequests(requestMatcherRegistry ->
-                requestMatcherRegistry.requestMatchers(IMSecurityProperties.getIgnore()).permitAll() // 忽略的路径
+                requestMatcherRegistry.requestMatchers(SecurityAuthProperties.getIgnore()).permitAll() // 忽略的路径
                         .anyRequest().authenticated() // 其他路径需认证
         );
 
@@ -105,13 +90,13 @@ public class WebSecurityConfig {
         );
 
         // 配置未授权和未登录处理
-        http.exceptionHandling(customizer ->
-                customizer
-                        // 处理未授权访问
-                        .accessDeniedHandler(loginAccessDefineHandler)
-                        // 处理未登录状态（例如 JWT 校验失败）
-                        .authenticationEntryPoint(loginAuthenticationHandler)
-        );
+//        http.exceptionHandling(customizer ->
+//                customizer
+//                        // 处理未授权访问
+//                        .accessDeniedHandler(loginAccessDefineHandler)
+//                        // 处理未登录状态（例如 JWT 校验失败）
+//                        .authenticationEntryPoint(loginAuthenticationHandler)
+//        );
 
         // 配置 JWT 校验过滤器，在用户名密码过滤器之前执行
         http.addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

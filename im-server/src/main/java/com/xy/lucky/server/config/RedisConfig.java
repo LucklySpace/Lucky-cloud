@@ -36,10 +36,10 @@ public class RedisConfig extends CachingConfigurerSupport {
 //                Config.fromYAML(new ClassPathResource(address).getInputStream()));
 //    }
 
-   @Value("${spring.data.redis.redisson.address}")
-   private String address;
+    @Value("${spring.data.redis.redisson.address}")
+    private String address;
 
-   @Value("${spring.data.redis.password}")
+    @Value("${spring.data.redis.password}")
     private String password;
 
     @Bean(destroyMethod = "shutdown")

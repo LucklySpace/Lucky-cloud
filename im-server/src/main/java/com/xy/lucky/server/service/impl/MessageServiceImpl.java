@@ -20,7 +20,7 @@ import com.xy.lucky.dubbo.api.id.ImIdDubboService;
 import com.xy.lucky.general.response.domain.Result;
 import com.xy.lucky.general.response.domain.ResultCode;
 import com.xy.lucky.mq.rabbit.core.RabbitTemplateFactory;
-import com.xy.lucky.server.api.IdGeneratorConstant;
+import com.xy.lucky.server.config.IdGeneratorConstant;
 import com.xy.lucky.server.service.MessageService;
 import com.xy.lucky.server.utils.RedisUtil;
 import com.xy.lucky.utils.json.JacksonUtils;
@@ -84,8 +84,10 @@ public class MessageServiceImpl implements MessageService {
 
     @Resource
     private RedisUtil redisUtil;
+
     @Resource
     private RedissonClient redissonClient;
+
     @Resource
     @Qualifier("asyncTaskExecutor")
     private Executor asyncTaskExecutor;

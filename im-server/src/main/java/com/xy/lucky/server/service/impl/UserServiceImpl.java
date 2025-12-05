@@ -115,7 +115,7 @@ public class UserServiceImpl implements UserService {
                 // 实际更新逻辑需要根据业务需求实现
                 log.debug("update用户完成 userId={} 耗时:{}ms", userDto.getUserId(), System.currentTimeMillis() - start);
                 return Result.success(true);
-            } else{
+            } else {
                 // 实际更新逻辑需要根据业务需求实现
                 log.debug("update用户失败 userId={} 耗时:{}ms", userDto.getUserId(), System.currentTimeMillis() - start);
                 return Result.failed("更新用户失败");

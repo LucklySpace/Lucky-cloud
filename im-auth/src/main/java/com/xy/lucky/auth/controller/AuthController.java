@@ -3,8 +3,6 @@ package com.xy.lucky.auth.controller;
 
 import com.xy.lucky.auth.domain.IMLoginRequest;
 import com.xy.lucky.auth.service.AuthService;
-import com.xy.lucky.crypto.core.crypto.annotation.Crypto;
-import com.xy.lucky.crypto.core.crypto.domain.CryptoMode;
 import com.xy.lucky.general.response.domain.Result;
 import com.xy.lucky.security.RSAKeyProperties;
 import com.xy.lucky.security.util.RSAUtil;
@@ -52,7 +50,6 @@ public class AuthController {
     @Parameters({
             @Parameter(name = "loginRequest", description = "用户登录信息", required = true, in = ParameterIn.DEFAULT)
     })
-    @Crypto(encrypt = CryptoMode.AES, decrypt = CryptoMode.AES)
     public Result<?> login(@RequestBody IMLoginRequest imLoginRequest) {
         return authService.login(imLoginRequest);
     }

@@ -3,10 +3,10 @@ package com.xy.lucky.server;
 import com.github.xiaoymin.knife4j.spring.annotations.EnableKnife4j;
 import org.apache.dubbo.config.spring.context.annotation.EnableDubbo;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
@@ -15,9 +15,9 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableAsync
 @EnableDubbo
 @ComponentScan("com.xy.lucky") // 扫描包路径
-@EnableFeignClients(basePackages = "com.xy.lucky.server.api") //开启openfeign
 @EnableTransactionManagement  //开启事务管理
-@SpringBootApplication(exclude = {DataSourceAutoConfiguration.class, SecurityAutoConfiguration.class}) //去除不必要的组件
+@SpringBootApplication(exclude = {ManagementWebSecurityAutoConfiguration.class, DataSourceAutoConfiguration.class, SecurityAutoConfiguration.class})
+//去除不必要的组件
 public class ImServerApplication {
 
     public static void main(String[] args) {

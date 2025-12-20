@@ -12,15 +12,6 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
 
-//    @Resource
-//    private ApiSecurityInterceptor apiSecurityInterceptor;
-//
-//    @Override
-//    public void addInterceptors(InterceptorRegistry registry) {
-//        registry.addInterceptor(apiSecurityInterceptor)
-//                .addPathPatterns("/api/**");
-//    }
-
     @Bean
     @ConditionalOnMissingBean(WebMvcRegistrations.class)
     public WebMvcRegistrations webMvcRegistrations() {

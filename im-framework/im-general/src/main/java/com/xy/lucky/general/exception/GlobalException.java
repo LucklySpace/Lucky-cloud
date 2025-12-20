@@ -3,12 +3,15 @@ package com.xy.lucky.general.exception;
 import com.xy.lucky.general.response.domain.ResultCode;
 import lombok.Data;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 @Data
 public class GlobalException extends RuntimeException implements Serializable {
 
-    private static final long serialVersionUID = 8134030011662574394L;
+    @Serial
+    private static final long serialVersionUID = 1L;
+
     private Integer code;
     private String message;
 
@@ -26,11 +29,9 @@ public class GlobalException extends RuntimeException implements Serializable {
         this.message = resultEnum.getMessage();
     }
 
-
     public GlobalException(ResultCode resultEnum, String message) {
         this.code = resultEnum.getCode();
         this.message = message;
     }
-
 
 }

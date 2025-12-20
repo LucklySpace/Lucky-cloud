@@ -6,7 +6,6 @@ import com.xy.lucky.core.model.IMSingleMessage;
 import com.xy.lucky.core.model.IMVideoMessage;
 import com.xy.lucky.core.model.IMessageAction;
 import com.xy.lucky.domain.dto.ChatDto;
-import com.xy.lucky.general.request.annotations.ApiSign;
 import com.xy.lucky.general.response.domain.Result;
 import com.xy.lucky.server.service.MessageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,7 +32,6 @@ public class MessageController {
     @Resource
     private MessageService messageService;
 
-    @ApiSign
     @PostMapping("/single")
     @Operation(summary = "单聊发送消息", tags = {"single"}, description = "请使用此接口发送单聊消息")
     @Parameters({

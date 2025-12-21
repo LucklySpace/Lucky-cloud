@@ -24,6 +24,7 @@ import com.xy.lucky.general.exception.GlobalException;
 import com.xy.lucky.general.response.domain.Result;
 import com.xy.lucky.general.response.domain.ResultCode;
 import com.xy.lucky.server.config.IdGeneratorConstant;
+import com.xy.lucky.server.exception.GroupException;
 import com.xy.lucky.server.service.FileService;
 import com.xy.lucky.server.service.GroupService;
 import com.xy.lucky.server.service.MessageService;
@@ -89,23 +90,33 @@ public class GroupServiceImpl implements GroupService {
      * 锁持有时间(秒)
      */
     static final long LEASE_TIME = 10L;
+
     private final GroupHeadImageUtils groupHeadImageUtils = new GroupHeadImageUtils();
+
     @DubboReference
     private ImUserDataDubboService imUserDataDubboService;
+
     @DubboReference
     private ImGroupDubboService imGroupDubboService;
+
     @DubboReference
     private ImGroupMemberDubboService imGroupMemberDubboService;
+
     @DubboReference
     private ImGroupInviteRequestDubboService imGroupInviteRequestDubboService;
+
     @DubboReference
     private ImIdDubboService imIdDubboService;
+
     @Resource
     private MessageService messageService;
+
     @Resource
     private FileService fileService;
+
     @Resource
     private RedissonClient redissonClient;
+
     @Resource
     @Qualifier("asyncTaskExecutor")
     private Executor asyncTaskExecutor;
@@ -114,7 +125,7 @@ public class GroupServiceImpl implements GroupService {
      * 获取群成员信息（移除Redisson RMapCache缓存）
      */
     @Override
-    public Result<?> getGroupMembers(GroupDto groupDto) {
+    public Map<?, ?> getGroupMembers(GroupDto groupDto) {
         long startTime = System.currentTimeMillis();
         try {
             String groupId = groupDto.getGroupId();
@@ -124,7 +135,7 @@ public class GroupServiceImpl implements GroupService {
 
             // 如果没有成员，返回空映射
             if (CollectionUtils.isEmpty(members)) {
-                return Result.success(Collections.emptyMap());
+                return Collections.emptyMap();
             }
 
             // 批量查询用户并构建VO
@@ -151,10 +162,10 @@ public class GroupServiceImpl implements GroupService {
 
             log.debug("获取群成员成功 groupId={} 耗时:{}ms",
                     groupId, System.currentTimeMillis() - startTime);
-            return Result.success(voMap);
+            return voMap;
         } catch (Exception e) {
             log.error("获取群成员异常 groupId={}", groupDto.getGroupId(), e);
-            throw new GlobalException(ResultCode.FAIL, "获取群成员失败");
+            throw new GroupException("获取群成员失败");
         }
     }
 
@@ -162,7 +173,7 @@ public class GroupServiceImpl implements GroupService {
      * 退出群聊（Redisson RLock）
      */
     @Override
-    public Result quitGroup(GroupDto groupDto) {
+    public void quitGroup(GroupDto groupDto) {
         long startTime = System.currentTimeMillis();
         String groupId = groupDto.getGroupId();
         String userId = groupDto.getUserId();
@@ -171,18 +182,18 @@ public class GroupServiceImpl implements GroupService {
         try {
             // 尝试获取锁，超时后自动释放
             if (!lock.tryLock(WAIT_TIME, LEASE_TIME, TimeUnit.SECONDS)) {
-                return Result.failed("退出操作过于频繁，请稍后重试");
+                throw new GroupException("退出操作过于频繁，请稍后重试");
             }
 
             // 检查用户是否在群聊中
             ImGroupMemberPo member = imGroupMemberDubboService.selectOne(groupId, userId);
             if (member == null) {
-                return Result.failed("用户不在群聊中");
+                throw new GroupException("用户不在群聊中");
             }
 
             // 群主不能退出群聊
             if (IMemberStatus.GROUP_OWNER.getCode().equals(member.getRole())) {
-                throw new GlobalException(ResultCode.FAIL, "群主不可退出群聊");
+                throw new GroupException("群主不可退出群聊");
             }
 
             // 删除群成员
@@ -192,10 +203,9 @@ public class GroupServiceImpl implements GroupService {
             }
 
             log.debug("退出群聊耗时:{}ms", System.currentTimeMillis() - startTime);
-            return success ? Result.success("退出群聊成功") : Result.failed("退出群聊失败");
         } catch (Exception e) {
             log.error("退出群聊异常 groupId={} userId={}", groupId, userId, e);
-            throw new GlobalException(ResultCode.FAIL, "退出群聊失败");
+            throw new GroupException("退出群聊失败");
         } finally {
             // 确保当前线程持有锁后再释放
             if (lock.isHeldByCurrentThread()) {
@@ -208,12 +218,12 @@ public class GroupServiceImpl implements GroupService {
     /**
      * 创建新群（批量插入，异步消息）
      */
-    public Result<String> createGroup(@NonNull GroupInviteDto dto) {
+    public String createGroup(@NonNull GroupInviteDto dto) {
         long startTime = System.currentTimeMillis();
         try {
             // 检查邀请成员列表
             if (CollectionUtils.isEmpty(dto.getMemberIds())) {
-                throw new GlobalException(ResultCode.FAIL, "至少需要一个被邀请人");
+                throw new GroupException("至少需要一个被邀请人");
             }
 
             // 生成群ID
@@ -236,7 +246,7 @@ public class GroupServiceImpl implements GroupService {
             // 批量插入成员
             boolean membersOk = imGroupMemberDubboService.batchInsert(members);
             if (!membersOk) {
-                throw new GlobalException(ResultCode.FAIL, "群成员插入失败");
+                throw new GroupException("群成员插入失败");
             }
 
             // 插入群信息
@@ -255,7 +265,7 @@ public class GroupServiceImpl implements GroupService {
 
             boolean groupOk = imGroupDubboService.insert(group);
             if (!groupOk) {
-                throw new GlobalException(ResultCode.FAIL, "群信息插入失败");
+                throw new GroupException("群信息插入失败");
             }
 
             // 异步发送系统消息
@@ -269,17 +279,17 @@ public class GroupServiceImpl implements GroupService {
 
             log.info("新建群聊成功 groupId={} owner={} members={}", groupId, ownerId, memberIds.size());
             log.debug("创建群聊耗时:{}ms", System.currentTimeMillis() - startTime);
-            return Result.success(groupId);
+            return groupId;
         } catch (Exception e) {
             log.error("创建群聊异常 ownerId={}", dto.getUserId(), e);
-            throw new GlobalException(ResultCode.FAIL, "创建群聊失败");
+            throw new GroupException("创建群聊失败");
         }
     }
 
     /**
      * 群聊邀请（批量，Redisson RLock）
      */
-    public Result groupInvite(@NonNull GroupInviteDto dto) {
+    public String groupInvite(@NonNull GroupInviteDto dto) {
         long startTime = System.currentTimeMillis();
         try {
             String groupId = StringUtils.hasText(dto.getGroupId()) ?
@@ -295,7 +305,7 @@ public class GroupServiceImpl implements GroupService {
             // 获取邀请锁
             RLock lock = redissonClient.getLock(INVITE_PREFIX + groupId + ":" + inviterId);
             if (!lock.tryLock(WAIT_TIME, LEASE_TIME, TimeUnit.SECONDS)) {
-                return Result.failed("邀请操作过于频繁，请稍后重试");
+                throw new GroupException("邀请操作过于频繁，请稍后重试");
             }
 
             try {
@@ -308,7 +318,7 @@ public class GroupServiceImpl implements GroupService {
                         .collect(Collectors.toSet());
 
                 if (!existingIds.contains(inviterId)) {
-                    throw new GlobalException(ResultCode.FAIL, "用户不在该群组中，不可邀请新成员");
+                    throw new GroupException("用户不在该群组中，不可邀请新成员");
                 }
 
                 // 过滤出新邀请的成员
@@ -318,7 +328,7 @@ public class GroupServiceImpl implements GroupService {
                         .collect(Collectors.toList());
 
                 if (newInvitees.isEmpty()) {
-                    return Result.success(groupId);
+                    return groupId;
                 }
 
                 // 获取群信息
@@ -373,14 +383,14 @@ public class GroupServiceImpl implements GroupService {
 
                 log.info("群邀请成功 groupId={} inviter={} newMembers={}", groupId, inviterId, newInvitees.size());
                 log.debug("群邀请耗时:{}ms", System.currentTimeMillis() - startTime);
-                return Result.success(groupId);
+                return groupId;
             } catch (Exception e) {
                 log.error("群邀请异常 groupId={} inviterId={}", dto.getGroupId(), dto.getUserId(), e);
-                throw new GlobalException(ResultCode.FAIL, "群邀请失败");
+                throw new GroupException("群邀请失败");
             }
         } catch (Exception e) {
             log.error("群邀请异常 groupId={} inviterId={}", dto.getGroupId(), dto.getUserId(), e);
-            throw new GlobalException(ResultCode.FAIL, "群邀请失败");
+            throw new GroupException("群邀请失败");
         } finally {
             RLock lock = redissonClient.getLock(INVITE_PREFIX + dto.getGroupId() + ":" + dto.getUserId());
             if (lock.isHeldByCurrentThread()) {
@@ -393,14 +403,14 @@ public class GroupServiceImpl implements GroupService {
      * 邀请成员（创建/邀请统一入口）
      */
     @Override
-    public Result inviteGroup(GroupInviteDto dto) {
+    public String inviteGroup(GroupInviteDto dto) {
         Integer type = dto.getType();
         if (IMessageType.CREATE_GROUP.getCode().equals(type)) {
             return createGroup(dto);
         } else if (IMessageType.GROUP_INVITE.getCode().equals(type)) {
             return groupInvite(dto);
         }
-        return Result.failed("无效邀请类型");
+        throw new GroupException("无效邀请类型");
     }
 
     /**
@@ -610,6 +620,7 @@ public class GroupServiceImpl implements GroupService {
             boolean success = imGroupDubboService.update(updateGroup);
 
             log.debug("更新群组信息耗时:{}ms", System.currentTimeMillis() - startTime);
+
             return success ? Result.success("更新成功") : Result.failed("更新失败");
         } catch (Exception e) {
             log.error("更新群组信息异常 groupId={}", groupDto.getGroupId(), e);
@@ -825,7 +836,7 @@ public class GroupServiceImpl implements GroupService {
         } catch (Exception e) {
             log.error("更新群成员信息异常 groupId={} userId={}",
                     groupMemberDto.getGroupId(), groupMemberDto.getUserId(), e);
-            throw new GlobalException(ResultCode.FAIL, "更新群成员信息失败");
+            throw new GroupException("更新群成员信息失败");
         }
     }
 

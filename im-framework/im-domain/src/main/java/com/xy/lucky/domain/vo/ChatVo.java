@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 @Data
@@ -13,8 +14,9 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ChatVo<T> implements Serializable {
+public class ChatVo implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private String chatId;

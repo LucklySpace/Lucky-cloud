@@ -6,14 +6,16 @@ import com.xy.lucky.domain.dto.GroupInviteDto;
 import com.xy.lucky.domain.dto.GroupMemberDto;
 import com.xy.lucky.general.response.domain.Result;
 
+import java.util.Map;
+
 
 public interface GroupService {
 
-    Result getGroupMembers(GroupDto groupDto);
+    Map<?, ?> getGroupMembers(GroupDto groupDto);
 
-    Result quitGroup(GroupDto groupDto);
+    void quitGroup(GroupDto groupDto);
 
-    Result inviteGroup(GroupInviteDto groupInviteDto);
+    String inviteGroup(GroupInviteDto groupInviteDto);
 
     Result groupInfo(GroupDto groupDto);
 

@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 /**
  * 群聊
  */
@@ -35,7 +37,7 @@ public class GroupController {
     @Parameters({
             @Parameter(name = "groupInviteDto", description = "邀请信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result inviteGroup(@RequestBody GroupInviteDto groupInviteDto) {
+    public String inviteGroup(@RequestBody GroupInviteDto groupInviteDto) {
         return groupService.inviteGroup(groupInviteDto);
     }
 
@@ -44,7 +46,7 @@ public class GroupController {
     @Parameters({
             @Parameter(name = "groupDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result getGroupMembers(@RequestBody GroupDto groupDto) {
+    public Map<?, ?> getGroupMembers(@RequestBody GroupDto groupDto) {
         return groupService.getGroupMembers(groupDto);
     }
 
@@ -80,8 +82,8 @@ public class GroupController {
     @Parameters({
             @Parameter(name = "groupDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result quit(@RequestBody GroupDto groupDto) {
-        return groupService.quitGroup(groupDto);
+    public void quit(@RequestBody GroupDto groupDto) {
+        groupService.quitGroup(groupDto);
     }
 
     @PostMapping("/member/update")

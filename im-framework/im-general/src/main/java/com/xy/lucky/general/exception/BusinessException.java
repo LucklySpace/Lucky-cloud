@@ -19,6 +19,10 @@ public class BusinessException extends RuntimeException implements Serializable 
 
     private String message;
 
+    public BusinessException(String message) {
+        this.message = message;
+    }
+
     public BusinessException(ResultCode resultEnum) {
         this.code = resultEnum.getCode();
         this.message = resultEnum.getMessage();

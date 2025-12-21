@@ -37,7 +37,7 @@ public class MessageController {
     @Parameters({
             @Parameter(name = "singleMessageDto", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result sendSingleMessage(@Valid @RequestBody IMSingleMessage singleMessageDto) {
+    public IMSingleMessage sendSingleMessage(@Valid @RequestBody IMSingleMessage singleMessageDto) {
         return messageService.sendSingleMessage(singleMessageDto);
     }
 
@@ -46,7 +46,7 @@ public class MessageController {
     @Parameters({
             @Parameter(name = "groupMessageDto", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result sendGroupMessage(@Valid @RequestBody IMGroupMessage groupMessageDto) {
+    public IMGroupMessage sendGroupMessage(@Valid @RequestBody IMGroupMessage groupMessageDto) {
         return messageService.sendGroupMessage(groupMessageDto);
     }
 

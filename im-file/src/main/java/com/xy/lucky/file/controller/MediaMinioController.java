@@ -1,7 +1,7 @@
 package com.xy.lucky.file.controller;
 
+import com.xy.lucky.file.domain.vo.FileVo;
 import com.xy.lucky.file.service.OssFileImageService;
-import com.xy.lucky.general.response.domain.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
@@ -24,34 +24,23 @@ public class MediaMinioController {
     @Resource
     private OssFileImageService ossImageFileService;
 
-    /**
-     * 上传接口
-     *
-     * @param file 文件
-     * @return 上传结果
-     */
-    @PostMapping("/image")
+    @PostMapping("/image/upload")
     @Operation(summary = "上传图片文件", tags = {"media"}, description = "请使用此接口上传图片文件")
     @Parameters({
             @Parameter(name = "file", description = "图片文件", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result uploadImage(@RequestParam("file") MultipartFile file) {
+    public FileVo uploadImage(@RequestParam("file") MultipartFile file) {
+        log.info("[图片上传] 开始上传图片文件");
         return ossImageFileService.uploadImage(file);
     }
 
-    /**
-     * 上传头像接口
-     *
-     * @param file 文件
-     * @return 上传结果
-     */
-    @PostMapping("/avatar")
+    @PostMapping("/avatar/upload")
     @Operation(summary = "上传头像文件", tags = {"media"}, description = "请使用此接口上传头像文件")
     @Parameters({
             @Parameter(name = "file", description = "头像文件", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result uploadAvatar(@RequestParam("file") MultipartFile file) {
+    public FileVo uploadAvatar(@RequestParam("file") MultipartFile file) {
+        log.info("[头像上传] 开始上传头像文件");
         return ossImageFileService.uploadAvatar(file);
     }
-
 }

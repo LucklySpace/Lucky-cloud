@@ -2,6 +2,7 @@ package com.xy.lucky.utils.collection;
 
 
 import java.lang.reflect.Array;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -10,8 +11,6 @@ import java.util.function.Function;
 
 /**
  * Array 工具类
- *
- * @author 芋道源码
  */
 public class ArrayUtils {
 
@@ -70,4 +69,14 @@ public class ArrayUtils {
         return array[index];
     }
 
+    /**
+     * 判断字符串数组中是否包含指定的字符串
+     *
+     * @param strs 字符串数组
+     * @param str  字符串
+     * @return 是否包含
+     */
+    public static boolean contains(String[] strs, String str) {
+        return Arrays.stream(strs).findAny().filter(s -> s.equals(str)).isPresent();
+    }
 }

@@ -5,6 +5,7 @@ import java.util.Objects;
 
 public class StringUtils {
 
+    public static String C_SLASH = "/";
 
     public static boolean hasLength(CharSequence str) {
         return ((str != null) && (str.length() > 0));
@@ -242,4 +243,7 @@ public class StringUtils {
         return Objects.equals(str, other);
     }
 
+    public static boolean endWith(String path, String cSlash) {
+        return path.endsWith(cSlash);
+    }
 }

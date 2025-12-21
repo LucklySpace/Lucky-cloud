@@ -1,28 +1,28 @@
 package com.xy.lucky.file.util;
 
-import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.text.CharSequenceUtil;
-import cn.hutool.core.text.StrPool;
-import cn.hutool.core.util.IdUtil;
-import cn.hutool.core.util.StrUtil;
+
 import com.google.common.collect.HashMultimap;
 import com.xy.lucky.file.client.MinioProperties;
 import com.xy.lucky.file.client.PearlMinioClient;
 import com.xy.lucky.file.domain.OssFile;
 import com.xy.lucky.file.domain.OssFileUploadProgress;
+import com.xy.lucky.file.domain.vo.FileChunkVo;
 import com.xy.lucky.file.enums.StorageBucketEnum;
+import com.xy.lucky.file.exception.FileException;
+import com.xy.lucky.utils.id.IdUtils;
+import com.xy.lucky.utils.string.StringUtils;
 import io.minio.*;
 import io.minio.errors.MinioException;
 import io.minio.http.Method;
 import io.minio.messages.Part;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import java.io.InputStream;
 import java.time.LocalDate;
@@ -32,10 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static com.xy.lucky.file.util.ResultCode.UPLOAD_FILE_FAILED;
 
 /**
  * MinIO 文件存储工具类
@@ -55,7 +53,7 @@ public class MinioUtils {
     private MinioProperties minioProperties;
 
     @Resource
-    private RedisRepo redisRepo; // Redis 数据库存储
+    private RedisUtils redisUtils; // Redis 数据库存储
 
     @Resource
     private PearlMinioClient pearlMinioClient; // 自定义的 Minio 客户端
@@ -67,18 +65,19 @@ public class MinioUtils {
      * @param uploadProgressBuilder 上传进度构建器
      * @return 包含已上传分片信息和未上传分片预签名URL的响应
      */
-    public ResponseResult getMultipartUploadProgress(OssFile reqOssFile, OssFileUploadProgress uploadProgressBuilder) {
+    public OssFileUploadProgress getMultipartUploadProgress(OssFile reqOssFile, OssFileUploadProgress uploadProgressBuilder) {
         String bucketName = reqOssFile.getBucketName();
+        String objectName = reqOssFile.getObjectKey();
         String fileName = reqOssFile.getFileName();
         String uploadId = reqOssFile.getUploadId();
 
         try {
-            log.info("查询分片上传进度 - bucket:{}, file:{}, uploadId:{}", bucketName, fileName, uploadId);
+            log.info("查询分片上传进度 - bucket:{}, object:{}, uploadId:{}", bucketName, objectName, uploadId);
             uploadProgressBuilder.setUploadId(uploadId);
 
             // 获取已上传的分片列表
             ListPartsResponse partResult = pearlMinioClient.listMultipart(
-                    bucketName, null, fileName, 1000, 0, uploadId, null, null
+                    bucketName, null, objectName, 1000, 0, uploadId, null, null
             ).get();
 
             if (partResult.result() != null) {
@@ -92,7 +91,8 @@ public class MinioUtils {
 
                 List<Part> uploadedParts = partResult.result().partList();
 
-                if (CollUtil.isEmpty(uploadedParts)) {
+
+                if (CollectionUtils.isEmpty(uploadedParts)) {
                     // 没有已上传的分片,生成所有分片的预签名URL
                     for (Integer partNumber : allPartNumbers) {
                         String uploadUrl = generatePresignedObjectUrl(uploadId, bucketName, fileName, partNumber);
@@ -102,7 +102,7 @@ public class MinioUtils {
                     // 获取已上传完成的分片编号
                     List<Integer> finishedPartNumbers = uploadedParts.stream()
                             .map(Part::partNumber)
-                            .collect(Collectors.toList());
+                            .toList();
 
                     // 为未上传的分片生成预签名URL
                     for (Integer partNumber : allPartNumbers) {
@@ -115,11 +115,11 @@ public class MinioUtils {
                 uploadProgressBuilder.setUndoneChunkMap(chunkMap);
             }
 
-            return ResponseResult.success(uploadProgressBuilder);
+            return uploadProgressBuilder;
 
         } catch (Exception e) {
-            log.error("获取上传进度失败 - bucket:{}, file:{}", bucketName, fileName, e);
-            return ResponseResult.error(UPLOAD_FILE_FAILED);
+            log.error("获取上传进度失败 - bucket:{}, object:{}", bucketName, objectName, e);
+            throw new FileException("文件上传失败");
         }
     }
 
@@ -129,13 +129,14 @@ public class MinioUtils {
      * @param reqOssFile 文件信息对象,包含文件名、类型等信息
      * @return 包含上传URL和uploadId的响应结果
      */
-    public ResponseResult initUpload(OssFile reqOssFile) {
+    public FileChunkVo initUpload(OssFile reqOssFile) {
 
         // 获取文件桶名
         String bucketName = getOrCreateBucketByFileType(reqOssFile.getFileType());
 
         // 自动生成路径和文件名
         String objectName = this.getObjectName(this.generatePath(), reqOssFile.getFileName());
+        reqOssFile.setObjectKey(objectName);
 
         try {
 
@@ -150,14 +151,17 @@ public class MinioUtils {
             // 获取每个分片的预签名上传地址
             String url = generatePresignedObjectUrl(bucketName, objectName);
 
-            return ResponseResult.success(Map.of("uploadUrl", Map.of("chunk_" + 0, url), "uploadId", uploadId));
+            return FileChunkVo.builder()
+                    .uploadUrl(Map.of("chunk_" + 0, url))
+                    .uploadId(uploadId)
+                    .build();
 
         } catch (Exception e) {
 
-            log.error("error message: 初始化分片上传失败、原因:", e);
+            log.error("error message: 初始化分片上传失败, 原因:", e);
 
             // 返回 文件上传失败
-            return ResponseResult.error(UPLOAD_FILE_FAILED);
+            throw new FileException("初始化分片上传失败");
         }
     }
 
@@ -167,12 +171,13 @@ public class MinioUtils {
      * @param reqOssFile 文件信息对象,包含文件名、分片数量等信息
      * @return 包含分片上传URL列表和uploadId的响应结果
      */
-    public ResponseResult initMultiPartUpload(OssFile reqOssFile) {
+    public FileChunkVo initMultiPartUpload(OssFile reqOssFile) {
         // 获取文件桶名
         String bucketName = getOrCreateBucketByFileType(reqOssFile.getFileType());
 
         // 自动生成路径和文件名
         String objectName = this.getObjectName(this.generatePath(), reqOssFile.getFileName());
+        reqOssFile.setObjectKey(objectName);
 
         try {
             log.info("tip message: 通过 <{}-{}> 开始分片上传<minio>", objectName, bucketName);
@@ -187,14 +192,17 @@ public class MinioUtils {
             // 获取每个分片的预签名上传地址
             Map<String, String> urlsMap = generatePresignedObjectUrls(uploadId, bucketName, objectName, reqOssFile.getPartNum());
 
-            return ResponseResult.success(Map.of("uploadUrl", urlsMap, "uploadId", uploadId));
+
+            return FileChunkVo.builder()
+                    .uploadUrl(urlsMap)
+                    .uploadId(uploadId)
+                    .build();
 
         } catch (Exception e) {
 
             log.error("error message: 初始化分片上传失败、原因:", e);
-
             // 返回 文件上传失败
-            return ResponseResult.error(UPLOAD_FILE_FAILED);
+            throw new FileException("初始化分片上传失败");
         }
     }
 
@@ -205,17 +213,16 @@ public class MinioUtils {
      * @param reqOssFile 文件信息对象,包含uploadId等信息
      * @return 合并结果, 成功则返回文件访问路径
      */
-    public ResponseResult mergeOssFileUpload(OssFile reqOssFile) {
+    public String mergeOssFileUpload(OssFile reqOssFile) {
 
         String bucketName = reqOssFile.getBucketName();
-        String fileName = reqOssFile.getFileName();
         String uploadId = reqOssFile.getUploadId();
 
-        // 自动生成路径和文件名
-        String objectName = this.getObjectName(this.generatePath(), reqOssFile.getFileName());
+        // 使用已生成的对象键
+        String objectName = reqOssFile.getObjectKey();
 
         try {
-            log.info("开始合并文件分片 - bucket:{}, file:{}, uploadId:{}", bucketName, objectName, uploadId);
+            log.info("开始合并文件分片 - bucket:{}, object:{}, uploadId:{}", bucketName, objectName, uploadId);
 
             // 1. 获取所有分片信息
             ListPartsResponse partResult = pearlMinioClient.listMultipart(
@@ -231,8 +238,8 @@ public class MinioUtils {
 
             List<Part> partList = partResult.result().partList();
             if (partList.isEmpty()) {
-                log.warn("未找到文件分片 - bucket:{}, file:{}, uploadId:{}", bucketName, objectName, uploadId);
-                return ResponseResult.error("未找到文件分片");
+                log.warn("未找到文件分片 - bucket:{}, object:{}, uploadId:{}", bucketName, objectName, uploadId);
+                throw new FileException("未找到文件分片");
             }
 
             // 2. 合并分片
@@ -262,22 +269,22 @@ public class MinioUtils {
                         null,
                         null
                 );
-                log.info("成功清理文件分片 - bucket:{}, file:{}, uploadId:{}", bucketName, objectName, uploadId);
+                log.info("成功清理文件分片 - bucket:{}, object:{}, uploadId:{}", bucketName, objectName, uploadId);
             } catch (Exception e) {
                 // 清理分片失败不影响主流程，只记录警告日志
-                log.warn("清理文件分片失败 - bucket:{}, file:{}, uploadId:{}, error:{}",
+                log.warn("清理文件分片失败 - bucket:{}, object:{}, uploadId:{}, error:{}",
                         bucketName, objectName, uploadId, e.getMessage());
             }
 
             String filePath = this.getFilePath(bucketName, objectName);
 
-            log.info("文件合并完成 - bucket:{}, file:{}", bucketName, objectName);
+            log.info("文件合并完成 - bucket:{}, object:{}", bucketName, objectName);
 
-            return ResponseResult.success(Map.of("url", filePath));
+            return filePath;
 
         } catch (Exception e) {
-            log.error("文件合并失败 - bucket:{}, file:{}, uploadId:{}", bucketName, objectName, uploadId, e);
-            return ResponseResult.error("文件合并失败: " + e.getMessage());
+            log.error("文件合并失败 - bucket:{}, object:{}, uploadId:{}", bucketName, objectName, uploadId, e);
+            throw new FileException("文件合并失败: " + e.getMessage());
         }
     }
 
@@ -333,7 +340,7 @@ public class MinioUtils {
      * @return 上传 ID
      */
     private String generateUploadId(String bucketName, String objectName, String contentType) throws Exception {
-        if (CharSequenceUtil.isBlank(contentType)) {
+        if (StringUtils.isBlank(contentType)) {
             contentType = "application/octet-stream"; // 默认文件类型
         }
         HashMultimap<String, String> headers = HashMultimap.create();
@@ -406,7 +413,7 @@ public class MinioUtils {
             return pearlMinioClient.getPresignedObjectUrl(getPresignedObjectUrlArgs);
         } catch (Exception e) {
             log.error("获取文件分享链接异常, bucketName {},path {},filename {}", bucketName, path, filename, e);
-            return null;
+            throw new FileException("获取文件分享链接异常");
         }
     }
 
@@ -418,15 +425,15 @@ public class MinioUtils {
      * @return 完整的对象名称
      */
     public String getObjectName(String path, String filename) {
-        if (StrUtil.isEmpty(filename)) {
-            filename = IdUtil.simpleUUID();
+        if (StringUtils.isBlank(filename)) {
+            filename = IdUtils.simpleUUID();
         }
 
-        if (StrUtil.isEmpty(path)) {
+        if (StringUtils.isBlank(path)) {
             return filename;
         }
 
-        return StrUtil.endWith(path, StrPool.C_SLASH) ? path + filename : path + StrPool.C_SLASH + filename;
+        return StringUtils.endWith(path, StringUtils.C_SLASH) ? path + filename : path + StringUtils.C_SLASH + filename;
     }
 
     /**
@@ -435,9 +442,7 @@ public class MinioUtils {
      * @return 按当前日期生成的路径
      */
     public String generatePath() {
-        // 提取日期格式为常量
-        final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MM/dd");
-        // 拼接路径
+        final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd");
         return LocalDate.now().format(DATE_FORMATTER) + "/";
     }
 
@@ -456,7 +461,7 @@ public class MinioUtils {
         if (partCount <= 0) {
             throw new IllegalArgumentException("分片数量必须大于 0");
         }
-        if (CharSequenceUtil.isBlank(uploadId) || CharSequenceUtil.isBlank(bucketName) || CharSequenceUtil.isBlank(objectName)) {
+        if (StringUtils.isBlank(uploadId) || StringUtils.isBlank(bucketName) || StringUtils.isBlank(objectName)) {
             throw new IllegalArgumentException("参数 uploadId、bucketName 和 objectName 不能为空");
         }
 
@@ -479,10 +484,10 @@ public class MinioUtils {
      * @return 是否存在
      */
     public boolean checkObjectExists(OssFile ossFile) {
-        String fileName = ossFile.getFileName();
+        String objectName = ossFile.getObjectKey();
         String bucketName = ossFile.getBucketName();
         try {
-            pearlMinioClient.statObject(StatObjectArgs.builder().bucket(bucketName).object(fileName).build());
+            pearlMinioClient.statObject(StatObjectArgs.builder().bucket(bucketName).object(objectName).build());
             return true; // 文件存在
         } catch (Exception e) {
             return false; // 文件不存在
@@ -514,7 +519,7 @@ public class MinioUtils {
      * @return
      */
     public String getPublicFilePath(String bucketName, String objectName) {
-        return StrUtil.format("{}/{}/{}", minioProperties.getEndpoint(), bucketName, objectName);//文件访问路径
+        return StringUtils.format("{}/{}/{}", minioProperties.getEndpoint(), bucketName, objectName);//文件访问路径
     }
 
     /**
@@ -525,18 +530,29 @@ public class MinioUtils {
      * @return 存储桶名称
      */
     public String getOrCreateBucketByFileType(String fileType) {
-        String bucketByFileSuffix = StorageBucketEnum.getBucketByFileSuffix(fileType);
         String currentYear = String.valueOf(LocalDate.now().getYear());
-
-        if (StringUtils.isNotEmpty(bucketByFileSuffix) && !bucketByFileSuffix.equals("*")) {
-            try {
-                String bucketNameWithYear = currentYear + "-" + bucketByFileSuffix.toLowerCase();
-                return createBucket(bucketNameWithYear);
-            } catch (Exception e) {
-                log.error("获取存储桶名称失败, 文件类型: {}", bucketByFileSuffix, e);
+        if (StringUtils.isBlank(fileType)) {
+            return createBucket(currentYear + "-" + StorageBucketEnum.OTHER.getCode());
+        }
+        String ft = fileType.toLowerCase();
+        // 支持 avatar/thumbnail 等自定义桶
+        if ("avatar".equals(ft) || "thumbnail".equals(ft)) {
+            return createBucket(currentYear + "-" + ft);
+        }
+        // 支持 MIME 类型，如 image/png -> image
+        if (ft.contains("/")) {
+            String mainType = ft.substring(0, ft.indexOf('/'));
+            if (StorageBucketEnum.getByCode(mainType) != null) {
+                return createBucket(currentYear + "-" + mainType);
             }
         }
-        return currentYear + "-" + fileType;
+        // 优先按后缀匹配到枚举
+        String code = StorageBucketEnum.getBucketByFileSuffix(ft);
+        if (StringUtils.isNotBlank(code) && !"*".equals(code)) {
+            return createBucket(currentYear + "-" + code.toLowerCase());
+        }
+        // 最后回退到 OTHER
+        return createBucket(currentYear + "-" + StorageBucketEnum.OTHER.getCode());
     }
 
 
@@ -559,12 +575,13 @@ public class MinioUtils {
      */
     public ResponseEntity download(OssFile reqOssFile, String range) {
         String bucketName = reqOssFile.getBucketName();
+        String objectName = reqOssFile.getObjectKey();
         String fileName = reqOssFile.getFileName();
 
         try {
             // 获取文件信息
             StatObjectResponse stat = pearlMinioClient.statObject(
-                    StatObjectArgs.builder().bucket(bucketName).object(fileName).build()
+                    StatObjectArgs.builder().bucket(bucketName).object(objectName).build()
             ).get();
             long fileSize = stat.size();
 
@@ -588,7 +605,7 @@ public class MinioUtils {
             InputStream inputStream = pearlMinioClient.getObject(
                     GetObjectArgs.builder()
                             .bucket(bucketName)
-                            .object(fileName)
+                            .object(objectName)
                             .offset(start)
                             .length(end - start + 1)
                             .build()

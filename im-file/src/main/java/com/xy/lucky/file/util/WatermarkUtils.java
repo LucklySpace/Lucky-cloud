@@ -14,7 +14,7 @@ import java.io.InputStream;
 import java.net.URL;
 
 @Slf4j
-public class WatermarkUtil {
+public class WatermarkUtils {
 
     /**
      * 给图片添加文字水印并输出为流

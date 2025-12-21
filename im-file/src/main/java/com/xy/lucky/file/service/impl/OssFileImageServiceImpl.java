@@ -3,12 +3,15 @@ package com.xy.lucky.file.service.impl;
 import com.xy.lucky.file.client.MinioProperties;
 import com.xy.lucky.file.domain.OssFileImage;
 import com.xy.lucky.file.domain.OssFileMediaInfo;
+import com.xy.lucky.file.domain.po.OssFileImagePo;
+import com.xy.lucky.file.domain.vo.FileVo;
+import com.xy.lucky.file.exception.FileException;
 import com.xy.lucky.file.handler.ImageProcessingStrategy;
+import com.xy.lucky.file.mapper.FileVoMapper;
+import com.xy.lucky.file.mapper.OssFileImageEntityMapper;
+import com.xy.lucky.file.repository.OssFileImageRepository;
 import com.xy.lucky.file.service.OssFileImageService;
 import com.xy.lucky.file.util.MinioUtils;
-import com.xy.lucky.file.util.RedisRepo;
-import com.xy.lucky.general.response.domain.Result;
-import com.xy.lucky.general.response.domain.ResultCode;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -33,446 +36,346 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /**
- * 图片文件服务实现类
- * 提供图片上传、处理、存储等功能
+ * 图片服务实现（简洁版）
+ * 主要职责：
+ *  - 小文件内存处理 / 大文件临时文件处理
+ *  - 可选 NSFW 校验
+ *  - 水印/压缩策略链处理
+ *  - 主图与缩略图异步生成并上传
+ *  - 头像上传到公开桶
  */
 @Slf4j
 @Service
 public class OssFileImageServiceImpl implements OssFileImageService {
 
-    /**
-     * 头像存储桶名称
-     */
     public static final String AVATAR_BUCKET_NAME = "avatar";
-    private static final String WATERMARK_IMAGE = "watermark";
-    private static final String COMPRESS_IMAGE = "compress";
-    /**
-     * 策略键值定义
-     */
-    private static final String THUMBNAIL_IMAGE = "thumbnail";
-    /**
-     * 内存/磁盘切换阈值：5MB
-     * 小于等于该值使用内存处理，否则使用临时文件处理
-     */
+    private static final String THUMBNAIL_KEY = "thumbnail";
+    private static final String WATERMARK_KEY = "watermark";
+    private static final String COMPRESS_KEY = "compress";
+
+    // 5MB 阈值：小于等于内存处理，大文件写临时文件
     private static final long IN_MEMORY_THRESHOLD = 5 * 1024 * 1024L;
-    /**
-     * IO缓冲区大小：16KB
-     */
-    private static final int IO_BUFFER_SIZE = 16 * 1024;
-    /**
-     * 头像存储桶是否已设置为公开访问
-     */
+    private static final int IO_BUFFER = 16 * 1024;
+
     private static final AtomicBoolean avatarBucketIsPublic = new AtomicBoolean(false);
 
     @Resource
     private MinioUtils minioUtils;
-
-    @Resource
-    private RedisRepo redisRepo;
-
     @Resource
     private MinioProperties minioProperties;
-
-    /**
-     * NSFW检测API地址
-     */
-    @Value("${nsfw.api.url:http://localhost:3000/classify}")
-    private String nsfwApiUrl;
-
+    @Resource
+    private OssFileImageRepository ossFileImageRepository;
+    @Resource
+    private OssFileImageEntityMapper ossFileImageEntityMapper;
+    @Resource
+    private FileVoMapper fileVoMapper;
     @Resource
     private RestTemplate restTemplate;
-
-    /**
-     * 异步任务执行器
-     */
     @Resource(name = "asyncServiceExecutor")
-    private ThreadPoolTaskExecutor applicationTaskExecutor;
+    private ThreadPoolTaskExecutor executor;
 
-    /**
-     * 图片处理策略映射
-     */
     @Autowired
     private Map<String, ImageProcessingStrategy> imageProcessingStrategyMap;
 
-    /**
-     * 将供应器的流一次性读取为字节数组
-     * 适用于策略库需要字节数组输入的场景
-     *
-     * @param supplier 输入流供应器
-     * @return 字节数组
-     * @throws IOException 流操作异常
-     */
-    private static byte[] streamToBytes(Supplier<InputStream> supplier) throws IOException {
-        try (InputStream is = supplier.get()) {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(8192);
-            byte[] buf = new byte[IO_BUFFER_SIZE];
-            int r;
-            while ((r = is.read(buf)) != -1) {
-                baos.write(buf, 0, r);
-            }
-            return baos.toByteArray();
-        }
-    }
+    @Value("${nsfw.api.url:http://localhost:3000/classify}")
+    private String nsfwApiUrl;
+
 
     /**
-     * 将MultipartFile保存为临时文件
-     * 仅在大文件模式下使用
-     *
-     * @param multipartFile 原始文件
-     * @return 临时文件对象
-     * @throws IOException 文件操作异常
-     */
-    private File toTempFile(MultipartFile multipartFile) throws IOException {
-        File tmp = Files.createTempFile(
-                        "oss_img_",
-                        "_" + Objects.requireNonNull(multipartFile.getOriginalFilename()))
-                .toFile();
-
-        try (InputStream is = multipartFile.getInputStream();
-             OutputStream os = new BufferedOutputStream(new FileOutputStream(tmp), IO_BUFFER_SIZE)) {
-            byte[] buf = new byte[IO_BUFFER_SIZE];
-            int r;
-            while ((r = is.read(buf)) != -1) {
-                os.write(buf, 0, r);
-            }
-            os.flush();
-        }
-        return tmp;
-    }
-
-    /**
-     * 若文件较小则读入内存并返回byte[]，否则返回null（表示使用临时文件路径）
-     *
-     * @param file 原始文件
-     * @return 文件内容的字节数组或null
-     * @throws IOException 文件操作异常
-     */
-    private byte[] tryReadToMemory(MultipartFile file) throws IOException {
-        long size = file.getSize();
-        if (size <= 0 || size > IN_MEMORY_THRESHOLD) {
-            return null;
-        }
-
-        // 预设大小
-        int initial = (int) Math.max(1024, Math.min(size, 16 * 1024));
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream(initial);
-             InputStream is = new BufferedInputStream(file.getInputStream(), IO_BUFFER_SIZE)) {
-            byte[] buf = new byte[IO_BUFFER_SIZE];
-            int r;
-            while ((r = is.read(buf)) != -1) {
-                baos.write(buf, 0, r);
-            }
-            return baos.toByteArray();
-        }
-    }
-
-    /**
-     * 上传图片主入口
-     *
+     *  上传图片
      * @param file 图片文件
-     * @return 上传结果
+     * @return 文件信息
      */
     @Override
-    public Result<?> uploadImage(MultipartFile file) {
-        log.info("[文件上传] 图片文件处理");
-
-        // 基本检查
+    public FileVo uploadImage(MultipartFile file) {
+        log.info("uploadImage start: name={}, size={}", file == null ? null : file.getOriginalFilename(),
+                file == null ? 0 : file.getSize());
         if (file == null || file.isEmpty()) {
-            return Result.failed("文件为空");
+            throw new FileException("文件为空");
         }
 
         long start = System.nanoTime();
-
-        // 封装返回对象
-        OssFileImage ossFile = new OssFileImage();
-        OssFileMediaInfo mediaInfo = new OssFileMediaInfo();
-
-        // 生成对象名称和存储桶名称
+        String bucket = minioUtils.getOrCreateBucketByFileType("image");
         String objectName = minioUtils.getObjectName(minioUtils.generatePath(), file.getOriginalFilename());
-        String bucketName = minioUtils.getOrCreateBucketByFileType("image");
 
-        // 准备数据源供应器：内存字节数组或临时文件
-        byte[] inMemory = null;
-        File tempFile = null;
-        Supplier<InputStream> sourceSupplier = null;
-
+        // 先建立数据源 supplier（内存或临时文件）
+        File tmp = null;
+        Supplier<InputStream> supplier = null;
         try {
-            inMemory = tryReadToMemory(file);
-            if (inMemory != null) {
-                // 小文件使用内存处理
-                byte[] finalInMemory = inMemory;
-                sourceSupplier = () -> new ByteArrayInputStream(finalInMemory);
+            byte[] mem = tryReadToMemory(file);
+            if (mem != null) {
+                supplier = () -> new ByteArrayInputStream(mem);
             } else {
-                // 大文件写入临时文件，并从该文件重新打开流
-                tempFile = toTempFile(file);
-                File tf = tempFile;
-                sourceSupplier = () -> {
+                tmp = toTempFile(file);
+                File tempRef = tmp;
+                supplier = () -> {
                     try {
-                        return new BufferedInputStream(new FileInputStream(tf), IO_BUFFER_SIZE);
+                        return new BufferedInputStream(new FileInputStream(tempRef), IO_BUFFER);
                     } catch (FileNotFoundException e) {
                         throw new UncheckedIOException(e);
                     }
                 };
             }
 
-            // 如果启用了NSFW检查，则阻塞直到检查完成
+            // 可选 NSFW 校验（会读取一次流）
             if (minioProperties.getIsChecked()) {
-                ResponseEntity<?> checkRes = checkImageUsingSupplier(sourceSupplier, file.getSize(), file.getOriginalFilename());
-
-                // 检查响应状态
-                if (!checkRes.getStatusCode().is2xxSuccessful()) {
-                    return Result.failed(ResultCode.FORBIDDEN, "图片校验未通过: " + checkRes.getBody());
+                ResponseEntity<?> check = checkImageUsingSupplier(supplier, file.getSize(), file.getOriginalFilename());
+                if (!check.getStatusCode().is2xxSuccessful()) {
+                    throw new FileException("图片校验接口异常");
                 }
-
-                // 检查响应体中的违规内容
-                Object body = checkRes.getBody();
+                Object body = check.getBody();
                 if (body instanceof Map) {
                     Object valid = ((Map<?, ?>) body).get("valid");
                     if (Boolean.TRUE.equals(valid)) {
-                        return Result.failed(ResultCode.FORBIDDEN, "图片包含违规内容: " + body);
+                        throw new FileException("图片包含违规内容");
                     }
                 }
             }
 
-            // 主处理流程供应器，每次使用都需要提供新的流
-            Supplier<InputStream> mainSupplier = sourceSupplier;
+            // media info 容器，可由策略填充
+            OssFileMediaInfo mediaInfo = new OssFileMediaInfo();
 
-            // 异步处理主图：应用水印和压缩（按顺序处理）
-            CompletableFuture<byte[]> mainProcessedFuture = CompletableFuture.supplyAsync(() -> {
+            // 主图处理（异步）：先把 supplier 流读成 bytes，再按策略处理
+            final Supplier<InputStream> mainSupplier = supplier;
+            CompletableFuture<byte[]> mainProcessed = CompletableFuture.supplyAsync(() -> {
                 try {
-                    byte[] baseBytes = streamToBytes(mainSupplier);
-
-                    // 应用水印
-                    if (minioProperties.getCreateWatermark()) {
-                        baseBytes = processWithStrategyBytes(baseBytes, WATERMARK_IMAGE, mediaInfo);
-                    }
-
-                    // 应用压缩
-                    if (minioProperties.getIsCompress()) {
-                        baseBytes = processWithStrategyBytes(baseBytes, COMPRESS_IMAGE, mediaInfo);
-                    }
-
-                    return baseBytes;
+                    byte[] base = toBytes(mainSupplier);
+                    return applyStrategies(base, mediaInfo);
                 } catch (Exception ex) {
-                    log.error("主图处理异常", ex);
-                    throw new RuntimeException(ex);
+                    log.error("主图处理失败", ex);
+                    throw new FileException("主图处理失败: " + ex.getMessage());
                 }
-            }, applicationTaskExecutor);
+            }, executor);
 
-            // 异步生成缩略图（可与主图处理并行执行）
-            CompletableFuture<String> thumbnailPathFuture = CompletableFuture.completedFuture(null);
+            // 缩略图（可选）并行生成上传
+            CompletableFuture<String> thumbFuture = CompletableFuture.completedFuture(null);
             if (minioProperties.getCreateThumbnail()) {
-                Supplier<InputStream> finalSourceSupplier = sourceSupplier;
-                thumbnailPathFuture = CompletableFuture.supplyAsync(() -> {
+                final Supplier<InputStream> thumbSupplier = supplier;
+                thumbFuture = CompletableFuture.supplyAsync(() -> {
                     try {
-                        byte[] thumbnailBytes = processWithStrategyBytes(
-                                streamToBytes(finalSourceSupplier), THUMBNAIL_IMAGE, mediaInfo);
-
-                        // 上传缩略图到存储桶
+                        byte[] base = toBytes(thumbSupplier);
+                        byte[] thumb = processWithStrategy(base, THUMBNAIL_KEY, mediaInfo);
                         String thumbName = objectName + ".thumb.png";
-                        try (InputStream is = new ByteArrayInputStream(thumbnailBytes)) {
-                            minioUtils.uploadFile(bucketName, thumbName, is, "image/png");
-                        }
-
-                        return minioUtils.getFilePath(bucketName, thumbName);
+                        uploadBytes(bucket, thumbName, thumb, "image/png");
+                        return minioUtils.getFilePath(bucket, thumbName);
                     } catch (Exception e) {
-                        log.error("生成/上传缩略图失败", e);
+                        log.error("缩略图生成/上传失败", e);
                         return null;
                     }
-                }, applicationTaskExecutor);
+                }, executor);
             }
 
-            // 主图处理完成后上传
-            CompletableFuture<String> mainUploadFuture = mainProcessedFuture.thenApplyAsync(mainBytes -> {
-                try (InputStream is = new ByteArrayInputStream(mainBytes)) {
-                    minioUtils.uploadFile(bucketName, objectName, is, "image/png");
+            // 主图上传（等待处理完成）
+            CompletableFuture<String> mainUpload = mainProcessed.thenApplyAsync(bytes -> {
+                try {
+                    uploadBytes(bucket, objectName, bytes, "image/png");
+                    return minioUtils.getFilePath(bucket, objectName);
                 } catch (IOException e) {
-                    log.error("上传主图失败", e);
-                    throw new RuntimeException(e);
+                    log.error("主图上传失败", e);
+                    throw new FileException("主图上传失败: " + e.getMessage());
                 }
-                return minioUtils.getFilePath(bucketName, objectName);
-            }, applicationTaskExecutor);
+            }, executor);
 
-            // 等待所有任务完成
-            CompletableFuture<Void> combined = CompletableFuture.allOf(mainUploadFuture, thumbnailPathFuture);
-            combined.join();
+            // 等待完成
+            CompletableFuture.allOf(mainUpload, thumbFuture).join();
 
-            String mainPath = mainUploadFuture.join();
-            String thumbPath = thumbnailPathFuture.join();
+            String mainPath = mainUpload.join();
+            String thumbPath = thumbFuture.join();
 
-            ossFile.setPath(mainPath);
+            OssFileImage doc = new OssFileImage();
+            doc.setBucketName(bucket);
+            doc.setFileName(file.getOriginalFilename());
+            doc.setObjectKey(objectName);
+            doc.setFileType("image");
+            doc.setContentType("image/png");
+            doc.setFileSize(file.getSize());
+            doc.setPath(mainPath);
             if (thumbPath != null) {
-                ossFile.setThumbnailPath(thumbPath);
+                doc.setThumbnailPath(thumbPath);
             }
+            FileVo result = persistAndReturn(doc);
 
-            long elapsed = (System.nanoTime() - start) / 1_000_000L;
-            log.info("图片上传处理完成 file={}, elapsedMs={}", file.getOriginalFilename(), elapsed);
-            return Result.success(ossFile);
-        } catch (RuntimeException re) {
-            log.error("上传处理失败", re);
-            return Result.failed(ResultCode.SERVICE_EXCEPTION, "图片上传失败: " + re.getMessage());
-        } catch (Exception e) {
-            log.error("上传处理异常", e);
-            return Result.failed(ResultCode.SERVICE_EXCEPTION, "图片上传失败: " + e.getMessage());
+            log.info("uploadImage done: name={}, elapsedMs={}", file.getOriginalFilename(),
+                    (System.nanoTime() - start) / 1_000_000L);
+
+            return result;
+        } catch (Exception ex) {
+            log.error("uploadImage error", ex);
+            throw new FileException("图片上传失败: " + ex.getMessage());
         } finally {
-            // 清理临时文件
-            if (tempFile != null && tempFile.exists()) {
-                File tf = tempFile;
+            // 清理临时文件（异步）
+            if (tmp != null && tmp.exists()) {
+                File t = tmp;
                 CompletableFuture.runAsync(() -> {
                     try {
-                        Files.deleteIfExists(tf.toPath());
+                        Files.deleteIfExists(t.toPath());
                     } catch (Exception ex) {
-                        log.warn("删除临时文件失败: {}", tf.getAbsolutePath(), ex);
+                        log.warn("删除临时文件失败: {}", t.getAbsolutePath(), ex);
                     }
-                }, applicationTaskExecutor);
+                }, executor);
             }
         }
     }
 
     /**
-     * 上传头像文件
-     *
+     * 上传头像
      * @param file 头像文件
-     * @return 上传结果
+     * @return 文件信息
      */
     @Override
-    public Result uploadAvatar(MultipartFile file) {
-        log.info("[文件上传] 头像文件处理");
-
-        // 基本检查
+    public FileVo uploadAvatar(MultipartFile file) {
+        log.info("uploadAvatar start: name={}, size={}", file == null ? null : file.getOriginalFilename(),
+                file == null ? 0 : file.getSize());
         if (file == null || file.isEmpty()) {
-            return Result.failed("文件为空");
+            throw new FileException("文件为空");
         }
 
-        long start = System.nanoTime();
-
-        // 封装返回对象
-        OssFileImage ossFile = new OssFileImage();
-
-        // 头像使用专门的公开存储桶
-        String bucketName = minioUtils.getOrCreateBucketByFileType(AVATAR_BUCKET_NAME);
-
-        // 判断头像桶是否已设置为公开访问
-        if (!avatarBucketIsPublic.get()) {
-            try {
-                // 设置为公开存储桶
-                boolean bucketIsPublic = minioUtils.setBucketPublic(bucketName);
-                if (bucketIsPublic) {
-                    avatarBucketIsPublic.set(true);
+        String bucket = minioUtils.getOrCreateBucketByFileType(AVATAR_BUCKET_NAME);
+        try {
+            // 尝试只做一次公开设置
+            if (!avatarBucketIsPublic.get()) {
+                try {
+                    if (minioUtils.setBucketPublic(bucket)) avatarBucketIsPublic.set(true);
+                } catch (Exception e) {
+                    log.warn("设置头像桶公开失败: {}", bucket, e);
                 }
-            } catch (Exception e) {
-                log.warn("设置头像桶公开策略失败，bucketName: {}", bucketName, e);
             }
-        }
-
-        // 生成对象名称
-        String objectName = minioUtils.getObjectName(minioUtils.generatePath(), file.getOriginalFilename());
-
-        try (InputStream inputStream = file.getInputStream()) {
-
-            // 直接上传头像文件，不需要额外处理
-            minioUtils.uploadFile(bucketName, objectName, inputStream, file.getContentType());
-
-            // 获取文件访问路径
-            ossFile.setPath(minioUtils.getPublicFilePath(bucketName, objectName));
-
-            log.info("头像上传处理完成 file={}, elapsedMs={}", file.getOriginalFilename(),
-                    (System.nanoTime() - start) / 1_000_000L);
-            return Result.success(ossFile);
+            String objectName = minioUtils.getObjectName(minioUtils.generatePath(), file.getOriginalFilename());
+            try (InputStream is = file.getInputStream()) {
+                minioUtils.uploadFile(bucket, objectName, is, file.getContentType());
+            }
+            OssFileImage doc = new OssFileImage();
+            doc.setBucketName(bucket);
+            doc.setFileName(file.getOriginalFilename());
+            doc.setObjectKey(objectName);
+            doc.setFileType("image");
+            doc.setContentType(file.getContentType());
+            doc.setFileSize(file.getSize());
+            doc.setPath(minioUtils.getPublicFilePath(bucket, objectName));
+            FileVo result = persistAndReturn(doc);
+            log.info("uploadAvatar done: name={}", file.getOriginalFilename());
+            return result;
         } catch (Exception e) {
-            log.error("头像上传处理异常", e);
-            return Result.failed(ResultCode.SERVICE_EXCEPTION, "头像上传失败: " + e.getMessage());
+            log.error("uploadAvatar error", e);
+            throw new FileException("头像上传失败: " + e.getMessage());
         }
     }
 
-    /**
-     * 基于字节数组调用策略处理后返回处理后的字节数组
-     *
-     * @param in 输入字节数组
-     * @param strategyKey 策略键
-     * @param mediaInfo 媒体信息对象
-     * @return 处理后的字节数组
-     * @throws Exception 处理异常
-     */
-    private byte[] processWithStrategyBytes(byte[] in, String strategyKey, OssFileMediaInfo mediaInfo)
-            throws Exception {
-        ImageProcessingStrategy strategy = imageProcessingStrategyMap.get(strategyKey);
-        if (strategy == null) {
-            return in;
-        }
+    // ------------------------ 内部/工具方法 ------------------------
 
-        try (InputStream is = new ByteArrayInputStream(in);
-             ByteArrayOutputStream os = new ByteArrayOutputStream(Math.max(in.length / 2, 4096))) {
-            try (InputStream processed = strategy.process(is, mediaInfo)) {
-                byte[] buf = new byte[IO_BUFFER_SIZE];
-                int r;
-                while ((r = processed.read(buf)) != -1) {
-                    os.write(buf, 0, r);
-                }
-            }
+    /**
+     * 将 supplier 的流读为 bytes（每次调用都新建流）
+     */
+    private byte[] toBytes(Supplier<InputStream> supplier) throws IOException {
+        try (InputStream is = supplier.get();
+             ByteArrayOutputStream os = new ByteArrayOutputStream(Math.max(4096, IO_BUFFER))) {
+            byte[] buf = new byte[IO_BUFFER];
+            int r;
+            while ((r = is.read(buf)) != -1) os.write(buf, 0, r);
             return os.toByteArray();
         }
     }
 
     /**
-     * 流式校验图片（使用InputStreamResource直接POST）
-     * 保持原来同步等待校验结果的语义，以保证不合规图片不会上传
-     *
-     * @param supplier 输入流供应器（可重复打开）
-     * @param size 文件大小（用于InputStreamResource的content-length）
-     * @param filename 原始文件名（用于表单）
-     * @return 校验响应
+     * 按策略链处理字节（例如水印、压缩）
+     */
+    private byte[] applyStrategies(byte[] src, OssFileMediaInfo mediaInfo) throws Exception {
+        if (minioProperties.getCreateWatermark()) src = processWithStrategy(src, WATERMARK_KEY, mediaInfo);
+        if (minioProperties.getIsCompress()) src = processWithStrategy(src, COMPRESS_KEY, mediaInfo);
+        return src;
+    }
+
+    /**
+     * 调用指定策略处理，策略以 InputStream->InputStream 形式返回处理流
+     */
+    private byte[] processWithStrategy(byte[] src, String strategyKey, OssFileMediaInfo mediaInfo) throws Exception {
+        ImageProcessingStrategy strategy = imageProcessingStrategyMap.get(strategyKey);
+        if (strategy == null) return src;
+        try (InputStream in = new ByteArrayInputStream(src);
+             InputStream processed = strategy.process(in, mediaInfo);
+             ByteArrayOutputStream os = new ByteArrayOutputStream(Math.max(4096, src.length / 2))) {
+            byte[] buf = new byte[IO_BUFFER];
+            int r;
+            while ((r = processed.read(buf)) != -1) os.write(buf, 0, r);
+            return os.toByteArray();
+        }
+    }
+
+    /**
+     * 上传字节数组到 MinIO（封装，抛 IOException）
+     */
+    private void uploadBytes(String bucket, String objectName, byte[] bytes, String contentType) throws IOException {
+        try (InputStream is = new ByteArrayInputStream(bytes)) {
+            minioUtils.uploadFile(bucket, objectName, is, contentType);
+        }
+    }
+
+    /**
+     * 小文件尽量读入内存返回 bytes；若大文件则返回 null（使用临时文件路径）
+     */
+    private byte[] tryReadToMemory(MultipartFile file) throws IOException {
+        long size = file.getSize();
+        if (size <= 0 || size > IN_MEMORY_THRESHOLD) return null;
+        try (InputStream is = new BufferedInputStream(file.getInputStream(), IO_BUFFER);
+             ByteArrayOutputStream os = new ByteArrayOutputStream((int) Math.max(1024, Math.min(size, 16 * 1024)))) {
+            byte[] buf = new byte[IO_BUFFER];
+            int r;
+            while ((r = is.read(buf)) != -1) os.write(buf, 0, r);
+            return os.toByteArray();
+        }
+    }
+
+    /**
+     * 将 MultipartFile 写到临时文件并返回文件引用（调用者负责删除）
+     */
+    private File toTempFile(MultipartFile file) throws IOException {
+        File tmp = Files.createTempFile("oss_img_", "_" + Objects.requireNonNull(file.getOriginalFilename())).toFile();
+        try (InputStream is = new BufferedInputStream(file.getInputStream(), IO_BUFFER);
+             OutputStream os = new BufferedOutputStream(new FileOutputStream(tmp), IO_BUFFER)) {
+            byte[] buf = new byte[IO_BUFFER];
+            int r;
+            while ((r = is.read(buf)) != -1) os.write(buf, 0, r);
+            os.flush();
+        }
+        return tmp;
+    }
+
+    /**
+     * NSFW 检查：使用 supplier 提供流（注意 supplier 必须每次返回新的流）
+     * 返回 ResponseEntity，body 中键 "valid" 为 true 表示违规
      */
     public ResponseEntity<?> checkImageUsingSupplier(Supplier<InputStream> supplier, long size, String filename) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-
-            // 创建InputStreamResource并暴露文件名和内容长度
             InputStreamResource resource = new InputStreamResource(supplier.get()) {
                 @Override
                 public String getFilename() {
-                    return filename != null ? filename : "file";
+                    return filename == null ? "file" : filename;
                 }
-
                 @Override
                 public long contentLength() {
                     return size >= 0 && size <= Integer.MAX_VALUE ? size : -1;
                 }
             };
-
             body.add("image", resource);
-            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-
-            // 调用分类接口
-            ResponseEntity<Map> response = restTemplate.postForEntity(nsfwApiUrl, requestEntity, Map.class);
-
-            if (!response.getStatusCode().is2xxSuccessful()) {
-                return ResponseEntity.status(response.getStatusCode()).body("分类接口请求失败！");
+            HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
+            ResponseEntity<Map> resp = restTemplate.postForEntity(nsfwApiUrl, request, Map.class);
+            if (!resp.getStatusCode().is2xxSuccessful()) {
+                return ResponseEntity.status(resp.getStatusCode()).body("分类接口请求失败");
             }
-
-            // 解析响应
-            Map<String, Double> result = response.getBody();
+            Map<String, Double> result = resp.getBody();
             if (result == null || result.isEmpty()) {
-                return ResponseEntity.ok(Map.of("error", "未收到有效的分类结果！"));
+                return ResponseEntity.ok(Map.of("error", "未收到有效结果"));
             }
-
-            // 检查是否违规：成人、18禁动画、性感内容
             String[] violatingCategories = {"porn", "hentai", "sexy"};
-            List<String> violations = new ArrayList<>();
-            for (String category : violatingCategories) {
-                if (result.containsKey(category) && result.get(category) >= 0.5) {
-                    violations.add(String.format("类别: %s, 概率: %.2f", category, result.get(category)));
-                }
-            }
-
-            if (!violations.isEmpty()) {
-                return ResponseEntity.ok(Map.of("valid", true, "result", violations));
-            }
-
-            return ResponseEntity.ok(Map.of("valid", false, "result", violations));
+            List<String> viol = Arrays.stream(violatingCategories)
+                    .filter(result::containsKey)
+                    .filter(k -> result.get(k) >= 0.5)
+                    .map(k -> String.format("%s:%.2f", k, result.get(k)))
+                    .toList();
+            return ResponseEntity.ok(Map.of("valid", !viol.isEmpty(), "result", viol));
         } catch (Exception e) {
             log.error("checkImageUsingSupplier error", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("校验异常: " + e.getMessage());
@@ -480,47 +383,11 @@ public class OssFileImageServiceImpl implements OssFileImageService {
     }
 
     /**
-     * 生成文件访问地址
-     *
-     * @param bucketName 存储桶名
-     * @param fileName 文件名
-     * @return 访问地址
+     * 生成外网访问地址（保留）
      */
-    public String generatorUrl(String bucketName, String fileName) {
-        return minioProperties.getExtranet() + "/" + bucketName + "/" + fileName;
-    }
-
-    /**
-     * 处理图片（旧版兼容方法）
-     *
-     * @param fileBytes 文件字节数组
-     * @param ossMediaFileInfo 媒体信息
-     * @param strategyKey 策略键
-     * @return 处理后的字节数组
-     * @throws Exception 处理异常
-     */
-    private byte[] processImage(byte[] fileBytes, OssFileMediaInfo ossMediaFileInfo, String strategyKey)
-            throws Exception {
-        return processWithStrategyBytes(fileBytes, ossMediaFileInfo, strategyKey);
-    }
-
-    /**
-     * 基于字节数组调用策略处理后返回处理后的字节数组（旧版兼容方法）
-     *
-     * @param fileBytes        输入字节数组
-     * @param ossMediaFileInfo 媒体信息对象
-     * @param strategyKey      策略键
-     * @return 处理后的字节数组
-     * @throws Exception 处理异常
-     */
-    private byte[] processWithStrategyBytes(byte[] fileBytes, OssFileMediaInfo ossMediaFileInfo, String strategyKey)
-            throws Exception {
-        ImageProcessingStrategy strategy = imageProcessingStrategyMap.get(strategyKey);
-        try (InputStream inputStream = new ByteArrayInputStream(fileBytes);
-             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            InputStream processedStream = strategy.process(inputStream, ossMediaFileInfo);
-            processedStream.transferTo(outputStream);
-            return outputStream.toByteArray();
-        }
+    private FileVo persistAndReturn(OssFileImage doc) {
+        OssFileImagePo entity = ossFileImageEntityMapper.toEntity(doc);
+        ossFileImageRepository.save(entity);
+        return fileVoMapper.toVo(entity);
     }
 }

@@ -1,58 +1,51 @@
 package com.xy.lucky.file.domain;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.*;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
-@Getter
-@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Schema(description = "图片文件")
 public class OssFileImage {
 
-    /**
-     * 主键
-     */
+    @Schema(description = "主键")
     private String id;
-    /**
-     * 分片上传的uploadId
-     */
+
+    @Schema(description = "分片上传的uploadId")
     private String uploadId;
-    /**
-     * 桶名称
-     */
+
+    @Schema(description = "桶名称")
     private String bucketName;
-    /**
-     * 文件唯一标识（md5）
-     */
+
+    @Schema(description = "文件唯一标识（md5）")
     private String identifier;
-    /**
-     * 文件名
-     */
+
+    @Schema(description = "文件名")
     private String fileName;
-    /**
-     * 文件类型
-     */
+
+    @Schema(description = "文件类型")
     private String fileType;
-    /**
-     * 文件的key
-     */
+
+    @Schema(description = "文件的key")
     private String objectKey;
 
+    @Schema(description = "文件内容类型")
     private String contentType;
-    /**
-     * 文件大小（byte）
-     */
+
+    @Schema(description = "文件大小（byte）")
     private Long fileSize;
-    /**
-     * 文件地址
-     */
+
+    @Schema(description = "文件地址")
     private String path;
-    /**
-     * 缩略图文件地址
-     */
+
+    @Schema(description = "缩略图文件地址")
     private String thumbnailPath;
 
 

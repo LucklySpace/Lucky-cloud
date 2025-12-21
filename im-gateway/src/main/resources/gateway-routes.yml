@@ -29,8 +29,8 @@ spring:
             # 去除一个前缀
             - StripPrefix=1
 
-        - id: im-generator  # id生成服务
-          uri: lb://im-generator
+        - id: im-leaf  # id生成服务
+          uri: lb://im-leaf
           predicates:
             - Path=/gen/**
 

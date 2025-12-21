@@ -37,7 +37,6 @@ spring:
           lowerCaseServiceId: true
           #另一种写法
           #lower-case-service-id: true
-      #路由配置
 
 
 

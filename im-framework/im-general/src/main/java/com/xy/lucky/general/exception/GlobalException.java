@@ -16,6 +16,7 @@ public class GlobalException extends RuntimeException implements Serializable {
     private String message;
 
     public GlobalException(String message) {
+        this.code = ResultCode.FAIL.getCode();
         this.message = message;
     }
 

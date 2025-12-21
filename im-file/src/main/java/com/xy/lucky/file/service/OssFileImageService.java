@@ -1,11 +1,28 @@
 package com.xy.lucky.file.service;
 
-import com.xy.lucky.general.response.domain.Result;
+
+import com.xy.lucky.file.domain.vo.FileVo;
 import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * 图片文件上传服务
+ */
 public interface OssFileImageService {
 
-    Result uploadImage(MultipartFile file);
+    /**
+     * 图片上传
+     *
+     * @param file 图片文件
+     * @return 上传结果
+     */
+    FileVo uploadImage(MultipartFile file);
 
-    Result uploadAvatar(MultipartFile file);
+    /**
+     * 头像上传
+     *
+     * @param file 头像文件
+     * @return 上传结果
+     */
+    FileVo uploadAvatar(MultipartFile file);
+
 }

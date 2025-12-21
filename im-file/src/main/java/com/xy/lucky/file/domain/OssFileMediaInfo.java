@@ -1,50 +1,42 @@
 package com.xy.lucky.file.domain;
 
-
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.*;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.geometry.Positions;
 
+@Slf4j
 @Data
 @Builder
-@Getter
-@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Schema(description = "媒体文件信息")
 public class OssFileMediaInfo {
 
-    /**
-     * 宽 高
-     */
+    @Schema(description = "宽 高")
     private Integer width, height;
 
-    /**
-     * 水印地址
-     */
-    private String watermarkPath = "C:/Users/dense/Desktop/截图/通话请求窗口.jpg";
+    @Schema(description = "水印地址")
+    private String watermarkPath;
 
-    /**
-     * 水印位置
-     */
+    @Schema(description = "水印位置")
     private Positions watermarkPosition = Positions.BOTTOM_RIGHT;
-    /**
-     * 透明度
-     */
+
+    @Schema(description = "透明度")
     private Float opacity = 0.5f;
-    /**
-     * 放大倍数
-     */
+
+    @Schema(description = "放大倍数")
     private Double scale = 0.5;
 
-    /**
-     * 比例
-     */
+    @Schema(description = "比例")
     private Double ratio = 0.3;
 
-    /**
-     * 格式
-     */
+    @Schema(description = "格式")
     private String format = "png";
 
 }

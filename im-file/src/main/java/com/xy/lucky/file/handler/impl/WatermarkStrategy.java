@@ -2,7 +2,7 @@ package com.xy.lucky.file.handler.impl;
 
 import com.xy.lucky.file.domain.OssFileMediaInfo;
 import com.xy.lucky.file.handler.ImageProcessingStrategy;
-import com.xy.lucky.file.util.WatermarkUtil;
+import com.xy.lucky.file.util.WatermarkUtils;
 import net.coobird.thumbnailator.geometry.Positions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -31,7 +31,7 @@ public class WatermarkStrategy implements ImageProcessingStrategy {
 
         String format = ossMediaFileInfo.getFormat();
 
-        return WatermarkUtil.addTextWatermarkToStream(
+        return WatermarkUtils.addTextWatermarkToStream(
                 inputStream,
                 watermarkWord,
                 new Font(watermarkFont, Font.BOLD, 30),

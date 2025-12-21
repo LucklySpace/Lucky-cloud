@@ -1,9 +1,11 @@
 package com.xy.lucky.file.enums;
 
-import cn.hutool.core.util.ArrayUtil;
+import com.xy.lucky.utils.collection.ArrayUtils;
+import lombok.Getter;
 
 import java.util.Arrays;
 
+@Getter
 public enum StorageBucketEnum {
 
     /**
@@ -30,6 +32,7 @@ public enum StorageBucketEnum {
     //IMAGE_PREVIEW("image-preview", "缩略图文件桶",new String[]{"jpeg_preview", "jpg_preview", "png_preview", "bmp_preview", "webp_preview", "gif_preview"}),
     OTHER("other", "其他文件桶", new String[]{"*"}),
     THUMBNAIL("thumbnail", "图片缩略图文件桶", new String[]{"thumbnail"});
+
     private final String code;
 
     private final String name;
@@ -86,10 +89,21 @@ public enum StorageBucketEnum {
      */
     public static String getBucketByFileSuffix(String suffix) {
         return Arrays.stream(StorageBucketEnum.values())
-                .filter(item -> ArrayUtil.contains(item.types, suffix))
+                .filter(item -> ArrayUtils.contains(item.types, suffix))
                 .findFirst()
                 .orElse(StorageBucketEnum.OTHER)
                 .code;
+    }
+
+    /**
+     * 根据文件名取得桶编码
+     *
+     * @param fileName 文件名
+     * @return 桶编码
+     */
+    public static String getBucketByFileName(String fileName) {
+        String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
+        return getBucketByFileSuffix(suffix);
     }
 
     public String getCode() {

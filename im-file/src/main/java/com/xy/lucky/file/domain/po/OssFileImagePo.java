@@ -1,63 +1,74 @@
 package com.xy.lucky.file.domain.po;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
 
 @Data
 @Builder
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@Schema(description = "图片文件")
 @Entity
 @Table(name = "im_oss_file_image")
-@Schema(description = "OSS文件图片")
 public class OssFileImagePo {
 
+    @Schema(description = "主键")
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Schema(description = "主键")
     private Long id;
 
+    @Schema(description = "分片上传的uploadId")
     @Column(name = "upload_id", length = 128)
-    @Schema(description = "上传ID")
     private String uploadId;
 
+    @Schema(description = "桶名称")
     @Column(name = "bucket_name", length = 128)
-    @Schema(description = "bucket名称")
     private String bucketName;
 
-    @Column(name = "identifier", length = 64)
-    @Schema(description = "文件标识")
+    @Schema(description = "文件唯一标识（md5）")
+    @Column(name = "identifier", length = 64, unique = true, nullable = false)
     private String identifier;
 
+    @Schema(description = "文件名")
     @Column(name = "file_name", length = 512)
-    @Schema(description = "文件名称")
     private String fileName;
 
-    @Column(name = "file_type", length = 128)
     @Schema(description = "文件类型")
+    @Column(name = "file_type", length = 128)
     private String fileType;
 
+    @Schema(description = "文件的key")
     @Column(name = "object_key", length = 512)
-    @Schema(description = "对象键")
     private String objectKey;
 
+    @Schema(description = "文件内容类型")
     @Column(name = "content_type", length = 128)
-    @Schema(description = "内容类型")
     private String contentType;
 
+    @Schema(description = "文件大小（byte）")
     @Column(name = "file_size")
-    @Schema(description = "文件大小")
     private Long fileSize;
 
+    @Schema(description = "文件地址")
     @Column(name = "path", length = 1024)
-    @Schema(description = "文件路径")
     private String path;
 
+    @Schema(description = "缩略图文件地址")
     @Column(name = "thumbnail_path", length = 1024)
-    @Schema(description = "缩略图路径")
     private String thumbnailPath;
+
+    @Schema(description = "创建时间（插入时自动填充）")
+    @CreationTimestamp
+    @Column(name = "create_time", nullable = false, updatable = false)
+    private LocalDateTime createTime;
+
 }

@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PearlMinioClient extends MinioAsyncClient {
 
-
     protected PearlMinioClient(MinioAsyncClient client) {
         super(client);
     }
@@ -221,12 +220,40 @@ public class PearlMinioClient extends MinioAsyncClient {
      * @param inputStream 输入流
      */
     public void uploadFile(String bucketName, String objectName, String contentType, InputStream inputStream) throws IOException, InvalidKeyException, NoSuchAlgorithmException, InsufficientDataException, ServerException, InternalException, XmlParserException, InvalidResponseException, ErrorResponseException {
-        this.putObject(PutObjectArgs.builder()
-                .bucket(bucketName)
-                .object(objectName)
-                .stream(inputStream, -1, 10485760)
-                .contentType(contentType)
-                .build());
+        int attempts = 0;
+        long backoff = 500;
+        Throwable last = null;
+        while (attempts < 3) {
+            attempts++;
+            try {
+                CompletableFuture<ObjectWriteResponse> future = this.putObject(PutObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(objectName)
+                        .stream(inputStream, -1, 10485760)
+                        .contentType(contentType)
+                        .build());
+                future.get();
+                return;
+            } catch (Exception e) {
+                last = (e instanceof ExecutionException && e.getCause() != null) ? e.getCause() : e;
+                try {
+                    Thread.sleep(backoff);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+                backoff *= 2;
+            }
+        }
+        if (last instanceof ErrorResponseException) throw (ErrorResponseException) last;
+        if (last instanceof InvalidResponseException) throw (InvalidResponseException) last;
+        if (last instanceof InsufficientDataException) throw (InsufficientDataException) last;
+        if (last instanceof ServerException) throw (ServerException) last;
+        if (last instanceof InternalException) throw (InternalException) last;
+        if (last instanceof XmlParserException) throw (XmlParserException) last;
+        if (last instanceof InvalidKeyException) throw (InvalidKeyException) last;
+        if (last instanceof NoSuchAlgorithmException) throw (NoSuchAlgorithmException) last;
+        if (last instanceof IOException) throw (IOException) last;
+        throw new IOException("Upload failed", last);
     }
 
 

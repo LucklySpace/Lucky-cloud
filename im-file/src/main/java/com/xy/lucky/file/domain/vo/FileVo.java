@@ -15,6 +15,9 @@ import lombok.experimental.Accessors;
 @Schema(description = "文件")
 public class FileVo {
 
+    @Schema(description = "文件md5")
+    private String identifier;
+
     @Schema(description = "文件名称")
     private String name;
 

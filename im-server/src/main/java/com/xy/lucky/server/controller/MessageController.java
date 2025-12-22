@@ -6,7 +6,6 @@ import com.xy.lucky.core.model.IMSingleMessage;
 import com.xy.lucky.core.model.IMVideoMessage;
 import com.xy.lucky.core.model.IMessageAction;
 import com.xy.lucky.domain.dto.ChatDto;
-import com.xy.lucky.general.response.domain.Result;
 import com.xy.lucky.server.service.MessageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -55,8 +54,8 @@ public class MessageController {
     @Parameters({
             @Parameter(name = "IMVideoMessageDto", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result sendVideoMessage(@RequestBody IMVideoMessage videoMessageDto) {
-        return messageService.sendVideoMessage(videoMessageDto);
+    public void sendVideoMessage(@RequestBody IMVideoMessage videoMessageDto) {
+        messageService.sendVideoMessage(videoMessageDto);
     }
 
 
@@ -65,8 +64,8 @@ public class MessageController {
     @Parameters({
             @Parameter(name = "messageAction", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result recallMessage(@RequestBody IMessageAction messageAction) {
-        return messageService.recallMessage(messageAction);
+    public void recallMessage(@RequestBody IMessageAction messageAction) {
+        messageService.recallMessage(messageAction);
     }
 
 

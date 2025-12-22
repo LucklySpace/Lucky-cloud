@@ -1,8 +1,8 @@
 package com.xy.lucky.file.service;
 
 
-import com.xy.lucky.file.domain.OssFile;
 import com.xy.lucky.file.domain.OssFileUploadProgress;
+import com.xy.lucky.file.domain.po.OssFilePo;
 import com.xy.lucky.file.domain.vo.FileChunkVo;
 import com.xy.lucky.file.domain.vo.FileVo;
 import org.springframework.http.ResponseEntity;
@@ -22,10 +22,10 @@ public interface OssFileService {
 
     /**
      * 初始化分片上传任务
-     * @param ossFile 文件信息
+     * @param ossFilePo 文件信息
      * @return 响应结果
      */
-    FileChunkVo initMultiPartUpload(OssFile ossFile);
+    FileChunkVo initMultiPartUpload(OssFilePo ossFilePo);
 
     /**
      * 合并分片上传任务
@@ -42,10 +42,10 @@ public interface OssFileService {
      */
     FileVo isExits(String identifier);
 
-
     /**
      * 上传文件
      *
+     * @param identifier 文件md5
      * @param file 文件
      * @return 响应结果
      */

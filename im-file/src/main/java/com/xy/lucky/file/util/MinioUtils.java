@@ -1,23 +1,20 @@
 package com.xy.lucky.file.util;
 
-
 import com.google.common.collect.HashMultimap;
 import com.xy.lucky.file.client.MinioProperties;
 import com.xy.lucky.file.client.PearlMinioClient;
-import com.xy.lucky.file.domain.OssFile;
 import com.xy.lucky.file.domain.OssFileUploadProgress;
+import com.xy.lucky.file.domain.po.OssFilePo;
 import com.xy.lucky.file.domain.vo.FileChunkVo;
 import com.xy.lucky.file.enums.StorageBucketEnum;
 import com.xy.lucky.file.exception.FileException;
-import com.xy.lucky.utils.id.IdUtils;
 import com.xy.lucky.utils.string.StringUtils;
 import io.minio.*;
-import io.minio.errors.MinioException;
-import io.minio.http.Method;
 import io.minio.messages.Part;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,622 +22,405 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
-
 /**
- * MinIO 文件存储工具类
- * <p>
- * 提供以下主要功能:
- * 1. 文件上传(支持单文件和分片上传)
- * 2. 文件下载
- * 3. 文件分享链接生成
- * 4. 存储桶(Bucket)管理
+ * MinIO 文件工具（精简版）
  *
+ * 要点：
+ * - 提供分片上传初始化、获取进度、合并、预签名 URL、断点下载等功能
+ * - 内部提取小工具方法，异常统一抛 FileException
+ * - 日志信息清晰，便于排查
  */
 @Slf4j
 @Component
 public class MinioUtils {
 
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+    private static final int PRESIGNED_EXPIRE_DAYS = 1;
+    private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
+
     @Resource
     private MinioProperties minioProperties;
 
     @Resource
-    private RedisUtils redisUtils; // Redis 数据库存储
-
-    @Resource
-    private PearlMinioClient pearlMinioClient; // 自定义的 Minio 客户端
+    private PearlMinioClient pearlMinioClient;
 
     /**
-     * 获取分片上传进度
-     *
-     * @param reqOssFile            文件信息对象
-     * @param uploadProgressBuilder 上传进度构建器
-     * @return 包含已上传分片信息和未上传分片预签名URL的响应
+     * 获取分片上传进度：返回已上传分片信息并为未上传分片生成预签名上传 URL
      */
-    public OssFileUploadProgress getMultipartUploadProgress(OssFile reqOssFile, OssFileUploadProgress uploadProgressBuilder) {
-        String bucketName = reqOssFile.getBucketName();
-        String objectName = reqOssFile.getObjectKey();
-        String fileName = reqOssFile.getFileName();
-        String uploadId = reqOssFile.getUploadId();
+    public OssFileUploadProgress getMultipartUploadProgress(OssFilePo req, OssFileUploadProgress builder) {
+        String bucket = req.getBucketName();
+        String object = req.getObjectKey();
+        String uploadId = req.getUploadId();
 
         try {
-            log.info("查询分片上传进度 - bucket:{}, object:{}, uploadId:{}", bucketName, objectName, uploadId);
-            uploadProgressBuilder.setUploadId(uploadId);
+            log.info("查询分片上传进度 bucket={}, object={}, uploadId={}", bucket, object, uploadId);
+            builder.setUploadId(uploadId);
 
-            // 获取已上传的分片列表
-            ListPartsResponse partResult = pearlMinioClient.listMultipart(
-                    bucketName, null, objectName, 1000, 0, uploadId, null, null
-            ).get();
+            ListPartsResponse partsResp = pearlMinioClient.listMultipart(bucket, null, object, 1000, 0, uploadId, null, null).get();
+            List<Part> uploaded = partsResp.result() == null ? Collections.emptyList() : partsResp.result().partList();
 
-            if (partResult.result() != null) {
-                // 存储未完成分片的预签名URL
-                TreeMap<String, String> chunkMap = new TreeMap<>();
+            // 所有分片编号（1..partNum）
+            List<Integer> allParts = IntStream.rangeClosed(1, req.getPartNum()).boxed().toList();
 
-                // 获取所有分片编号列表
-                List<Integer> allPartNumbers = IntStream.rangeClosed(1, reqOssFile.getPartNum())
-                        .boxed()
-                        .toList();
+            TreeMap<String, String> undone = new TreeMap<>();
+            Set<Integer> finished = uploaded.stream().map(Part::partNumber).collect(HashSet::new, Set::add, Set::addAll);
 
-                List<Part> uploadedParts = partResult.result().partList();
-
-
-                if (CollectionUtils.isEmpty(uploadedParts)) {
-                    // 没有已上传的分片,生成所有分片的预签名URL
-                    for (Integer partNumber : allPartNumbers) {
-                        String uploadUrl = generatePresignedObjectUrl(uploadId, bucketName, fileName, partNumber);
-                        chunkMap.put("chunk_" + (partNumber - 1), uploadUrl);
-                    }
-                } else {
-                    // 获取已上传完成的分片编号
-                    List<Integer> finishedPartNumbers = uploadedParts.stream()
-                            .map(Part::partNumber)
-                            .toList();
-
-                    // 为未上传的分片生成预签名URL
-                    for (Integer partNumber : allPartNumbers) {
-                        if (!finishedPartNumbers.contains(partNumber)) {
-                            String uploadUrl = generatePresignedObjectUrl(uploadId, bucketName, fileName, partNumber);
-                            chunkMap.put("chunk_" + (partNumber - 1), uploadUrl);
-                        }
-                    }
+            for (Integer partNumber : allParts) {
+                if (!finished.contains(partNumber)) {
+                    String url = generatePresignedPartUrlSafe(uploadId, bucket, object, partNumber);
+                    undone.put("chunk_" + (partNumber - 1), url);
                 }
-                uploadProgressBuilder.setUndoneChunkMap(chunkMap);
+            }
+            builder.setUndoneChunkMap(undone);
+            return builder;
+        } catch (Exception e) {
+            log.error("获取上传进度失败 bucket={} object={} uploadId={}", bucket, object, uploadId, e);
+            throw new FileException("获取上传进度失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 初始化单文件上传（返回单分片上传 URL 与 uploadId）
+     */
+    public FileChunkVo initUpload(OssFilePo req) {
+        String bucket = getOrCreateBucketByFileName(req.getFileName());
+        String object = getObjectName(generatePath(), req.getFileName());
+        req.setObjectKey(object);
+        req.setBucketName(bucket);
+
+        try {
+            log.info("初始化单文件上传 bucket={} object={}", bucket, object);
+            String uploadId = generateUploadId(bucket, object, req.getFileType());
+            String url = generatePresignedUrlSafe(bucket, object);
+            return FileChunkVo.builder().uploadUrl(Map.of("chunk_0", url)).uploadId(uploadId).build();
+        } catch (Exception e) {
+            log.error("initUpload 失败 object={} bucket={}", object, bucket, e);
+            throw new FileException("初始化分片上传失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 初始化多分片上传（返回每个分片的预签名 URL）
+     */
+    public FileChunkVo initMultiPartUpload(OssFilePo req) {
+        String bucket = getOrCreateBucketByFileName(req.getFileName());
+        String object = getObjectName(generatePath(), req.getFileName());
+        req.setObjectKey(object);
+        req.setBucketName(bucket);
+
+        try {
+            log.info("初始化分片上传 bucket={} object={} partNum={}", bucket, object, req.getPartNum());
+            String uploadId = generateUploadId(bucket, object, req.getFileType());
+            Map<String, String> urls = generatePresignedObjectUrlsSafe(uploadId, bucket, object, req.getPartNum());
+            return FileChunkVo.builder().uploadUrl(urls).uploadId(uploadId).build();
+        } catch (Exception e) {
+            log.error("initMultiPartUpload 失败 object={} bucket={}", object, bucket, e);
+            throw new FileException("初始化分片上传失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 合并分片：获取已上传分片列表并调用 completeMultipartUpload
+     */
+    public String mergeOssFileUpload(OssFilePo req) {
+        String bucket = req.getBucketName();
+        String object = req.getObjectKey();
+        String uploadId = req.getUploadId();
+
+        try {
+            log.info("开始合并分片 bucket={} object={} uploadId={}", bucket, object, uploadId);
+
+            ListPartsResponse partsResp = pearlMinioClient.listMultipart(bucket, null, object, 1000, 0, uploadId, null, null).get();
+            List<Part> parts = partsResp.result() == null ? Collections.emptyList() : partsResp.result().partList();
+            if (CollectionUtils.isEmpty(parts)) {
+                throw new FileException("未找到已上传的分片");
             }
 
-            return uploadProgressBuilder;
-
-        } catch (Exception e) {
-            log.error("获取上传进度失败 - bucket:{}, object:{}", bucketName, objectName, e);
-            throw new FileException("文件上传失败");
-        }
-    }
-
-    /**
-     * 初始化单文件上传
-     *
-     * @param reqOssFile 文件信息对象,包含文件名、类型等信息
-     * @return 包含上传URL和uploadId的响应结果
-     */
-    public FileChunkVo initUpload(OssFile reqOssFile) {
-
-        // 获取文件桶名
-        String bucketName = getOrCreateBucketByFileType(reqOssFile.getFileType());
-
-        // 自动生成路径和文件名
-        String objectName = this.getObjectName(this.generatePath(), reqOssFile.getFileName());
-        reqOssFile.setObjectKey(objectName);
-
-        try {
-
-            log.info("tip message: 通过 <{}-{}> 开始单文件上传<minio>", objectName, bucketName);
-
-            String uploadId = generateUploadId(bucketName, objectName, reqOssFile.getFileType());
-
-            reqOssFile.setUploadId(uploadId);
-
-            reqOssFile.setBucketName(bucketName);
-
-            // 获取每个分片的预签名上传地址
-            String url = generatePresignedObjectUrl(bucketName, objectName);
-
-            return FileChunkVo.builder()
-                    .uploadUrl(Map.of("chunk_" + 0, url))
-                    .uploadId(uploadId)
-                    .build();
-
-        } catch (Exception e) {
-
-            log.error("error message: 初始化分片上传失败, 原因:", e);
-
-            // 返回 文件上传失败
-            throw new FileException("初始化分片上传失败");
-        }
-    }
-
-    /**
-     * 初始化分片上传
-     *
-     * @param reqOssFile 文件信息对象,包含文件名、分片数量等信息
-     * @return 包含分片上传URL列表和uploadId的响应结果
-     */
-    public FileChunkVo initMultiPartUpload(OssFile reqOssFile) {
-        // 获取文件桶名
-        String bucketName = getOrCreateBucketByFileType(reqOssFile.getFileType());
-
-        // 自动生成路径和文件名
-        String objectName = this.getObjectName(this.generatePath(), reqOssFile.getFileName());
-        reqOssFile.setObjectKey(objectName);
-
-        try {
-            log.info("tip message: 通过 <{}-{}> 开始分片上传<minio>", objectName, bucketName);
-
-            // 获取 单文件上传
-            String uploadId = generateUploadId(bucketName, objectName, reqOssFile.getFileType());
-
-            reqOssFile.setUploadId(uploadId);
-
-            reqOssFile.setBucketName(bucketName);
-
-            // 获取每个分片的预签名上传地址
-            Map<String, String> urlsMap = generatePresignedObjectUrls(uploadId, bucketName, objectName, reqOssFile.getPartNum());
-
-
-            return FileChunkVo.builder()
-                    .uploadUrl(urlsMap)
-                    .uploadId(uploadId)
-                    .build();
-
-        } catch (Exception e) {
-
-            log.error("error message: 初始化分片上传失败、原因:", e);
-            // 返回 文件上传失败
-            throw new FileException("初始化分片上传失败");
-        }
-    }
-
-
-    /**
-     * 合并分片上传的文件
-     *
-     * @param reqOssFile 文件信息对象,包含uploadId等信息
-     * @return 合并结果, 成功则返回文件访问路径
-     */
-    public String mergeOssFileUpload(OssFile reqOssFile) {
-
-        String bucketName = reqOssFile.getBucketName();
-        String uploadId = reqOssFile.getUploadId();
-
-        // 使用已生成的对象键
-        String objectName = reqOssFile.getObjectKey();
-
-        try {
-            log.info("开始合并文件分片 - bucket:{}, object:{}, uploadId:{}", bucketName, objectName, uploadId);
-
-            // 1. 获取所有分片信息
-            ListPartsResponse partResult = pearlMinioClient.listMultipart(
-                    bucketName,
-                    null,
-                    objectName,
-                    1000,
-                    0,
-                    uploadId,
-                    null,
-                    null
-            ).get();
-
-            List<Part> partList = partResult.result().partList();
-            if (partList.isEmpty()) {
-                log.warn("未找到文件分片 - bucket:{}, object:{}, uploadId:{}", bucketName, objectName, uploadId);
-                throw new FileException("未找到文件分片");
-            }
-
-            // 2. 合并分片
-            Part[] parts = partList.toArray(new Part[0]);
-
-            // 修复签名错误：确保请求头正确设置
+            // complete
+            Part[] toComplete = parts.toArray(new Part[0]);
             HashMultimap<String, String> headers = HashMultimap.create();
-            headers.put("Content-Type", "application/octet-stream");
+            headers.put("Content-Type", DEFAULT_CONTENT_TYPE);
+            pearlMinioClient.completeMultipartUploadAsync(bucket, null, object, uploadId, toComplete, headers, null).get();
 
-            pearlMinioClient.completeMultipartUploadAsync(
-                    bucketName,
-                    null,
-                    objectName,
-                    uploadId,
-                    parts,
-                    headers, // 添加正确的请求头
-                    null
-            ).get(); // 等待完成操作
-
-            // 3. 清理分片
+            // 尝试清理（如果 SDK 保持分片元信息需要）
             try {
-                pearlMinioClient.abortMultipartPart(
-                        bucketName,
-                        null,
-                        objectName,
-                        uploadId,
-                        null,
-                        null
-                );
-                log.info("成功清理文件分片 - bucket:{}, object:{}, uploadId:{}", bucketName, objectName, uploadId);
-            } catch (Exception e) {
-                // 清理分片失败不影响主流程，只记录警告日志
-                log.warn("清理文件分片失败 - bucket:{}, object:{}, uploadId:{}, error:{}",
-                        bucketName, objectName, uploadId, e.getMessage());
+                pearlMinioClient.abortMultipartPart(bucket, null, object, uploadId, null, null);
+            } catch (Exception ex) {
+                log.warn("清理分片时发生错误（非阻塞） bucket={} object={} uploadId={} error={}", bucket, object, uploadId, ex.getMessage());
             }
 
-            String filePath = this.getFilePath(bucketName, objectName);
-
-            log.info("文件合并完成 - bucket:{}, object:{}", bucketName, objectName);
-
-            return filePath;
-
+            String path = getFilePath(bucket, object);
+            log.info("合并完成 bucket={} object={} path={}", bucket, object, path);
+            return path;
         } catch (Exception e) {
-            log.error("文件合并失败 - bucket:{}, object:{}, uploadId:{}", bucketName, objectName, uploadId, e);
-            throw new FileException("文件合并失败: " + e.getMessage());
+            log.error("合并分片失败 bucket={} object={} uploadId={}", bucket, object, uploadId, e);
+            throw new FileException("合并分片失败: " + e.getMessage());
         }
     }
 
     /**
-     * 创建存储桶
-     *
-     * @param bucketName 存储桶名称
-     * @return 创建的存储桶名称
-     * @throws RuntimeException 创建失败时抛出异常
+     * 创建桶（简化）: 若已存在则直接返回
      */
     public String createBucket(String bucketName) {
         try {
-            // 检查桶是否已存在
-//            if (bucketExists(bucketName)) {
-//                return bucketName; // 如果桶存在，返回桶名称
-//            }
-            pearlMinioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build()); // 创建新桶
-            return bucketName; // 返回新创建的桶名称
+            if (bucketExists(bucketName)) return bucketName;
+            pearlMinioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
+            return bucketName;
         } catch (Exception e) {
-            log.error("创建桶 <{}> 时发生错误", bucketName, e); // 异常日志
-            throw new RuntimeException(e); // 抛出运行时异常
+            log.error("创建桶失败 bucket={}", bucketName, e);
+            throw new FileException("创建桶失败: " + e.getMessage());
         }
     }
 
     /**
-     * 查看存储bucket是否存在
-     *
-     * @return boolean
+     * 检查 bucket 是否存在
      */
-
     public boolean bucketExists(String bucketName) {
         try {
-            // bucketExists 返回 CompletableFuture<Boolean>（取决于 SDK 版本）
-            boolean found = pearlMinioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build()).get();
-            return found;
-        } catch (MinioException e) {
-            log.error("MinIO Exception: {}", e.getMessage(), e);
-            return false;
+            return pearlMinioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build()).get();
         } catch (Exception e) {
-            log.error("其他异常: {}", e.getMessage(), e);
+            log.error("检查桶是否存在失败 bucket={}", bucketName, e);
             return false;
         }
     }
 
-
-
     /**
-     * 生成上传 id。
-     *
-     * @param bucketName  桶名称
-     * @param objectName  文件全路径名称
-     * @param contentType 文件类型
-     * @return 上传 ID
+     * 生成 uploadId（内部方法，包装异常）
      */
-    private String generateUploadId(String bucketName, String objectName, String contentType) throws Exception {
-        if (StringUtils.isBlank(contentType)) {
-            contentType = "application/octet-stream"; // 默认文件类型
+    private String generateUploadId(String bucketName, String objectName, String contentType) {
+        try {
+            if (StringUtils.isBlank(contentType)) contentType = DEFAULT_CONTENT_TYPE;
+            HashMultimap<String, String> headers = HashMultimap.create();
+            headers.put("Content-Type", contentType);
+            CreateMultipartUploadResponse resp = pearlMinioClient.createMultipartUploadAsync(bucketName, null, objectName, headers, null).get();
+            return resp.result().uploadId();
+        } catch (Exception e) {
+            log.error("generateUploadId 失败 bucket={} object={}", bucketName, objectName, e);
+            throw new FileException("初始化上传失败: " + e.getMessage());
         }
-        HashMultimap<String, String> headers = HashMultimap.create();
-        headers.put("Content-Type", contentType); // 设置文件类型
-
-        CreateMultipartUploadResponse createMultipartUploadResponse = pearlMinioClient.createMultipartUploadAsync(bucketName, null, objectName, headers, null).get();// 初始化分片上传并返回上传 ID
-
-        return createMultipartUploadResponse.result().uploadId();
     }
 
     /**
-     * 获取文件上传的预签名 URL。
-     *
-     * @param bucketName 桶名称
-     * @param objectName 文件全路径名称
-     * @return 文件上传的预签名 URL
+     * 生成单个预签名 PUT URL（安全包装）
      */
-    private String generatePresignedObjectUrl(String bucketName, String objectName) throws Exception {
-        return pearlMinioClient.getPresignedObjectUrl(
-                GetPresignedObjectUrlArgs.builder()
-                        .method(Method.PUT)
-                        .bucket(bucketName)
-                        .object(objectName)
-                        .expiry(1, TimeUnit.DAYS) // URL 过期时间 1 天
-                        .build());
+    private String generatePresignedUrlSafe(String bucketName, String objectName) {
+        try {
+            return pearlMinioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
+                    .method(io.minio.http.Method.PUT)
+                    .bucket(bucketName)
+                    .object(objectName)
+                    .expiry(PRESIGNED_EXPIRE_DAYS, TimeUnit.DAYS).build());
+        } catch (Exception e) {
+            log.error("生成预签名 URL 失败 bucket={} object={}", bucketName, objectName, e);
+            throw new FileException("生成上传地址失败");
+        }
     }
 
     /**
-     * @param uploadId   上传id
-     * @param bucketName 存储桶名
-     * @param objectName 文件名
-     * @param partNumber 分片号
-     * @return
-     * @throws Exception
+     * 生成分片上传预签名 URL（带 uploadId 和 partNumber 查询参数）
      */
-    private String generatePresignedObjectUrl(String uploadId, String bucketName, String objectName, Integer partNumber) throws Exception {
-        return pearlMinioClient.getPresignedObjectUrl(
-                GetPresignedObjectUrlArgs.builder()
-                        .method(Method.PUT)
-                        .bucket(bucketName)
-                        .object(objectName)
-                        .expiry(1, TimeUnit.DAYS) // URL 过期时间 1 天
-                        .extraQueryParams(Map.of(
-                                "uploadId", uploadId,
-                                "partNumber", String.valueOf(partNumber)
-                        ))
-                        .build());
-
+    private String generatePresignedPartUrlSafe(String uploadId, String bucketName, String objectName, Integer partNumber) {
+        try {
+            return pearlMinioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
+                    .method(io.minio.http.Method.PUT)
+                    .bucket(bucketName)
+                    .object(objectName)
+                    .expiry(PRESIGNED_EXPIRE_DAYS, TimeUnit.DAYS)
+                    .extraQueryParams(Map.of("uploadId", uploadId, "partNumber", String.valueOf(partNumber)))
+                    .build());
+        } catch (Exception e) {
+            log.error("生成分片预签名 URL 失败 bucket={} object={} part={}", bucketName, objectName, partNumber, e);
+            throw new FileException("生成分片上传地址失败");
+        }
     }
 
     /**
-     * 获取⽂件分享链接，带有过期时间
-     *
-     * @param bucketName    bucket名称
-     * @param expirySeconds 过期时间,预签名URL的默认过期时间为7天（单位：秒）
-     * @param path          文件在桶中的路径或目录(例：2024/03/08/)
-     * @param filename      文件名(包含后缀，例：test.jpg)
-     * @return 分享链接
+     * 生成多个分片预签名 URL（安全包装）
+     */
+    private Map<String, String> generatePresignedObjectUrlsSafe(String uploadId, String bucketName, String objectName, Integer partCount) {
+        if (partCount == null || partCount <= 0) throw new IllegalArgumentException("partCount 必须大于 0");
+        Map<String, String> map = new HashMap<>(partCount);
+        for (int i = 1; i <= partCount; i++) {
+            map.put("chunk_" + (i - 1), generatePresignedPartUrlSafe(uploadId, bucketName, objectName, i));
+        }
+        return map;
+    }
+
+    /**
+     * 获取对象分享（GET）预签名 URL
      */
     public String getObjectShareUrl(String bucketName, int expirySeconds, String path, String filename) {
-        if (expirySeconds <= 0) {
-            expirySeconds = GetPresignedObjectUrlArgs.DEFAULT_EXPIRY_TIME;
-        }
-        GetPresignedObjectUrlArgs getPresignedObjectUrlArgs = GetPresignedObjectUrlArgs.builder()
-                .method(Method.GET)
-                .bucket(bucketName)
-                .object(getObjectName(path, filename))
-                .expiry(expirySeconds, TimeUnit.SECONDS).build();
+        if (expirySeconds <= 0) expirySeconds = GetPresignedObjectUrlArgs.DEFAULT_EXPIRY_TIME;
         try {
-            return pearlMinioClient.getPresignedObjectUrl(getPresignedObjectUrlArgs);
+            return pearlMinioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
+                    .method(io.minio.http.Method.GET)
+                    .bucket(bucketName)
+                    .object(getObjectName(path, filename))
+                    .expiry(expirySeconds, TimeUnit.SECONDS).build());
         } catch (Exception e) {
-            log.error("获取文件分享链接异常, bucketName {},path {},filename {}", bucketName, path, filename, e);
-            throw new FileException("获取文件分享链接异常");
+            log.error("获取分享链接失败 bucket={} path={} filename={}", bucketName, path, filename, e);
+            throw new FileException("获取分享链接失败");
         }
     }
 
     /**
-     * 生成文件在存储桶中的完整路径
-     *
-     * @param path     文件路径,例如: "2024/03/08/"
-     * @param filename 文件名,例如: "test.jpg"
-     * @return 完整的对象名称
+     * 构造对象全路径（path 可带或不带结尾 '/'）
      */
     public String getObjectName(String path, String filename) {
-        if (StringUtils.isBlank(filename)) {
-            filename = IdUtils.simpleUUID();
-        }
-
-        if (StringUtils.isBlank(path)) {
-            return filename;
-        }
-
+        if (StringUtils.isBlank(path)) return filename;
         return StringUtils.endWith(path, StringUtils.C_SLASH) ? path + filename : path + StringUtils.C_SLASH + filename;
     }
 
     /**
-     * 根据当前日期生成路径，例如：2025/01/25/
-     *
-     * @return 按当前日期生成的路径
+     * 生成日期路径：yyyy/MM/dd/
      */
     public String generatePath() {
-        final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd");
         return LocalDate.now().format(DATE_FORMATTER) + "/";
     }
 
     /**
-     * 获取每个分片上传的预签名 URL 列表。
-     *
-     * @param uploadId   上传 ID
-     * @param partCount  分片数量
-     * @param bucketName 桶名称
-     * @param objectName 文件全路径名称
-     * @return 分片上传的预签名 URL 映射，key 为 "chunk_分片下标"，value 为 URL
-     * @throws IllegalArgumentException 参数校验异常
-     * @throws RuntimeException         URL 生成异常
+     * 检查对象是否存在（使用 statObject）
      */
-    private Map<String, String> generatePresignedObjectUrls(String uploadId, String bucketName, String objectName, Integer partCount) throws Exception {
-        if (partCount <= 0) {
-            throw new IllegalArgumentException("分片数量必须大于 0");
-        }
-        if (StringUtils.isBlank(uploadId) || StringUtils.isBlank(bucketName) || StringUtils.isBlank(objectName)) {
-            throw new IllegalArgumentException("参数 uploadId、bucketName 和 objectName 不能为空");
-        }
-
-        Map<String, String> urlsMap = new HashMap<>(partCount);
-        for (int partNumber = 1; partNumber <= partCount; partNumber++) {
-            try {
-                String url = generatePresignedObjectUrl(uploadId, bucketName, objectName, partNumber);
-                urlsMap.put("chunk_" + (partNumber - 1), url);
-            } catch (Exception e) {
-                log.error("生成分片上传 URL 时发生错误: partNumber={}, bucketName={}, objectName={}", partNumber, bucketName, objectName, e);
-                throw new RuntimeException("生成分片上传 URL 失败", e);
-            }
-        }
-        return urlsMap;
-    }
-
-    /**
-     * 检查文件是否已存在。
-     *
-     * @return 是否存在
-     */
-    public boolean checkObjectExists(OssFile ossFile) {
-        String objectName = ossFile.getObjectKey();
-        String bucketName = ossFile.getBucketName();
+    public boolean checkObjectExists(OssFilePo file) {
         try {
-            pearlMinioClient.statObject(StatObjectArgs.builder().bucket(bucketName).object(objectName).build());
-            return true; // 文件存在
+            pearlMinioClient.statObject(StatObjectArgs.builder().bucket(file.getBucketName()).object(file.getObjectKey()).build());
+            return true;
         } catch (Exception e) {
-            return false; // 文件不存在
+            return false;
         }
     }
 
-
     /**
-     * 获取文件下载地址
-     *
-     * @param bucketName 桶名称
-     * @param objectName 文件名
-     * @return
+     * 生成对象访问路径（带过期签名）
      */
     public String getFilePath(String bucketName, String objectName) {
         try {
             return pearlMinioClient.generateFileUrl(bucketName, objectName, minioProperties.getLinkExpiry());
         } catch (Exception e) {
-            log.error("生成文件预签名地址错误，桶名称：{} 文件名：{}", bucketName, objectName, e);
+            log.error("生成文件路径失败 bucket={} object={}", bucketName, objectName, e);
+            return null;
         }
-        return null;
     }
 
     /**
-     * 获取公开文件下载地址
-     *
-     * @param bucketName 桶名称
-     * @param objectName 文件名
-     * @return
+     * 公开文件路径（不签名）
      */
     public String getPublicFilePath(String bucketName, String objectName) {
-        return StringUtils.format("{}/{}/{}", minioProperties.getEndpoint(), bucketName, objectName);//文件访问路径
+        return StringUtils.format("{}/{}/{}", minioProperties.getEndpoint(), bucketName, objectName);
     }
 
     /**
-     * 根据文件类型获取或创建对应的存储桶
-     * 存储桶名称格式: {年份}-{文件类型}, 例如: 2024-images
-     *
-     * @param fileType 文件类型
-     * @return 存储桶名称
+     * 根据文件名选择或创建 bucket，名称规则：{year}-{code}
      */
-    public String getOrCreateBucketByFileType(String fileType) {
-        String currentYear = String.valueOf(LocalDate.now().getYear());
-        if (StringUtils.isBlank(fileType)) {
-            return createBucket(currentYear + "-" + StorageBucketEnum.OTHER.getCode());
+    public String getOrCreateBucketByFileName(String fileName) {
+        String year = String.valueOf(LocalDate.now().getYear());
+        if (StringUtils.isBlank(fileName)) return createBucket(year + "-" + StorageBucketEnum.OTHER.getCode());
+
+        String code = StorageBucketEnum.getBucketCodeByFilename(fileName);
+        if (code == null) code = StorageBucketEnum.OTHER.getCode();
+
+        // 特殊处理 avatar/thumbnail
+        if ("avatar".equals(code) || "thumbnail".equals(code)) {
+            String bucket = createBucket(year + "-" + code);
+            setBucketPublic(bucket);
+            return bucket;
         }
-        String ft = fileType.toLowerCase();
-        // 支持 avatar/thumbnail 等自定义桶
-        if ("avatar".equals(ft) || "thumbnail".equals(ft)) {
-            return createBucket(currentYear + "-" + ft);
-        }
-        // 支持 MIME 类型，如 image/png -> image
-        if (ft.contains("/")) {
-            String mainType = ft.substring(0, ft.indexOf('/'));
-            if (StorageBucketEnum.getByCode(mainType) != null) {
-                return createBucket(currentYear + "-" + mainType);
+
+        // code 可能为 mime 类型（包含 '/'), 优先取主类型
+        if (code.contains("/")) {
+            String main = code.substring(0, code.indexOf('/'));
+            if (StorageBucketEnum.fromCode(main) != null) {
+                return createBucket(year + "-" + main);
             }
         }
-        // 优先按后缀匹配到枚举
-        String code = StorageBucketEnum.getBucketByFileSuffix(ft);
-        if (StringUtils.isNotBlank(code) && !"*".equals(code)) {
-            return createBucket(currentYear + "-" + code.toLowerCase());
-        }
-        // 最后回退到 OTHER
-        return createBucket(currentYear + "-" + StorageBucketEnum.OTHER.getCode());
+
+        return createBucket(year + "-" + code.toLowerCase());
     }
 
+    public String getPresignedPartUploadUrl(String uploadId, String bucketName, String objectName, Integer partNumber) {
+        return generatePresignedPartUrlSafe(uploadId, bucketName, objectName, partNumber);
+    }
 
     /**
-     * 设置存储桶为公开访问
-     *
-     * @param bucketName 存储桶名称
-     * @return 设置成功返回 true，否则返回 false
+     * 将 bucket 设为公开（透传到 client）
      */
     public Boolean setBucketPublic(String bucketName) {
-        return pearlMinioClient.setBucketPublic(bucketName);
+        try {
+            return pearlMinioClient.setBucketPublic(bucketName);
+        } catch (Exception e) {
+            log.error("设置 bucket 公开失败 bucket={}", bucketName, e);
+            return false;
+        }
     }
 
     /**
-     * 支持断点续传的文件下载
-     *
-     * @param reqOssFile 文件信息对象
-     * @param range      HTTP Range 头的值
-     * @return 文件下载响应
+     * 支持断点续传的下载（Range 可为 null）
+     * 注意：在返回流之前必须先设置好所有 header，避免响应提交后再写错误响应。
      */
-    public ResponseEntity download(OssFile reqOssFile, String range) {
-        String bucketName = reqOssFile.getBucketName();
-        String objectName = reqOssFile.getObjectKey();
-        String fileName = reqOssFile.getFileName();
+    public ResponseEntity<?> download(OssFilePo req, String range) {
+        String bucket = req.getBucketName();
+        String object = req.getObjectKey();
+        String fileName = req.getFileName();
 
         try {
-            // 获取文件信息
-            StatObjectResponse stat = pearlMinioClient.statObject(
-                    StatObjectArgs.builder().bucket(bucketName).object(objectName).build()
-            ).get();
+            StatObjectResponse stat = pearlMinioClient.statObject(StatObjectArgs.builder().bucket(bucket).object(object).build()).get();
             long fileSize = stat.size();
 
-            long start = 0, end = fileSize - 1; // 默认下载整个文件
-
-            // 如果 Range 请求头存在，解析范围
-            if (range != null && range.startsWith("bytes=")) {
-                String[] ranges = range.replace("bytes=", "").split("-");
-                start = Long.parseLong(ranges[0]);
-                if (ranges.length > 1 && !ranges[1].isEmpty()) {
-                    end = Long.parseLong(ranges[1]);
+            long start = 0, end = fileSize - 1;
+            boolean hasRange = StringUtils.isNotBlank(range) && range.startsWith("bytes=");
+            if (hasRange) {
+                String[] parts = range.replace("bytes=", "").split("-");
+                start = Long.parseLong(parts[0]);
+                if (parts.length > 1 && StringUtils.isNotBlank(parts[1])) {
+                    end = Long.parseLong(parts[1]);
                 }
             }
 
-            // 校验范围合法性
             if (start < 0 || end >= fileSize || start > end) {
-                throw new IllegalArgumentException("Invalid Range Header");
+                log.warn("Invalid Range header: {} for file size {}", range, fileSize);
+                return ResponseEntity.status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE).build();
             }
 
-            // 获取文件数据流
-            InputStream inputStream = pearlMinioClient.getObject(
-                    GetObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(objectName)
-                            .offset(start)
-                            .length(end - start + 1)
-                            .build()
-            ).get();
+            InputStream is = pearlMinioClient.getObject(GetObjectArgs.builder()
+                    .bucket(bucket).object(object).offset(start).length(end - start + 1).build()).get();
 
-            // 设置响应头
             HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName);
+            headers.setContentDisposition(ContentDisposition.builder("attachment").filename(fileName, StandardCharsets.UTF_8).build());
             headers.add(HttpHeaders.ACCEPT_RANGES, "bytes");
-            headers.add(HttpHeaders.CONTENT_TYPE, "application/octet-stream");
-            headers.add(HttpHeaders.CONTENT_LENGTH, String.valueOf(end - start + 1));
-            headers.add(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + fileSize);
+            headers.add(HttpHeaders.CONTENT_TYPE, DEFAULT_CONTENT_TYPE);
+            headers.setContentLength(end - start + 1L);
+            if (hasRange) {
+                headers.set(HttpHeaders.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + fileSize);
+            }
 
-            // 返回响应
-            return ResponseEntity.status(range == null ? HttpStatus.OK : HttpStatus.PARTIAL_CONTENT)
-                    .headers(headers)
-                    .body(new InputStreamResource(inputStream));
-
-        } catch (IllegalArgumentException e) {
-            log.error("Invalid Range Header: {}", e.getMessage());
+            HttpStatus status = hasRange ? HttpStatus.PARTIAL_CONTENT : HttpStatus.OK;
+            return ResponseEntity.status(status).headers(headers).body(new InputStreamResource(is));
+        } catch (IllegalArgumentException iae) {
+            log.warn("下载参数非法 bucket={} object={} range={}", bucket, object, range, iae);
             return ResponseEntity.status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE).build();
         } catch (Exception e) {
-            log.error("Error occurred while downloading file: {}", e.getMessage());
+            log.error("下载异常 bucket={} object={} range={}", bucket, object, range, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
-
-    public void uploadFile(String bucketName, String objectName, InputStream inputStream, String contentType) {
+    /**
+     * 简单封装上传（不阻塞）
+     */
+    public void uploadFile(String bucketName, String objectName, InputStream is, String contentType) {
         try {
-            pearlMinioClient.uploadFile(bucketName, objectName, contentType, inputStream);
-            log.info("文件已上传: {}/{}", bucketName, objectName);
+            pearlMinioClient.uploadFile(bucketName, objectName, contentType, is);
+            log.info("上传成功 {}/{}", bucketName, objectName);
         } catch (Exception e) {
-            log.error("上传文件时出错: {}/{}", bucketName, objectName, e);
+            log.error("上传失败 {}/{}", bucketName, objectName, e);
+            throw new FileException("上传失败: " + e.getMessage());
         }
     }
-
 }

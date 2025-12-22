@@ -1,7 +1,7 @@
 package com.xy.lucky.file.controller;
 
-import com.xy.lucky.file.domain.OssFile;
 import com.xy.lucky.file.domain.OssFileUploadProgress;
+import com.xy.lucky.file.domain.po.OssFilePo;
 import com.xy.lucky.file.domain.vo.FileChunkVo;
 import com.xy.lucky.file.domain.vo.FileVo;
 import com.xy.lucky.file.service.OssFileService;
@@ -55,16 +55,16 @@ public class FileMinioController {
     /**
      * 分片初始化
      *
-     * @param ossFile 文件信息
+     * @param ossFilePo 文件信息
      */
     @PostMapping("/multipart/init")
     @Operation(summary = "分片初始化", tags = {"file"}, description = "请使用此接口初始化分片上传任务")
     @Parameters({
             @Parameter(name = "ossFile", description = "文件信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public FileChunkVo initMultiPartUpload(@RequestBody OssFile ossFile) {
-        log.info("[分片初始化] 开始初始化分片上传任务，文件信息: {}", ossFile);
-        return ossFileService.initMultiPartUpload(ossFile);
+    public FileChunkVo initMultiPartUpload(@RequestBody OssFilePo ossFilePo) {
+        log.info("[分片初始化] 开始初始化分片上传任务，文件信息: {}", ossFilePo);
+        return ossFileService.initMultiPartUpload(ossFilePo);
     }
 
     /**
@@ -98,37 +98,37 @@ public class FileMinioController {
     }
 
     /**
-     * 上传
+     * 断点上传
      *
      * @param identifier 文件md5
      * @param file       文件
      */
     @PostMapping("/upload")
-    @Operation(summary = "上传", tags = {"file"}, description = "请使用此接口进行文件分片上传")
+    @Operation(summary = "上传", tags = {"file"}, description = "请使用此接口进行文件上传")
     @Parameters({
             @Parameter(name = "identifier", description = "文件md5值", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "file", description = "文件", required = true, in = ParameterIn.DEFAULT)
     })
     public FileVo uploadFile(@RequestParam("identifier") String identifier, @RequestParam("file") MultipartFile file) {
-        log.info("[分片上传] 开始分片上传, 文件: {}", file.getOriginalFilename());
+        log.info("[上传] 开始上传, 文件: {}", file.getOriginalFilename());
         return ossFileService.uploadFile(identifier, file);
     }
 
     /**
-     * 分片下载
+     * 文件下载, 支持断点续传
      *
      * @param identifier 文件md5
      * @param range      范围
      */
     @GetMapping("/download")
-    @Operation(summary = "分片下载", tags = {"file"}, description = "请使用此接口进行文件分片下载")
+    @Operation(summary = "文件下载", tags = {"file"}, description = "请使用此接口进行文件下载,支持断点下载")
     @Parameters({
             @Parameter(name = "identifier", description = "文件md5值", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "range", description = "下载范围", required = false, in = ParameterIn.HEADER)
     })
     public ResponseEntity<?> downloadFile(@RequestParam("identifier") String identifier,
-                                       @RequestHeader(value = "Range", required = false) String range) {
-        log.info("[文件下载] 开始文件分片下载，MD5: {}, Range: {}", identifier, range);
+                                          @RequestHeader(value = "Range", required = false) String range) {
+        log.info("[文件下载] 开始文件下载，md5: {}, Range: {}", identifier, range);
         return ossFileService.downloadFile(identifier, range);
     }
 

@@ -38,6 +38,7 @@ public class MinioAutoConfiguration {
                 .writeTimeout(minioProperties.getWriteTimeout(), TimeUnit.SECONDS)
                 .readTimeout(minioProperties.getReadTimeout(), TimeUnit.SECONDS)
                 .protocols(Collections.singletonList(Protocol.HTTP_1_1))
+                .retryOnConnectionFailure(true)
                 .connectionPool(new ConnectionPool(minioProperties.getMaxIdleConnections(),
                         minioProperties.getKeepAliveDuration(), TimeUnit.MINUTES))
                 .dispatcher(dispatcher)

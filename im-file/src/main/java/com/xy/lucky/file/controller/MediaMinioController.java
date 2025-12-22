@@ -27,20 +27,23 @@ public class MediaMinioController {
     @PostMapping("/image/upload")
     @Operation(summary = "上传图片文件", tags = {"media"}, description = "请使用此接口上传图片文件")
     @Parameters({
+            @Parameter(name = "identifier", description = "文件md5值", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "file", description = "图片文件", required = true, in = ParameterIn.DEFAULT)
     })
-    public FileVo uploadImage(@RequestParam("file") MultipartFile file) {
+    public FileVo uploadImage(@RequestParam("identifier") String identifier, @RequestParam("file") MultipartFile file) {
         log.info("[图片上传] 开始上传图片文件");
-        return ossImageFileService.uploadImage(file);
+        return ossImageFileService.uploadImage(identifier, file);
     }
 
     @PostMapping("/avatar/upload")
     @Operation(summary = "上传头像文件", tags = {"media"}, description = "请使用此接口上传头像文件")
     @Parameters({
+            @Parameter(name = "identifier", description = "文件md5值", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "file", description = "头像文件", required = true, in = ParameterIn.DEFAULT)
     })
-    public FileVo uploadAvatar(@RequestParam("file") MultipartFile file) {
+    public FileVo uploadAvatar(@RequestParam("identifier") String identifier, @RequestParam("file") MultipartFile file) {
         log.info("[头像上传] 开始上传头像文件");
-        return ossImageFileService.uploadAvatar(file);
+        return ossImageFileService.uploadAvatar(identifier, file);
     }
+
 }

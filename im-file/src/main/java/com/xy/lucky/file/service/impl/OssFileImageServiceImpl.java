@@ -1,17 +1,20 @@
 package com.xy.lucky.file.service.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import com.xy.lucky.file.client.MinioProperties;
-import com.xy.lucky.file.domain.OssFileImage;
 import com.xy.lucky.file.domain.OssFileMediaInfo;
 import com.xy.lucky.file.domain.po.OssFileImagePo;
 import com.xy.lucky.file.domain.vo.FileVo;
+import com.xy.lucky.file.enums.StorageBucketEnum;
 import com.xy.lucky.file.exception.FileException;
 import com.xy.lucky.file.handler.ImageProcessingStrategy;
 import com.xy.lucky.file.mapper.FileVoMapper;
-import com.xy.lucky.file.mapper.OssFileImageEntityMapper;
 import com.xy.lucky.file.repository.OssFileImageRepository;
 import com.xy.lucky.file.service.OssFileImageService;
+import com.xy.lucky.file.util.MD5Utils;
 import com.xy.lucky.file.util.MinioUtils;
+import com.xy.lucky.file.util.RedisUtils;
+import com.xy.lucky.utils.id.IdUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +25,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -66,11 +70,11 @@ public class OssFileImageServiceImpl implements OssFileImageService {
     @Resource
     private OssFileImageRepository ossFileImageRepository;
     @Resource
-    private OssFileImageEntityMapper ossFileImageEntityMapper;
-    @Resource
     private FileVoMapper fileVoMapper;
     @Resource
     private RestTemplate restTemplate;
+    @Resource
+    private RedisUtils redisUtils;
     @Resource(name = "asyncServiceExecutor")
     private ThreadPoolTaskExecutor executor;
 
@@ -80,23 +84,42 @@ public class OssFileImageServiceImpl implements OssFileImageService {
     @Value("${nsfw.api.url:http://localhost:3000/classify}")
     private String nsfwApiUrl;
 
-
     /**
      *  上传图片
+     * @param identifier 文件md5
      * @param file 图片文件
      * @return 文件信息
      */
     @Override
-    public FileVo uploadImage(MultipartFile file) {
-        log.info("uploadImage start: name={}, size={}", file == null ? null : file.getOriginalFilename(),
-                file == null ? 0 : file.getSize());
-        if (file == null || file.isEmpty()) {
-            throw new FileException("文件为空");
+    public FileVo uploadImage(String identifier, MultipartFile file) {
+
+        String originalFilename = file.getOriginalFilename();
+
+        log.info("[文件上传] 开始上传文件 文件名: {}, 文件大小: {}", originalFilename, file.getSize());
+
+        if (file == null || file.isEmpty() || !StringUtils.hasText(identifier)) {
+            throw new FileException("文件或文件md5不能为空");
         }
 
-        long start = System.nanoTime();
-        String bucket = minioUtils.getOrCreateBucketByFileType("image");
-        String objectName = minioUtils.getObjectName(minioUtils.generatePath(), file.getOriginalFilename());
+        if (!StringUtils.hasText(originalFilename) && !originalFilename.contains(".")) {
+            throw new FileException("文件名格式错误");
+        }
+
+        // 校验文件md5
+        MD5Utils.checkMD5(identifier, file);
+
+        // 查询是否存在
+        OssFileImagePo ossFileByIdentifier = getOssFileByIdentifier(identifier);
+
+        if (Objects.nonNull(ossFileByIdentifier)) {
+            return fileVoMapper.toVo(ossFileByIdentifier);
+        }
+
+        String bucket = minioUtils.getOrCreateBucketByFileName(file.getOriginalFilename());
+
+        String fileName = IdUtils.randomUUID() + "." + StorageBucketEnum.getSuffix(Objects.requireNonNull(file.getOriginalFilename()));
+
+        String objectName = minioUtils.getObjectName(minioUtils.generatePath(), fileName);
 
         // 先建立数据源 supplier（内存或临时文件）
         File tmp = null;
@@ -182,23 +205,23 @@ public class OssFileImageServiceImpl implements OssFileImageService {
             String mainPath = mainUpload.join();
             String thumbPath = thumbFuture.join();
 
-            OssFileImage doc = new OssFileImage();
-            doc.setBucketName(bucket);
-            doc.setFileName(file.getOriginalFilename());
-            doc.setObjectKey(objectName);
-            doc.setFileType("image");
-            doc.setContentType("image/png");
-            doc.setFileSize(file.getSize());
-            doc.setPath(mainPath);
+            // 初始化对象
+            OssFileImagePo doc = OssFileImagePo
+                    .builder().
+                    identifier(identifier)
+                    .bucketName(bucket)
+                    .fileName(file.getOriginalFilename())
+                    .objectKey(objectName)
+                    .fileType(StorageBucketEnum.getBucketCodeByFilename(file.getOriginalFilename()))
+                    .contentType(file.getContentType())
+                    .fileSize(file.getSize())
+                    .path(mainPath).build();
+
             if (thumbPath != null) {
                 doc.setThumbnailPath(thumbPath);
             }
-            FileVo result = persistAndReturn(doc);
-
-            log.info("uploadImage done: name={}, elapsedMs={}", file.getOriginalFilename(),
-                    (System.nanoTime() - start) / 1_000_000L);
-
-            return result;
+            log.info("uploadImage success");
+            return persistAndReturn(doc);
         } catch (Exception ex) {
             log.error("uploadImage error", ex);
             throw new FileException("图片上传失败: " + ex.getMessage());
@@ -219,18 +242,37 @@ public class OssFileImageServiceImpl implements OssFileImageService {
 
     /**
      * 上传头像
+     * @param identifier 文件md5
      * @param file 头像文件
      * @return 文件信息
      */
     @Override
-    public FileVo uploadAvatar(MultipartFile file) {
-        log.info("uploadAvatar start: name={}, size={}", file == null ? null : file.getOriginalFilename(),
-                file == null ? 0 : file.getSize());
-        if (file == null || file.isEmpty()) {
-            throw new FileException("文件为空");
+    public FileVo uploadAvatar(String identifier, MultipartFile file) {
+        // 根据文件后缀选择存储桶，避免使用 MIME 类型导致非法桶名
+        String originalFilename = file.getOriginalFilename();
+
+        log.info("[文件上传] 开始上传文件 文件名: {}, 文件大小: {}", originalFilename, file.getSize());
+
+        if (file == null || file.isEmpty() || !StringUtils.hasText(identifier)) {
+            throw new FileException("文件或文件md5不能为空");
         }
 
-        String bucket = minioUtils.getOrCreateBucketByFileType(AVATAR_BUCKET_NAME);
+        if (!StringUtils.hasText(originalFilename) && !originalFilename.contains(".")) {
+            throw new FileException("文件名格式错误");
+        }
+
+        // 校验文件md5
+        MD5Utils.checkMD5(identifier, file);
+
+        // 查询是否存在
+        OssFileImagePo ossFileByIdentifier = getOssFileByIdentifier(identifier);
+
+        if (Objects.nonNull(ossFileByIdentifier)) {
+            return fileVoMapper.toVo(ossFileByIdentifier);
+        }
+
+        String bucket = minioUtils.getOrCreateBucketByFileName(file.getOriginalFilename());
+
         try {
             // 尝试只做一次公开设置
             if (!avatarBucketIsPublic.get()) {
@@ -240,21 +282,29 @@ public class OssFileImageServiceImpl implements OssFileImageService {
                     log.warn("设置头像桶公开失败: {}", bucket, e);
                 }
             }
-            String objectName = minioUtils.getObjectName(minioUtils.generatePath(), file.getOriginalFilename());
+
+            String fileName = IdUtils.randomUUID() + "." + StorageBucketEnum.getSuffix(Objects.requireNonNull(file.getOriginalFilename()));
+
+            String objectName = minioUtils.getObjectName(minioUtils.generatePath(), fileName);
+
             try (InputStream is = file.getInputStream()) {
                 minioUtils.uploadFile(bucket, objectName, is, file.getContentType());
             }
-            OssFileImage doc = new OssFileImage();
-            doc.setBucketName(bucket);
-            doc.setFileName(file.getOriginalFilename());
-            doc.setObjectKey(objectName);
-            doc.setFileType("image");
-            doc.setContentType(file.getContentType());
-            doc.setFileSize(file.getSize());
-            doc.setPath(minioUtils.getPublicFilePath(bucket, objectName));
-            FileVo result = persistAndReturn(doc);
+
+            OssFileImagePo doc = OssFileImagePo
+                    .builder().
+                    identifier(identifier)
+                    .bucketName(bucket)
+                    .fileName(file.getOriginalFilename())
+                    .objectKey(objectName)
+                    .fileType(StorageBucketEnum.getBucketCodeByFilename(file.getOriginalFilename()))
+                    .contentType(file.getContentType())
+                    .fileSize(file.getSize())
+                    .path(minioUtils.getPublicFilePath(bucket, objectName)).build();
+
             log.info("uploadAvatar done: name={}", file.getOriginalFilename());
-            return result;
+
+            return persistAndReturn(doc);
         } catch (Exception e) {
             log.error("uploadAvatar error", e);
             throw new FileException("头像上传失败: " + e.getMessage());
@@ -385,9 +435,38 @@ public class OssFileImageServiceImpl implements OssFileImageService {
     /**
      * 生成外网访问地址（保留）
      */
-    private FileVo persistAndReturn(OssFileImage doc) {
-        OssFileImagePo entity = ossFileImageEntityMapper.toEntity(doc);
-        ossFileImageRepository.save(entity);
+    private FileVo persistAndReturn(OssFileImagePo doc) {
+        OssFileImagePo entity = ossFileImageRepository.save(doc);
         return fileVoMapper.toVo(entity);
     }
+
+    /**
+     * 获取文件信息
+     *
+     * @param identifier 文件md5
+     * @return 文件信息
+     */
+    private OssFileImagePo getOssFileByIdentifier(String identifier) {
+        log.debug("[文件获取] 从 Redis 中获取文件，identifier={}", identifier);
+
+        String objStr = redisUtils.get(identifier);
+        if (!StringUtils.hasText(objStr)) {
+            log.debug("[文件获取] 文件不存在于 Redis 中，identifier={}", identifier);
+            return findFromDb(identifier);
+        }
+
+        return JSONObject.parseObject(objStr, OssFileImagePo.class);
+    }
+
+    /**
+     * 从数据库中获取文件信息
+     *
+     * @param identifier 文件md5
+     * @return 文件信息
+     */
+    private OssFileImagePo findFromDb(String identifier) {
+        return ossFileImageRepository.findByIdentifier(identifier)
+                .orElse(null);
+    }
+
 }

@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.xy.lucky.file.domain.OssFileUploadProgress;
 import com.xy.lucky.file.domain.po.OssFilePo;
 import com.xy.lucky.file.domain.vo.FileChunkVo;
+import com.xy.lucky.file.domain.vo.FileUploadProgressVo;
 import com.xy.lucky.file.domain.vo.FileVo;
 import com.xy.lucky.file.enums.BoolEnum;
 import com.xy.lucky.file.enums.StorageBucketEnum;
@@ -57,7 +58,7 @@ public class OssFileServiceImpl implements OssFileService {
      * @return 文件上传进度信息
      */
     @Override
-    public OssFileUploadProgress getMultipartUploadProgress(String identifier) {
+    public FileUploadProgressVo getMultipartUploadProgress(String identifier) {
         log.info("查询文件上传进度 - identifier:{}", identifier);
 
         // 读取上传会话（优先 Redis，回退 DB）
@@ -68,7 +69,7 @@ public class OssFileServiceImpl implements OssFileService {
         if (ObjectUtils.isEmpty(ossFilePo)) {
             log.info("文件未开始上传 - identifier:{}", identifier);
             uploadProgress.setIsNew(BoolEnum.YES);
-            return uploadProgress;
+            return fileVoMapper.toVo(uploadProgress);
         }
 
         Integer isFinish = ossFilePo.getIsFinish();
@@ -79,12 +80,12 @@ public class OssFileServiceImpl implements OssFileService {
             String filePath = minioUtils.getFilePath(ossFilePo.getBucketName(), ossFilePo.getObjectKey());
             log.info("文件已完成上传 - identifier:{}, path:{}", identifier, filePath);
             uploadProgress.setPath(filePath);
-            return uploadProgress;
+            return fileVoMapper.toVo(uploadProgress);
         }
 
         // 进行分片进度查询
         log.info("获取分片上传进度 - identifier:{}", identifier);
-        return minioUtils.getMultipartUploadProgress(ossFilePo, uploadProgress);
+        return fileVoMapper.toVo(minioUtils.getMultipartUploadProgress(ossFilePo, uploadProgress));
     }
 
     /**

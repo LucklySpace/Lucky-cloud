@@ -27,6 +27,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 import javax.naming.SizeLimitExceededException;
@@ -146,6 +147,15 @@ public class GlobalExceptionHandler implements ResponseBodyAdvice<Object> {
     @ExceptionHandler(SizeLimitExceededException.class)
     public Result<?> handle(SizeLimitExceededException ex) {
         log.error("SizeLimitExceededException: {}", ex.getMessage(), ex);
+        return Result.failed(ResultCode.REQUEST_DATA_TOO_LARGE);
+    }
+
+    /**
+     * 处理上传大小超限异常（Spring Multipart）
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public Result<?> handle(MaxUploadSizeExceededException ex) {
+        log.error("MaxUploadSizeExceededException: {}", ex.getMessage(), ex);
         return Result.failed(ResultCode.REQUEST_DATA_TOO_LARGE);
     }
 

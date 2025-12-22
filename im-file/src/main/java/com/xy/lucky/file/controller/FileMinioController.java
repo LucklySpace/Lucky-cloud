@@ -1,8 +1,8 @@
 package com.xy.lucky.file.controller;
 
-import com.xy.lucky.file.domain.OssFileUploadProgress;
 import com.xy.lucky.file.domain.po.OssFilePo;
 import com.xy.lucky.file.domain.vo.FileChunkVo;
+import com.xy.lucky.file.domain.vo.FileUploadProgressVo;
 import com.xy.lucky.file.domain.vo.FileVo;
 import com.xy.lucky.file.service.OssFileService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,8 +11,10 @@ import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,9 +31,11 @@ import org.springframework.web.multipart.MultipartFile;
  * 4.保存文件信息到数据库
  */
 @Slf4j
+@Validated
 @RestController
 @RequestMapping("/api/{version}/file")
 @Tag(name = "file", description = "文件管理")
+@CrossOrigin(origins = "*", maxAge = 3600)
 public class FileMinioController {
 
     @Resource
@@ -47,7 +51,7 @@ public class FileMinioController {
     @Parameters({
             @Parameter(name = "identifier", description = "文件md5值", required = true, in = ParameterIn.QUERY)
     })
-    public OssFileUploadProgress getMultipartUploadProgress(@RequestParam("identifier") String identifier) {
+    public FileUploadProgressVo getMultipartUploadProgress(@NotBlank @RequestParam("identifier") String identifier) {
         log.info("[文件校验] 检查文件是否存在，MD5: {}", identifier);
         return ossFileService.getMultipartUploadProgress(identifier);
     }
@@ -77,7 +81,7 @@ public class FileMinioController {
     @Parameters({
             @Parameter(name = "identifier", description = "文件md5值", required = true, in = ParameterIn.QUERY)
     })
-    public FileVo mergeMultiPartUpload(@RequestParam("identifier") String identifier) {
+    public FileVo mergeMultiPartUpload(@NotBlank(message = "请输入文件md5值") @RequestParam("identifier") String identifier) {
         log.info("[分片合并] 合并分片上传任务，MD5: {}", identifier);
         return ossFileService.mergeMultipartUpload(identifier);
     }
@@ -92,7 +96,7 @@ public class FileMinioController {
     @Parameters({
             @Parameter(name = "identifier", description = "文件md5值", required = true, in = ParameterIn.QUERY)
     })
-    public FileVo checkFileExists(@RequestParam("identifier") String identifier) {
+    public FileVo checkFileExists(@NotBlank(message = "请输入文件md5值") @RequestParam("identifier") String identifier) {
         log.info("[文件检查] 判断文件是否存在，MD5: {}", identifier);
         return ossFileService.isExits(identifier);
     }
@@ -109,7 +113,7 @@ public class FileMinioController {
             @Parameter(name = "identifier", description = "文件md5值", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "file", description = "文件", required = true, in = ParameterIn.DEFAULT)
     })
-    public FileVo uploadFile(@RequestParam("identifier") String identifier, @RequestParam("file") MultipartFile file) {
+    public FileVo uploadFile(@NotBlank(message = "请输入文件md5值") @RequestParam("identifier") String identifier, @RequestParam("file") MultipartFile file) {
         log.info("[上传] 开始上传, 文件: {}", file.getOriginalFilename());
         return ossFileService.uploadFile(identifier, file);
     }
@@ -126,7 +130,7 @@ public class FileMinioController {
             @Parameter(name = "identifier", description = "文件md5值", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "range", description = "下载范围", required = false, in = ParameterIn.HEADER)
     })
-    public ResponseEntity<?> downloadFile(@RequestParam("identifier") String identifier,
+    public ResponseEntity<?> downloadFile(@NotBlank(message = "请输入文件md5值") @RequestParam("identifier") String identifier,
                                           @RequestHeader(value = "Range", required = false) String range) {
         log.info("[文件下载] 开始文件下载，md5: {}, Range: {}", identifier, range);
         return ossFileService.downloadFile(identifier, range);

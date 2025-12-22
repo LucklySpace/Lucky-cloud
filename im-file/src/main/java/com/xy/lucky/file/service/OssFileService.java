@@ -1,9 +1,9 @@
 package com.xy.lucky.file.service;
 
 
-import com.xy.lucky.file.domain.OssFileUploadProgress;
 import com.xy.lucky.file.domain.po.OssFilePo;
 import com.xy.lucky.file.domain.vo.FileChunkVo;
+import com.xy.lucky.file.domain.vo.FileUploadProgressVo;
 import com.xy.lucky.file.domain.vo.FileVo;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,7 +18,7 @@ public interface OssFileService {
      * @param identifier 文件md5
      * @return 分片上传进度
      */
-    OssFileUploadProgress getMultipartUploadProgress(String identifier);
+    FileUploadProgressVo getMultipartUploadProgress(String identifier);
 
     /**
      * 初始化分片上传任务

@@ -55,5 +55,26 @@ logging:
 
 
 watermark:
-    word: Lucky
-    font: Arial
+  word: Lucky
+  font: Arial
+
+# OpenAPI/Swagger UI 配置
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    path: /doc.html
+
+# Knife4j 开启开关
+knife4j:
+  enable: true
+
+# Actuator 健康检查配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized

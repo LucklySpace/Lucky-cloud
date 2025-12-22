@@ -8,17 +8,18 @@ import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
+@Validated
 @RestController
 @RequestMapping("/api/{version}/media")
 @Tag(name = "media", description = "媒体文件管理")
+@CrossOrigin(origins = "*", maxAge = 3600)
 public class MediaMinioController {
 
     @Resource
@@ -30,7 +31,7 @@ public class MediaMinioController {
             @Parameter(name = "identifier", description = "文件md5值", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "file", description = "图片文件", required = true, in = ParameterIn.DEFAULT)
     })
-    public FileVo uploadImage(@RequestParam("identifier") String identifier, @RequestParam("file") MultipartFile file) {
+    public FileVo uploadImage(@NotBlank(message = "请输入文件md5值") @RequestParam("identifier") String identifier, @RequestParam("file") MultipartFile file) {
         log.info("[图片上传] 开始上传图片文件");
         return ossImageFileService.uploadImage(identifier, file);
     }
@@ -41,7 +42,7 @@ public class MediaMinioController {
             @Parameter(name = "identifier", description = "文件md5值", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "file", description = "头像文件", required = true, in = ParameterIn.DEFAULT)
     })
-    public FileVo uploadAvatar(@RequestParam("identifier") String identifier, @RequestParam("file") MultipartFile file) {
+    public FileVo uploadAvatar(@NotBlank(message = "请输入文件md5值") @RequestParam("identifier") String identifier, @RequestParam("file") MultipartFile file) {
         log.info("[头像上传] 开始上传头像文件");
         return ossImageFileService.uploadAvatar(identifier, file);
     }

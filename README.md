@@ -1,13 +1,15 @@
 # 🍀  Lucky-Cloud  （IM-Server） - 高性能即时通讯服务端
 
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://www.oracle.com/java/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.0-green.svg)](https://spring.io/projects/spring-boot)
-[![Spring Cloud Alibaba](https://img.shields.io/badge/Spring%20Cloud%20Alibaba-2023.0.0.0--RC1-blue.svg)](https://github.com/alibaba/spring-cloud-alibaba)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.4-green.svg)](https://spring.io/projects/spring-boot)
+[![Spring Cloud Alibaba](https://img.shields.io/badge/Spring%20Cloud%20Alibaba-2023.0.0.0-RC1-blue.svg)](https://github.com/alibaba/spring-cloud-alibaba)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+简体中文 | [English](README_EN.md)
 
 ## 📖 项目简介
 
-Lucky-Cloud 是一个基于 **Spring Cloud Alibaba + Spring Boot 3 **
+Lucky-Cloud 是一个基于 **Spring Cloud Alibaba + Spring Boot 3**
 构建的高性能、高可用的即时通讯服务端系统。本系统采用微服务架构设计，支持大规模用户并发连接，提供完整的即时通讯解决方案，包括消息推送、音视频通话、文件传输等核心功能。
 
 ## ✨ 核心特性
@@ -57,8 +59,9 @@ Lucky-Cloud 是一个基于 **Spring Cloud Alibaba + Spring Boot 3 **
 **功能**: 系统入口，负责请求路由、负载均衡、限流熔断
 
 - 集成Sentinel实现网关限流和负载均衡
-- 通过Nacos实现服务注册与发现
+- 通过Nacos实现服务注册与发现，实现动态路由
 - 根据Redis中的用户信息，定向转发长连接请求
+- 支持全局签名校验、JWT认证、黑名单拦截与动态降级
 
 ### 2. im-auth - 认证服务 (端口: 8084)
 
@@ -67,6 +70,7 @@ Lucky-Cloud 是一个基于 **Spring Cloud Alibaba + Spring Boot 3 **
 - 用户登录、注册、令牌生成和验证
 - 提供RSA公钥，用于登录时密码加密
 - 手机短信验证码服务
+- 支持用户名密码 / 手机短信 / 二维码登录，多策略认证
 
 ### 3. im-connect - 连接服务 (端口: 19000-19002)
 
@@ -75,6 +79,7 @@ Lucky-Cloud 是一个基于 **Spring Cloud Alibaba + Spring Boot 3 **
 - 管理客户端长连接，支持心跳机制
 - 通过RabbitMQ接收消息并推送给用户
 - 支持多实例部署，自动负载均衡
+- 增加连接限流与消息速率限制、监控与日志、虚拟线程优化
 
 ### 4. im-server - 业务服务 (端口: 8085)
 
@@ -83,6 +88,20 @@ Lucky-Cloud 是一个基于 **Spring Cloud Alibaba + Spring Boot 3 **
 - 消息发送、接收、存储和查询
 - 群组管理、文件上传、群聊头像生成
 - 消息分发到对应的im-connect服务
+- 基于Redisson与Redis的并发锁与热点缓存优化
+
+### 5. 模块总览
+
+- `im-ai`（端口: 8088）: AI 服务（对话、嵌入、Prompt 管理、工具调用）
+- `im-file`（端口: 8087）: MinIO 文件服务，支持分片上传、断点续传、图像压缩/缩略图/水印、nsfw图片审查
+- `im-platform`（端口: 8090）: 应用更新与短链服务（应用更新与短链），支持版本检查与预签名下载、Bloom去重 + Caffeine LRU +
+  Redis短链缓存
+- `im-leaf`（端口: 8086）: 分布式ID服务（Segment、Snowflake、UID、UUID），支持Nacos工作ID分配
+- `im-database`（端口: 8100）: 数据库初始化与元数据服务
+- `im-meet`（端口: 19100 WebSocket）: 实时会话服务（Netty WS）
+- `im-analysis`（端口: 8089）: 文本分析服务（HanLP 分词、关键词、依存句法）
+- `im-proxy`: 代理配置管理（Nginx 模板），辅助WebSocket代理与负载
+- `im-framework`: 基础框架聚合（core/domain/common/crypto/spring/grpc/security/mq 等）
 
 ## 🔄 消息流转
 
@@ -248,6 +267,7 @@ srs:
 3. im-server (端口: 8085)
 4. im-connect (端口: 19000-19002)
 5. im-gateway (端口: 9191)
+6. im-leaf (端口：)
 ```
 
 **方式二：使用构建脚本一键启动**
@@ -264,30 +284,40 @@ deploy-all.bat
 - **网关服务**: http://localhost:9191
 - **认证服务**: http://localhost:8084
 - **业务服务**: http://localhost:8085
+- **文件服务**: http://localhost:8087
+- **ID服务**: http://localhost:8086
+- **AI服务**: http://localhost:8088
+- **文本分析**: http://localhost:8089
+- **平台服务**: http://localhost:8090
 - **Nacos控制台**: http://localhost:8848/nacos (账号: nacos/nacos)
 - **RabbitMQ管理**: http://localhost:15672 (账号: guest/guest)
 - **MinIO控制台**: http://localhost:9090 (账号: minioadmin/minioadmin)
 - **SRS服务**: http://localhost:8080
 - **PostgreSQL**: localhost:35432
+- **连接服务 WebSocket**: ws://localhost:19000/im、ws://localhost:19001/im、ws://localhost:19002/im
+- **实时会话 WebSocket**: ws://localhost:19100
 
 ## 🔧 开发指南
 
 ### 项目结构
 
 ```
-im-server/
+├── im-server/			     # 业务服务
 ├── im-gateway/          # 网关服务
 ├── im-auth/             # 认证服务
-├── im-connect/          # 连接服务
+├── im-connect/          # 长连接连接服务
 ├── im-server/           # 业务服务
-├── im-common/           # 公共模块
+├── im-leaf/             # ID生成服务
+├── im-file/             # 文件管理服务
+├── im-platform/         # 平台服务
+├── im-framework/        # 公共模块
 │   ├── im-core/         # 核心工具
 │   ├── im-domain/       # 领域模型
 │   ├── im-general/      # 通用组件
 │   ├── im-grpc/         # gRPC相关
 │   ├── im-security/     # 安全模块
 │   ├── im-spring/       # Spring扩展
-│   └── im-utils/        # 工具类库
+│   └── im-common/       # 工具类库
 └── docs/                # 项目文档
 ```
 
@@ -346,13 +376,30 @@ docker-compose up -d
 
 > **测试环境**: 8核16G云服务器，JDK 21，Docker部署
 
+## 📝 更新日志（概览）
 
+- 新增模块
+    - `im-file`: 增加图像处理（压缩、缩略图、水印），支持分片/断点续传与MD5校验，支持nfsw图片审查
+    - `im-platform`: 增加应用更新与短链接服务（Bloom 去重、Caffeine LRU、Redis 缓存、访问计数分层归并）
+    - `im-leaf`: 集成多策略ID生成与Nacos工作ID分配
+    - `im-ai`: 接入 Spring AI（对话/嵌入/工具），完善Prompt与Session管理
+    - `im-analysis`: 提供分词/关键词/依存句法等文本分析能力
+    - `im-proxy`: Nginx代理模板生成与维护
+    - `im-meet`: 基于Netty的实时会话服务（WebSocket）
+- 网关增强
+    - 新增全局签名校验、JWT认证、黑名单拦截、动态降级过滤器与路由缓存（见 `im-gateway` 目录）
+- 连接服务增强
+    - 引入连接/消息限流、监控服务与虚拟线程优化；完善消息处理管线（见 `im-connect` 目录）
+- 业务服务优化
+    - 基于Redisson的并发锁与Redis热点缓存；完善群聊/好友等操作的幂等与性能日志（见 `im-server` 目录）
+- 文件服务修复
+    - 修复 MinIO 客户端签名问题并增强稳定性（见 `im-file` 中 `PearlMinioClient.java`）
 
 ## 🙏 致谢
 
 - [Spring Boot](https://spring.io/projects/spring-boot) - Java应用框架
 
-- [Spring Cloud Alibaba](https://github.com/alibaba/spring-cloud-alibaba) - 微服务解决方案
+- [Spring Cloud Alibaba](https://github.com/alibaba/spring-cloud-alibaba) - 微服务方案
 
 - [Nacos](https://nacos.io/) - 服务注册发现
 
@@ -386,12 +433,7 @@ docker-compose up -d
 ## 📞 联系我们
 
 - **项目主页**: [https://github.com/LucklySpace/Lucky-cloud](https://github.com/LucklySpace/Lucky-cloud)
-
 - **问题反馈**: [Issues](https://github.com/LucklySpace/Lucky-cloud/issues)
-
-- **邮箱**: 382192293@qq.com
-
-  
 
 ## 📢 免责声明
 

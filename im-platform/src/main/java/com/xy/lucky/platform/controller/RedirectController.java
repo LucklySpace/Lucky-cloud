@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 短链控制器
- * 提供创建、解析、查询与禁用短链接口
+ * 提供短链重定向接口
  */
 @Slf4j
 @Validated
@@ -35,14 +35,13 @@ public class RedirectController {
     /**
      * 解析短码并重定向
      */
-    @Operation(summary = "解析短码并重定向", description = "通过短码进行 302 重定向")
+    @Operation(summary = "解析短码并重定向", description = "使用此接口进行url重定向")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "302", description = "跳转到原始URL"),
+            @ApiResponse(responseCode = "302", description = "重定向跳转到原始URL"),
             @ApiResponse(responseCode = "404", description = "短码不存在"),
             @ApiResponse(responseCode = "410", description = "短链已失效或被禁用")
     })
     @Parameters({
-            @Parameter(in = ParameterIn.PATH, name = "version", description = "API 路径版本（占位）", required = true),
             @Parameter(in = ParameterIn.PATH, name = "code", description = "短码", required = true)
     })
     @GetMapping("/{code}")

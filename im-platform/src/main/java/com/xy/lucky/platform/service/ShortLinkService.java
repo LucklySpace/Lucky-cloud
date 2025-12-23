@@ -2,9 +2,8 @@ package com.xy.lucky.platform.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.xy.lucky.platform.cache.CacheValue;
+import com.xy.lucky.platform.domain.CacheValue;
 import com.xy.lucky.platform.domain.po.ShortLinkPo;
-import com.xy.lucky.platform.domain.vo.CreateShortLinkVo;
 import com.xy.lucky.platform.domain.vo.ShortLinkVo;
 import com.xy.lucky.platform.exception.ShortLinkException;
 import com.xy.lucky.platform.mapper.ShortLinkVoMapper;
@@ -83,7 +82,7 @@ public class ShortLinkService {
      * 创建短链（去重、持久化、回写缓存）
      */
     @Transactional
-    public ShortLinkVo createShortLink(CreateShortLinkVo request) {
+    public ShortLinkVo createShortLink(ShortLinkVo request) {
 
         // 原始 URL
         String originalUrl = Optional.ofNullable(request.getOriginalUrl()).map(String::trim).orElse(null);
@@ -116,19 +115,13 @@ public class ShortLinkService {
         LocalDateTime expireTime = Objects.nonNull(request.getExpireSeconds()) ?
                 LocalDateTime.now().plusSeconds(request.getExpireSeconds()) : LocalDateTime.now().plusSeconds(shortLinkProperties.getCacheTtlSeconds());
 
+        // 优先确定性生成（Murmur128），长度由配置决定，若冲突再随机重试
+        int len = Math.max(6, shortLinkProperties.getDeterministicLength());
+
         // 短码
-        String code;
-        if (StringUtils.hasText(request.getCustomCode())) {
-            // 自定义短码，需检查唯一性（Redis + DB）
-            code = request.getCustomCode();
-            if (existsCode(code)) throw new ShortLinkException("短码已存在");
-        } else {
-            // 优先确定性生成（Murmur128），长度由配置决定，若冲突再随机重试
-            int len = Math.max(6, shortLinkProperties.getDeterministicLength());
-            code = generateDeterministicCodeWithUser(originalUrl, request.getUserId(), len);
-            if (existsCode(code)) {
-                code = ensureUniqueCode(len, 10);
-            }
+        String code = generateDeterministicCodeWithUser(originalUrl, len);
+        if (existsCode(code)) {
+            code = ensureUniqueCode(len, 10);
         }
 
         // 保存到 DB（若唯一约束冲突，重试一次）
@@ -316,8 +309,8 @@ public class ShortLinkService {
     /**
      * 生成确定性短码（Murmur128截断），带 userId 隔离
      */
-    private String generateDeterministicCodeWithUser(String url, String userId, int len) {
-        String full = MurmurHashUtils.createWithUser(url, userId);
+    private String generateDeterministicCodeWithUser(String url, int len) {
+        String full = MurmurHashUtils.createWithUser(url);
         if (full.length() <= len) return full;
         return full.substring(0, len);
     }

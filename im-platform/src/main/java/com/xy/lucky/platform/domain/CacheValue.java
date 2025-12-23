@@ -1,4 +1,4 @@
-package com.xy.lucky.platform.cache;
+package com.xy.lucky.platform.domain;
 
 import org.springframework.util.StringUtils;
 

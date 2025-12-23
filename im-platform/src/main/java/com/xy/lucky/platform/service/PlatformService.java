@@ -3,8 +3,6 @@ package com.xy.lucky.platform.service;
 import com.xy.lucky.platform.domain.po.AssetPo;
 import com.xy.lucky.platform.domain.po.ReleasePo;
 import com.xy.lucky.platform.domain.vo.AssetVo;
-import com.xy.lucky.platform.domain.vo.CreateAssetVo;
-import com.xy.lucky.platform.domain.vo.CreateReleaseVo;
 import com.xy.lucky.platform.domain.vo.ReleaseVo;
 import com.xy.lucky.platform.exception.ReleaseException;
 import com.xy.lucky.platform.mapper.ReleaseAssetVoMapper;
@@ -25,10 +23,15 @@ import java.util.Optional;
 /**
  * 版本发布服务
  * 处理版本发布和资产管理
+ * <p>
+ * 处理逻辑：
+ * 1. 创建版本信息
+ * 2. 根据版本上传资产信息
+ *
  */
 @Slf4j
 @Service
-public class ReleaseService {
+public class PlatformService {
 
     private final UpdateReleaseRepository releaseRepository;
     private final UpdateAssetRepository assetRepository;
@@ -37,11 +40,11 @@ public class ReleaseService {
     private final ReleaseAssetVoMapper releaseAssetVoMapper;
 
     @Autowired
-    public ReleaseService(UpdateReleaseRepository releaseRepository,
-                          UpdateAssetRepository assetRepository,
-                          MinioStorageService minioStorageService,
-                          MinioProperties minioProperties,
-                          ReleaseAssetVoMapper releaseAssetVoMapper) {
+    public PlatformService(UpdateReleaseRepository releaseRepository,
+                           UpdateAssetRepository assetRepository,
+                           MinioStorageService minioStorageService,
+                           MinioProperties minioProperties,
+                           ReleaseAssetVoMapper releaseAssetVoMapper) {
         this.releaseRepository = releaseRepository;
         this.assetRepository = assetRepository;
         this.minioStorageService = minioStorageService;
@@ -56,9 +59,10 @@ public class ReleaseService {
      * @return 版本信息
      */
     @Transactional
-    public ReleaseVo publishRelease(CreateReleaseVo createReleaseVo) {
+    public ReleaseVo publishRelease(ReleaseVo createReleaseVo) {
         log.info("开始处理版本发布请求，应用ID: {}，版本号: {}", createReleaseVo.getAppId(), createReleaseVo.getVersion());
 
+        // 根据appId和版本号查找是否存在相同版本
         Optional<ReleasePo> existingRelease = releaseRepository.findByAppIdAndVersion(
                 createReleaseVo.getAppId(), createReleaseVo.getVersion());
 
@@ -77,8 +81,7 @@ public class ReleaseService {
             }
         } else {
             // 创建新版本
-            log.debug("未发现现有版本，创建新版本");
-
+            log.debug("未发现现有版本，创建新版本 appId: {} version: {}", createReleaseVo.getAppId(), createReleaseVo.getVersion());
             release = ReleasePo.builder()
                     .appId(createReleaseVo.getAppId())
                     .version(createReleaseVo.getVersion())
@@ -100,7 +103,7 @@ public class ReleaseService {
      * @return 资产信息
      */
     @Transactional
-    public AssetVo publishAsset(CreateAssetVo createAssetVo, MultipartFile file) {
+    public AssetVo publishAssets(AssetVo createAssetVo, MultipartFile file) {
         log.info("开始处理资产发布请求，版本号: {}，平台: {}", createAssetVo.getVersion(), createAssetVo.getPlatform());
 
         // 验证文件
@@ -121,9 +124,9 @@ public class ReleaseService {
                     return new ReleaseException("指定的版本不存在");
                 });
 
-        log.debug("找到关联的版本，ID={}，版本号={}", release.getId(), release.getVersion());
+        log.debug("找到关联的版本，版本ID={}，版本号={}", release.getId(), release.getVersion());
 
-        // 验证资产
+        // 根据版本id和平台标识查找是否存在相同平台资产
         assetRepository.findByReleaseIdAndPlatform(createAssetVo.getReleaseId(), createAssetVo.getPlatform()).ifPresent(
                 assetPo -> {
                     log.warn("已存在相同平台资产，请勿重复上传");

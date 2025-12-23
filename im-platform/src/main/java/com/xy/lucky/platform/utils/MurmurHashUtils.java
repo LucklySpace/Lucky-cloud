@@ -79,17 +79,11 @@ public final class MurmurHashUtils {
      * 支持用户隔离：将 url 与 userId 拼接后再哈希，保证相同 url 不同 userId 产生不同结果
      *
      * @param url    非空原始 url
-     * @param userId 可空用户 id（若为空则退化为普通 createAuto(url)）
      * @return Base62 字符串
      */
-    public static String createWithUser(String url, String userId) {
+    public static String createWithUser(String url) {
         Objects.requireNonNull(url, "url cannot be null");
-        if (userId == null || userId.isBlank()) {
-            return createAuto(url);
-        }
-        // 使用不可模糊的分隔符，避免 a|b 与 ab| 空串冲突
-        String joined = url + "|" + userId;
-        return createAuto(joined);
+        return createAuto(url);
     }
 
     /**

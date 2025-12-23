@@ -1,6 +1,5 @@
 package com.xy.lucky.platform.controller;
 
-import com.xy.lucky.platform.domain.vo.CreateShortLinkVo;
 import com.xy.lucky.platform.domain.vo.ShortLinkVo;
 import com.xy.lucky.platform.service.ShortLinkService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,7 +45,7 @@ public class ShortLinkController {
             @Parameter(in = ParameterIn.PATH, name = "version", description = "API 路径版本（占位）", required = true)
     })
     @PostMapping("/create")
-    public ShortLinkVo createShortLink(@Valid @RequestBody CreateShortLinkVo request) {
+    public ShortLinkVo createShortLink(@Valid @RequestBody ShortLinkVo request) {
         log.info("收到短链创建请求，url={}", request.getOriginalUrl());
         return shortLinkService.createShortLink(request);
     }

@@ -17,9 +17,21 @@ import java.util.concurrent.ThreadPoolExecutor;
 @EnableAsync
 public class ExecutorConfig {
 
-    private int corePoolSize = 15;
-    private int maxPoolSize = 20;
-    private int queueCapacity = 99999;
+    /**
+     * 线程池核心线程数
+     */
+    private int corePoolSize = 6;
+    /**
+     * 线程池最大线程数
+     */
+    private int maxPoolSize = 12;
+    /**
+     * 线程池队列大小
+     */
+    private int queueCapacity = 99;
+    /**
+     * 线程池线程名称前缀
+     */
     private String namePrefix = "async-service-";
 
     @Bean(name = "asyncServiceExecutor")

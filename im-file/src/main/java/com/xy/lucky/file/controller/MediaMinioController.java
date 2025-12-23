@@ -26,7 +26,7 @@ public class MediaMinioController {
     private OssFileImageService ossImageFileService;
 
     @PostMapping("/image/upload")
-    @Operation(summary = "上传图片文件", tags = {"media"}, description = "请使用此接口上传图片文件")
+    @Operation(summary = "上传图片文件", tags = {"media"}, description = "请使用此接口上传图片文件, 此接口使用时必须计算文件md5, 用于校验文件完整性")
     @Parameters({
             @Parameter(name = "identifier", description = "文件md5值", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "file", description = "图片文件", required = true, in = ParameterIn.DEFAULT)
@@ -37,7 +37,7 @@ public class MediaMinioController {
     }
 
     @PostMapping("/avatar/upload")
-    @Operation(summary = "上传头像文件", tags = {"media"}, description = "请使用此接口上传头像文件")
+    @Operation(summary = "上传头像文件", tags = {"media"}, description = "请使用此接口上传头像文件, 此接口使用时必须计算文件md5, 用于校验文件完整性")
     @Parameters({
             @Parameter(name = "identifier", description = "文件md5值", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "file", description = "头像文件", required = true, in = ParameterIn.DEFAULT)

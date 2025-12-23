@@ -316,4 +316,15 @@ public class OssFileServiceImpl implements OssFileService {
             log.warn("持久化文件失败 identifier={}", ossFilePo.getIdentifier(), ex);
         }
     }
+
+    /**
+     * 获取文件md5
+     *
+     * @param file 文件
+     * @return 文件md5
+     */
+    @Override
+    public FileVo getFileMd5(MultipartFile file) {
+        return FileVo.builder().identifier(MD5Utils.getMD5(file)).build();
+    }
 }

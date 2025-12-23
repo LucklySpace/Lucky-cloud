@@ -108,7 +108,7 @@ public class FileMinioController {
      * @param file       文件
      */
     @PostMapping("/upload")
-    @Operation(summary = "上传", tags = {"file"}, description = "请使用此接口进行文件上传")
+    @Operation(summary = "上传", tags = {"file"}, description = "请使用此接口进行文件上传, 此接口使用时必须计算文件md5, 用于校验文件完整性")
     @Parameters({
             @Parameter(name = "identifier", description = "文件md5值", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "file", description = "文件", required = true, in = ParameterIn.DEFAULT)
@@ -134,6 +134,16 @@ public class FileMinioController {
                                           @RequestHeader(value = "Range", required = false) String range) {
         log.info("[文件下载] 开始文件下载，md5: {}, Range: {}", identifier, range);
         return ossFileService.downloadFile(identifier, range);
+    }
+
+    @GetMapping("/md5")
+    @Operation(summary = "获取文件md5值", tags = {"file"}, description = "请使用此接口获取文件md5值")
+    @Parameters({
+            @Parameter(name = "file", description = "文件", required = true, in = ParameterIn.DEFAULT)
+    })
+    public FileVo getFileMd5(@RequestParam("file") MultipartFile file) {
+        log.info("[获取文件md5值] 获取文件md5值, 文件: {}", file.getOriginalFilename());
+        return ossFileService.getFileMd5(file);
     }
 
 }

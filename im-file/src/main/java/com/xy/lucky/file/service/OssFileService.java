@@ -61,4 +61,11 @@ public interface OssFileService {
     ResponseEntity<?> downloadFile(String identifier, String range);
 
 
+    /**
+     * 获取文件md5
+     *
+     * @param file 文件
+     * @return 文件md5
+     */
+    FileVo getFileMd5(MultipartFile file);
 }

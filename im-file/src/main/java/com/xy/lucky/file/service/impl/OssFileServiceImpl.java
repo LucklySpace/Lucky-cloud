@@ -1,7 +1,5 @@
 package com.xy.lucky.file.service.impl;
 
-
-import com.alibaba.fastjson.JSONObject;
 import com.xy.lucky.file.domain.OssFileUploadProgress;
 import com.xy.lucky.file.domain.po.OssFilePo;
 import com.xy.lucky.file.domain.vo.FileChunkVo;
@@ -17,6 +15,7 @@ import com.xy.lucky.file.util.MD5Utils;
 import com.xy.lucky.file.util.MinioUtils;
 import com.xy.lucky.file.util.RedisUtils;
 import com.xy.lucky.utils.id.IdUtils;
+import com.xy.lucky.utils.json.JacksonUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -272,7 +271,7 @@ public class OssFileServiceImpl implements OssFileService {
             return findFromDb(identifier);
         }
 
-        return JSONObject.parseObject(objStr, OssFilePo.class);
+        return JacksonUtils.parseObject(objStr, OssFilePo.class);
     }
 
     /**
@@ -282,7 +281,7 @@ public class OssFileServiceImpl implements OssFileService {
      */
     private void saveOssFileToRedis(OssFilePo ossFilePo) {
         log.debug("[文件保存] 文件信息保存成功，identifier={}", ossFilePo.getIdentifier());
-        redisUtils.saveTimeout(ossFilePo.getIdentifier(), JSONObject.toJSONString(ossFilePo), 30, TimeUnit.MINUTES);
+        redisUtils.saveTimeout(ossFilePo.getIdentifier(), JacksonUtils.toJSONString(ossFilePo), 30, TimeUnit.MINUTES);
     }
 
 

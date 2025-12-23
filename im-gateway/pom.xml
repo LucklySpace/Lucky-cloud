@@ -16,10 +16,11 @@
 
     <dependencies>
 
+        <!-- Caffeine 本地缓存 -->
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
-            <version>3.1.8</version> <!-- 建议使用最新稳定版 -->
+            <version>${caffeine.version}</version>
         </dependency>
 
         <!-- Spring Data Redis -->

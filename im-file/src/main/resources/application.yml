@@ -78,3 +78,8 @@ management:
   endpoint:
     health:
       show-details: when_authorized
+      probes:
+        enabled: true
+  info:
+    env:
+      enabled: true

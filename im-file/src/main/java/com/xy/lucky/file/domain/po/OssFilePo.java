@@ -3,6 +3,9 @@ package com.xy.lucky.file.domain.po;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -37,10 +40,12 @@ public class OssFilePo {
 
     @Schema(description = "文件唯一标识（md5）")
     @Column(name = "identifier", length = 64, unique = true, nullable = false)
+    @NotBlank
     private String identifier;
 
     @Schema(description = "文件名")
     @Column(name = "file_name", length = 512)
+    @NotBlank
     private String fileName;
 
     @Schema(description = "文件类型")
@@ -65,6 +70,8 @@ public class OssFilePo {
 
     @Schema(description = "分片数量")
     @Column(name = "part_num")
+    @NotNull
+    @Min(1)
     private Integer partNum;
 
     @Schema(description = "是否已完成上传")

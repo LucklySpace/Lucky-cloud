@@ -1,12 +1,14 @@
-package com.xy.lucky.file.exception.handler;
+package com.xy.lucky.platform.exception.handler;
 
 
-import com.xy.lucky.file.exception.FileException;
-import com.xy.lucky.file.exception.ResponseNotIntercept;
 import com.xy.lucky.general.exception.BusinessException;
 import com.xy.lucky.general.exception.ForbiddenException;
 import com.xy.lucky.general.response.domain.Result;
 import com.xy.lucky.general.response.domain.ResultCode;
+import com.xy.lucky.platform.domain.vo.UpdaterResponseVo;
+import com.xy.lucky.platform.exception.ResponseNotIntercept;
+import com.xy.lucky.platform.exception.ShortLinkException;
+import com.xy.lucky.platform.exception.UpdateException;
 import jakarta.servlet.ServletException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.SneakyThrows;
@@ -57,9 +59,18 @@ public class GlobalExceptionHandler implements ResponseBodyAdvice<Object> {
     /**
      * 处理文件异常
      */
-    @ExceptionHandler(FileException.class)
-    public Result<?> handle(FileException ex) {
+    @ExceptionHandler(UpdateException.class)
+    public Result<?> handle(UpdateException ex) {
         log.error("FileException: {}", ex.getMessage(), ex);
+        return Result.failed(ex.getCode(), ex.getMessage());
+    }
+
+    /**
+     * 处理短链异常
+     */
+    @ExceptionHandler(ShortLinkException.class)
+    public Result<?> handle(ShortLinkException ex) {
+        log.error("ShortLinkException: {}", ex.getMessage(), ex);
         return Result.failed(ex.getCode(), ex.getMessage());
     }
 
@@ -221,6 +232,10 @@ public class GlobalExceptionHandler implements ResponseBodyAdvice<Object> {
         }
 
         if (body instanceof ResponseEntity) {
+            return body;
+        }
+
+        if (body instanceof UpdaterResponseVo) {
             return body;
         }
 

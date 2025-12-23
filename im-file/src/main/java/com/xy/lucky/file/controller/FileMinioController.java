@@ -51,7 +51,7 @@ public class FileMinioController {
     @Parameters({
             @Parameter(name = "identifier", description = "文件md5值", required = true, in = ParameterIn.QUERY)
     })
-    public FileUploadProgressVo getMultipartUploadProgress(@NotBlank @RequestParam("identifier") String identifier) {
+    public FileUploadProgressVo getMultipartUploadProgress(@NotBlank(message = "请输入文件md5值") @RequestParam("identifier") String identifier) {
         log.info("[文件校验] 检查文件是否存在，MD5: {}", identifier);
         return ossFileService.getMultipartUploadProgress(identifier);
     }

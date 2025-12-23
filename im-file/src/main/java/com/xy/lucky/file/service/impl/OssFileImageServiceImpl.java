@@ -1,6 +1,5 @@
 package com.xy.lucky.file.service.impl;
 
-import com.alibaba.fastjson.JSONObject;
 import com.xy.lucky.file.client.MinioProperties;
 import com.xy.lucky.file.domain.OssFileMediaInfo;
 import com.xy.lucky.file.domain.po.OssFileImagePo;
@@ -15,6 +14,7 @@ import com.xy.lucky.file.util.MD5Utils;
 import com.xy.lucky.file.util.MinioUtils;
 import com.xy.lucky.file.util.RedisUtils;
 import com.xy.lucky.utils.id.IdUtils;
+import com.xy.lucky.utils.json.JacksonUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -455,7 +455,7 @@ public class OssFileImageServiceImpl implements OssFileImageService {
             return findFromDb(identifier);
         }
 
-        return JSONObject.parseObject(objStr, OssFileImagePo.class);
+        return JacksonUtils.parseObject(objStr, OssFileImagePo.class);
     }
 
     /**

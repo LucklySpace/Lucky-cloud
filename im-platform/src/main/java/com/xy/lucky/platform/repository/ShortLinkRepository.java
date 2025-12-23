@@ -23,6 +23,11 @@ public interface ShortLinkRepository extends JpaRepository<ShortLinkPo, UUID> {
     Optional<ShortLinkPo> findTopByOriginalUrlOrderByCreateTimeDesc(String originalUrl);
 
     /**
+     * 判断短码是否存在
+     */
+    Boolean existsByShortCode(String shortCode);
+
+    /**
      * 查询未过期且启用的短链
      */
     List<ShortLinkPo> findByEnabledTrueAndExpireTimeAfter(LocalDateTime now);

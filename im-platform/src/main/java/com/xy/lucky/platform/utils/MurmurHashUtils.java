@@ -76,17 +76,6 @@ public final class MurmurHashUtils {
     }
 
     /**
-     * 支持用户隔离：将 url 与 userId 拼接后再哈希，保证相同 url 不同 userId 产生不同结果
-     *
-     * @param url    非空原始 url
-     * @return Base62 字符串
-     */
-    public static String createWithUser(String url) {
-        Objects.requireNonNull(url, "url cannot be null");
-        return createAuto(url);
-    }
-
-    /**
      * 更短但风险更高的变体：对 128-bit 的输出进行截断并返回指定长度（长度 <= full length）
      * 用法：当你需要固定长度（如 8/10/12）并能接受更高碰撞风险时使用
      *

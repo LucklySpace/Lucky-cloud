@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @Validated
 @RestController
-@RequestMapping("/api/{version}/short")
+@RequestMapping("/api/{version}/short/link")
 @RequiredArgsConstructor
 @Tag(name = "short", description = "短链服务接口")
 public class ShortLinkController {

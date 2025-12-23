@@ -17,16 +17,10 @@ import org.springframework.scheduling.annotation.EnableAsync;
  * 2. 应用更新包上传和存储（基于MinIO）
  * 3. 客户端更新检查和下载服务
  *
- * 技术栈：
- * - Spring Boot 3.x
- * - Spring Data JPA
- * - MinIO 对象存储
- * - Knife4j API 文档
- * - Nacos 服务注册与配置中心
  */
 @EnableKnife4j
 @EnableAsync
-@ComponentScan("com.xy") // 扫描包路径
+@ComponentScan("com.xy.lucky")
 @SpringBootApplication(exclude = {SecurityAutoConfiguration.class})
 @OpenAPIDefinition(
         info = @Info(

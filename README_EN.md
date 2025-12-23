@@ -434,7 +434,6 @@ We welcome all contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for details
 
 - **Project Home**: [https://github.com/LucklySpace/Lucky-cloud](https://github.com/LucklySpace/Lucky-cloud)
 - **Issues**: [Issues](https://github.com/LucklySpace/Lucky-cloud/issues)
-- **Email**: 382192293@qq.com
 
 ## 📢 Disclaimer
 

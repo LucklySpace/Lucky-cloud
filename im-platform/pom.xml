@@ -21,9 +21,18 @@
 
     <dependencies>
 
+        <!-- 通用模块 -->
         <dependency>
             <groupId>com.xy.lucky</groupId>
             <artifactId>im-general</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+        <!-- 地址与 IP 查询模块 -->
+        <dependency>
+            <groupId>com.xy.lucky</groupId>
+            <artifactId>im-address</artifactId>
+            <version>${revision}</version>
         </dependency>
 
         <!-- Google Guava -->

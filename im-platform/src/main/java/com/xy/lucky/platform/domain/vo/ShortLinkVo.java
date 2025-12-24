@@ -1,5 +1,6 @@
 package com.xy.lucky.platform.domain.vo;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
 @Data
 @Builder
 @Schema(name = "ShortLinkVo", description = "短链信息响应")
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ShortLinkVo {
 
     @Schema(description = "原始URL", requiredMode = Schema.RequiredMode.REQUIRED, example = "https://example.com/docs/123")

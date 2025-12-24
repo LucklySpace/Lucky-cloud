@@ -1,5 +1,6 @@
 package com.xy.lucky.platform.domain.vo;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -11,6 +12,7 @@ import lombok.Data;
  */
 @Data
 @Schema(name = "ReleaseVo", description = "创建发布请求")
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ReleaseVo {
 
     @Schema(description = "应用ID", example = "my-app")

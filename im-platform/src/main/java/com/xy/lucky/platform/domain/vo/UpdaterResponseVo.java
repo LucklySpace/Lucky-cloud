@@ -1,5 +1,6 @@
 package com.xy.lucky.platform.domain.vo;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -19,6 +20,7 @@ import java.util.Map;
 @AllArgsConstructor
 @NoArgsConstructor
 @Schema(name = "TauriUpdaterResponse", description = "Tauri 更新检查响应：包含版本号、更新说明、发布日与各平台下载信息")
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class UpdaterResponseVo {
 
     /**

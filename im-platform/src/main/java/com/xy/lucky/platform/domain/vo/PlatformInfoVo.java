@@ -1,5 +1,6 @@
 package com.xy.lucky.platform.domain.vo;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,6 +17,7 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @NoArgsConstructor
 @Schema(name = "TauriPlatformInfo", description = "单个平台的更新信息：包含数字签名与下载地址")
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class PlatformInfoVo {
 
     /**

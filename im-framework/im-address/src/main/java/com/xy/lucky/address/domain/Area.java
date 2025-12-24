@@ -32,13 +32,15 @@ public class Area {
     public static final Integer ID_CHINA = 1;
 
     /**
-     * 编号
+     * 编码
      */
-    private Integer id;
+    private Integer code;
+
     /**
      * 名字
      */
     private String name;
+
     /**
      * 类型
      *
@@ -50,6 +52,7 @@ public class Area {
      */
     @JsonManagedReference
     private Area parent;
+
     /**
      * 子节点
      */

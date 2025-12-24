@@ -74,7 +74,7 @@ springdoc:
   group-configs:
     - group: 'server'
       paths-to-match: '/**'
-      packages-to-scan: com.xy.server  #改成你自己的包名，一般到启动类的包名
+      packages-to-scan: com.xy.lucky.platform  # 改为平台服务包名，确保文档扫描到控制器
 
 # TODO: knife4j相关配置 可以不用改
 knife4j:
@@ -95,4 +95,3 @@ minio:
 
 shortlink:
   domain: http://127.0.0.1:8090
-

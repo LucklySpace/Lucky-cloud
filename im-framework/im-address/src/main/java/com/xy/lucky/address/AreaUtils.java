@@ -1,9 +1,5 @@
 package com.xy.lucky.address;
 
-import cn.hutool.core.io.resource.ResourceUtil;
-import cn.hutool.core.lang.Assert;
-import cn.hutool.core.text.csv.CsvRow;
-import cn.hutool.core.text.csv.CsvUtil;
 import com.xy.lucky.address.domain.Area;
 import com.xy.lucky.address.enums.AreaTypeEnum;
 import com.xy.lucky.utils.collection.CollectionUtils;
@@ -11,6 +7,10 @@ import com.xy.lucky.utils.object.ObjectUtils;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -46,22 +46,52 @@ public class AreaUtils {
         areas = new HashMap<>();
         areas.put(Area.ID_GLOBAL, new Area(Area.ID_GLOBAL, "全球", 0,
                 null, new ArrayList<>()));
-        // 从 csv 中加载数据
-        List<CsvRow> rows = CsvUtil.getReader().read(ResourceUtil.getUtf8Reader(AREA_CSV_PATH)).getRows();
-        rows.removeFirst(); // 删除 header
-        for (CsvRow row : rows) {
-            // 创建 Area 对象
-            Area area = new Area(Integer.valueOf(row.get(0)), row.get(1), Integer.valueOf(row.get(2)),
-                    null, new ArrayList<>());
-            // 添加到 areas 中
-            areas.put(area.getId(), area);
+        List<String[]> rows = new ArrayList<>();
+        try (InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(AREA_CSV_PATH);
+             BufferedReader reader = is != null ? new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8)) : null) {
+            if (reader == null) {
+                log.error("未找到区域 CSV 资源文件: {}", AREA_CSV_PATH);
+            } else {
+                String line;
+                boolean headerSkipped = false;
+                while ((line = reader.readLine()) != null) {
+                    if (line.trim().isEmpty()) {
+                        continue;
+                    }
+                    if (!headerSkipped) {
+                        headerSkipped = true;
+                        continue;
+                    }
+                    String[] cols = line.split(",", -1);
+                    if (cols.length < 4) {
+                        log.warn("CSV 行格式不正确，已跳过: {}", line);
+                        continue;
+                    }
+                    rows.add(cols);
+                }
+            }
+        } catch (Exception e) {
+            log.error("加载区域 CSV 失败: {}", AREA_CSV_PATH, e);
         }
-
-        // 构建父子关系：因为 Area 中没有 parentId 字段，所以需要重复读取
-        for (CsvRow row : rows) {
-            Area area = areas.get(Integer.valueOf(row.get(0))); // 自己
-            Area parent = areas.get(Integer.valueOf(row.get(3))); // 父
-            Assert.isTrue(area != parent, "{}:父子节点相同", area.getName());
+        for (String[] row : rows) {
+            Area area = new Area(Integer.valueOf(row[0].trim()), row[1].trim(), Integer.valueOf(row[2].trim()),
+                    null, new ArrayList<>());
+            areas.put(area.getCode(), area);
+        }
+        for (String[] row : rows) {
+            Integer id = Integer.valueOf(row[0].trim());
+            Integer parentId = Integer.valueOf(row[3].trim());
+            Area area = areas.get(id);
+            Area parent = areas.get(parentId);
+            if (area == null || parent == null) {
+                log.warn("父子关系构建失败，节点或父节点不存在 id={}, parentId={}", id, parentId);
+                continue;
+            }
+            if (area == parent) {
+                String msg = area.getName() + ":父子节点相同";
+                log.error(msg);
+                throw new IllegalStateException(msg);
+            }
             area.setParent(parent);
             parent.getChildren().add(area);
         }
@@ -98,7 +128,7 @@ public class AreaUtils {
     }
 
     /**
-     * 获取所有节点的全路径名称如：河南省/石家庄市/新华区
+     * 获取所有节点的全路径名称如：河北省/石家庄市/新华区
      *
      * @param areas 地区树
      * @return 所有节点的全路径名称
@@ -120,10 +150,8 @@ public class AreaUtils {
         if (node == null) {
             return;
         }
-        // 构建当前节点的路径
         String currentPath = path.isEmpty() ? node.getName() : path + "/" + node.getName();
         paths.add(currentPath);
-        // 递归遍历子节点
         for (Area child : node.getChildren()) {
             getAreaNodePathList(child, currentPath, paths);
         }
@@ -154,20 +182,16 @@ public class AreaUtils {
      * @return 格式化后的区域
      */
     public static String format(Integer id, String separator) {
-        // 获得区域
         Area area = areas.get(id);
         if (area == null) {
             return null;
         }
-
-        // 格式化
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < AreaTypeEnum.values().length; i++) { // 避免死循环
+        for (int i = 0; i < AreaTypeEnum.values().length; i++) {
             sb.insert(0, area.getName());
-            // “递归”父节点
             area = area.getParent();
             if (area == null
-                    || ObjectUtils.equalsAny(area.getId(), Area.ID_GLOBAL, Area.ID_CHINA)) { // 跳过父节点为中国的情况
+                    || ObjectUtils.equalsAny(area.getCode(), Area.ID_GLOBAL, Area.ID_CHINA)) {
                 break;
             }
             sb.insert(0, separator);
@@ -200,16 +224,13 @@ public class AreaUtils {
             if (area == null) {
                 return null;
             }
-            // 情况一：匹配到，返回它
             if (type.getType().equals(area.getType())) {
-                return area.getId();
+                return area.getCode();
             }
-            // 情况二：找到根节点，返回空
-            if (area.getParent() == null || area.getParent().getId() == null) {
+            if (area.getParent() == null || area.getParent().getCode() == null) {
                 return null;
             }
-            // 其它：继续向上查找
-            id = area.getParent().getId();
+            id = area.getParent().getCode();
         }
         return null;
     }

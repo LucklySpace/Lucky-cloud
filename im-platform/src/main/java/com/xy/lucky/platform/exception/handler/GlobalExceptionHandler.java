@@ -6,6 +6,7 @@ import com.xy.lucky.general.exception.ForbiddenException;
 import com.xy.lucky.general.response.domain.Result;
 import com.xy.lucky.general.response.domain.ResultCode;
 import com.xy.lucky.platform.domain.vo.UpdaterResponseVo;
+import com.xy.lucky.platform.exception.AddressException;
 import com.xy.lucky.platform.exception.ResponseNotIntercept;
 import com.xy.lucky.platform.exception.ShortLinkException;
 import com.xy.lucky.platform.exception.UpdateException;
@@ -53,6 +54,15 @@ public class GlobalExceptionHandler implements ResponseBodyAdvice<Object> {
     @ExceptionHandler(BusinessException.class)
     public Result<?> handle(BusinessException ex) {
         log.error("BusinessException: {}", ex.getMessage(), ex);
+        return Result.failed(ex.getCode(), ex.getMessage());
+    }
+
+    /**
+     * 处理ip或地址异常
+     */
+    @ExceptionHandler(AddressException.class)
+    public Result<?> handle(AddressException ex) {
+        log.error("AddressException: {}", ex.getMessage(), ex);
         return Result.failed(ex.getCode(), ex.getMessage());
     }
 

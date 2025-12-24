@@ -1,5 +1,6 @@
 package com.xy.lucky.platform.domain.vo;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -11,6 +12,7 @@ import lombok.Data;
  */
 @Data
 @Schema(name = "AssetVo", description = "平台资产：包含平台、文件名、对象存储信息等")
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class AssetVo {
 
     @Schema(description = "发布ID")

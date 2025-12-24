@@ -15,15 +15,11 @@
 
     <dependencies>
 
+        <!-- 通用工具类 -->
         <dependency>
             <groupId>com.xy.lucky</groupId>
             <artifactId>im-common</artifactId>
-        </dependency>
-
-        <!--Hutool-->
-        <dependency>
-            <groupId>cn.hutool</groupId>
-            <artifactId>hutool-all</artifactId>
+            <version>${revision}</version>
         </dependency>
 
         <!-- IP地址检索 -->
@@ -32,9 +28,25 @@
             <artifactId>ip2region</artifactId>
             <version>${ip2region.version}</version>
         </dependency>
-
     </dependencies>
 
 
+    <build>
+        <!-- 添加资源 -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <!-- src/main/resources下的指定资源放行 -->
+                <includes>
+                    <include>**/*.properties</include>
+                    <include>**/*.yml</include>
+                    <include>**/*.xml</include>
+                    <include>**/*.csv</include>
+                    <include>**/*.xdb</include>
+                </includes>
+                <filtering>false</filtering>
+            </resource>
+        </resources>
+    </build>
 
 </project>

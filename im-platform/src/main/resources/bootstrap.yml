@@ -1,6 +1,6 @@
 spring:
   application:
-    name: im-service
+    name: im-platform
   profiles:
     active: ${APP_PROFILES_ACTIVE:@app.profiles.active@}
 
@@ -30,4 +30,4 @@ spring:
         file-extension: yml
 
 server:
-  port: ${SERVER_PORT:8090}
+  port: ${SERVER_PORT:@im-platform.server.port@}

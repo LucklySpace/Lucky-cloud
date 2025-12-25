@@ -6,7 +6,7 @@ import com.xy.lucky.platform.domain.vo.PlatformInfoVo;
 import com.xy.lucky.platform.domain.vo.UpdaterResponseVo;
 import com.xy.lucky.platform.repository.UpdateAssetRepository;
 import com.xy.lucky.platform.repository.UpdateReleaseRepository;
-import com.xy.lucky.platform.storage.MinioStorageService;
+import com.xy.lucky.platform.utils.MinioUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
@@ -30,7 +30,7 @@ public class UpdaterService {
 
     private final UpdateReleaseRepository releaseRepository;
     private final UpdateAssetRepository assetRepository;
-    private final MinioStorageService minioStorageService;
+    private final MinioUtils minioUtils;
 
 
     /**
@@ -83,7 +83,7 @@ public class UpdaterService {
 
         // 优先使用MinIO存储
         if (StringUtils.hasText(asset.getBucketName()) && StringUtils.hasText(asset.getObjectKey())) {
-            url = minioStorageService.presignedGetUrl(
+            url = minioUtils.presignedGetUrl(
                     asset.getBucketName(),
                     asset.getObjectKey(),
                     24 * 60 * 60); // 24小时有效期
@@ -129,7 +129,7 @@ public class UpdaterService {
         }
 
         log.info("开始流式传输文件，存储桶={}，对象键={}", asset.getBucketName(), asset.getObjectKey());
-        return minioStorageService.streamObject(
+        return minioUtils.streamObject(
                 asset.getBucketName(),
                 asset.getObjectKey(),
                 asset.getFileName(),

@@ -1,5 +1,6 @@
 package com.xy.lucky.platform.service;
 
+import com.xy.lucky.platform.config.MinioProperties;
 import com.xy.lucky.platform.domain.po.AssetPo;
 import com.xy.lucky.platform.domain.po.ReleasePo;
 import com.xy.lucky.platform.domain.vo.AssetVo;
@@ -8,9 +9,8 @@ import com.xy.lucky.platform.exception.ReleaseException;
 import com.xy.lucky.platform.mapper.ReleaseAssetVoMapper;
 import com.xy.lucky.platform.repository.UpdateAssetRepository;
 import com.xy.lucky.platform.repository.UpdateReleaseRepository;
-import com.xy.lucky.platform.storage.MinioProperties;
-import com.xy.lucky.platform.storage.MinioStorageService;
 import com.xy.lucky.platform.utils.MD5Utils;
+import com.xy.lucky.platform.utils.MinioUtils;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,19 +35,19 @@ public class PlatformService {
 
     private final UpdateReleaseRepository releaseRepository;
     private final UpdateAssetRepository assetRepository;
-    private final MinioStorageService minioStorageService;
+    private final MinioUtils minioUtils;
     private final MinioProperties minioProperties;
     private final ReleaseAssetVoMapper releaseAssetVoMapper;
 
     @Autowired
     public PlatformService(UpdateReleaseRepository releaseRepository,
                            UpdateAssetRepository assetRepository,
-                           MinioStorageService minioStorageService,
+                           MinioUtils minioUtils,
                            MinioProperties minioProperties,
                            ReleaseAssetVoMapper releaseAssetVoMapper) {
         this.releaseRepository = releaseRepository;
         this.assetRepository = assetRepository;
-        this.minioStorageService = minioStorageService;
+        this.minioUtils = minioUtils;
         this.minioProperties = minioProperties;
         this.releaseAssetVoMapper = releaseAssetVoMapper;
     }
@@ -136,7 +136,11 @@ public class PlatformService {
 
         // 构造存储路径
         String bucket = minioProperties.getBucketName();
-        String objectKey = String.format("releases/%s/%s/%s", release.getVersion(), createAssetVo.getPlatform(), filename);
+
+        String objectName = minioUtils.getObjectName(filename);
+
+        String objectKey = String.format("releases/%s/%s/%s", release.getVersion(), createAssetVo.getPlatform(), objectName);
+
         String contentType = file.getContentType();
         long size = file.getSize();
 
@@ -144,7 +148,7 @@ public class PlatformService {
 
         try {
             // 上传到MinIO
-            minioStorageService.uploadObject(bucket, objectKey, file.getInputStream(), size, contentType);
+            minioUtils.uploadObject(bucket, objectKey, file.getInputStream(), size, contentType);
             log.debug("文件上传成功");
         } catch (Exception e) {
             log.error("文件上传失败，存储桶={}，对象键={}", bucket, objectKey, e);
@@ -160,7 +164,7 @@ public class PlatformService {
                 .bucketName(bucket)
                 .objectKey(objectKey)
                 .contentType(contentType)
-                .url(minioStorageService.presignedGetUrl(bucket, objectKey, 60 * 60 * 24))
+                .url(minioUtils.presignedGetUrl(bucket, objectKey, 60 * 60 * 24))
                 .fileSize(size)
                 .build();
 

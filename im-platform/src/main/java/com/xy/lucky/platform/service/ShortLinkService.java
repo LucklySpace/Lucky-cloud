@@ -2,13 +2,13 @@ package com.xy.lucky.platform.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.xy.lucky.platform.config.ShortLinkProperties;
 import com.xy.lucky.platform.domain.CacheValue;
 import com.xy.lucky.platform.domain.po.ShortLinkPo;
 import com.xy.lucky.platform.domain.vo.ShortLinkVo;
 import com.xy.lucky.platform.exception.ShortLinkException;
 import com.xy.lucky.platform.mapper.ShortLinkVoMapper;
 import com.xy.lucky.platform.repository.ShortLinkRepository;
-import com.xy.lucky.platform.shortlink.ShortLinkProperties;
 import com.xy.lucky.platform.utils.MurmurHashUtils;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;

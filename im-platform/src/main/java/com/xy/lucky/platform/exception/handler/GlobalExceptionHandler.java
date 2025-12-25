@@ -6,10 +6,7 @@ import com.xy.lucky.general.exception.ForbiddenException;
 import com.xy.lucky.general.response.domain.Result;
 import com.xy.lucky.general.response.domain.ResultCode;
 import com.xy.lucky.platform.domain.vo.UpdaterResponseVo;
-import com.xy.lucky.platform.exception.AddressException;
-import com.xy.lucky.platform.exception.ResponseNotIntercept;
-import com.xy.lucky.platform.exception.ShortLinkException;
-import com.xy.lucky.platform.exception.UpdateException;
+import com.xy.lucky.platform.exception.*;
 import jakarta.servlet.ServletException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.SneakyThrows;
@@ -81,6 +78,15 @@ public class GlobalExceptionHandler implements ResponseBodyAdvice<Object> {
     @ExceptionHandler(ShortLinkException.class)
     public Result<?> handle(ShortLinkException ex) {
         log.error("ShortLinkException: {}", ex.getMessage(), ex);
+        return Result.failed(ex.getCode(), ex.getMessage());
+    }
+
+    /**
+     * 处理表情包异常
+     */
+    @ExceptionHandler(EmojiException.class)
+    public Result<?> handle(EmojiException ex) {
+        log.error("EmojiException: {}", ex.getMessage(), ex);
         return Result.failed(ex.getCode(), ex.getMessage());
     }
 

@@ -71,8 +71,7 @@ security:
 logging:
   config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件
   level:
-    com.xy.*.mapper: debug
-    com.xy.*: debug
+    com.xy.lucky.*: info
     org.springframework: warn
 
 # TODO 榛子云短信服务

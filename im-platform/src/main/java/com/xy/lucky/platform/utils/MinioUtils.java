@@ -1,9 +1,11 @@
-package com.xy.lucky.platform.storage;
+package com.xy.lucky.platform.utils;
 
-import io.minio.GetObjectArgs;
-import io.minio.GetPresignedObjectUrlArgs;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
+import com.xy.lucky.platform.config.MinioProperties;
+import com.xy.lucky.platform.exception.FileException;
+import com.xy.lucky.utils.id.IdUtils;
+import com.xy.lucky.utils.string.StringUtils;
+import io.minio.*;
+import io.minio.errors.MinioException;
 import io.minio.http.Method;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +17,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * MinIO 存储服务封装：
@@ -25,7 +30,7 @@ import java.io.InputStream;
  */
 @Slf4j
 @Component
-public class MinioStorageService {
+public class MinioUtils {
 
     @Autowired
     private MinioProperties properties;
@@ -55,6 +60,13 @@ public class MinioStorageService {
             log.error("presignedGetUrl error bucket={} objectKey={}", bucket, objectKey, e);
             return null;
         }
+    }
+
+    /**
+     * 公开文件路径（不签名）
+     */
+    public String presignedGetUrl(String bucket, String objectName) {
+        return StringUtils.format("{}/{}/{}", properties.getEndpoint(), bucket, objectName);
     }
 
     /**
@@ -112,6 +124,81 @@ public class MinioStorageService {
         } catch (Exception e) {
             log.error("uploadObject error bucket={} objectKey={} size={}", bucket, objectKey, size, e);
             throw new RuntimeException("MinIO upload failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 设置bucket权限为public
+     *
+     * @return Boolean
+     */
+    public void setBucketPublic(String bucket) {
+
+        try {
+
+            // 检查Bucket是否存在
+            boolean isExist = client.bucketExists(BucketExistsArgs.builder().bucket(bucket).build());
+            if (!isExist) {
+                System.out.println("Bucket " + bucket + " does not exist");
+                return;
+            }
+
+            // 设置公开
+            String policyJson =
+                    "{\"Version\":\"2012-10-17\"," + "\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":"
+                            + "{\"AWS\":[\"*\"]},\"Action\":[\"s3:ListBucket\",\"s3:ListBucketMultipartUploads\","
+                            + "\"s3:GetBucketLocation\"],\"Resource\":[\"arn:aws:s3:::" + bucket
+                            + "\"]},{\"Effect\":\"Allow\",\"Principal\":{\"AWS\":[\"*\"]},\"Action\":[\"s3:PutObject\",\"s3:AbortMultipartUpload\",\"s3:DeleteObject\",\"s3:GetObject\",\"s3:ListMultipartUploadParts\"],\"Resource\":[\"arn:aws:s3:::"
+                            + bucket + "/*\"]}]}";
+
+            // 设置Bucket策略
+            client.setBucketPolicy(SetBucketPolicyArgs.builder()
+                    .bucket(bucket)
+                    .config(policyJson)
+                    .build());
+
+            log.info("Successfully set public access policy for " + bucket);
+        } catch (MinioException | IOException | NoSuchAlgorithmException | InvalidKeyException e) {
+            log.error("Error occurred: " + e);
+            throw new FileException("设置文件桶公开失败");
+        }
+    }
+
+    /**
+     * 判断对象是否存在
+     */
+    public boolean isExist(String bucket, String objectKey) {
+        try {
+            return client.bucketExists(BucketExistsArgs.builder().bucket(bucket).build())
+                    && client.statObject(StatObjectArgs.builder().bucket(bucket).object(objectKey).build()) != null;
+        } catch (Exception e) {
+            log.error("isExist error bucket={} objectKey={}", bucket, objectKey, e);
+            return false;
+        }
+    }
+
+    /**
+     * 生成新对象名称 （使用uuid生成）
+     */
+    public String getObjectName(String fileName) {
+        String prefix = fileName.substring(fileName.lastIndexOf("."));
+        return IdUtils.base62Uuid() + prefix;
+    }
+
+    /**
+     * 删除对象
+     */
+    public boolean removeObject(String bucket, String objectKey) {
+        try {
+            client.removeObject(RemoveObjectArgs.builder()
+                    .bucket(bucket)
+                    .object(objectKey)
+                    .build());
+            log.info("removeObject: removed bucket={} objectKey={}", bucket, objectKey);
+            return true;
+        } catch (Exception e) {
+            log.error("removeObject error bucket={} objectKey={}", bucket, objectKey, e);
+            return false;
         }
     }
 

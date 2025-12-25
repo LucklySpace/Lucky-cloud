@@ -19,7 +19,8 @@
         <module>im-analysis</module>
         <module>im-leaf</module>
         <module>im-proxy</module>
-        <module>im-update</module>
+        <module>im-platform</module>
+        <module>im-logging</module>
         <module>im-meet</module>
         <module>im-ai</module>
         <module>im-connect</module>
@@ -71,9 +72,10 @@
 
         <!-- 常用工具库 -->
         <hutool.version>5.8.29</hutool.version>
-        <guava.version>33.3.1-jre</guava.version>
+        <guava.version>33.5.0-jre</guava.version>
         <commons.lang3.version>3.9</commons.lang3.version>
         <commons.io.version>2.18.0</commons.io.version>
+        <caffeine.version>3.1.8</caffeine.version>
 
         <!-- 网络 / 底层 -->
         <netty.version>4.1.108.final</netty.version>
@@ -81,6 +83,7 @@
         <!-- 数据库驱动 -->
         <mysql.version>8.2.0</mysql.version>
         <postgresql.version>42.7.5</postgresql.version>
+        <clickhouse.version>0.5.0</clickhouse.version>
 
         <!-- 分布式 / 缓存 -->
         <redis.version>4.2.3</redis.version>
@@ -137,6 +140,9 @@
 
         <!-- Hutool工具包版本 -->
         <hutools.version>5.8.25</hutools.version>
+
+        <!-- Disruptor 队列-->
+        <disruptor.version>3.4.4</disruptor.version>
 
         <!-- 注释掉的备用版本 -->
         <!--        <spring-boot-admin.version>2.7.10</spring-boot-admin.version>-->
@@ -336,6 +342,13 @@
                 <version>${revision}</version>
             </dependency>
 
+            <!-- 日志埋点服务依赖 -->
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-starter-logging</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
             <dependency>
                 <groupId>com.xy.lucky</groupId>
                 <artifactId>im-starter-security</artifactId>
@@ -406,10 +419,17 @@
                 <version>${revision}</version>
             </dependency>
 
-            <!-- 升级更新模块 -->
+            <!-- 平台模块 -->
             <dependency>
                 <groupId>com.xy.lucky</groupId>
-                <artifactId>im-update</artifactId>
+                <artifactId>im-platform</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <!-- 日志模块 -->
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-logging</artifactId>
                 <version>${revision}</version>
             </dependency>
         </dependencies>
@@ -553,7 +573,8 @@
                 <im-file.server.port>8087</im-file.server.port>
                 <im-ai.server.port>8088</im-ai.server.port>
                 <im-analytics.server.port>8089</im-analytics.server.port>
-                <im-update.server.port>8090</im-update.server.port>
+                <im-platform.server.port>8090</im-platform.server.port>
+                <im-logging.server.port>8200</im-logging.server.port>
 
                 <im-database.server.port>8100</im-database.server.port>
                 <im-gateway.server.port>9191</im-gateway.server.port>
@@ -597,7 +618,8 @@
                 <im-file.server.port>8087</im-file.server.port>
                 <im-ai.server.port>8088</im-ai.server.port>
                 <im-analytics.server.port>8089</im-analytics.server.port>
-                <im-update.server.port>8090</im-update.server.port>
+                <im-platform.server.port>8090</im-platform.server.port>
+                <im-logging.server.port>8200</im-logging.server.port>
 
                 <im-database.server.port>8100</im-database.server.port>
                 <im-gateway.server.port>9191</im-gateway.server.port>
@@ -642,7 +664,8 @@
                 <im-file.server.port>8087</im-file.server.port>
                 <im-ai.server.port>8088</im-ai.server.port>
                 <im-analytics.server.port>8089</im-analytics.server.port>
-                <im-update.server.port>8090</im-update.server.port>
+                <im-platform.server.port>8090</im-platform.server.port>
+                <im-logging.server.port>8200</im-logging.server.port>
 
                 <im-database.server.port>8100</im-database.server.port>
                 <im-gateway.server.port>9191</im-gateway.server.port>

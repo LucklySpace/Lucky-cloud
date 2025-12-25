@@ -16,6 +16,12 @@
 
     <dependencies>
 
+        <!-- 日志埋点服务依赖 -->
+        <dependency>
+            <groupId>com.xy.lucky</groupId>
+            <artifactId>im-starter-logging</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.xy.lucky</groupId>
             <artifactId>im-starter-mq-rabbit</artifactId>
@@ -161,12 +167,6 @@
             <groupId>org.redisson</groupId>
             <artifactId>redisson-spring-boot-starter</artifactId>
             <version>${redission.version}</version>
-        </dependency>
-
-        <!-- Spring -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
         </dependency>
 
         <!-- Spring aop-->

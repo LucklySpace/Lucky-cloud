@@ -16,6 +16,12 @@
 
     <dependencies>
 
+        <!-- 日志埋点服务依赖 -->
+        <dependency>
+            <groupId>com.xy.lucky</groupId>
+            <artifactId>im-starter-logging</artifactId>
+        </dependency>
+
         <!--hanlp 语义分析-->
         <dependency>
             <groupId>com.hankcs</groupId>

@@ -1,12 +1,11 @@
 package com.xy.lucky.address;
 
+import cn.hutool.core.io.resource.ResourceUtil;
 import com.xy.lucky.address.domain.Area;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.lionsoul.ip2region.xdb.Searcher;
-import org.springframework.util.ResourceUtils;
 
-import java.io.File;
 import java.io.IOException;
 
 /**
@@ -40,9 +39,8 @@ public class IPUtils {
     private IPUtils() {
         try {
             long now = System.currentTimeMillis();
-            File file = ResourceUtils.getFile("classpath:ip2region.xdb");
-            byte[] cBuff = Searcher.loadContentFromFile(file.getPath());
-            SEARCHER = Searcher.newWithBuffer(cBuff);
+            byte[] bytes = ResourceUtil.readBytes(IP2REGION_XDB);
+            SEARCHER = Searcher.newWithBuffer(bytes);
             log.info("启动加载 IPUtils 成功，耗时 ({}) 毫秒", System.currentTimeMillis() - now);
         } catch (IOException e) {
             log.error("启动加载 IPUtils 失败", e);

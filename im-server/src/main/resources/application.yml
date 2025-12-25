@@ -5,12 +5,3 @@ spring: #springboot的配置
   jackson:
     default-property-inclusion: non_null
 
-grpc:
-  server:
-    port: 7085
-  client:
-    GLOBAL:
-      negotiation-type: plaintext
-      enable-keep-alive: true
-      keep-alive-without-calls: true
-

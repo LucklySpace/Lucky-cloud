@@ -53,13 +53,11 @@ spring:
           max-idle: 5     # 最大空闲连接数
           min-idle: 0     # 最小空闲连接数
 
-
 # TODO: log settings
 logging:
   config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件
   level:
-    com.xy.*.mapper: debug
-    com.xy.*: debug
+    com.xy.lucky.*: info
     org.springframework: warn
 
 #springdoc相关配置

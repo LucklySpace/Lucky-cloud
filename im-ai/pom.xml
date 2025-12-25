@@ -16,6 +16,11 @@
 
     <dependencies>
 
+        <!-- 日志埋点服务依赖 -->
+        <dependency>
+            <groupId>com.xy.lucky</groupId>
+            <artifactId>im-starter-logging</artifactId>
+        </dependency>
 
         <!--        &lt;!&ndash; Tika依赖 文件内容提取 &ndash;&gt;-->
         <!--        <dependency>-->

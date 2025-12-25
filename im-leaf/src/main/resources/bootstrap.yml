@@ -29,7 +29,12 @@ spring:
         name: ${spring.application.name}-@app.profiles.active@
         file-extension: yml
 
+server:
+  http2:
+    enabled: true
+  port: ${SERVER_PORT:@im-leaf.server.port@}
 
+# dubbo配置
 dubbo:
   application:
     name: ${spring.application.name}
@@ -45,8 +50,3 @@ dubbo:
   registry:
     address: nacos://${NACOS_DISCOVERY_SERVER_ADDR:@nacos.config.server-addr@}
     register-mode: instance # 注册模式
-
-server:
-  http2:
-    enabled: true
-  port: ${SERVER_PORT:@im-leaf.server.port@}

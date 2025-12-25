@@ -53,13 +53,11 @@ spring:
     publisher-returns: true #设置publisher-returns消息成功则会向发布者发送成功，失败时不会将消息丢弃，而是返回给发布者，发布者根据需求处理
     publisher-confirm-type: correlated #开启发布确认模式，具体有三个值，具体的可以去百度
 
-
 # TODO: log settings
 logging:
   config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件
   level:
-    com.xy.*.mapper: debug
-    com.xy.*: debug
+    com.xy.lucky.*: info
     org.springframework: warn
 
 #springdoc相关配置

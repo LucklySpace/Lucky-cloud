@@ -15,6 +15,11 @@
     <description>im-gateway</description>
 
     <dependencies>
+        <!-- 日志埋点服务依赖 -->
+        <dependency>
+            <groupId>com.xy.lucky</groupId>
+            <artifactId>im-starter-logging</artifactId>
+        </dependency>
 
         <!-- Caffeine 本地缓存 -->
         <dependency>

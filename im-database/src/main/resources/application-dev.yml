@@ -114,13 +114,9 @@ knife4j:
     swagger-model-name: 实体类
 
 # TODO: log settings
+# TODO: log settings
 logging:
   config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件
   level:
-    com.xy.*.mapper: debug
-    com.xy.*: debug
+    com.xy.lucky.*: info
     org.springframework: warn
-#        com. baomidou.mybatisplus: DEBUG
-#        java.sql.Connection: DEBUG
-#        java.sql.Statement: DEBUG
-#        java.sql.PreparedStatement: DEBUG

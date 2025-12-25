@@ -27,6 +27,7 @@
         <module>im-dubbo</module>
         <module>im-address</module>
         <module>im-starter-mq</module>
+        <module>im-starter-logging</module>
         <module>im-starter-security</module>
     </modules>
 

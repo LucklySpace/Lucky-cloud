@@ -468,10 +468,14 @@
                     <include>**/*.yml</include>
                     <include>**/*.properties</include>
                     <include>**/*.xml</include>
+                    <include>**/*.js</include>
+                    <include>**/*.css</include>
+                    <include>**/*.html</include>
                     <include>**/*.png</include>
                 </includes>
                 <filtering>true</filtering>
             </resource>
+
         </resources>
         <plugins>
             <plugin>

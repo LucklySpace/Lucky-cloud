@@ -65,15 +65,24 @@ public class LogAnalysisService {
     public Map<String, Object> overview() {
         log.info("生成日志概览统计");
         Map<String, Object> result = new HashMap<>();
-        // Collect common levels
         String[] levels = new String[]{"TRACE", "DEBUG", "INFO", "WARN", "ERROR"};
         Map<String, Long> levelCounts = new HashMap<>();
-        for (String level : levels) {
-            Object val = redisTemplate.opsForValue().get(keyLevelCount(level));
-            levelCounts.put(level, val instanceof Number ? ((Number) val).longValue() : 0L);
+        try {
+            for (String level : levels) {
+                Object val = redisTemplate.opsForValue().get(keyLevelCount(level));
+                levelCounts.put(level, val instanceof Number ? ((Number) val).longValue() : 0L);
+            }
+        } catch (Exception ex) {
+            // Redis 不可用时，优雅降级为 0
+            for (String level : levels) {
+                levelCounts.put(level, 0L);
+            }
+            if (log.isWarnEnabled()) {
+                log.warn("Redis unavailable for overview, fallback to zeros: {}", ex.getMessage());
+            }
         }
         result.put("levels", levelCounts);
-        result.put("modules", new HashMap<>()); // Modules can be enumerated externally
+        result.put("modules", new HashMap<>());
         return result;
     }
 
@@ -90,8 +99,12 @@ public class LogAnalysisService {
         for (int i = hours - 1; i >= 0; i--) {
             String hour = java.time.ZonedDateTime.now().minusHours(i).format(DateTimeFormatter.ofPattern("yyyyMMddHH"));
             String key = keyBucketHour(hour, level);
-            Object val = redisTemplate.opsForValue().get(key);
-            series.put(hour, val instanceof Number ? ((Number) val).longValue() : 0L);
+            try {
+                Object val = redisTemplate.opsForValue().get(key);
+                series.put(hour, val instanceof Number ? ((Number) val).longValue() : 0L);
+            } catch (Exception ex) {
+                series.put(hour, 0L);
+            }
         }
         return series;
     }

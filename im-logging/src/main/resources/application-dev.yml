@@ -16,6 +16,15 @@ server:
       - application/json
 
 spring:
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+    encoding: UTF-8
+    mode: HTML
+    enabled: true
+    check-template: true
+    check-template-location: true
   jackson:
     time-zone: UTC
   banner:
@@ -65,6 +74,7 @@ logging:
   retention:
     days: 7
     cleanup-interval-ms: 300000
+  api-key: ""
 
 # Actuator 健康检查配置
 management:

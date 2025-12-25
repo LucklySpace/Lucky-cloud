@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width,initial-scale=1" name="viewport"/>
+    <title>Lucky IM 日志中心</title>
+
+    <!-- Element Plus 样式（CDN） -->
+    <link
+            href="https://unpkg.com/element-plus/dist/index.css"
+            rel="stylesheet"
+    />
+    <link href="/css/style.css" rel="stylesheet"/>
+
+    <!-- ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+<div id="app">
+    <el-container style="height: 100vh">
+        <el-header class="header">
+            <div class="brand">
+                <!-- 菜单切换按钮 (Optional: Toggle Outer Sidebar) -->
+                <!-- <el-button @click="isCollapse = !isCollapse" circle icon="Menu" text></el-button> -->
+
+                <!-- LOGO/名称 -->
+                <div>
+                    <div class="brand-title">Lucky IM 日志中心</div>
+                    <div style="font-size: 12px; color: var(--muted)">
+                        可视化日志查询与实时 Tail
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧状态与操作 -->
+            <div style="display: flex; align-items: center; gap: 12px">
+                <!-- Note: These controls might be specific to Logs view, but user said Header uses logs header.
+                          If these controls (ws status, test ingest) depend on LogsComponent state, they might break if moved to global header.
+                          However, I can use a global store or event bus, or just keep them in the Logs view?
+                          "Header uses logs inside header" implies copying the visual header.
+                          If the logic is coupled, I might need to move the logic to the main App or use provide/inject.
+                          For now, I will keep the visual elements. The WS status depends on `ui.wsConnected`.
+                          I will make the main App manage the global state or just simplify for now.
+                          Actually, `ui` is inside LogsComponent. Accessing it from Header (outside router-view) is hard without a store.
+                          I will comment out the dynamic parts in the global header or mock them for now,
+                          OR better: The LogsComponent can use Teleport to inject controls into the header?
+                          Vue 3 Teleport is great for this.
+                          I'll add a target div in the header: <div id="header-actions"></div>.
+                      -->
+                <div id="header-actions"></div>
+            </div>
+        </el-header>
+
+        <el-container style="overflow: hidden">
+            <el-aside
+                    style="background: #fff; border-right: 1px solid #e6edf3"
+                    width="200px"
+            >
+                <el-menu
+                        :default-active="activePath"
+                        router
+                        style="border-right: none"
+                >
+                    <el-menu-item index="/logs">
+                        <el-icon>
+                            <Document/>
+                        </el-icon>
+                        <span>实时日志查看</span>
+                    </el-menu-item>
+                </el-menu>
+            </el-aside>
+
+            <el-main
+                    style="
+              padding: 0;
+              display: flex;
+              flex-direction: column;
+              overflow: hidden;
+            "
+            >
+                <router-view></router-view>
+            </el-main>
+        </el-container>
+    </el-container>
+</div>
+
+<!-- Logs Component Template -->
+<script id="logs-template" type="text/x-template">
+    <div style="display: flex; flex-direction: column; height: 100%; width: 100%;">
+        <!-- Teleport actions to header -->
+        <teleport to="#header-actions">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)">
+                    <span :style="{width:'10px',height:'10px',borderRadius:'50%',display:'inline-block',background: ui.wsConnected ? '#10b981' : '#ef4444'}"></span>
+                    <span>{{ ui.wsConnected ? '实时连接' : '离线' }}</span>
+                </div>
+                <el-button @click="ui.showTestIngest = true" plain type="primary">测试采集</el-button>
+                <el-button @click="exportNdjson" plain type="success">导出</el-button>
+            </div>
+        </teleport>
+
+        <!-- 主布局：侧栏 + 内容 -->
+        <div class="layout">
+            <!-- 侧栏：服务树与筛选 -->
+            <aside :class="['sidebar', ui.sidebarOpen ? '' : 'collapsed']" aria-label="侧栏" role="navigation">
+                <el-input
+                        @input="onServiceFilterInput"
+                        clearable
+                        placeholder="搜索服务..."
+                        prefix-icon="Search"
+                        v-model="filters.service"
+                ></el-input>
+
+                <div style="flex:1; overflow:auto; margin-top:8px;">
+                    <el-tree
+                            :data="computedServiceTree"
+                            :highlight-current="true"
+                            :props="treeProps"
+                            @node-click="onServiceNodeClick"
+                            default-expand-all
+                            ref="serviceTreeRef"
+                    ></el-tree>
+                </div>
+            </aside>
+            <!-- Toggle Button for Inner Sidebar -->
+            <div style="position: absolute; bottom: 10px; left: 10px; z-index: 100;">
+                <el-button @click="ui.sidebarOpen = !ui.sidebarOpen" circle icon="Menu"></el-button>
+            </div>
+
+            <!-- 主内容 -->
+            <main class="content" role="main">
+                <!-- 筛选与操作栏 -->
+                <div class="filter-bar">
+                    <!-- 环境选择 -->
+                    <el-select @change="onEnvChange" placeholder="环境" style="width:110px;"
+                               v-model="filters.env">
+                        <el-option label="DEV" value="dev"></el-option>
+                        <el-option label="STAGE" value="test"></el-option>
+                        <el-option label="PROD" value="prod"></el-option>
+                    </el-select>
+
+                    <!-- 级别 -->
+                    <el-select clearable placeholder="级别" style="width:110px;" v-model="filters.level">
+                        <el-option :key="l" :label="l" :value="l" v-for="l in levels"></el-option>
+                    </el-select>
+
+                    <!-- 关键字 -->
+                    <el-input @keyup.enter="searchLogs" clearable placeholder="关键字、正则或 JSON 字段"
+                              style="width:260px;" v-model="filters.keyword"></el-input>
+
+                    <!-- 时间范围 -->
+                    <el-date-picker
+                            :shortcuts="dateShortcuts"
+                            @change="searchLogs"
+                            end-placeholder="结束时间"
+                            range-separator="—"
+                            start-placeholder="开始时间"
+                            style="width:320px"
+                            type="datetimerange"
+                            v-model="filters.range"
+                    ></el-date-picker>
+
+                    <div style="flex:1"></div>
+
+                    <!-- 实时开关 & 操作 -->
+                    <el-switch @change="toggleLiveMode" active-color="#10b981" active-text="实时Tail"
+                               inactive-color="#e5e7eb"
+                               v-model="ui.liveMode"></el-switch>
+                    <el-button :loading="ui.loading" @click="searchLogs" circle icon="Search" style="margin-left:10px"
+                               type="primary"></el-button>
+                </div>
+
+                <!-- 日志表与详情 -->
+                <section class="logs-shell">
+                    <div class="table-wrap">
+                        <el-table
+                                :data="displayLogs"
+                                @row-click="openDetail"
+                                border
+                                height="100%"
+                                size="small"
+                                stripe
+                                style="width:100%"
+                        >
+                            <!-- 可展开 raw JSON -->
+                            <el-table-column type="expand" width="48">
+                                <template #default="props">
+                                    <div style="background:var(--bg-card);padding:12px;border-radius:6px;border:1px solid var(--border)">
+                                        <pre class="json mono" v-html="prettyJson(props.row)"></pre>
+                                    </div>
+                                </template>
+                            </el-table-column>
+
+                            <!-- 时间 -->
+                            <el-table-column label="时间" width="180">
+                                <template #default="{row}">
+                                    <div class="mono">{{ formatTimestamp(row.timestamp) }}</div>
+                                </template>
+                            </el-table-column>
+
+                            <!-- 等级 -->
+                            <el-table-column align="center" label="级别" width="88">
+                                <template #default="{row}">
+                                    <span :class="['pill', levelBadgeClass(row.level)]">{{ row.level || 'INFO' }}</span>
+                                </template>
+                            </el-table-column>
+
+                            <!-- 服务 -->
+                            <el-table-column label="服务" prop="service" show-overflow-tooltip
+                                             width="160"></el-table-column>
+
+                            <!-- message -->
+                            <el-table-column label="消息" min-width="320" prop="message" show-overflow-tooltip>
+                                <template #default="{row}">
+                                    <div class="mono" style="max-height:48px;overflow:hidden;text-overflow:ellipsis">
+                                        {{ row.message }}
+                                    </div>
+                                </template>
+                            </el-table-column>
+
+                            <!-- trace id -->
+                            <el-table-column label="TraceID" width="200">
+                                <template #default="{row}">
+                                    <el-link :href="traceLink(row.traceId)" class="mono text-sm" target="_blank"
+                                             underline
+                                             v-if="row.traceId">{{ row.traceId }}
+                                    </el-link>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
+
+                    <!-- 底部：分页或实时计数 -->
+                    <div class="footer-bar">
+                        <div>
+                            <template v-if="!ui.liveMode">
+                                <el-pagination
+                                        :current-page.sync="pagination.page"
+                                        :page-size="pagination.size"
+                                        :total="pagination.total"
+                                        @current-change="onPageChange"
+                                        @size-change="onPageSizeChange"
+                                        background
+                                        layout="total, sizes, prev, pager, next"
+                                ></el-pagination>
+                            </template>
+                            <template v-else>
+                                <div style="color:var(--muted)">{{ ui.realtimeCount }} 条实时日志 · 显示最近
+                                    {{ ui.realtimeLimit }} 条
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- 日志详情抽屉 -->
+        <el-drawer size="50%" title="日志详情" v-model="ui.detailVisible">
+            <div style="padding:12px;" v-if="ui.detail">
+                <el-descriptions border column="1">
+                    <el-descriptions-item label="时间">{{ formatTimestamp(ui.detail.timestamp) }}</el-descriptions-item>
+                    <el-descriptions-item label="级别">
+                        <span :class="['pill', levelBadgeClass(ui.detail.level)]">{{ ui.detail.level }}</span>
+                    </el-descriptions-item>
+                    <el-descriptions-item label="服务">{{ ui.detail.service }} <span
+                            style="color:var(--muted)">({{ ui.detail.module || '-' }})</span></el-descriptions-item>
+                    <el-descriptions-item label="主机">{{ ui.detail.host || ui.detail.address || '-' }}
+                    </el-descriptions-item>
+                    <el-descriptions-item label="Trace / Span">{{ ui.detail.traceId || '-' }} /
+                        {{ ui.detail.spanId || '-'
+                        }}
+                    </el-descriptions-item>
+                </el-descriptions>
+
+                <div style="margin-top:14px;font-weight:600">Message</div>
+                <div style="background:var(--bg-card);padding:12px;border-radius:6px;margin-top:6px;">
+                    <pre class="mono" style="margin:0;white-space:pre-wrap;">{{ ui.detail.message }}</pre>
+                </div>
+
+                <div style="margin-top:12px;font-weight:600;color:#c62828" v-if="ui.detail.exception">Exception</div>
+                <div style="background:#fff5f5;padding:12px;border-radius:6px;margin-top:6px;overflow:auto;color:#6b1a1a;"
+                     v-if="ui.detail.exception">
+                    <pre class="mono" style="margin:0;white-space:pre-wrap;">{{ ui.detail.exception }}</pre>
+                </div>
+
+                <div style="margin-top:12px;font-weight:600">Raw JSON</div>
+                <div style="background:var(--bg-card);padding:12px;border-radius:6px;margin-top:6px;overflow:auto;">
+                    <pre class="json mono" v-html="prettyJson(ui.detail)"></pre>
+                </div>
+            </div>
+        </el-drawer>
+
+        <!-- 测试数据采集抽屉 -->
+        <el-drawer size="30%" title="测试数据采集" v-model="ui.showTestIngest">
+            <el-form :model="testPayload" label-position="top" style="padding:12px;">
+                <el-form-item label="环境">
+                    <el-radio-group v-model="testPayload.env">
+                        <el-radio label="dev">Dev</el-radio>
+                        <el-radio label="test">Test</el-radio>
+                        <el-radio label="prod">Prod</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+
+                <el-form-item label="服务">
+                    <el-input v-model="testPayload.service"></el-input>
+                </el-form-item>
+
+                <el-form-item label="级别">
+                    <el-select v-model="testPayload.level">
+                        <el-option value="INFO">INFO</el-option>
+                        <el-option value="WARN">WARN</el-option>
+                        <el-option value="ERROR">ERROR</el-option>
+                    </el-select>
+                </el-form-item>
+
+                <el-form-item label="消息">
+                    <el-input rows="4" type="textarea" v-model="testPayload.message"></el-input>
+                </el-form-item>
+
+                <el-button @click="sendTestIngest" style="width:100%;" type="primary">发送日志</el-button>
+            </el-form>
+        </el-drawer>
+    </div>
+</script>
+
+<!-- 依赖脚本 -->
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script src="https://unpkg.com/vue-router@4.0.15/dist/vue-router.global.prod.js"></script>
+<script src="https://unpkg.com/element-plus/dist/index.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@element-plus/icons-vue"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios@1.7.5/dist/axios.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+<!-- 组件 -->
+<script src="/js/logs-view.js"></script>
+
+<script>
+    const {createApp, ref, computed} = Vue;
+    const {createRouter, createWebHashHistory} = VueRouter;
+
+    // 路由配置
+    const routes = [
+        {path: "/", redirect: "/logs"},
+        {path: "/logs", component: LogsComponent},
+    ];
+
+    const router = createRouter({
+        history: createWebHashHistory(),
+        routes,
+    });
+
+    const app = createApp({
+        setup() {
+            const route = VueRouter.useRoute();
+            const activePath = computed(() => route.path);
+
+            return {
+                activePath,
+            };
+        },
+    });
+
+    // 注册图标
+    for (const [key, comp] of Object.entries(ElementPlusIconsVue)) {
+        app.component(key, comp);
+    }
+
+    app.use(ElementPlus);
+    app.use(router);
+    app.mount("#app");
+</script>
+</body>
+</html>

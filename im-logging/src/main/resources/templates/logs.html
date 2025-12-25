@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width,initial-scale=1" name="viewport"/>
+    <title>Lucky IM 日志中心</title>
+
+    <!-- Element Plus 样式（CDN） -->
+    <link
+            href="https://unpkg.com/element-plus/dist/index.css"
+            rel="stylesheet"
+    />
+
+    <!-- ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+
+    <style>
+        /**
+           * 全局视觉变量
+           * 可根据公司设计语言调整对应颜色值
+           */
+        :root {
+            --bg-page: #f5f7fb;
+            --bg-card: #ffffff;
+            --border: #e6edf3;
+            --text: #0f1722;
+            --muted: #6b7280;
+            --primary: #3b82f6;
+            --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.04);
+            --shadow-md: 0 6px 18px rgba(16, 24, 40, 0.06);
+            --radius: 8px;
+        }
+
+        /* Reset & 基础布局 */
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body,
+        #app {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, "Helvetica Neue", Arial, "PingFang SC",
+            "Hiragino Sans GB", "Microsoft Yahei", sans-serif;
+            background: var(--bg-page);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow: hidden; /* 页面内部滚动由各容器管理 */
+        }
+
+        /* 应用整体容器：顶部 header + 剩余主区域 */
+        .app {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            height: 56px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            gap: 12px;
+            box-shadow: var(--shadow-sm);
+            z-index: 10;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-title {
+            font-weight: 700;
+            font-size: 18px;
+            background: linear-gradient(90deg, var(--primary), #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* 主布局：侧栏 + 内容 */
+        .layout {
+            display: flex;
+            flex: 1;
+            min-height: 0; /* 让内部滚动容器正确生效 */
+            overflow: hidden;
+        }
+
+        /* 侧栏 */
+        .sidebar {
+            width: 240px;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.18s ease;
+            padding: 12px;
+            gap: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .sidebar.collapsed {
+            width: 0;
+            padding: 0;
+            overflow: hidden;
+            border: none;
+            box-shadow: none;
+        }
+
+        /* 内容区 */
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0; /* 允许子元素溢出滚动 */
+        }
+
+        /* 筛选条 */
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 10px 14px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            flex-wrap: wrap;
+        }
+
+        /* 图表容器 */
+        .chart-area {
+            height: 140px;
+            padding: 10px 14px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            transition: height 0.18s ease, padding 0.18s ease;
+        }
+
+        .chart-area.collapsed {
+            height: 0;
+            padding: 0;
+            border: none;
+            overflow: hidden;
+        }
+
+        /* 日志表格外壳：会撑开剩余高度并允许滚动 */
+        .logs-shell {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* 表格本体占据剩余空间并滚动 */
+        .table-wrap {
+            flex: 1;
+            overflow: auto;
+            padding: 12px;
+            background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.02));
+        }
+
+        /* 页脚分页区域 */
+        .footer-bar {
+            padding: 10px 14px;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* 视觉辅助小组件 */
+        .pill {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 12px;
+            color: #fff;
+            display: inline-block;
+        }
+
+        .pill-trace {
+            background: #374151;
+        }
+
+        .pill-debug {
+            background: #2563eb;
+        }
+
+        .pill-info {
+            background: #059669;
+        }
+
+        .pill-warn {
+            background: #d97706;
+        }
+
+        .pill-error {
+            background: #dc2626;
+        }
+
+        /* 代码/JSON 高亮展示 */
+        .mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Consolas",
+            monospace;
+            font-size: 13px;
+        }
+
+        pre.json {
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin: 0;
+        }
+
+        /* 响应式：窄屏时隐藏侧栏 */
+        @media (max-width: 880px) {
+            .sidebar {
+                display: none;
+            }
+
+            .filter-bar {
+                padding: 8px;
+            }
+
+            .chart-area {
+                height: 120px;
+            }
+        }
+
+        /* 轻微增强：悬浮卡片阴影 */
+        .card-elevated {
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            background: var(--bg-card);
+        }
+    </style>
+</head>
+<body>
+<div class="app" id="app">
+    <!-- 主布局：侧栏 + 内容 -->
+    <div class="layout">
+        <!-- 侧栏：服务树与筛选 -->
+        <aside
+                :class="['sidebar', ui.sidebarOpen ? '' : 'collapsed']"
+                aria-label="侧栏"
+                role="navigation"
+        >
+            <el-input
+                    @input="onServiceFilterInput"
+                    clearable
+                    placeholder="搜索服务..."
+                    prefix-icon="Search"
+                    size="small"
+                    v-model="ui.serviceFilter"
+            ></el-input>
+
+            <div style="flex: 1; overflow: auto; margin-top: 8px">
+                <el-tree
+                        :data="computedServiceTree"
+                        :highlight-current="true"
+                        :props="treeProps"
+                        @node-click="onServiceNodeClick"
+                        default-expand-all
+                        ref="serviceTreeRef"
+                        size="mini"
+                ></el-tree>
+            </div>
+        </aside>
+
+        <!-- 主内容 -->
+        <main class="content" role="main">
+            <!-- 筛选与操作栏 -->
+            <div class="filter-bar">
+                <!-- 环境选择 -->
+                <el-select
+                        @change="onEnvChange"
+                        placeholder="环境"
+                        size="small"
+                        style="width: 110px"
+                        v-model="filters.env"
+                >
+                    <el-option label="DEV" value="dev"></el-option>
+                    <el-option label="STAGE" value="test"></el-option>
+                    <el-option label="PROD" value="prod"></el-option>
+                </el-select>
+
+                <!-- 级别 -->
+                <el-select
+                        clearable
+                        placeholder="级别"
+                        size="small"
+                        style="width: 110px"
+                        v-model="filters.level"
+                >
+                    <el-option
+                            :key="l"
+                            :label="l"
+                            :value="l"
+                            v-for="l in levels"
+                    ></el-option>
+                </el-select>
+
+                <!-- 关键字 -->
+                <el-input
+                        @keyup.enter="searchLogs"
+                        clearable
+                        placeholder="关键字、正则或 JSON 字段"
+                        size="small"
+                        style="width: 260px"
+                        v-model="filters.keyword"
+                ></el-input>
+
+                <!-- 时间范围 -->
+                <el-date-picker
+                        :shortcuts="dateShortcuts"
+                        @change="searchLogs"
+                        end-placeholder="结束时间"
+                        range-separator="—"
+                        size="small"
+                        start-placeholder="开始时间"
+                        style="width: 320px"
+                        type="datetimerange"
+                        v-model="filters.range"
+                ></el-date-picker>
+
+                <div style="flex: 1"></div>
+
+                <!-- 实时开关 & 操作 -->
+                <el-switch
+                        @change="toggleLiveMode"
+                        active-color="#10b981"
+                        active-text="实时Tail"
+                        inactive-color="#e5e7eb"
+                        v-model="ui.liveMode"
+                ></el-switch>
+                <el-button
+                        :loading="ui.loading"
+                        @click="searchLogs"
+                        circle
+                        icon="Search"
+                        size="small"
+                        style="margin-left: 10px"
+                        type="primary"
+                ></el-button>
+            </div>
+
+            <!-- 日志表与详情 -->
+            <section class="logs-shell">
+                <div class="table-wrap">
+                    <el-table
+                            :data="displayLogs"
+                            @row-click="openDetail"
+                            border
+                            height="100%"
+                            size="small"
+                            stripe
+                            style="width: 100%"
+                    >
+                        <!-- 可展开 raw JSON -->
+                        <el-table-column type="expand" width="48">
+                            <template #default="props">
+                                <div
+                                        style="
+                        background: var(--bg-card);
+                        padding: 12px;
+                        border-radius: 6px;
+                        border: 1px solid var(--border);
+                      "
+                                >
+                      <pre
+                              class="json mono"
+                              v-html="prettyJson(props.row)"
+                      ></pre>
+                                </div>
+                            </template>
+                        </el-table-column>
+
+                        <!-- 时间 -->
+                        <el-table-column label="时间" width="180">
+                            <template #default="{row}">
+                                <div class="mono">{{ formatTimestamp(row.timestamp) }}</div>
+                            </template>
+                        </el-table-column>
+
+                        <!-- 等级 -->
+                        <el-table-column align="center" label="级别" width="88">
+                            <template #default="{row}">
+                    <span :class="['pill', levelBadgeClass(row.level)]"
+                    >{{ row.level || 'INFO' }}</span
+                    >
+                            </template>
+                        </el-table-column>
+
+                        <!-- 服务 -->
+                        <el-table-column
+                                label="服务"
+                                prop="service"
+                                show-overflow-tooltip
+                                width="160"
+                        ></el-table-column>
+
+                        <!-- message -->
+                        <el-table-column
+                                label="消息"
+                                min-width="320"
+                                prop="message"
+                                show-overflow-tooltip
+                        >
+                            <template #default="{row}">
+                                <div
+                                        class="mono"
+                                        style="
+                        max-height: 48px;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                      "
+                                >
+                                    {{ row.message }}
+                                </div>
+                            </template>
+                        </el-table-column>
+
+                        <!-- trace id -->
+                        <el-table-column label="TraceID" width="200">
+                            <template #default="{row}">
+                                <el-link
+                                        :href="traceLink(row.traceId)"
+                                        class="mono text-sm"
+                                        target="_blank"
+                                        underline
+                                        v-if="row.traceId"
+                                >{{ row.traceId }}
+                                </el-link>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+
+                <!-- 底部：分页或实时计数 -->
+                <div class="footer-bar">
+                    <div>
+                        <template v-if="!ui.liveMode">
+                            <el-pagination
+                                    :current-page.sync="pagination.page"
+                                    :page-size="pagination.size"
+                                    :total="pagination.total"
+                                    @current-change="onPageChange"
+                                    @size-change="onPageSizeChange"
+                                    background
+                                    layout="total, sizes, prev, pager, next"
+                            ></el-pagination>
+                        </template>
+                        <template v-else>
+                            <div style="color: var(--muted)">
+                                {{ ui.realtimeCount }} 条实时日志 · 显示最近 {{
+                                    ui.realtimeLimit }} 条
+                            </div>
+                        </template>
+                    </div>
+
+                    <div style="color: var(--muted); font-size: 13px">
+                        Lucky IM · 日志服务面板
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 日志详情抽屉 -->
+    <el-drawer size="50%" title="日志详情" v-model="ui.detailVisible">
+        <div style="padding: 12px" v-if="ui.detail">
+            <el-descriptions border column="1" size="small">
+                <el-descriptions-item label="时间"
+                >{{ formatTimestamp(ui.detail.timestamp) }}
+                </el-descriptions-item
+                >
+                <el-descriptions-item label="级别">
+              <span :class="['pill', levelBadgeClass(ui.detail.level)]"
+              >{{ ui.detail.level }}</span
+              >
+                </el-descriptions-item>
+                <el-descriptions-item label="服务"
+                >{{ ui.detail.service }}
+                    <span style="color: var(--muted)"
+                    >({{ ui.detail.module || '-' }})</span
+                    ></el-descriptions-item
+                >
+                <el-descriptions-item label="主机"
+                >{{ ui.detail.host || ui.detail.address || '-' }}
+                </el-descriptions-item>
+                <el-descriptions-item label="Trace / Span"
+                >{{ ui.detail.traceId || '-' }} / {{ ui.detail.spanId || '-' }}
+                </el-descriptions-item>
+            </el-descriptions>
+
+            <div style="margin-top: 14px; font-weight: 600">Message</div>
+            <div
+                    style="
+              background: var(--bg-card);
+              padding: 12px;
+              border-radius: 6px;
+              margin-top: 6px;
+            "
+            >
+            <pre class="mono" style="margin: 0; white-space: pre-wrap">
+{{ ui.detail.message }}</pre
+            >
+            </div>
+
+            <div
+                    style="margin-top: 12px; font-weight: 600; color: #c62828"
+                    v-if="ui.detail.exception"
+            >
+                Exception
+            </div>
+            <div
+                    style="
+              background: #fff5f5;
+              padding: 12px;
+              border-radius: 6px;
+              margin-top: 6px;
+              overflow: auto;
+              color: #6b1a1a;
+            "
+                    v-if="ui.detail.exception"
+            >
+            <pre class="mono" style="margin: 0; white-space: pre-wrap">
+{{ ui.detail.exception }}</pre
+            >
+            </div>
+
+            <div style="margin-top: 12px; font-weight: 600">Raw JSON</div>
+            <div
+                    style="
+              background: var(--bg-card);
+              padding: 12px;
+              border-radius: 6px;
+              margin-top: 6px;
+              overflow: auto;
+            "
+            >
+                <pre class="json mono" v-html="prettyJson(ui.detail)"></pre>
+            </div>
+        </div>
+    </el-drawer>
+
+    <!-- 测试数据采集抽屉 -->
+    <el-drawer size="30%" title="测试数据采集" v-model="ui.showTestIngest">
+        <el-form
+                :model="testPayload"
+                label-position="top"
+                style="padding: 12px"
+        >
+            <el-form-item label="环境">
+                <el-radio-group v-model="testPayload.env">
+                    <el-radio label="dev">Dev</el-radio>
+                    <el-radio label="test">Test</el-radio>
+                    <el-radio label="prod">Prod</el-radio>
+                </el-radio-group>
+            </el-form-item>
+
+            <el-form-item label="服务">
+                <el-input v-model="testPayload.service"></el-input>
+            </el-form-item>
+
+            <el-form-item label="级别">
+                <el-select v-model="testPayload.level">
+                    <el-option value="INFO">INFO</el-option>
+                    <el-option value="WARN">WARN</el-option>
+                    <el-option value="ERROR">ERROR</el-option>
+                </el-select>
+            </el-form-item>
+
+            <el-form-item label="消息">
+                <el-input
+                        rows="4"
+                        type="textarea"
+                        v-model="testPayload.message"
+                ></el-input>
+            </el-form-item>
+
+            <el-button @click="sendTestIngest" style="width: 100%" type="primary"
+            >发送日志
+            </el-button
+            >
+        </el-form>
+    </el-drawer>
+</div>
+
+<!-- 依赖脚本：Vue 3 / Element Plus / Icons / Axios / SockJS / STOMP -->
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script src="https://unpkg.com/element-plus/dist/index.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@element-plus/icons-vue"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios@1.7.5/dist/axios.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+</body>
+</html>

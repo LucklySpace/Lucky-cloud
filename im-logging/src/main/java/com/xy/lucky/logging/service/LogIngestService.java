@@ -34,7 +34,9 @@ public class LogIngestService {
             record.setTimestamp(Instant.now());
         }
         publisher.publish(record);
-        log.info("摄取单条日志: id={}, module={}, level={}", record.getId(), record.getModule(), record.getLevel());
+        if (log.isDebugEnabled()) {
+            log.debug("摄取单条日志: id={}, module={}, level={}", record.getId(), record.getModule(), record.getLevel());
+        }
     }
 
     /**
@@ -47,7 +49,9 @@ public class LogIngestService {
         if (records == null || records.isEmpty()) {
             return;
         }
-        log.info("摄取批量日志: count={}", records.size());
+        if (log.isDebugEnabled()) {
+            log.debug("摄取批量日志: count={}", records.size());
+        }
         for (LogRecordVo r : records) {
             ingest(r);
         }

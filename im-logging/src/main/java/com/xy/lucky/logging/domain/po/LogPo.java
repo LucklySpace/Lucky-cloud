@@ -53,6 +53,10 @@ public class LogPo {
     @Column(name = "address", length = 100)
     private String address;
 
+    @Schema(description = "环境")
+    @Column(name = "env", length = 32)
+    private String env;
+
     @Schema(description = "traceId")
     @Column(name = "trace_id", length = 64)
     private String traceId;

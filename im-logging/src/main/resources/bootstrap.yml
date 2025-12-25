@@ -32,5 +32,6 @@ spring:
 server:
   http2:
     enabled: true
-  port: ${SERVER_PORT:@im-logging.server.port@}
+  # port: ${SERVER_PORT:@im-logging.server.port@}
+  port: ${SERVER_PORT:8200}
 

@@ -46,6 +46,9 @@ public class LogRecordVo {
     @Schema(description = "来源地址（实例IP:端口 / hostname:端口）", example = "10.0.12.34:8080")
     private String address;
 
+    @Schema(description = "环境", example = "prod")
+    private String env;
+
     @Size(max = 64, message = "traceId长度不能超过64")
     @Schema(description = "traceId（分布式链路追踪）", example = "0af7651916cd43dd8448eb211c80319c")
     private String traceId;

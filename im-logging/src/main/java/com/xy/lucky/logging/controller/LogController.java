@@ -1,7 +1,12 @@
 package com.xy.lucky.logging.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xy.lucky.logging.domain.LogLevel;
 import com.xy.lucky.logging.domain.vo.LogRecordVo;
+import com.xy.lucky.logging.domain.vo.SearchRequestVo;
+import com.xy.lucky.logging.domain.vo.SearchResponseVo;
+import com.xy.lucky.logging.exception.ResponseNotIntercept;
+import com.xy.lucky.logging.mapper.LogRecordConverter;
 import com.xy.lucky.logging.service.LogAnalysisService;
 import com.xy.lucky.logging.service.LogIngestService;
 import com.xy.lucky.logging.service.LogQueryService;
@@ -9,7 +14,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -18,8 +22,12 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.time.Instant;
 import java.util.List;
@@ -40,6 +48,8 @@ public class LogController {
     private final LogIngestService ingestService;
     private final LogQueryService queryService;
     private final LogAnalysisService analysisService;
+    private final ObjectMapper objectMapper;
+    private final LogRecordConverter converter;
 
     /**
      * 采集单条日志
@@ -55,34 +65,10 @@ public class LogController {
             @ApiResponse(responseCode = "400", description = "参数校验失败")
     })
     @PostMapping
-    @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            description = "日志记录。`id`、`timestamp` 可不传由服务端生成；`exception` 仅异常场景传。",
-            required = true,
-            content = @Content(
-                    mediaType = "application/json",
-                    schema = @Schema(implementation = LogRecordVo.class),
-                    examples = @ExampleObject(
-                            name = "errorLog",
-                            value = """
-                                    {
-                                      "level": "ERROR",
-                                      "module": "im-server",
-                                      "service": "order-service",
-                                      "address": "10.0.12.34:8080",
-                                      "traceId": "0af7651916cd43dd8448eb211c80319c",
-                                      "spanId": "b7ad6b7169203331",
-                                      "thread": "http-nio-8080-exec-12",
-                                      "message": "order create failed",
-                                      "exception": "java.lang.IllegalStateException: x",
-                                      "tags": ["biz","order"],
-                                      "context": {"orderId": "O-10001", "userId": "U-1"}
-                                    }
-                                    """
-                    )
-            )
-    )
     public String ingest(@RequestBody @Valid LogRecordVo record) {
-        log.info("接收日志采集请求: module={} level={}", record.getModule(), record.getLevel());
+        if (log.isDebugEnabled()) {
+            log.debug("接收日志采集请求: module={} level={}", record.getModule(), record.getLevel());
+        }
         ingestService.ingest(record);
         return record.getId();
     }
@@ -101,19 +87,36 @@ public class LogController {
             @ApiResponse(responseCode = "400", description = "参数校验失败")
     })
     @PostMapping("/batch")
-    @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            description = "日志记录列表（建议单批 100~1000 条），字段含义同单条采集。",
-            required = true,
-            content = @Content(
-                    mediaType = "application/json",
-                    array = @ArraySchema(schema = @Schema(implementation = LogRecordVo.class))
-            )
-    )
     public int ingestBatch(@RequestBody @Valid List<LogRecordVo> records) {
         int size = records != null ? records.size() : 0;
-        log.info("接收批量日志采集请求: count={}", size);
+        if (log.isDebugEnabled()) {
+            log.debug("接收批量日志采集请求: count={}", size);
+        }
         ingestService.ingestBatch(records);
         return size;
+    }
+
+    @Operation(summary = "NDJSON采集", description = "接收NDJSON格式日志，每行一个JSON对象")
+    @PostMapping(value = "/ndjson", consumes = {MediaType.APPLICATION_NDJSON_VALUE, MediaType.TEXT_PLAIN_VALUE})
+    public int ingestNdjson(@RequestBody String ndjson) {
+        if (ndjson == null || ndjson.isBlank()) return 0;
+        String[] lines = ndjson.split("\\r?\\n");
+        int count = 0;
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty()) continue;
+            try {
+                Map<String, Object> map = objectMapper.readValue(trimmed, Map.class);
+                LogRecordVo vo = converter.fromMap(map);
+                if (vo != null) {
+                    ingestService.ingest(vo);
+                    count++;
+                }
+            } catch (Exception e) {
+                log.warn("NDJSON parse failed: {}", e.getMessage());
+            }
+        }
+        return count;
     }
 
     /**
@@ -138,17 +141,21 @@ public class LogController {
     })
     @GetMapping
     public List<LogRecordVo> query(
-            @Parameter(description = "模块名（不传则不过滤）", example = "im-server") @RequestParam(required = false) String module,
+            @Parameter(description = "模块名（不传则不过滤）", example = "im-server") @RequestParam(name = "module", required = false) String module,
             @Parameter(description = "开始时间（ISO-8601，不传默认从1970开始）", example = "2025-12-24T00:00:00Z")
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant start,
+            @RequestParam(name = "start", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant start,
             @Parameter(description = "结束时间（ISO-8601，不传默认当前时间）", example = "2025-12-24T23:59:59Z")
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant end,
-            @Parameter(description = "日志级别（不传则不过滤）", example = "ERROR") @RequestParam(required = false) LogLevel level,
-            @Parameter(description = "页码（从0开始）", example = "0") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "每页大小", example = "20") @RequestParam(defaultValue = "20") int size,
-            @Parameter(description = "关键字（对message做包含匹配）", example = "timeout") @RequestParam(required = false) String keyword) {
-        log.info("查询日志请求: module={} level={} keyword={}", module, level, keyword);
-        return queryService.query(module, start, end, level, page, size, keyword);
+            @RequestParam(name = "end", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant end,
+            @Parameter(description = "日志级别（不传则不过滤）", example = "ERROR") @RequestParam(name = "level", required = false) LogLevel level,
+            @Parameter(description = "服务名（不传则不过滤）", example = "order-service") @RequestParam(name = "service", required = false) String service,
+            @Parameter(description = "环境（不传则不过滤）", example = "prod") @RequestParam(name = "env", required = false) String env,
+            @Parameter(description = "页码（从0开始）", example = "0") @RequestParam(name = "page", defaultValue = "1") int page,
+            @Parameter(description = "每页大小", example = "20") @RequestParam(name = "size", defaultValue = "20") int size,
+            @Parameter(description = "关键字（对message做包含匹配）", example = "timeout") @RequestParam(name = "keyword", required = false) String keyword) {
+        if (log.isDebugEnabled()) {
+            log.debug("查询日志请求: module={} service={} env={} level={} keyword={}", module, service, env, level, keyword);
+        }
+        return queryService.query(module, start, end, level, service, env, page, size, keyword);
     }
 
     /**
@@ -186,10 +193,99 @@ public class LogController {
     })
     @GetMapping("/stats/hourly")
     public Map<String, Long> hourly(
-            @Parameter(description = "日志级别") @RequestParam(defaultValue = "ERROR") String level,
-            @Parameter(description = "最近小时数") @RequestParam(defaultValue = "24") int hours) {
+            @Parameter(description = "日志级别") @RequestParam(name = "level", defaultValue = "ERROR") String level,
+            @Parameter(description = "最近小时数") @RequestParam(name = "hours", defaultValue = "24") int hours) {
         return analysisService.hourlySeries(level, hours);
     }
+
+    @GetMapping("/stats/histogram")
+    public Map<String, Long> histogram(
+            @RequestParam(name = "module", required = false) String module,
+            @RequestParam(name = "start", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant start,
+            @RequestParam(name = "end", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant end,
+            @RequestParam(name = "level", required = false) LogLevel level,
+            @RequestParam(name = "service", required = false) String service,
+            @RequestParam(name = "env", required = false) String env,
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "interval", defaultValue = "hour") String interval) {
+        return queryService.histogram(module, start, end, level, service, env, keyword, interval);
+    }
+
+
+    @Operation(summary = "元数据", description = "获取元数据，包括模块、服务、环境、地址")
+    @GetMapping("/meta/services")
+    public List<String> metaServices(@RequestParam(name = "env", required = false) String env) {
+        return queryService.listServices(env);
+    }
+
+    @GetMapping("/aggs/top/services")
+    public List<Map<String, Object>> aggsTopServices(
+            @RequestParam(name = "start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant start,
+            @RequestParam(name = "end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant end,
+            @RequestParam(name = "limit", defaultValue = "10") int limit) {
+        return queryService.topServices(start, end, limit);
+    }
+
+    @GetMapping("/aggs/top/addresses")
+    public List<Map<String, Object>> aggsTopAddresses(
+            @RequestParam(name = "start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant start,
+            @RequestParam(name = "end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant end,
+            @RequestParam(name = "limit", defaultValue = "10") int limit) {
+        return queryService.topAddresses(start, end, limit);
+    }
+
+    @GetMapping("/aggs/top/errors")
+    public List<Map<String, Object>> aggsTopErrors(
+            @RequestParam(name = "start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant start,
+            @RequestParam(name = "end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant end,
+            @RequestParam(name = "limit", defaultValue = "10") int limit) {
+        return queryService.topErrorTypes(start, end, limit);
+    }
+
+    @Operation(summary = "DSL搜索", description = "接受简易DSL结构并返回结果")
+    @PostMapping("/search")
+    public SearchResponseVo search(@RequestBody SearchRequestVo req) {
+        List<LogRecordVo> hits = queryService.search(
+                req.getModule(),
+                req.getStart(),
+                req.getEnd(),
+                req.getLevels(),
+                req.getFrom(),
+                req.getSize(),
+                req.getKeyword()
+        );
+        return new SearchResponseVo(hits, hits.size());
+    }
+
+    @Operation(summary = "导出NDJSON", description = "按查询条件导出NDJSON格式")
+    @GetMapping("/export")
+    @ResponseNotIntercept
+    public ResponseEntity<StreamingResponseBody> export(
+            @RequestParam(name = "module", required = false) String module,
+            @RequestParam(name = "start", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant start,
+            @RequestParam(name = "end", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant end,
+            @RequestParam(name = "level", required = false) LogLevel level,
+            @RequestParam(name = "service", required = false) String service,
+            @RequestParam(name = "env", required = false) String env,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "1000") int size,
+            @RequestParam(name = "keyword", required = false) String keyword) {
+        List<LogRecordVo> list = queryService.query(module, start, end, level, service, env, page, size, keyword);
+        StreamingResponseBody body = out -> {
+            for (LogRecordVo vo : list) {
+                try {
+                    String line = objectMapper.writeValueAsString(vo) + "\n";
+                    out.write(line.getBytes());
+                } catch (Exception ignored) {
+                }
+            }
+        };
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"logs.ndjson\"")
+                .contentType(MediaType.APPLICATION_NDJSON)
+                .body(body);
+    }
+
 
     /**
      * 删除指定时间之前的日志
@@ -204,7 +300,7 @@ public class LogController {
             )
     })
     @DeleteMapping("/before")
-    public String deleteBefore(@Parameter(description = "截止时间") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant cutoff) {
+    public String deleteBefore(@Parameter(description = "截止时间") @RequestParam(name = "cutoff") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant cutoff) {
         log.warn("执行日志清理: cutoff={}", cutoff);
         queryService.deleteBefore(cutoff);
         return "ok";
@@ -225,8 +321,8 @@ public class LogController {
     })
     @DeleteMapping("/module/{module}/before")
     public String deleteModuleBefore(
-            @Parameter(description = "模块名") @PathVariable String module,
-            @Parameter(description = "截止时间") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant cutoff) {
+            @Parameter(description = "模块名") @PathVariable("module") String module,
+            @Parameter(description = "截止时间") @RequestParam(name = "cutoff") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant cutoff) {
         log.warn("执行模块日志清理: module={} cutoff={}", module, cutoff);
         queryService.deleteModuleBefore(module, cutoff);
         return "ok";

@@ -8,6 +8,7 @@ import com.xy.lucky.logging.domain.vo.LogRecordVo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -30,6 +31,7 @@ public class LogRecordConverter {
                 .module(record.getModule())
                 .service(record.getService())
                 .address(record.getAddress())
+                .env(record.getEnv())
                 .traceId(record.getTraceId())
                 .spanId(record.getSpanId())
                 .thread(record.getThread())
@@ -51,6 +53,7 @@ public class LogRecordConverter {
                 .module(po.getModule())
                 .service(po.getService())
                 .address(po.getAddress())
+                .env(po.getEnv())
                 .traceId(po.getTraceId())
                 .spanId(po.getSpanId())
                 .thread(po.getThread())
@@ -59,6 +62,109 @@ public class LogRecordConverter {
                 .tags(parseTagsQuietly(po.getTags()))
                 .context(parseContextQuietly(po.getContext()))
                 .build();
+    }
+
+    public LogRecordVo fromMap(Map<String, Object> map) {
+        if (map == null || map.isEmpty()) {
+            return null;
+        }
+        String id = asString(map, "id");
+        Instant ts = parseInstant(asString(map, "timestamp"));
+        LogLevel level = parseLevelQuietly(firstNonNull(map, "level", "lvl", "severity"));
+        String module = asString(map, "module");
+        String service = asString(map, "service");
+        String address = firstNonNull(map, "address", "host");
+        String env = firstNonNull(map, "env", "environment");
+        String traceId = firstNonNull(map, "traceId", "trace_id");
+        String spanId = firstNonNull(map, "spanId", "span_id");
+        String thread = asString(map, "thread");
+        String message = firstNonNull(map, "message", "msg");
+        Object exceptionObj = map.get("exception");
+        String exception = exceptionObj instanceof String ? (String) exceptionObj : writeJsonQuietly(exceptionObj);
+        Set<String> tags = extractTags(map.get("tags"));
+        Map<String, Object> ctx = extractContext(map);
+        if (module == null && service != null) {
+            module = service;
+        }
+        return LogRecordVo.builder()
+                .id(id)
+                .timestamp(ts)
+                .level(level)
+                .module(module)
+                .service(service)
+                .address(address)
+                .env(env)
+                .traceId(traceId)
+                .spanId(spanId)
+                .thread(thread)
+                .message(message)
+                .exception(exception)
+                .tags(tags)
+                .context(ctx)
+                .build();
+    }
+
+    private String asString(Map<String, Object> map, String key) {
+        Object v = map.get(key);
+        return v == null ? null : String.valueOf(v);
+    }
+
+    private String firstNonNull(Map<String, Object> map, String... keys) {
+        for (String k : keys) {
+            Object v = map.get(k);
+            if (v != null) return String.valueOf(v);
+        }
+        return null;
+    }
+
+    private Instant parseInstant(String s) {
+        if (s == null || s.isBlank()) return null;
+        try {
+            return Instant.parse(s);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private Set<String> extractTags(Object obj) {
+        if (obj == null) return null;
+        if (obj instanceof Set<?> set) {
+            Set<String> out = new LinkedHashSet<>();
+            for (Object o : set) if (o != null) out.add(String.valueOf(o));
+            return out.isEmpty() ? null : out;
+        }
+        String s = obj.toString().trim();
+        if (s.startsWith("[")) {
+            try {
+                return objectMapper.readValue(s, new TypeReference<LinkedHashSet<String>>() {
+                });
+            } catch (Exception ignored) {
+            }
+        }
+        Set<String> out = new LinkedHashSet<>();
+        for (String part : s.split(",")) {
+            String t = part.trim();
+            if (!t.isEmpty()) out.add(t);
+        }
+        return out.isEmpty() ? null : out;
+    }
+
+    private Map<String, Object> extractContext(Map<String, Object> map) {
+        Map<String, Object> ctx = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> e : map.entrySet()) {
+            String k = e.getKey();
+            if (isCoreField(k)) continue;
+            ctx.put(k, e.getValue());
+        }
+        return ctx.isEmpty() ? null : ctx;
+    }
+
+    private boolean isCoreField(String k) {
+        return switch (k) {
+            case "id", "timestamp", "level", "lvl", "severity", "module", "service", "address", "host",
+                 "traceId", "trace_id", "spanId", "span_id", "thread", "message", "msg", "exception", "tags" -> true;
+            default -> false;
+        };
     }
 
     private LogLevel parseLevelQuietly(String level) {
@@ -122,4 +228,3 @@ public class LogRecordConverter {
         }
     }
 }
-

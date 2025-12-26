@@ -1,0 +1,48 @@
+[un-cloak] {
+    display: none;
+}
+
+#loader {
+    margin: 0;
+    padding: 0;
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.2);
+    z-index: 999999;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#loader b {
+    display: block;
+    text-align: center;
+    padding: 12px;
+    color: #000;
+    position: relative;
+    top: calc(50% + 50px);
+}
+
+.rotate-loading {
+    width: 40px;
+    height: 40px;
+    position: absolute;
+    left: calc(50% - 30px);
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 6px solid rgba(134, 134, 134, 0.56);
+    border-top: 6px solid black;
+    animation: rotate-loading 1s linear infinite;
+}
+
+@keyframes rotate-loading {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        /* 顺时针旋转360度 */
+        transform: rotate(360deg);
+    }
+}

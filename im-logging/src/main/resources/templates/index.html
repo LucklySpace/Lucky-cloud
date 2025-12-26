@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/>
+    <meta content="width=device-width, initial-scale=1.0, user-scalable=no" name="viewport"/>
+    <title>Lucky IM 日志中心</title>
+    <link rel="stylesheet" th:href="@{/lib/element-plus/css/index.css}">
+    <link rel="stylesheet" th:href="@{/css/loading.css}">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<div id="app" un-cloak>
+</div>
+
+</body>
+
+<!-- unocss 原子样式 https://unocss.jiangruyi.com -->
+<script th:src="@{/lib/unocss/runtime.js}"></script>
+<!-- vue3 https://cn.vuejs.org -->
+<script th:src="@{/lib/vue3/index.js}"></script>
+<!-- vue-router -->
+<script th:src="@{/lib/vue3-router/index.js}"></script>
+<!-- 加载vue3-sfc-loader https://gitcode.com/gh_mirrors/vu/vue3-sfc-loader -->
+<script th:src="@{/lib/vue3-sfc-loader/index.js}"></script>
+<!-- less 依赖 https://less.bootcss.com -->
+<script th:src="@{/lib/less/index-v4.js}"></script>
+<!-- element-plus https://element-plus.org/zh-CN -->
+<script th:src="@{/lib/element-plus/index.js}"></script>
+<!-- element-plus 图标 -->
+<script th:src="@{/lib/element-plus/icons.js}"></script>
+<!-- element-plus 国际化修改为中文 -->
+<script th:src="@{/lib/element-plus/zh_cn.js}"></script>
+
+<!-- 外部依赖: Axios, SockJS, Stomp -->
+<script th:src="@{/lib/axios/axios.min.js}"></script>
+<script th:src="@{/lib/ws/sockjs.min.js}"></script>
+<script th:src="@{/lib/ws/stomp.min.js}"></script>
+
+<!-- 入口文件 -->
+<script src="/main.js" type="module"></script>
+</html>

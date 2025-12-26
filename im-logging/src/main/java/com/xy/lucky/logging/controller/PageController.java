@@ -10,22 +10,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Schema(description = "页面控制器")
 public class PageController {
 
-    @Schema(description = "首页")
-    @GetMapping("/")
-    public String index() {
-        return "redirect:/home";
-    }
-
-    @Schema(description = "首页")
-    @GetMapping("/home")
-    public String home() {
-        return "home";
-    }
-
     @Schema(description = "日志首页")
     @GetMapping("/logs/ui")
-    public String logs() {
-        return "redirect:/home";
+    public String index() {
+        return "index";
     }
 
     @Schema(description = "错误页面")
@@ -33,4 +21,10 @@ public class PageController {
     public String error() {
         return "error";
     }
+
+//    @GetMapping("/{filename}")
+//    public ResponseEntity<Resource> getResource(@PathVariable String filename){
+//        Resource resource = new ClassPathResource("static/" + filename);
+//        return ResponseEntity.ok(resource);
+//    }
 }

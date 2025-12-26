@@ -3,7 +3,7 @@ package com.xy.lucky.logging.config;
 import com.lmax.disruptor.BlockingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.xy.lucky.logging.disruptor.*;
-import com.xy.lucky.logging.mapper.LogRecordConverter;
+import com.xy.lucky.logging.mapper.LogMapper;
 import com.xy.lucky.logging.repository.LogRepository;
 import com.xy.lucky.logging.service.LogAnalysisService;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,7 @@ public class DisruptorConfig {
 
     private final LogRepository logRepository;
     private final LogAnalysisService analysisService;
-    private final LogRecordConverter converter;
+    private final LogMapper converter;
     private final SimpMessagingTemplate messagingTemplate;
     @Value("${logging.pipeline.ring-buffer-size:65536}")
     private int ringBufferSize;

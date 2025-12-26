@@ -7,7 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -34,8 +34,8 @@ public class LogPo {
     private String id;
 
     @Schema(description = "时间戳")
-    @Column(name = "ts", nullable = false, columnDefinition = "timestamp with time zone")
-    private Instant ts;
+    @Column(name = "ts", nullable = false)
+    private LocalDateTime ts;
 
     @Schema(description = "日志级别，如 INFO, ERROR 等，用于过滤和分类日志", example = "ERROR")
     @Column(name = "level", nullable = false, length = 20)
@@ -91,7 +91,7 @@ public class LogPo {
     @PrePersist
     protected void prePersist() {
         if (this.ts == null) {
-            this.ts = Instant.now();
+            this.ts = LocalDateTime.now();
         }
     }
 }

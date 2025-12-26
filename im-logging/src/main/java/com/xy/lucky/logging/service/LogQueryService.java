@@ -3,15 +3,19 @@ package com.xy.lucky.logging.service;
 import com.xy.lucky.logging.domain.LogLevel;
 import com.xy.lucky.logging.domain.po.LogPo;
 import com.xy.lucky.logging.domain.vo.LogRecordVo;
-import com.xy.lucky.logging.mapper.LogRecordConverter;
+import com.xy.lucky.logging.exception.LoggingException;
+import com.xy.lucky.logging.mapper.LogMapper;
 import com.xy.lucky.logging.repository.LogRepository;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.convert.QueryByExamplePredicateBuilder;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +30,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class LogQueryService {
     private final LogRepository repository;
-    private final LogRecordConverter converter;
+    private final LogMapper logMapper;
     private final DiscoveryClient discoveryClient;
 
     /**
@@ -41,51 +45,73 @@ public class LogQueryService {
      * @param keyword 关键字
      * @return 日志列表
      */
-    public List<LogRecordVo> query(String module, Instant start, Instant end, LogLevel level, String service, String env, int page, int size, String keyword) {
+    public Page<LogRecordVo> query(String module, LocalDateTime start, LocalDateTime end, LogLevel level, String service, String env, int page, int size, String keyword) {
         log.info("执行日志查询: module={} service={} env={} level={} keyword={}", module, service, env, level, keyword);
-        Instant actualStart = start != null ? start : Instant.EPOCH;
-        Instant actualEnd = end != null ? end : Instant.now();
-        int actualPage = Math.max(page, 0);
-        int actualSize = Math.max(size, 1);
-        int offset = actualPage * actualSize;
+        LocalDateTime actualStart = start != null ? start : LocalDateTime.of(1970, 1, 1, 0, 0);
+        LocalDateTime actualEnd = end != null ? end : LocalDateTime.now();
+        int actualPage = Math.max(page, 1);
+        int actualSize = Math.max(size, 10);
+        String m = normalize(module);
+        String svc = normalize(service);
+        String environment = normalize(env);
+        String kw = normalize(keyword);
         try {
-            List<LogPo> list = repository.queryRange(
-                    module,
-                    actualStart,
-                    actualEnd,
-                    level != null ? level.name() : null,
-                    service,
-                    env,
-                    keyword,
-                    offset,
-                    actualSize
-            );
-            return list.stream().map(converter::toVo).toList();
+            LogPo probe = new LogPo();
+            if (m != null) probe.setModule(m);
+            if (level != null) probe.setLevel(level.name());
+            if (svc != null) probe.setService(svc);
+            if (environment != null) probe.setEnv(environment);
+            if (kw != null) probe.setMessage(kw);
+            ExampleMatcher matcher = ExampleMatcher.matchingAll()
+                    .withIgnoreCase()
+                    .withStringMatcher(ExampleMatcher.StringMatcher.EXACT)
+                    .withMatcher("message", match -> match.contains().ignoreCase());
+            Example<LogPo> example = Example.of(probe, matcher);
+            Page<LogPo> pageData = repository.findAll(getSpecFromDatesAndExample(actualStart, actualEnd, example), PageRequest.of(actualPage, actualSize, Sort.by(Sort.Direction.DESC, "ts")));
+            List<LogRecordVo> list = pageData.getContent().stream().map(logMapper::toVo).toList();
+            return new PageImpl<>(list, pageData.getPageable(), pageData.getTotalElements());
         } catch (Exception ex) {
             log.warn("查询日志失败，返回空列表: {}", ex.getMessage());
-            return List.of();
+            throw new LoggingException("查询日志失败");
         }
     }
 
-    public List<LogRecordVo> search(String module, Instant start, Instant end, List<LogLevel> levels, int from, int size, String keyword) {
-        LogLevel level = levels != null && !levels.isEmpty() ? levels.get(0) : null;
-        int page = from > 0 ? from / Math.max(size, 1) : 0;
-        return query(module, start, end, level, null, null, page, size, keyword);
+    public Specification<LogPo> getSpecFromDatesAndExample(
+            LocalDateTime from, LocalDateTime to, Example<LogPo> example) {
+
+        return (root, query, builder) -> {
+            final List<Predicate> predicates = new ArrayList<>();
+
+            if (from != null) {
+                predicates.add(builder.greaterThan(root.get("ts"), from));
+            }
+            if (to != null) {
+                predicates.add(builder.lessThan(root.get("ts"), to));
+            }
+            predicates.add(QueryByExamplePredicateBuilder.getPredicate(root, builder, example));
+
+            return builder.and(predicates.toArray(new Predicate[predicates.size()]));
+        };
     }
 
-    public Map<String, Long> histogram(String module, Instant start, Instant end, LogLevel level, String service, String env, String keyword, String interval) {
-        Instant actualStart = start != null ? start : Instant.EPOCH;
-        Instant actualEnd = end != null ? end : Instant.now();
-        // Postgres format: 'YYYY-MM-DD HH24' for hour, 'YYYY-MM-DD HH24:MI' for minute
+    ;
+
+    public Map<String, Long> histogram(String module, LocalDateTime start, LocalDateTime end, LogLevel level, String service, String env, String keyword, String interval) {
+        LocalDateTime actualStart = start != null ? start : LocalDateTime.of(1970, 1, 1, 0, 0);
+        LocalDateTime actualEnd = end != null ? end : LocalDateTime.now();
         String format = "YYYY-MM-DD HH24";
         if ("minute".equalsIgnoreCase(interval)) {
             format = "YYYY-MM-DD HH24:MI";
         }
+        String m = normalize(module);
+        String svc = normalize(service);
+        String environment = normalize(env);
+        String kw = normalize(keyword);
         try {
             List<Object[]> list = repository.queryHistogram(
-                    module, actualStart, actualEnd,
+                    m, actualStart, actualEnd,
                     level != null ? level.name() : null,
-                    service, env, keyword, format
+                    svc, environment, kw, format
             );
             java.util.LinkedHashMap<String, Long> result = new java.util.LinkedHashMap<>();
             for (Object[] row : list) {
@@ -106,26 +132,11 @@ public class LogQueryService {
         }
     }
 
-    public List<String> listModules() {
+    public List<Map<String, Object>> topServices(LocalDateTime start, LocalDateTime end, int limit) {
         try {
-            return repository.listModules();
-        } catch (Exception ex) {
-            return List.of();
-        }
-    }
-
-    public List<String> listAddresses(String service) {
-        try {
-            List<ServiceInstance> instances = discoveryClient.getInstances(service);
-            return instances.stream().map(ServiceInstance::getHost).toList();
-        } catch (Exception ex) {
-            return List.of();
-        }
-    }
-
-    public List<Map<String, Object>> topServices(Instant start, Instant end, int limit) {
-        try {
-            List<Object[]> rows = repository.topServices(start, end, limit);
+            LocalDateTime actualStart = start != null ? start : LocalDateTime.of(1970, 1, 1, 0, 0);
+            LocalDateTime actualEnd = end != null ? end : LocalDateTime.now();
+            List<Object[]> rows = repository.topServices(actualStart, actualEnd, limit);
             List<Map<String, Object>> result = new ArrayList<>(rows.size());
             for (Object[] r : rows) {
                 result.add(Map.of(
@@ -139,9 +150,11 @@ public class LogQueryService {
         }
     }
 
-    public List<Map<String, Object>> topAddresses(Instant start, Instant end, int limit) {
+    public List<Map<String, Object>> topAddresses(LocalDateTime start, LocalDateTime end, int limit) {
         try {
-            List<Object[]> rows = repository.topAddresses(start, end, limit);
+            LocalDateTime actualStart = start != null ? start : LocalDateTime.of(1970, 1, 1, 0, 0);
+            LocalDateTime actualEnd = end != null ? end : LocalDateTime.now();
+            List<Object[]> rows = repository.topAddresses(actualStart, actualEnd, limit);
             List<Map<String, Object>> result = new ArrayList<>(rows.size());
             for (Object[] r : rows) {
                 result.add(Map.of(
@@ -155,9 +168,11 @@ public class LogQueryService {
         }
     }
 
-    public List<Map<String, Object>> topErrorTypes(Instant start, Instant end, int limit) {
+    public List<Map<String, Object>> topErrorTypes(LocalDateTime start, LocalDateTime end, int limit) {
         try {
-            List<Object[]> rows = repository.topErrorTypes(start, end, limit);
+            LocalDateTime actualStart = start != null ? start : LocalDateTime.of(1970, 1, 1, 0, 0);
+            LocalDateTime actualEnd = end != null ? end : LocalDateTime.now();
+            List<Object[]> rows = repository.topErrorTypes(actualStart, actualEnd, limit);
             List<Map<String, Object>> result = new ArrayList<>(rows.size());
             for (Object[] r : rows) {
                 result.add(Map.of(
@@ -170,12 +185,8 @@ public class LogQueryService {
             return List.of();
         }
     }
-    /**
-     * 删除指定时间之前的日志
-     *
-     * @param cutoff 截止时间
-     */
-    public void deleteBefore(Instant cutoff) {
+
+    public void deleteBefore(LocalDateTime cutoff) {
         log.warn("删除日志: cutoff={}", cutoff);
         try {
             repository.deleteByTsBefore(cutoff);
@@ -184,18 +195,18 @@ public class LogQueryService {
         }
     }
 
-    /**
-     * 删除指定模块在指定时间之前的日志
-     *
-     * @param module 模块名
-     * @param cutoff 截止时间
-     */
-    public void deleteModuleBefore(String module, Instant cutoff) {
+    public void deleteModuleBefore(String module, LocalDateTime cutoff) {
         log.warn("删除模块日志: module={}, cutoff={}", module, cutoff);
         try {
             repository.deleteByModuleAndTsBefore(module, cutoff);
         } catch (Exception ex) {
             log.warn("删除模块日志失败: {}", ex.getMessage());
         }
+    }
+
+    private String normalize(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
     }
 }

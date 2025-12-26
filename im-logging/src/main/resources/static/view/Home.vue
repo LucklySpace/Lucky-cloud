@@ -29,18 +29,6 @@
             </el-icon>
             <span>实时日志查看</span>
           </el-menu-item>
-          <el-menu-item index="/manage">
-            <el-icon>
-              <Setting/>
-            </el-icon>
-            <span>日志管理</span>
-          </el-menu-item>
-          <el-menu-item index="/analysis">
-            <el-icon>
-              <DataAnalysis/>
-            </el-icon>
-            <span>日志分析</span>
-          </el-menu-item>
         </el-menu>
       </el-aside>
 

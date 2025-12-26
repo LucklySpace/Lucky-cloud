@@ -7,9 +7,7 @@ const routes = [
         component: () => load('/view/Home.vue'),
         children: [
             {path: '', redirect: '/logs'},
-            {path: 'logs', component: () => load('/view/Logs.vue')},
-            {path: 'manage', component: () => load('/view/LogManage.vue')},
-            {path: 'analysis', component: () => load('/view/LogAnalysis.vue')}
+            {path: 'logs', component: () => load('/view/Logs.vue')}
         ]
     },
     {

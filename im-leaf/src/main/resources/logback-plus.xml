@@ -5,10 +5,7 @@
     <!-- scanPeriod:设置监测配置文件是否有修改的时间间隔，如果没有给出时间单位，默认单位是毫秒。当scan为true时，此属性生效。默认的时间间隔为1分钟。 -->
     <!-- debug:当此属性设置为true时，将打印出logback内部日志信息，实时查看logback运行状态。默认值为false。 -->
     <springProperty scope="context" name="serviceName" source="spring.application.name"/>
-    <springProperty scope="context" name="serviceEnv" source="spring.profiles.active"/>
-
     <property name="APP_NAME" value="${serviceName}"/>
-    <property name="APP_ENV" value="${serviceEnv}"/>
 
     <contextName>logback</contextName>
     <!-- name的值是变量的名称，value的值时变量定义的值。通过定义的值会被插入到logger上下文中。定义变量后，可以使“${}”来使用变量。 -->
@@ -133,15 +130,23 @@
         </filter>
     </appender>
 
-    <appender name="HttpLogAppender" class="com.xy.lucky.logging.appender.HttpLogAppender">
 
+    <appender name="HttpLogAppender" class="com.xy.lucky.logging.appender.HttpLogAppender">
+        <!-- 此日志文件只记录ERROR级别的 -->
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <appender name="HttpLogAppender" class="com.xy.lucky.logging.appender.HttpLogAppender">
         <enabled>true</enabled>
         <serverBaseUrl>http://localhost:8200</serverBaseUrl>
         <ingestPath>/api/logs</ingestPath>
         <ingestBatchPath>/api/logs/batch</ingestBatchPath>
         <module>${APP_NAME}</module>
         <service>${APP_NAME}</service>
-        <env>${APP_ENV}</env>
         <includeThread>true</includeThread>
         <gzipEnabled>false</gzipEnabled>
         <mdcTraceIdKey>traceId</mdcTraceIdKey>

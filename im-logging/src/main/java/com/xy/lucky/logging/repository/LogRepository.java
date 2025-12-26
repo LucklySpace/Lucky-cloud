@@ -2,32 +2,30 @@ package com.xy.lucky.logging.repository;
 
 import com.xy.lucky.logging.domain.po.LogPo;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.data.repository.query.QueryByExampleExecutor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
-public interface LogRepository extends JpaRepository<LogPo, String>, JpaSpecificationExecutor<LogPo>, QueryByExampleExecutor<LogPo> {
+public interface LogRepository extends JpaRepository<LogPo, String> {
 
     @Query(value = """
             SELECT *
             FROM im_logs
-            WHERE (:module IS NULL OR lower(module) = lower(:module))
+            WHERE (:module IS NULL OR module = :module)
               AND ts BETWEEN :start AND :end
-              AND (:level IS NULL OR lower(level) = lower(:level))
-              AND (:service IS NULL OR lower(service) = lower(:service))
-              AND (:env IS NULL OR lower(env) = lower(:env))
+              AND (:level IS NULL OR level = :level)
+              AND (:service IS NULL OR service = :service)
+              AND (:env IS NULL OR env = :env)
               AND (:keyword IS NULL OR lower(message) LIKE ('%' || lower(:keyword) || '%'))
             ORDER BY ts DESC
             LIMIT :size OFFSET :offset
             """, nativeQuery = true)
     List<LogPo> queryRange(
             @Param("module") String module,
-            @Param("start") LocalDateTime start,
-            @Param("end") LocalDateTime end,
+            @Param("start") Instant start,
+            @Param("end") Instant end,
             @Param("level") String level,
             @Param("service") String service,
             @Param("env") String env,
@@ -39,19 +37,19 @@ public interface LogRepository extends JpaRepository<LogPo, String>, JpaSpecific
     @Query(value = """
             SELECT to_char(ts, :format) as bucket, COUNT(*) as cnt
             FROM im_logs
-            WHERE (:module IS NULL OR lower(module) = lower(:module))
+            WHERE (:module IS NULL OR module = :module)
               AND ts BETWEEN :start AND :end
-              AND (:level IS NULL OR lower(level) = lower(:level))
-              AND (:service IS NULL OR lower(service) = lower(:service))
-              AND (:env IS NULL OR lower(env) = lower(:env))
+              AND (:level IS NULL OR level = :level)
+              AND (:service IS NULL OR service = :service)
+              AND (:env IS NULL OR env = :env)
               AND (:keyword IS NULL OR lower(message) LIKE ('%' || lower(:keyword) || '%'))
             GROUP BY bucket
             ORDER BY bucket
             """, nativeQuery = true)
     List<Object[]> queryHistogram(
             @Param("module") String module,
-            @Param("start") LocalDateTime start,
-            @Param("end") LocalDateTime end,
+            @Param("start") Instant start,
+            @Param("end") Instant end,
             @Param("level") String level,
             @Param("service") String service,
             @Param("env") String env,
@@ -59,9 +57,9 @@ public interface LogRepository extends JpaRepository<LogPo, String>, JpaSpecific
             @Param("format") String format
     );
 
-    Long deleteByTsBefore(LocalDateTime cutoff);
+    Long deleteByTsBefore(Instant cutoff);
 
-    Long deleteByModuleAndTsBefore(String module, LocalDateTime cutoff);
+    Long deleteByModuleAndTsBefore(String module, Instant cutoff);
 
     @Query(value = "SELECT DISTINCT service FROM im_logs ORDER BY service", nativeQuery = true)
     List<String> listServices();
@@ -83,7 +81,7 @@ public interface LogRepository extends JpaRepository<LogPo, String>, JpaSpecific
             ORDER BY cnt DESC
             LIMIT :limit
             """, nativeQuery = true)
-    List<Object[]> topServices(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end, @Param("limit") int limit);
+    List<Object[]> topServices(@Param("start") Instant start, @Param("end") Instant end, @Param("limit") int limit);
 
     @Query(value = """
             SELECT address, COUNT(*) AS cnt
@@ -93,7 +91,7 @@ public interface LogRepository extends JpaRepository<LogPo, String>, JpaSpecific
             ORDER BY cnt DESC
             LIMIT :limit
             """, nativeQuery = true)
-    List<Object[]> topAddresses(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end, @Param("limit") int limit);
+    List<Object[]> topAddresses(@Param("start") Instant start, @Param("end") Instant end, @Param("limit") int limit);
 
     @Query(value = """
             SELECT split_part(exception, ':', 1) AS type, COUNT(*) AS cnt
@@ -103,5 +101,5 @@ public interface LogRepository extends JpaRepository<LogPo, String>, JpaSpecific
             ORDER BY cnt DESC
             LIMIT :limit
             """, nativeQuery = true)
-    List<Object[]> topErrorTypes(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end, @Param("limit") int limit);
+    List<Object[]> topErrorTypes(@Param("start") Instant start, @Param("end") Instant end, @Param("limit") int limit);
 }

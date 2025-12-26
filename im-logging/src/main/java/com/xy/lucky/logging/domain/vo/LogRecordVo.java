@@ -12,7 +12,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 
@@ -29,7 +29,7 @@ public class LogRecordVo {
     private String id;
 
     @Schema(description = "时间戳（ISO-8601，UTC）", example = "2025-12-24T08:30:15.123Z")
-    private LocalDateTime timestamp;
+    private Instant timestamp;
 
     @NotNull(message = "请选择日志级别")
     @Schema(description = "日志级别", requiredMode = Schema.RequiredMode.REQUIRED, example = "ERROR")

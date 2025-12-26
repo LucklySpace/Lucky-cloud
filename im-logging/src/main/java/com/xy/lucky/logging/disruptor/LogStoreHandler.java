@@ -3,7 +3,7 @@ package com.xy.lucky.logging.disruptor;
 import com.lmax.disruptor.EventHandler;
 import com.xy.lucky.logging.domain.po.LogPo;
 import com.xy.lucky.logging.domain.vo.LogRecordVo;
-import com.xy.lucky.logging.mapper.LogMapper;
+import com.xy.lucky.logging.mapper.LogRecordConverter;
 import com.xy.lucky.logging.repository.LogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +20,7 @@ import java.util.List;
 public class LogStoreHandler implements EventHandler<LogEvent> {
     private static final int BATCH_SIZE = 1000;
     private final LogRepository logRepository;
-    private final LogMapper converter;
+    private final LogRecordConverter converter;
     private final List<LogPo> buffer = new ArrayList<>(BATCH_SIZE);
 
     @Override

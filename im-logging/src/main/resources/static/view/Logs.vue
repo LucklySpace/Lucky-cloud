@@ -8,8 +8,8 @@
                   size="large"></el-input>
 
         <div style="flex: 1; overflow: auto; margin-top: 12px">
-          <el-tree :data="computedServiceTree" :highlight-current="true" :props="treeProps" default-expand-all
-                   @node-click="onServiceNodeClick"></el-tree>
+          <el-tree :data="computedServiceTree" :highlight-current="true" :props="treeProps"
+                   default-expand-all @node-click="onServiceNodeClick"></el-tree>
         </div>
       </aside>
 
@@ -31,19 +31,28 @@
 
           <!-- 关键字 -->
           <el-input v-model="filters.keyword" clearable placeholder="关键字、正则或 JSON 字段" size="large"
-                    style="width: 300px"></el-input>
+                    style="width: 300px"
+                    @keyup.enter="searchLogs"></el-input>
+
+          <!-- 时间范围 -->
+          <el-date-picker v-model="filters.range" :shortcuts="dateShortcuts" end-placeholder="结束时间" range-separator="—"
+                          size="large" start-placeholder="开始时间" style="width: 380px" type="datetimerange"
+                          @change="searchLogs"></el-date-picker>
 
           <div style="flex: 1"></div>
 
-          <!-- 实时模式 -->
-          <span class="mono" style="color: var(--muted);">实时模式</span>
+          <!-- 实时开关 & 操作 -->
+          <el-switch v-model="ui.liveMode" active-color="#10b981" active-text="实时Tail" inactive-color="#e5e7eb"
+                     size="large" @change="toggleLiveMode"></el-switch>
+          <el-button :loading="ui.loading" circle icon="Search" size="large" style="margin-left: 12px"
+                     type="primary" @click="searchLogs"></el-button>
         </div>
 
         <!-- 日志表与详情 -->
         <section class="logs-shell">
           <div class="table-wrap">
-            <el-table-v2 :data="displayLogs" border height="100%" size="default" stripe style="width: 100%"
-                         @row-click="openDetail">
+            <el-table :data="displayLogs" border height="100%" size="default" stripe style="width: 100%"
+                      @row-click="openDetail">
               <!-- 可展开 raw JSON -->
               <el-table-column type="expand" width="50">
                 <template #default="props">
@@ -59,7 +68,7 @@
               </el-table-column>
 
               <!-- 时间 -->
-              <el-table-column label="时间" width="250">
+              <el-table-column label="时间" width="200">
                 <template #default="{ row }">
                   <div class="mono">{{ formatTimestamp(row.timestamp) }}</div>
                 </template>
@@ -96,15 +105,25 @@
                   </el-link>
                 </template>
               </el-table-column>
-            </el-table-v2>
+            </el-table>
           </div>
 
-          <!-- 底部：实时计数 -->
+          <!-- 底部：分页或实时计数 -->
           <div class="footer-bar">
             <div>
-              <div style="color: var(--muted); font-size: 14px;">
-                {{ ui.realtimeCount }} 条实时日志 · 显示最近 {{ ui.realtimeLimit }} 条
-              </div>
+              <template v-if="!ui.liveMode">
+                <el-pagination :current-page.sync="pagination.page" :page-size="pagination.size"
+                               :total="pagination.total" background layout="total, sizes, prev, pager, next"
+                               size="default"
+                               @current-change="onPageChange" @size-change="onPageSizeChange"></el-pagination>
+              </template>
+              <template v-else>
+                <div style="color: var(--muted); font-size: 14px;">
+                  {{ ui.realtimeCount }} 条实时日志 · 显示最近 {{
+                    ui.realtimeLimit
+                  }} 条
+                </div>
+              </template>
             </div>
 
             <div style="color: var(--muted); font-size: 14px">
@@ -169,11 +188,42 @@
         </div>
       </div>
     </el-drawer>
+
+    <!-- 测试数据采集抽屉 -->
+    <el-drawer v-model="ui.showTestIngest" size="35%" title="测试数据采集">
+      <el-form :model="testPayload" label-position="top" size="large" style="padding: 20px">
+        <el-form-item label="环境">
+          <el-radio-group v-model="testPayload.env">
+            <el-radio label="dev">Dev</el-radio>
+            <el-radio label="test">Test</el-radio>
+            <el-radio label="prod">Prod</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item label="服务">
+          <el-input v-model="testPayload.service"></el-input>
+        </el-form-item>
+
+        <el-form-item label="级别">
+          <el-select v-model="testPayload.level" style="width: 100%">
+            <el-option value="INFO">INFO</el-option>
+            <el-option value="WARN">WARN</el-option>
+            <el-option value="ERROR">ERROR</el-option>
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="消息">
+          <el-input v-model="testPayload.message" rows="6" type="textarea"></el-input>
+        </el-form-item>
+
+        <el-button size="large" style="width: 100%" type="primary" @click="sendTestIngest">发送日志</el-button>
+      </el-form>
+    </el-drawer>
   </div>
 </template>
 
 <script>
-import {getServices} from '../api/logs.js';
+import {getServices, searchLogs as searchLogsApi, sendTestLog} from '../api/logs.js';
 
 export default {
   setup() {
@@ -184,6 +234,8 @@ export default {
     // -----------------------------
     const ui = reactive({
       sidebarOpen: true,      // 侧栏展开/折叠
+      liveMode: true,         // 实时 Tail 模式
+      loading: false,         // 全局 loading
       wsConnected: false,     // websocket 连接状态
       detailVisible: false,   // 详情抽屉是否展开
       detail: null,           // 详情数据
@@ -199,8 +251,13 @@ export default {
       env: 'dev',
       level: '',
       keyword: '',
+      range: [new Date(Date.now() - 3600 * 1000), new Date()] // 默认最近 1 小时
     });
 
+    const pagination = reactive({page: 1, size: 100, total: 0});
+
+    // 日志数据：logs 为静态查询结果；realtimeLogs 为实时 Tail
+    const logs = ref([]);
     const realtimeLogs = ref([]);
 
     // 服务列表与筛选输入（侧栏）
@@ -213,29 +270,18 @@ export default {
     // 可选的日志等级列表
     const levels = ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR'];
 
+    // 日期快捷项
+    const dateShortcuts = [
+      {text: '最近15分钟', value: () => [new Date(Date.now() - 15 * 60 * 1000), new Date()]},
+      {text: '最近1小时', value: () => [new Date(Date.now() - 3600 * 1000), new Date()]},
+      {text: '最近24小时', value: () => [new Date(Date.now() - 24 * 3600 * 1000), new Date()]},
+      {text: '今日', value: () => [new Date(new Date().setHours(0, 0, 0, 0)), new Date()]}
+    ];
+
     // -----------------------------
     // 计算属性
     // -----------------------------
-    function matchesFilters(item) {
-      // 关键字匹配（整条 JSON）
-      if (filters.keyword) {
-        const text = JSON.stringify(item).toLowerCase();
-        if (!text.includes(filters.keyword.toLowerCase())) return false;
-      }
-      // 环境匹配（若日志带 env）
-      if (filters.env && item?.env && item.env.toLowerCase() !== filters.env.toLowerCase()) return false;
-      // 级别匹配
-      if (filters.level && item?.level && item.level.toUpperCase() !== filters.level.toUpperCase()) return false;
-      // 服务匹配
-      if (filters.service && item?.service && item.service !== filters.service) return false;
-
-      return true;
-    }
-
-    const displayLogs = computed(() => {
-      const list = realtimeLogs.value.filter(matchesFilters);
-      return list.slice(0, ui.realtimeLimit);
-    });
+    const displayLogs = computed(() => ui.liveMode ? realtimeLogs.value : logs.value);
 
     // 服务树数据（将 services 转成 tree）
     const computedServiceTree = computed(() => {
@@ -317,7 +363,35 @@ export default {
       }
     }
 
-    // 已移除静态查询模式
+    /** 查询日志（非实时模式） */
+    async function searchLogs() {
+      if (ui.liveMode) return; // 实时模式由 ws 提供
+      ui.loading = true;
+      try {
+        const params = {
+          module: filters.module || undefined,
+          service: filters.service || undefined,
+          env: filters.env || undefined,
+          level: filters.level || undefined,
+          keyword: filters.keyword || undefined,
+          page: pagination.page - 1,
+          size: pagination.size
+        };
+        if (filters.range && filters.range.length === 2) {
+          params.start = filters.range[0].toISOString();
+          params.end = filters.range[1].toISOString();
+        }
+        const res = await searchLogsApi(params);
+        logs.value = res?.data || res || [];
+        // 如果后端返回总数，请替换为实际字段
+        pagination.total = res?.total ?? Math.max(0, logs.value.length);
+      } catch (e) {
+        console.error('searchLogs failed', e);
+        logs.value = [];
+      } finally {
+        ui.loading = false;
+      }
+    }
 
     // -----------------------------
     // 实时 WebSocket 连接（SockJS + STOMP）
@@ -332,6 +406,7 @@ export default {
           ui.wsConnected = true;
           // 订阅日志 topic（后端需要推送到 /topic/logs）
           stompClient.subscribe('/topic/logs', msg => {
+            if (!ui.liveMode) return;
             try {
               const payload = JSON.parse(msg.body);
               handleRealtimeLog(payload);
@@ -356,24 +431,49 @@ export default {
       // 客户端基础过滤：关键字匹配（可扩展）
       if (filters.keyword && !JSON.stringify(logItem).toLowerCase().includes(filters.keyword.toLowerCase())) return;
       realtimeLogs.value.unshift(logItem);
-      console.log('logItem', logItem);
       ui.realtimeCount++;
       if (realtimeLogs.value.length > ui.realtimeLimit) realtimeLogs.value.length = ui.realtimeLimit;
     }
 
-    // 已移除模式切换
+    /** 切换实时模式 */
+    function toggleLiveMode(v) {
+      if (v) {
+        // 切到实时：清空实时缓存并确保已连接
+        realtimeLogs.value = [];
+        ui.realtimeCount = 0;
+        if (!ui.wsConnected) connectSocket();
+      } else {
+        // 离开实时：加载普通查询
+        searchLogs();
+      }
+    }
 
     // -----------------------------
     // 交互事件
     // -----------------------------
     function onEnvChange() {
       loadServices();
+      searchLogs();
     }
 
     function onServiceNodeClick(node) {
       if (node && node.value) {
         filters.service = node.value;
+        if (!ui.liveMode) searchLogs();
       }
+    }
+
+    // 服务筛选输入已通过 computedServiceTree 即时生效，无需额外事件
+
+    function onPageChange(page) {
+      pagination.page = page;
+      searchLogs();
+    }
+
+    function onPageSizeChange(size) {
+      pagination.size = size;
+      pagination.page = 1;
+      searchLogs();
     }
 
     /** 行点击打开详情 */
@@ -382,24 +482,51 @@ export default {
       ui.detailVisible = true;
     }
 
+    // -----------------------------
+    // 测试发送
+    // -----------------------------
+
+    /** 发送测试日志（用于验证采集链路） */
+    async function sendTestIngest() {
+      try {
+        const payload = {...testPayload, timestamp: new Date().toISOString()};
+        await sendTestLog(payload);
+        ElementPlus.ElMessage.success('测试日志已发送');
+        ui.showTestIngest = false;
+      } catch (e) {
+        // Error handled in request.js interceptor or here
+        // console.error(e);
+      }
+    }
+
+    // （已移除图表渲染，占位函数删除）
+
+    // -----------------------------
+    // 生命周期：初始化
+    // -----------------------------
     onMounted(() => {
       // 初始化数据
       loadServices();
+      if (!ui.liveMode) searchLogs();
       // 建立 WS（如果后端未就绪，connectSocket 会自动重连）
       connectSocket();
       // 初始化完成
     });
 
-    // 已移除静态查询刷新 watch
+    // watch: env 或 service 变化自动刷新
+    watch(() => filters.service, () => {
+      if (!ui.liveMode) searchLogs();
+    });
 
     // 返回给模板使用的变量和方法
     return {
-      ui, filters, realtimeLogs, services, levels,
+      ui, filters, pagination, logs, realtimeLogs, services,
+      testPayload, levels, dateShortcuts,
       displayLogs, computedServiceTree, treeProps,
       formatTimestamp, prettyJson, levelBadgeClass, traceLink,
-      loadServices, connectSocket,
-      onEnvChange, onServiceNodeClick,
-      openDetail
+      loadServices, searchLogs, connectSocket,
+      toggleLiveMode, onEnvChange, onServiceNodeClick,
+      onPageChange, onPageSizeChange, openDetail, sendTestIngest
     };
   }
 }
@@ -580,4 +707,5 @@ pre.json {
     padding: 12px;
   }
 }
+
 </style>

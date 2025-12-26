@@ -1,5 +1,6 @@
 package com.xy.lucky.logging.appender;
 
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.classic.spi.ThrowableProxyUtil;
@@ -14,8 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 简练版 HttpLogAppender
- * 仅支持 Spring Boot 自动配置，不再支持 logback.xml 配置属性
+ * 将 Logback 日志事件转换为日志记录并异步上报
  */
 public class HttpLogAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
     private LoggingProperties props;
@@ -40,7 +40,6 @@ public class HttpLogAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
     private String mdcTraceIdKey;
     private String mdcSpanIdKey;
     private Boolean enabled;
-    private String env;
 
     public HttpLogAppender() {
     }
@@ -82,7 +81,6 @@ public class HttpLogAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
             if (address != null) p.setAddress(address);
             if (mdcTraceIdKey != null) p.setMdcTraceIdKey(mdcTraceIdKey);
             if (mdcSpanIdKey != null) p.setMdcSpanIdKey(mdcSpanIdKey);
-            if (env != null) p.setEnv(env);
             this.props = p;
         }
         if (this.props.getService() == null || this.props.getService().isBlank()) {
@@ -110,32 +108,29 @@ public class HttpLogAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
 
     @Override
     protected void append(ILoggingEvent event) {
-        if (!props.isEnabled()) return;
-        sender.offer(toRecord(event));
+        if (sender == null || !this.started || (props != null && !props.isEnabled())) return;
+        Map<String, Object> record = toRecord(event);
+        sender.offer(record);
     }
 
     private Map<String, Object> toRecord(ILoggingEvent event) {
         Map<String, Object> map = new HashMap<>();
-        map.put("level", event.getLevel().toString());
-        map.put("module", module);
-        map.put("service", service);
-        map.put("env", env);
+        map.put("level", toLevel(event.getLevel()));
+        map.put("module", props.getModule());
+        map.put("service", props.getService() != null ? props.getService() : props.getModule());
         map.put("address", resolveAddress());
         map.put("message", event.getFormattedMessage());
-
-//        map.put("timestamp", event.getTimeStamp());
-//        map.put("logger", event.getLoggerName());
-        
         if (props.isIncludeThread()) {
             map.put("thread", event.getThreadName());
         }
-
         String traceId = MDC.get(props.getMdcTraceIdKey());
-        if (traceId != null) map.put("traceId", traceId);
-        
+        if (traceId != null) {
+            map.put("traceId", traceId);
+        }
         String spanId = MDC.get(props.getMdcSpanIdKey());
-        if (spanId != null) map.put("spanId", spanId);
-        
+        if (spanId != null) {
+            map.put("spanId", spanId);
+        }
         IThrowableProxy tp = event.getThrowableProxy();
         if (tp != null) {
             map.put("exception", ThrowableProxyUtil.asString(tp));
@@ -143,18 +138,27 @@ public class HttpLogAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
         return map;
     }
 
-    private String resolveAddress() {
-        if (resolvedAddress != null) return resolvedAddress;
-        if (props.getAddress() != null) {
-            return resolvedAddress = props.getAddress();
-        }
-        try {
-            return resolvedAddress = InetAddress.getLocalHost().getHostAddress();
-        } catch (Exception e) {
-            return resolvedAddress = "unknown";
-        }
+    private String toLevel(Level level) {
+        if (level == null) return "INFO";
+        if (level.isGreaterOrEqual(Level.ERROR)) return "ERROR";
+        if (level.isGreaterOrEqual(Level.WARN)) return "WARN";
+        if (level.isGreaterOrEqual(Level.INFO)) return "INFO";
+        return "DEBUG";
     }
 
+    private String resolveAddress() {
+        if (resolvedAddress != null) return resolvedAddress;
+        if (props.getAddress() != null && !props.getAddress().isBlank()) {
+            resolvedAddress = props.getAddress();
+            return resolvedAddress;
+        }
+        try {
+            resolvedAddress = InetAddress.getLocalHost().getHostAddress();
+        } catch (Exception e) {
+            resolvedAddress = "unknown";
+        }
+        return resolvedAddress;
+    }
 
     // setters for XML configuration
     public void setServerBaseUrl(String serverBaseUrl) {
@@ -223,9 +227,5 @@ public class HttpLogAppender extends UnsynchronizedAppenderBase<ILoggingEvent> {
 
     public void setEnabled(Boolean enabled) {
         this.enabled = enabled;
-    }
-
-    public void setEnv(String env) {
-        this.env = env;
     }
 }

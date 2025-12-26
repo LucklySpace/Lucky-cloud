@@ -26,7 +26,7 @@ service.interceptors.response.use(
         const res = response.data;
         // 这里可以根据后端约定的状态码进行统一处理
         // 例如 code !== 200 则提示错误
-        return res.data || res;
+        return res;
     },
     error => {
         console.error('Response Error:', error);

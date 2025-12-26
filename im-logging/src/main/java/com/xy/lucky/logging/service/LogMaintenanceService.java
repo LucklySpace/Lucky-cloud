@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
 @Slf4j
@@ -25,7 +25,7 @@ public class LogMaintenanceService {
      */
     @Scheduled(fixedDelayString = "${logging.retention.cleanup-interval-ms:300000}")
     public void cleanupExpired() {
-        Instant cutoff = Instant.now().minus(retentionDays, ChronoUnit.DAYS);
+        LocalDateTime cutoff = LocalDateTime.now().minus(retentionDays, ChronoUnit.DAYS);
         repository.deleteByTsBefore(cutoff);
         log.info("log cleanup finished cutoff={} retentionDays={}", cutoff, retentionDays);
     }

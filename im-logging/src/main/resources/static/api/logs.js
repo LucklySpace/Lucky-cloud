@@ -50,3 +50,66 @@ export function getExportUrl(params) {
     });
     return `/api/logs/export?${searchParams.toString()}`;
 }
+
+export function deleteBefore(params) {
+    return request({
+        url: '/api/logs/before',
+        method: 'delete',
+        params
+    });
+}
+
+export function deleteModuleBefore({module, cutoff}) {
+    return request({
+        url: `/api/logs/module/${encodeURIComponent(module)}/before`,
+        method: 'delete',
+        params: {cutoff}
+    });
+}
+
+export function getOverview() {
+    return request({
+        url: '/api/logs/stats/overview',
+        method: 'get'
+    });
+}
+
+export function getHourly(params) {
+    return request({
+        url: '/api/logs/stats/hourly',
+        method: 'get',
+        params
+    });
+}
+
+export function getHistogram(params) {
+    return request({
+        url: '/api/logs/stats/histogram',
+        method: 'get',
+        params
+    });
+}
+
+export function getAggTopServices(params) {
+    return request({
+        url: '/api/logs/aggs/top/services',
+        method: 'get',
+        params
+    });
+}
+
+export function getAggTopAddresses(params) {
+    return request({
+        url: '/api/logs/aggs/top/addresses',
+        method: 'get',
+        params
+    });
+}
+
+export function getAggTopErrors(params) {
+    return request({
+        url: '/api/logs/aggs/top/errors',
+        method: 'get',
+        params
+    });
+}

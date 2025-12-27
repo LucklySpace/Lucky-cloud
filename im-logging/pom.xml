@@ -128,7 +128,7 @@
         </dependency>
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-general</artifactId>
+            <artifactId>im-starter-general</artifactId>
         </dependency>
     </dependencies>
 

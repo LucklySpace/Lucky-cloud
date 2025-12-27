@@ -13,7 +13,9 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
@@ -71,6 +73,16 @@ public class RedisConfig extends CachingConfigurerSupport {
         return configuration;
     }
 
+
+    @Bean
+    public ReactiveRedisTemplate<String, Object> reactiveRedisTemplate(ReactiveRedisConnectionFactory factory) {
+        StringRedisSerializer keySerializer = new StringRedisSerializer();
+        Jackson2JsonRedisSerializer<Object> valueSerializer = getSerializer();
+        RedisSerializationContext.RedisSerializationContextBuilder<String, Object> builder =
+                RedisSerializationContext.newSerializationContext(keySerializer);
+        RedisSerializationContext<String, Object> context = builder.value(valueSerializer).hashValue(valueSerializer).build();
+        return new ReactiveRedisTemplate<>(factory, context);
+    }
 
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {

@@ -3,7 +3,6 @@ package com.xy.lucky.server.controller;
 
 import com.xy.lucky.domain.dto.UserDto;
 import com.xy.lucky.domain.vo.UserVo;
-import com.xy.lucky.general.response.domain.Result;
 import com.xy.lucky.server.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -34,7 +34,7 @@ public class UserController {
     @Parameters({
             @Parameter(name = "userDto", description = "用户信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public List<UserVo> list(@RequestBody UserDto userDto) {
+    public Mono<List<UserVo>> list(@RequestBody UserDto userDto) {
         return userService.list(userDto);
     }
 
@@ -43,7 +43,7 @@ public class UserController {
     @Parameters({
             @Parameter(name = "userId", description = "用户ID", required = true, in = ParameterIn.QUERY)
     })
-    public UserVo one(@RequestParam("userId") String userId) {
+    public Mono<UserVo> one(@RequestParam("userId") String userId) {
         return userService.one(userId);
     }
 
@@ -52,7 +52,7 @@ public class UserController {
     @Parameters({
             @Parameter(name = "userDto", description = "用户信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public UserVo create(@RequestBody UserDto userDto) {
+    public Mono<UserVo> create(@RequestBody UserDto userDto) {
         return userService.create(userDto);
     }
 
@@ -61,7 +61,7 @@ public class UserController {
     @Parameters({
             @Parameter(name = "userDto", description = "用户信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result update(@RequestBody UserDto userDto) {
+    public Mono<Boolean> update(@RequestBody UserDto userDto) {
         return userService.update(userDto);
     }
 
@@ -70,7 +70,7 @@ public class UserController {
     @Parameters({
             @Parameter(name = "userId", description = "用户ID", required = true, in = ParameterIn.QUERY)
     })
-    public Result delete(@RequestParam("userId") String userId) {
+    public Mono<Boolean> delete(@RequestParam("userId") String userId) {
         return userService.delete(userId);
     }
 }

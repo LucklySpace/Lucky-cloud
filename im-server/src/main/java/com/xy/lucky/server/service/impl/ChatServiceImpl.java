@@ -15,22 +15,22 @@ import com.xy.lucky.dubbo.api.database.user.ImUserDataDubboService;
 import com.xy.lucky.general.exception.GlobalException;
 import com.xy.lucky.general.response.domain.ResultCode;
 import com.xy.lucky.server.exception.ChatException;
+import com.xy.lucky.server.exception.MessageException;
 import com.xy.lucky.server.service.ChatService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.redisson.api.RLock;
+import org.redisson.api.RLockReactive;
 import org.redisson.api.RedissonClient;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -61,319 +61,286 @@ public class ChatServiceImpl implements ChatService {
     @Resource
     private RedissonClient redissonClient;
 
-    @Resource
-    @Qualifier("asyncTaskExecutor")
-    private Executor asyncTaskExecutor;
-
     /**
      * 读消息（加锁防并发更新）
      */
     @Override
-    public void read(ChatDto chatDto) {
-        long start = System.currentTimeMillis();
-
+    public Mono<Void> read(ChatDto chatDto) {
         if (chatDto == null || chatDto.getFromId() == null || chatDto.getToId() == null || chatDto.getChatType() == null) {
             log.warn("read参数无效");
-            throw new ChatException("参数错误");
+            return Mono.error(new ChatException("参数错误"));
         }
 
         String lockKey = LOCK_READ_MSG_PREFIX + chatDto.getChatType() + ":" + chatDto.getFromId() + ":" + chatDto.getToId();
-        RLock lock = redissonClient.getLock(lockKey);
 
-        try {
-            if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
-                log.warn("无法获取read消息锁 chatType={} from={} to={}", chatDto.getChatType(), chatDto.getFromId(), chatDto.getToId());
-                throw new ChatException("消息处理中，请稍后重试");
+        return withLock(lockKey, Mono.defer(() -> {
+            long start = System.currentTimeMillis();
+            IMessageType messageType = IMessageType.getByCode(chatDto.getChatType());
+            if (messageType == null) {
+                log.warn("未知chatType={}", chatDto.getChatType());
+                return Mono.error(new ChatException("不支持的消息类型"));
             }
 
-            switch (Objects.requireNonNull(IMessageType.getByCode(chatDto.getChatType()))) {
-                case SINGLE_MESSAGE -> saveSingleMessageChatReadStatus(chatDto);
-                case GROUP_MESSAGE -> saveGroupMessageChatReadStatus(chatDto);
+            return switch (messageType) {
+                case SINGLE_MESSAGE -> saveSingleMessageChatReadStatus(chatDto)
+                        .doOnSuccess(v -> log.debug("read消息耗时:{}ms", System.currentTimeMillis() - start));
+                case GROUP_MESSAGE -> saveGroupMessageChatReadStatus(chatDto)
+                        .doOnSuccess(v -> log.debug("read消息耗时:{}ms", System.currentTimeMillis() - start));
                 default -> {
                     log.warn("未知chatType={}", chatDto.getChatType());
-                    throw new ChatException("不支持的消息类型");
+                    yield Mono.error(new ChatException("不支持的消息类型"));
                 }
             };
-
-        } catch (Exception e) {
-            log.error("read消息异常 chatType={} from={} to={}", chatDto.getChatType(), chatDto.getFromId(), chatDto.getToId(), e);
-            throw new ChatException("设置消息已读失败");
-        } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
-            log.debug("read消息耗时:{}ms", System.currentTimeMillis() - start);
-        }
+        }), "设置消息已读 " + chatDto.getFromId() + "->" + chatDto.getToId());
     }
 
     /**
      * 创建会话（加锁防重复创建）
      */
     @Override
-    public ChatVo create(ChatDto chatDto) {
-        long start = System.currentTimeMillis();
+    public Mono<ChatVo> create(ChatDto chatDto) {
         if (chatDto == null || chatDto.getFromId() == null || chatDto.getToId() == null || chatDto.getChatType() == null) {
             log.warn("create参数无效");
-            throw new ChatException("参数错误");
+            return Mono.error(new ChatException("参数错误"));
         }
 
         String lockKey = LOCK_CREATE_CHAT_PREFIX + chatDto.getFromId() + ":" + chatDto.getToId() + ":" + chatDto.getChatType();
-        RLock lock = redissonClient.getLock(lockKey);
-        try {
-            if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
-                log.warn("无法获取create会话锁 from={} to={} type={}", chatDto.getFromId(), chatDto.getToId(), chatDto.getChatType());
-                throw new ChatException("会话创建中，请稍后重试");
-            }
+        return withLock(lockKey, Mono.defer(() -> {
+            long start = System.currentTimeMillis();
+            return Mono.fromCallable(() -> imChatDubboService.selectOne(chatDto.getFromId(), chatDto.getToId(), chatDto.getChatType()))
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .flatMap(imChatPO -> {
+                        if (Objects.isNull(imChatPO)) {
+                            ImChatPo newChatPO = new ImChatPo();
+                            String chatId = UUID.randomUUID().toString();
+                            newChatPO.setChatId(chatId)
+                                    .setOwnerId(chatDto.getFromId())
+                                    .setToId(chatDto.getToId())
+                                    .setIsMute(IMStatus.NO.getCode())
+                                    .setIsTop(IMStatus.NO.getCode())
+                                    .setDelFlag(IMStatus.YES.getCode())
+                                    .setChatType(chatDto.getChatType());
 
-            ImChatPo imChatPO = imChatDubboService.selectOne(chatDto.getFromId(), chatDto.getToId(), chatDto.getChatType());
-            if (Objects.isNull(imChatPO)) {
-                imChatPO = new ImChatPo();
-                String chatId = UUID.randomUUID().toString();
-                imChatPO.setChatId(chatId)
-                        .setOwnerId(chatDto.getFromId())
-                        .setToId(chatDto.getToId())
-                        .setIsMute(IMStatus.NO.getCode())
-                        .setIsTop(IMStatus.NO.getCode())
-                        .setDelFlag(IMStatus.YES.getCode())
-                        .setChatType(chatDto.getChatType());
-
-                boolean success = imChatDubboService.insert(imChatPO);
-                if (success) {
-                    log.info("会话信息插入成功 chatId={} from={} to={}", chatId, chatDto.getFromId(), chatDto.getToId());
-                } else {
-                    log.error("会话信息插入失败 chatId={} from={} to={}", chatId, chatDto.getFromId(), chatDto.getToId());
-                    throw new GlobalException(ResultCode.FAIL, "创建会话失败");
-                }
-            }
-
-            ChatVo chatVo = buildChatVo(imChatPO, chatDto.getChatType());
-            log.debug("create会话完成 from={} to={} type={} 耗时:{}ms", chatDto.getFromId(), chatDto.getToId(), chatDto.getChatType(), System.currentTimeMillis() - start);
-            return chatVo;
-        } catch (Exception e) {
-            log.error("create会话异常 from={} to={} type={}", chatDto.getFromId(), chatDto.getToId(), chatDto.getChatType(), e);
-            throw new ChatException("创建会话失败");
-        } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
-        }
+                            return Mono.fromCallable(() -> imChatDubboService.insert(newChatPO))
+                                    .subscribeOn(Schedulers.boundedElastic())
+                                    .flatMap(success -> {
+                                        if (success) {
+                                            log.info("会话信息插入成功 chatId={} from={} to={}", chatId, chatDto.getFromId(), chatDto.getToId());
+                                            return Mono.just(newChatPO);
+                                        } else {
+                                            log.error("会话信息插入失败 chatId={} from={} to={}", chatId, chatDto.getFromId(), chatDto.getToId());
+                                            return Mono.error(new GlobalException(ResultCode.FAIL, "创建会话失败"));
+                                        }
+                                    });
+                        } else {
+                            return Mono.just(imChatPO);
+                        }
+                    })
+                    .flatMap(chatPo -> buildChatVo(chatPo, chatDto.getChatType()))
+                    .doOnSuccess(v -> log.debug("create会话完成 from={} to={} type={} 耗时:{}ms", chatDto.getFromId(), chatDto.getToId(), chatDto.getChatType(), System.currentTimeMillis() - start));
+        }), "创建会话 " + chatDto.getFromId() + "->" + chatDto.getToId());
     }
 
     /**
      * 获取单个会话信息（加读锁）
      */
     @Override
-    public ChatVo one(String ownerId, String toId) {
-        long start = System.currentTimeMillis();
+    public Mono<ChatVo> one(String ownerId, String toId) {
         if (ownerId == null || toId == null) {
             log.warn("one参数无效");
-            throw new ChatException("参数错误");
+            return Mono.error(new ChatException("参数错误"));
         }
 
         String lockKey = LOCK_READ_CHAT_PREFIX + ownerId + ":" + toId;
-        RLock readLock = redissonClient.getLock(lockKey);
-        try {
-            if (!readLock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
-                log.warn("无法获取one会话读锁 from={} to={}", ownerId, toId);
-                throw new ChatException("会话读取中，请稍后重试");
-            }
-
-            ImChatPo imChatPO = imChatDubboService.selectOne(ownerId, toId, null);
-            ChatVo chatVo = getChat(imChatPO);
-            log.debug("one会话完成 from={} to={} 耗时:{}ms", ownerId, toId, System.currentTimeMillis() - start);
-            return chatVo;
-        } catch (Exception e) {
-            log.error("one会话异常 from={} to={}", ownerId, toId, e);
-            throw new ChatException("获取会话失败");
-        } finally {
-            if (readLock.isHeldByCurrentThread()) {
-                readLock.unlock();
-            }
-        }
+        return withLock(lockKey, Mono.defer(() -> {
+            long start = System.currentTimeMillis();
+            return Mono.fromCallable(() -> imChatDubboService.selectOne(ownerId, toId, null))
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .flatMap(this::getChat)
+                    .doOnSuccess(v -> log.debug("one会话完成 from={} to={} 耗时:{}ms", ownerId, toId, System.currentTimeMillis() - start));
+        }), "读取会话 " + ownerId + "->" + toId);
     }
 
     /**
      * 获取会话列表（加读锁）
      */
     @Override
-    public List<ChatVo> list(ChatDto chatDto) {
-        long start = System.currentTimeMillis();
+    public Mono<List<ChatVo>> list(ChatDto chatDto) {
         if (chatDto == null || chatDto.getFromId() == null) {
             log.warn("list参数无效");
-            throw new ChatException("参数错误");
+            return Mono.error(new ChatException("参数错误"));
         }
 
         String lockKey = LOCK_READ_CHAT_PREFIX + chatDto.getFromId() + ":list";
-        RLock readLock = redissonClient.getLock(lockKey);
-        try {
-            if (!readLock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
-                log.warn("无法获取list会话读锁 from={}", chatDto.getFromId());
-                throw new ChatException("会话列表读取中，请稍后重试");
-            }
-
-            List<ImChatPo> imChatPos = imChatDubboService.selectList(chatDto.getFromId(), chatDto.getSequence());
-            List<CompletableFuture<ChatVo>> chatFutures = imChatPos.stream()
-                    .map(e -> CompletableFuture.supplyAsync(() -> getChat(e), asyncTaskExecutor))
-                    .toList();
-
-            List<ChatVo> result = chatFutures.stream()
-                    .map(CompletableFuture::join)
-                    .collect(Collectors.toList());
-
-            log.debug("list会话完成 from={} 返回{}条 耗时:{}ms", chatDto.getFromId(), result.size(), System.currentTimeMillis() - start);
-            return result;
-        } catch (Exception e) {
-            log.error("list会话异常 from={}", chatDto.getFromId(), e);
-            throw new ChatException("获取会话列表失败");
-        } finally {
-            if (readLock.isHeldByCurrentThread()) {
-                readLock.unlock();
-            }
-        }
+        return withLock(lockKey, Mono.defer(() -> {
+            long start = System.currentTimeMillis();
+            return Mono.fromCallable(() -> imChatDubboService.selectList(chatDto.getFromId(), chatDto.getSequence()))
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .flatMapMany(Flux::fromIterable)
+                    .flatMap(this::getChat) // Concurrent processing
+                    .collectList()
+                    .doOnSuccess(result -> log.debug("list会话完成 from={} 返回{}条 耗时:{}ms", chatDto.getFromId(), result.size(), System.currentTimeMillis() - start));
+        }), "读取会话列表 " + chatDto.getFromId());
     }
 
     /**
      * 获取ChatVo（提取公共逻辑）
      */
-    private ChatVo getChat(ImChatPo chatPo) {
+    private Mono<ChatVo> getChat(ImChatPo chatPo) {
         if (Objects.isNull(chatPo)) {
-            return new ChatVo();
+            return Mono.just(new ChatVo());
         }
-        return switch (IMessageType.getByCode(chatPo.getChatType())) {
+        IMessageType type = IMessageType.getByCode(chatPo.getChatType());
+        if (type == null) return Mono.just(new ChatVo());
+
+        return switch (type) {
             case SINGLE_MESSAGE -> getSingleMessageChat(chatPo);
             case GROUP_MESSAGE -> getGroupMessageChat(chatPo);
-            case null -> new ChatVo();
-            default -> {
-                log.warn("未知chatType={}", chatPo.getChatType());
-                yield new ChatVo();
-            }
+            default -> Mono.just(new ChatVo());
         };
     }
 
     /**
      * 构建单聊ChatVo
      */
-    private ChatVo getSingleMessageChat(ImChatPo chatPo) {
-
+    private Mono<ChatVo> getSingleMessageChat(ImChatPo chatPo) {
         ChatVo chatVo = ChatBeanMapper.INSTANCE.toChatVo(chatPo);
-
         String ownerId = chatVo.getOwnerId();
         String toId = chatVo.getToId();
-
-        ImSingleMessagePo singleMessageDto = imSingleMessageDubboService.last(ownerId, toId);
-
-        chatVo.setMessageTime(0L);
-        if (Objects.nonNull(singleMessageDto)) {
-            chatVo.setMessage(singleMessageDto.getMessageBody());
-            chatVo.setMessageContentType(singleMessageDto.getMessageContentType());
-            chatVo.setMessageTime(singleMessageDto.getMessageTime());
-        }
-
-        Integer unread = imSingleMessageDubboService.selectReadStatus(toId, ownerId, IMessageReadStatus.UNREAD.getCode());
-        chatVo.setUnread(Objects.requireNonNullElse(unread, 0));
-
         String targetUserId = ownerId.equals(toId) ? chatVo.getOwnerId() : chatVo.getToId();
-        ImUserDataPo imUserDataPo = imUserDataDubboService.selectOne(targetUserId);
-        if (imUserDataPo != null) {
-            chatVo.setName(imUserDataPo.getName());
-            chatVo.setAvatar(imUserDataPo.getAvatar());
-            chatVo.setId(imUserDataPo.getUserId());
-        }
 
-        return chatVo;
+        return Mono.zip(
+                Mono.fromCallable(() -> imSingleMessageDubboService.last(ownerId, toId)).subscribeOn(Schedulers.boundedElastic()).defaultIfEmpty(new ImSingleMessagePo()),
+                Mono.fromCallable(() -> imSingleMessageDubboService.selectReadStatus(toId, ownerId, IMessageReadStatus.UNREAD.getCode())).subscribeOn(Schedulers.boundedElastic()).defaultIfEmpty(0),
+                Mono.fromCallable(() -> imUserDataDubboService.selectOne(targetUserId)).subscribeOn(Schedulers.boundedElastic()).defaultIfEmpty(new ImUserDataPo())
+        ).map(tuple -> {
+            ImSingleMessagePo msg = tuple.getT1();
+            Integer unread = tuple.getT2();
+            ImUserDataPo user = tuple.getT3();
+
+            chatVo.setMessageTime(0L);
+            if (msg.getMessageId() != null) { // Check if valid PO
+                chatVo.setMessage(msg.getMessageBody());
+                chatVo.setMessageContentType(msg.getMessageContentType());
+                chatVo.setMessageTime(msg.getMessageTime());
+            }
+
+            chatVo.setUnread(unread);
+
+            if (user.getUserId() != null) {
+                chatVo.setName(user.getName());
+                chatVo.setAvatar(user.getAvatar());
+                chatVo.setId(user.getUserId());
+            }
+            return chatVo;
+        });
     }
 
     /**
      * 构建群聊ChatVo
      */
-    private ChatVo getGroupMessageChat(ImChatPo chatPo) {
-
+    private Mono<ChatVo> getGroupMessageChat(ImChatPo chatPo) {
         ChatVo chatVo = ChatBeanMapper.INSTANCE.toChatVo(chatPo);
-
         String ownerId = chatVo.getOwnerId();
         String groupId = chatVo.getToId();
 
-        ImGroupMessagePo groupMessageDto = imGroupMessageDubboService.last(ownerId, groupId);
+        return Mono.zip(
+                Mono.fromCallable(() -> imGroupMessageDubboService.last(ownerId, groupId)).subscribeOn(Schedulers.boundedElastic()).defaultIfEmpty(new ImGroupMessagePo()),
+                Mono.fromCallable(() -> imGroupMessageDubboService.selectReadStatus(groupId, ownerId, IMessageReadStatus.UNREAD.getCode())).subscribeOn(Schedulers.boundedElastic()).defaultIfEmpty(0),
+                Mono.fromCallable(() -> imGroupDubboService.selectOne(groupId)).subscribeOn(Schedulers.boundedElastic()).defaultIfEmpty(new ImGroupPo())
+        ).map(tuple -> {
+            ImGroupMessagePo msg = tuple.getT1();
+            Integer unread = tuple.getT2();
+            ImGroupPo group = tuple.getT3();
 
-        chatVo.setMessageTime(0L);
-        if (Objects.nonNull(groupMessageDto)) {
-            chatVo.setMessage(groupMessageDto.getMessageBody());
-            chatVo.setMessageTime(groupMessageDto.getMessageTime());
-        }
+            chatVo.setMessageTime(0L);
+            if (msg.getMessageId() != null) {
+                chatVo.setMessage(msg.getMessageBody());
+                chatVo.setMessageTime(msg.getMessageTime());
+            }
 
-        Integer unread = imGroupMessageDubboService.selectReadStatus(groupId, ownerId, IMessageReadStatus.UNREAD.getCode());
-        chatVo.setUnread(Objects.requireNonNullElse(unread, 0));
+            chatVo.setUnread(unread);
 
-        ImGroupPo imGroupPo = imGroupDubboService.selectOne(groupId);
-        if (imGroupPo != null) {
-            chatVo.setName(imGroupPo.getGroupName());
-            chatVo.setAvatar(imGroupPo.getAvatar());
-            chatVo.setId(imGroupPo.getGroupId());
-        }
-
-        return chatVo;
+            if (group.getGroupId() != null) {
+                chatVo.setName(group.getGroupName());
+                chatVo.setAvatar(group.getAvatar());
+                chatVo.setId(group.getGroupId());
+            }
+            return chatVo;
+        });
     }
 
     /**
      * 构建ChatVo（create专用）
      */
-    private ChatVo buildChatVo(ImChatPo chatPo, Integer chatType) {
-
+    private Mono<ChatVo> buildChatVo(ImChatPo chatPo, Integer chatType) {
         ChatVo chatVo = ChatBeanMapper.INSTANCE.toChatVo(chatPo);
-
-        if (chatType.equals(IMessageType.SINGLE_MESSAGE.getCode())) {
-            ImUserDataPo imUserDataPo = imUserDataDubboService.selectOne(chatVo.getToId());
-            if (imUserDataPo != null) {
-                chatVo.setName(imUserDataPo.getName());
-                chatVo.setAvatar(imUserDataPo.getAvatar());
-                chatVo.setId(imUserDataPo.getUserId());
-            }
-        } else if (chatType.equals(IMessageType.GROUP_MESSAGE.getCode())) {
-            ImGroupPo imGroupPo = imGroupDubboService.selectOne(chatVo.getToId());
-            if (imGroupPo != null) {
-                chatVo.setName(imGroupPo.getGroupName());
-                chatVo.setAvatar(imGroupPo.getAvatar());
-                chatVo.setId(imGroupPo.getGroupId());
-            }
+        if (IMessageType.SINGLE_MESSAGE.getCode().equals(chatType)) {
+            return Mono.fromCallable(() -> imUserDataDubboService.selectOne(chatVo.getToId()))
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .map(user -> {
+                        if (user != null) {
+                            chatVo.setName(user.getName());
+                            chatVo.setAvatar(user.getAvatar());
+                            chatVo.setId(user.getUserId());
+                        }
+                        return chatVo;
+                    });
+        } else if (IMessageType.GROUP_MESSAGE.getCode().equals(chatType)) {
+            return Mono.fromCallable(() -> imGroupDubboService.selectOne(chatVo.getToId()))
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .map(group -> {
+                        if (group != null) {
+                            chatVo.setName(group.getGroupName());
+                            chatVo.setAvatar(group.getAvatar());
+                            chatVo.setId(group.getGroupId());
+                        }
+                        return chatVo;
+                    });
         }
-        return chatVo;
+        return Mono.just(chatVo);
     }
 
-    /**
-     * 设置单聊消息已读
-     */
-    private void saveSingleMessageChatReadStatus(ChatDto chatDto) {
-        long start = System.currentTimeMillis();
-        try {
+    private Mono<Void> saveSingleMessageChatReadStatus(ChatDto chatDto) {
+        return Mono.fromCallable(() -> {
             ImSingleMessagePo updateMessage = new ImSingleMessagePo();
             updateMessage.setReadStatus(IMessageReadStatus.ALREADY_READ.getCode());
             updateMessage.setFromId(chatDto.getFromId());
             updateMessage.setToId(chatDto.getToId());
-
-            boolean success = imSingleMessageDubboService.update(updateMessage);
-            log.debug("单聊已读更新 from={} to={} 成功={} 耗时:{}ms", chatDto.getFromId(), chatDto.getToId(), success, System.currentTimeMillis() - start);
-        } catch (Exception e) {
-            log.error("单聊已读更新异常 from={} to={}", chatDto.getFromId(), chatDto.getToId(), e);
-            throw new ChatException("更新单聊已读失败");
-        }
+            return imSingleMessageDubboService.update(updateMessage);
+        }).subscribeOn(Schedulers.boundedElastic()).then();
     }
 
-    /**
-     * 设置群聊消息已读
-     */
-    private void saveGroupMessageChatReadStatus(ChatDto chatDto) {
-        long start = System.currentTimeMillis();
-        try {
+    private Mono<Void> saveGroupMessageChatReadStatus(ChatDto chatDto) {
+        return Mono.fromCallable(() -> {
             ImGroupMessageStatusPo updateMessage = new ImGroupMessageStatusPo();
             updateMessage.setReadStatus(IMessageReadStatus.ALREADY_READ.getCode());
             updateMessage.setGroupId(chatDto.getFromId());
             updateMessage.setToId(chatDto.getToId());
+            return imGroupMessageDubboService.batchInsert(List.of(updateMessage));
+        }).subscribeOn(Schedulers.boundedElastic()).then();
+    }
 
-            boolean success = imGroupMessageDubboService.batchInsert(List.of(updateMessage));
-            log.debug("群聊已读更新 groupId={} ownerId={} 成功={} 耗时:{}ms", chatDto.getToId(), chatDto.getFromId(), success, System.currentTimeMillis() - start);
-        } catch (Exception e) {
-            log.error("群聊已读更新异常 groupId={} ownerId={}", chatDto.getToId(), chatDto.getFromId(), e);
-            throw new ChatException("更新群聊已读失败");
-        }
+    private <T> Mono<T> withLock(String key, Mono<T> action, String logDesc) {
+        RLockReactive lock = redissonClient.reactive().getLock(key);
+        return lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)
+                .flatMap(acquired -> {
+                    if (!acquired) {
+                        return Mono.error(new MessageException("无法获取锁: " + logDesc));
+                    }
+                    return action
+                            .flatMap(res ->
+                                    lock.isHeldByThread(Thread.currentThread().threadId())
+                                            .flatMap(held -> held ? lock.unlock() : Mono.empty())
+                                            .onErrorResume(e -> Mono.empty())
+                                            .thenReturn(res)
+                            )
+                            .onErrorResume(e ->
+                                    lock.isHeldByThread(Thread.currentThread().threadId())
+                                            .flatMap(held -> held ? lock.unlock() : Mono.empty())
+                                            .onErrorResume(unlockErr -> Mono.empty())
+                                            .then(Mono.error(e))
+                            );
+                });
     }
 }

@@ -1,15 +1,14 @@
 package com.xy.lucky.server.service;
 
 import com.xy.lucky.domain.vo.FileVo;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.codec.multipart.FilePart;
+import reactor.core.publisher.Mono;
 
 import java.io.File;
 
 public interface FileService {
 
-    FileVo uploadFile(MultipartFile file);
+    Mono<FileVo> uploadFile(FilePart file);
 
-    MultipartFile fileToMultipartFile(File file);
-
-    MultipartFile fileToImageMultipartFile(File file);
+    Mono<FileVo> uploadFile(File file);
 }

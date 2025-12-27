@@ -4,29 +4,27 @@ package com.xy.lucky.server.service;
 import com.xy.lucky.domain.dto.FriendDto;
 import com.xy.lucky.domain.dto.FriendRequestDto;
 import com.xy.lucky.domain.vo.FriendVo;
-import com.xy.lucky.domain.vo.FriendshipRequestVo;
-import com.xy.lucky.domain.vo.GroupVo;
-import com.xy.lucky.general.response.domain.Result;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
 public interface RelationshipService {
 
-    Result<List<FriendVo>> contacts(String userId, Long sequence);
+    Mono<List<?>> contacts(String userId, Long sequence);
 
-    Result<List<GroupVo>> groups(String userId);
+    Mono<List<?>> groups(String userId);
 
-    Result<List<FriendshipRequestVo>> newFriends(String userId);
+    Mono<List<?>> newFriends(String userId);
 
-    Result<FriendVo> getFriendInfo(FriendDto friendDto);
+    Mono<FriendVo> getFriendInfo(FriendDto friendDto);
 
-    Result<List<FriendVo>> getFriendInfoList(FriendDto friendDto);
+    Mono<List<?>> getFriendInfoList(FriendDto friendDto);
 
-    Result addFriend(FriendRequestDto friendRequestDto);
+    Mono<String> addFriend(FriendRequestDto friendRequestDto);
 
-    Result approveFriend(FriendRequestDto friendRequestDto);
+    Mono<Void> approveFriend(FriendRequestDto friendRequestDto);
 
-    Result delFriend(FriendDto friendDto);
+    Mono<Void> delFriend(FriendDto friendDto);
 
-    Result updateFriendRemark(FriendDto friendDto);
+    Mono<Boolean> updateFriendRemark(FriendDto friendDto);
 }

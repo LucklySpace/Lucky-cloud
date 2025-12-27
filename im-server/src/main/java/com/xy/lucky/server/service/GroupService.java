@@ -4,24 +4,24 @@ package com.xy.lucky.server.service;
 import com.xy.lucky.domain.dto.GroupDto;
 import com.xy.lucky.domain.dto.GroupInviteDto;
 import com.xy.lucky.domain.dto.GroupMemberDto;
-import com.xy.lucky.general.response.domain.Result;
+import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
 
 public interface GroupService {
 
-    Map<?, ?> getGroupMembers(GroupDto groupDto);
+    Mono<Map<?, ?>> getGroupMembers(GroupDto groupDto);
 
-    void quitGroup(GroupDto groupDto);
+    Mono<Void> quitGroup(GroupDto groupDto);
 
-    String inviteGroup(GroupInviteDto groupInviteDto);
+    Mono<String> inviteGroup(GroupInviteDto groupInviteDto);
 
-    Result groupInfo(GroupDto groupDto);
+    Mono<com.xy.lucky.domain.po.ImGroupPo> groupInfo(GroupDto groupDto);
 
-    Result updateGroupInfo(GroupDto groupDto);
+    Mono<Boolean> updateGroupInfo(GroupDto groupDto);
 
-    Result approveGroupInvite(GroupInviteDto groupInviteDto);
+    Mono<String> approveGroupInvite(GroupInviteDto groupInviteDto);
 
-    Result updateGroupMember(GroupMemberDto groupMemberDto);
+    Mono<Boolean> updateGroupMember(GroupMemberDto groupMemberDto);
 }

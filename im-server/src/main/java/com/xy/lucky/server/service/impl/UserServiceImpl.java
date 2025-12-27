@@ -1,19 +1,23 @@
 package com.xy.lucky.server.service.impl;
 
 import com.xy.lucky.domain.dto.UserDto;
+import com.xy.lucky.domain.mapper.UserDataBeanMapper;
 import com.xy.lucky.domain.po.ImUserDataPo;
 import com.xy.lucky.domain.vo.UserVo;
 import com.xy.lucky.dubbo.api.database.user.ImUserDataDubboService;
-import com.xy.lucky.general.response.domain.Result;
+import com.xy.lucky.server.exception.MessageException;
 import com.xy.lucky.server.service.UserService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.redisson.api.RLock;
+import org.redisson.api.RLockReactive;
 import org.redisson.api.RedissonClient;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -33,130 +37,144 @@ public class UserServiceImpl implements UserService {
     private RedissonClient redissonClient;
 
     @Override
-    public List<UserVo> list(UserDto userDto) {
-        long start = System.currentTimeMillis();
-        try {
-            log.debug("list用户完成 耗时:{}ms", System.currentTimeMillis() - start);
-            return List.of(); // 示例返回空列表
-        } catch (Exception e) {
-            log.error("list用户异常", e);
-            throw new RuntimeException("获取用户列表失败");
-        }
+    public Mono<List<UserVo>> list(UserDto userDto) {
+        return Mono.fromCallable(() -> {
+            long start = System.currentTimeMillis();
+            try {
+                // Currently only support search by userId as keyword if provided
+                // Or if we had a proper list method in Dubbo service.
+                // Assuming basic implementation based on available Dubbo methods.
+                if (userDto != null && StringUtils.isNotBlank(userDto.getUserId())) {
+                    ImUserDataPo po = imUserDataDubboService.selectOne(userDto.getUserId());
+                    if (po != null) {
+                        log.debug("list用户完成 耗时:{}ms", System.currentTimeMillis() - start);
+                        return List.of(UserDataBeanMapper.INSTANCE.toUserVo(po));
+                    }
+                }
+                log.debug("list用户完成 (empty) 耗时:{}ms", System.currentTimeMillis() - start);
+                return Collections.<UserVo>emptyList();
+            } catch (Exception e) {
+                log.error("list用户异常", e);
+                throw new RuntimeException("获取用户列表失败");
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Override
-    public UserVo one(String userId) {
-        long start = System.currentTimeMillis();
+    public Mono<UserVo> one(String userId) {
         if (userId == null) {
             log.warn("one参数无效");
-            throw new RuntimeException("参数错误");
+            return Mono.error(new RuntimeException("参数错误"));
         }
 
         String lockKey = LOCK_USER_PREFIX + "read:" + userId;
-        RLock readLock = redissonClient.getLock(lockKey);
-        try {
-            if (!readLock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
-                log.warn("无法获取one用户读锁 userId={}", userId);
-                throw new RuntimeException("用户读取中，请稍后重试");
-            }
-
-            ImUserDataPo userDataPo = imUserDataDubboService.selectOne(userId);
-            UserVo userVo = new UserVo();
-            if (userDataPo != null) {
-                BeanUtils.copyProperties(userDataPo, userVo);
-            }
-
-            log.debug("one用户完成 userId={} 耗时:{}ms", userId, System.currentTimeMillis() - start);
-            return userVo;
-        } catch (Exception e) {
-            log.error("one用户异常 userId={}", userId, e);
-            throw new RuntimeException("获取用户失败");
-        } finally {
-            if (readLock.isHeldByCurrentThread()) {
-                readLock.unlock();
-            }
-        }
+        return withLock(lockKey, Mono.defer(() -> {
+            long start = System.currentTimeMillis();
+            return Mono.fromCallable(() -> imUserDataDubboService.selectOne(userId))
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .map(userDataPo -> {
+                        UserVo userVo = UserDataBeanMapper.INSTANCE.toUserVo(userDataPo);
+                        // Handle null case if selectOne returns null
+                        if (userVo == null) {
+                            userVo = new UserVo();
+                        }
+                        log.debug("one用户完成 userId={} 耗时:{}ms", userId, System.currentTimeMillis() - start);
+                        return userVo;
+                    });
+        }), "读取用户 " + userId);
     }
 
     @Override
-    public UserVo create(UserDto userDto) {
-        long start = System.currentTimeMillis();
-        // 创建用户的具体逻辑需要根据实际业务需求实现
-        // 这里仅提供框架示例
-        try {
-            log.debug("create用户完成 耗时:{}ms", System.currentTimeMillis() - start);
-            return new UserVo(); // 示例返回空对象
-        } catch (Exception e) {
-            log.error("create用户异常", e);
-            throw new RuntimeException("创建用户失败");
-        }
+    public Mono<UserVo> create(UserDto userDto) {
+        return Mono.fromCallable(() -> {
+            long start = System.currentTimeMillis();
+            try {
+                ImUserDataPo po = UserDataBeanMapper.INSTANCE.toImUserDataPo(userDto);
+                if (StringUtils.isBlank(po.getUserId())) {
+                    throw new RuntimeException("UserId不能为空");
+                }
+                boolean success = imUserDataDubboService.insert(po);
+                if (success) {
+                    log.debug("create用户完成 耗时:{}ms", System.currentTimeMillis() - start);
+                    return UserDataBeanMapper.INSTANCE.toUserVo(po);
+                } else {
+                    throw new RuntimeException("创建用户失败");
+                }
+            } catch (Exception e) {
+                log.error("create用户异常", e);
+                throw new RuntimeException("创建用户失败");
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Override
-    public Result update(UserDto userDto) {
-        long start = System.currentTimeMillis();
+    public Mono<Boolean> update(UserDto userDto) {
         if (userDto == null || userDto.getUserId() == null) {
             log.warn("update参数无效");
-            return Result.failed("参数错误");
+            return Mono.error(new RuntimeException("参数错误"));
         }
 
         String lockKey = LOCK_USER_PREFIX + "update:" + userDto.getUserId();
-        RLock lock = redissonClient.getLock(lockKey);
-        try {
-            if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
-                log.warn("无法获取update用户锁 userId={}", userDto.getUserId());
-                return Result.failed("用户更新中，请稍后重试");
-            }
+        return withLock(lockKey, Mono.defer(() -> {
+            long start = System.currentTimeMillis();
+            ImUserDataPo userDataPo = UserDataBeanMapper.INSTANCE.toImUserDataPo(userDto);
 
-            ImUserDataPo userDataPo = new ImUserDataPo();
-            BeanUtils.copyProperties(userDto, userDataPo);
-
-            if (imUserDataDubboService.update(userDataPo)) {
-                // 实际更新逻辑需要根据业务需求实现
-                log.debug("update用户完成 userId={} 耗时:{}ms", userDto.getUserId(), System.currentTimeMillis() - start);
-                return Result.success(true);
-            } else {
-                // 实际更新逻辑需要根据业务需求实现
-                log.debug("update用户失败 userId={} 耗时:{}ms", userDto.getUserId(), System.currentTimeMillis() - start);
-                return Result.failed("更新用户失败");
-            }
-
-        } catch (Exception e) {
-            log.error("update用户异常 userId={}", userDto.getUserId(), e);
-            throw new RuntimeException("更新用户失败");
-        } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
-        }
+            return Mono.fromCallable(() -> imUserDataDubboService.update(userDataPo))
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .map(success -> {
+                        if (success) {
+                            log.debug("update用户完成 userId={} 耗时:{}ms", userDto.getUserId(), System.currentTimeMillis() - start);
+                            return true;
+                        } else {
+                            log.debug("update用户失败 userId={} 耗时:{}ms", userDto.getUserId(), System.currentTimeMillis() - start);
+                            throw new RuntimeException("更新用户失败");
+                        }
+                    });
+        }), "更新用户 " + userDto.getUserId());
     }
 
     @Override
-    public Result delete(String userId) {
-        long start = System.currentTimeMillis();
+    public Mono<Boolean> delete(String userId) {
         if (userId == null) {
             log.warn("delete参数无效");
-            return Result.failed("参数错误");
+            return Mono.error(new RuntimeException("参数错误"));
         }
 
         String lockKey = LOCK_USER_PREFIX + "delete:" + userId;
-        RLock lock = redissonClient.getLock(lockKey);
-        try {
-            if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
-                log.warn("无法获取delete用户锁 userId={}", userId);
-                return Result.failed("用户删除中，请稍后重试");
-            }
+        return withLock(lockKey, Mono.defer(() -> {
+            long start = System.currentTimeMillis();
+            return Mono.fromCallable(() -> imUserDataDubboService.deleteById(userId))
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .map(success -> {
+                        log.debug("delete用户完成 userId={} 耗时:{}ms", userId, System.currentTimeMillis() - start);
+                        if (Boolean.TRUE.equals(success)) {
+                            return true;
+                        }
+                        throw new RuntimeException("删除失败");
+                    });
+        }), "删除用户 " + userId);
+    }
 
-            // 实际删除逻辑需要根据业务需求实现
-            log.debug("delete用户完成 userId={} 耗时:{}ms", userId, System.currentTimeMillis() - start);
-            return Result.success();
-        } catch (Exception e) {
-            log.error("delete用户异常 userId={}", userId, e);
-            throw new RuntimeException("删除用户失败");
-        } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
-        }
+    private <T> Mono<T> withLock(String key, Mono<T> action, String logDesc) {
+        RLockReactive lock = redissonClient.reactive().getLock(key);
+        return lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)
+                .flatMap(acquired -> {
+                    if (!acquired) {
+                        return Mono.error(new MessageException("无法获取锁: " + logDesc));
+                    }
+                    return action
+                            .flatMap(res ->
+                                    lock.isHeldByThread(Thread.currentThread().threadId())
+                                            .flatMap(held -> held ? lock.unlock() : Mono.empty())
+                                            .onErrorResume(e -> Mono.empty())
+                                            .thenReturn(res)
+                            )
+                            .onErrorResume(e ->
+                                    lock.isHeldByThread(Thread.currentThread().threadId())
+                                            .flatMap(held -> held ? lock.unlock() : Mono.empty())
+                                            .onErrorResume(unlockErr -> Mono.empty())
+                                            .then(Mono.error(e))
+                            );
+                });
     }
 }

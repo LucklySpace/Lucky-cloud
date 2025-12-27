@@ -17,17 +17,20 @@ import com.xy.lucky.dubbo.api.database.friend.ImFriendshipDubboService;
 import com.xy.lucky.dubbo.api.database.friend.ImFriendshipRequestDubboService;
 import com.xy.lucky.dubbo.api.database.group.ImGroupDubboService;
 import com.xy.lucky.dubbo.api.database.user.ImUserDataDubboService;
+import com.xy.lucky.general.exception.BusinessException;
 import com.xy.lucky.general.exception.GlobalException;
-import com.xy.lucky.general.response.domain.Result;
 import com.xy.lucky.general.response.domain.ResultCode;
+import com.xy.lucky.server.exception.MessageException;
 import com.xy.lucky.server.service.RelationshipService;
 import com.xy.lucky.utils.time.DateTimeUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.redisson.api.RLock;
+import org.redisson.api.RLockReactive;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -65,25 +68,42 @@ public class RelationshipServiceImpl implements RelationshipService {
     @Resource
     private RedissonClient redissonClient;
 
+    private <T> Mono<T> withLock(String key, Mono<T> action, String logDesc) {
+        RLockReactive lock = redissonClient.reactive().getLock(key);
+        return lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)
+                .flatMap(acquired -> {
+                    if (!acquired) {
+                        return Mono.error(new MessageException("无法获取锁: " + logDesc));
+                    }
+                    return action
+                            .flatMap(res ->
+                                    lock.isHeldByThread(Thread.currentThread().threadId())
+                                            .flatMap(held -> held ? lock.unlock() : Mono.empty())
+                                            .onErrorResume(e -> Mono.empty())
+                                            .thenReturn(res)
+                            )
+                            .onErrorResume(e ->
+                                    lock.isHeldByThread(Thread.currentThread().threadId())
+                                            .flatMap(held -> held ? lock.unlock() : Mono.empty())
+                                            .onErrorResume(unlockErr -> Mono.empty())
+                                            .then(Mono.error(e))
+                            );
+                });
+    }
+
     /**
      * 获取联系人列表（加读锁防并发读写冲突）
      */
     @Override
-    public Result contacts(String ownerId, Long sequence) {
-        long start = System.currentTimeMillis();
-        log.debug("contacts() 开始 -> ownerId={}", ownerId);
-
-        RLock readLock = redissonClient.getLock(LOCK_READ_CONTACTS_PREFIX + ownerId);
-        try {
-            if (!readLock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
-                log.warn("无法获取contacts读锁 ownerId={}", ownerId);
-                return Result.success(Collections.emptyList()); // 降级返回空
-            }
+    public Mono<List<?>> contacts(String ownerId, Long sequence) {
+        return withLock(LOCK_READ_CONTACTS_PREFIX + ownerId, Mono.fromCallable(() -> {
+            long start = System.currentTimeMillis();
+            log.debug("contacts() 开始 -> ownerId={}", ownerId);
 
             List<ImFriendshipPo> friendships = imFriendshipDubboService.selectList(ownerId, sequence);
             if (isEmpty(friendships)) {
                 log.debug("没有好友关系 -> ownerId={}, 耗时 {} ms", ownerId, System.currentTimeMillis() - start);
-                return Result.success(Collections.emptyList());
+                return Collections.emptyList();
             }
 
             log.info("查询到好友关系数量: {} -> ownerId={}", friendships.size(), ownerId);
@@ -96,7 +116,7 @@ public class RelationshipServiceImpl implements RelationshipService {
 
             if (ids.isEmpty()) {
                 log.warn("所有 friendship 的 toId 都为 null -> ownerId={}, friendshipsCount={}", ownerId, friendships.size());
-                return Result.success(Collections.emptyList());
+                return Collections.emptyList();
             }
 
             log.debug("待查询用户 id 数量（去重后）: {}", ids.size());
@@ -104,7 +124,7 @@ public class RelationshipServiceImpl implements RelationshipService {
             List<ImUserDataPo> userDataAll = batchQueryUsers(ids);
             if (userDataAll.isEmpty()) {
                 log.warn("未从用户服务中查询到任何用户数据 -> ownerId={}, queriedIdsCount={}", ownerId, ids.size());
-                return Result.success(Collections.emptyList());
+                return Collections.emptyList();
             }
             log.debug("从用户服务累计查询到用户数据条数: {}", userDataAll.size());
 
@@ -120,36 +140,23 @@ public class RelationshipServiceImpl implements RelationshipService {
 
             log.info("contacts() 完成 -> ownerId={}, 返回 {} 条，耗时 {} ms",
                     ownerId, result.size(), System.currentTimeMillis() - start);
-            return Result.success(result);
-        } catch (Exception ex) {
-            log.error("contacts() 处理失败 -> ownerId={}, 耗时 {} ms", ownerId, System.currentTimeMillis() - start, ex);
-            throw new GlobalException(ResultCode.FAIL, "获取联系人失败");
-        } finally {
-            if (readLock.isHeldByCurrentThread()) {
-                readLock.unlock();
-            }
-        }
+            return result;
+        }).subscribeOn(Schedulers.boundedElastic()), "获取联系人 " + ownerId);
     }
 
     /**
      * 获取群组列表（加读锁）
      */
     @Override
-    public Result groups(String userId) {
-        long start = System.currentTimeMillis();
-        log.debug("groups() 开始 -> userId={}", userId);
-
-        RLock readLock = redissonClient.getLock(LOCK_READ_GROUPS_PREFIX + userId);
-        try {
-            if (!readLock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
-                log.warn("无法获取groups读锁 userId={}", userId);
-                return Result.success(Collections.emptyList());
-            }
+    public Mono<List<?>> groups(String userId) {
+        return withLock(LOCK_READ_GROUPS_PREFIX + userId, Mono.fromCallable(() -> {
+            long start = System.currentTimeMillis();
+            log.debug("groups() 开始 -> userId={}", userId);
 
             List<ImGroupPo> groups = imGroupDubboService.selectList(userId);
             if (isEmpty(groups)) {
                 log.debug("未查询到任何群组 -> userId={}, 耗时 {} ms", userId, System.currentTimeMillis() - start);
-                return Result.success(Collections.emptyList());
+                return Collections.emptyList();
             }
             log.info("查询到群组数: {} -> userId={}", groups.size(), userId);
 
@@ -163,36 +170,23 @@ public class RelationshipServiceImpl implements RelationshipService {
 
             log.info("groups() 完成 -> userId={}, 返回 {} 条，耗时 {} ms",
                     userId, result.size(), System.currentTimeMillis() - start);
-            return Result.success(result);
-        } catch (Exception ex) {
-            log.error("groups() 处理失败 -> userId={}, 耗时 {} ms", userId, System.currentTimeMillis() - start, ex);
-            throw new GlobalException(ResultCode.FAIL, "获取群组失败");
-        } finally {
-            if (readLock.isHeldByCurrentThread()) {
-                readLock.unlock();
-            }
-        }
+            return result;
+        }).subscribeOn(Schedulers.boundedElastic()), "获取群组列表 " + userId);
     }
 
     /**
      * 获取新好友请求（加读锁）
      */
     @Override
-    public Result newFriends(String userId) {
-        long startMs = System.currentTimeMillis();
-        log.debug("开始获取用户的新的好友请求 -> userId={}", userId);
-
-        RLock readLock = redissonClient.getLock(LOCK_READ_NEW_FRIENDS_PREFIX + userId);
-        try {
-            if (!readLock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
-                log.warn("无法获取newFriends读锁 userId={}", userId);
-                return Result.success(Collections.emptyList());
-            }
+    public Mono<List<?>> newFriends(String userId) {
+        return withLock(LOCK_READ_NEW_FRIENDS_PREFIX + userId, Mono.fromCallable(() -> {
+            long startMs = System.currentTimeMillis();
+            log.debug("开始获取用户的新的好友请求 -> userId={}", userId);
 
             List<ImFriendshipRequestPo> requests = imFriendshipRequestDubboService.selectList(userId);
             if (isEmpty(requests)) {
                 log.debug("未查询到任何好友请求 -> userId={}，耗时 {} ms", userId, System.currentTimeMillis() - startMs);
-                return Result.success(Collections.emptyList());
+                return Collections.emptyList();
             }
 
             log.info("查询到 {} 条好友请求 -> userId={}", requests.size(), userId);
@@ -204,7 +198,7 @@ public class RelationshipServiceImpl implements RelationshipService {
 
             if (requesterIds.isEmpty()) {
                 log.warn("所有好友请求的 fromId 都为空 -> userId={}, 请求数={}", userId, requests.size());
-                return Result.success(Collections.emptyList());
+                return Collections.emptyList();
             }
 
             log.debug("待查询的唯一用户 ID 数量：{} -> ids={}", requesterIds.size(), requesterIds);
@@ -225,38 +219,32 @@ public class RelationshipServiceImpl implements RelationshipService {
 
             log.info("newFriends 处理完成 -> userId={}, 返回 {} 条，耗时 {} ms",
                     userId, result.size(), System.currentTimeMillis() - startMs);
-            return Result.success(result);
-        } catch (Exception ex) {
-            log.error("获取新的好友请求失败 -> userId={}, 耗时 {} ms", userId, System.currentTimeMillis() - startMs, ex);
-            throw new GlobalException(ResultCode.FAIL, "获取新好友失败");
-        } finally {
-            if (readLock.isHeldByCurrentThread()) {
-                readLock.unlock();
-            }
-        }
+            return result;
+        }).subscribeOn(Schedulers.boundedElastic()), "获取新好友请求 " + userId);
     }
+
 
     /**
      * 获取好友信息（读操作，无锁）
      */
     @Override
-    public Result getFriendInfo(FriendDto friendDto) {
-        long start = System.currentTimeMillis();
-        if (friendDto == null) {
-            throw new IllegalArgumentException("friendDto cannot be null");
-        }
+    public Mono<FriendVo> getFriendInfo(FriendDto friendDto) {
+        return Mono.fromCallable(() -> {
+            long start = System.currentTimeMillis();
+            if (friendDto == null) {
+                throw new BusinessException("friendDto cannot be null");
+            }
 
-        String ownerId = friendDto.getFromId();
-        String toId = friendDto.getToId();
+            String ownerId = friendDto.getFromId();
+            String toId = friendDto.getToId();
 
-        FriendVo vo = new FriendVo();
+            FriendVo vo = new FriendVo();
 
-        try {
             ImUserDataPo userDataPo = imUserDataDubboService.selectOne(toId);
             if (userDataPo == null) {
                 vo.setUserId(ownerId).setFriendId(toId).setFlag(IMStatus.NO.getCode());
                 log.warn("getFriendInfo: user not found for friendId={}", toId);
-                return Result.success(vo);
+                throw new BusinessException("user not found");
             }
             vo = UserDataBeanMapper.INSTANCE.toFriendVo(userDataPo);
             vo.setUserId(ownerId)
@@ -273,42 +261,37 @@ public class RelationshipServiceImpl implements RelationshipService {
             }
 
             log.debug("getFriendInfo 完成 ownerId={} toId={} 耗时:{}ms", ownerId, toId, System.currentTimeMillis() - start);
-            return Result.success(vo);
-        } catch (Exception ex) {
-            log.error("getFriendInfo failed for ownerId={} friendId={}", ownerId, toId, ex);
-            vo.setUserId(ownerId).setFriendId(toId).setFlag(IMStatus.NO.getCode());
-            throw new GlobalException(ResultCode.FAIL, "获取好友信息失败");
-        }
+            return vo;
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
      * 获取好友信息列表（加读锁防并发）
      */
     @Override
-    public Result getFriendInfoList(FriendDto friendDto) {
-        long start = System.currentTimeMillis();
-        if (friendDto == null) {
-            throw new IllegalArgumentException("friendDto cannot be null");
-        }
-        final String ownerId = friendDto.getFromId();
-        final String keyword = friendDto.getKeyword();
+    public Mono<List<?>> getFriendInfoList(FriendDto friendDto) {
+        return Mono.fromCallable(() -> {
+            long start = System.currentTimeMillis();
+            if (friendDto == null) {
+                throw new IllegalArgumentException("friendDto cannot be null");
+            }
+            final String ownerId = friendDto.getFromId();
+            final String keyword = friendDto.getKeyword();
 
-        if (keyword == null || keyword.trim().isEmpty()) {
-            return Result.success(Collections.emptyList());
-        }
-
-        try {
+            if (keyword == null || keyword.trim().isEmpty()) {
+                return Collections.emptyList();
+            }
 
             List<ImUserDataPo> users = imUserDataDubboService.search(keyword.trim());
             if (isEmpty(users)) {
-                return Result.success(Collections.emptyList());
+                return Collections.emptyList();
             }
 
             List<ImUserDataPo> filteredUsers = users.stream()
                     .filter(u -> u != null && !Objects.equals(u.getUserId(), ownerId))
                     .toList();
             if (filteredUsers.isEmpty()) {
-                return Result.success(Collections.emptyList());
+                return Collections.emptyList();
             }
 
             List<String> userIds = filteredUsers.stream()
@@ -322,11 +305,8 @@ public class RelationshipServiceImpl implements RelationshipService {
             List<FriendVo> result = buildFriendVoLists(filteredUsers, relMap, ownerId);
 
             log.debug("getFriendInfoList 完成 ownerId={} keyword={} 返回{}条 耗时:{}ms", ownerId, keyword, result.size(), System.currentTimeMillis() - start);
-            return Result.success(result);
-        } catch (Exception e) {
-            log.error("searchFriendsByKeyword failed for ownerId={}, keyword={}", friendDto.getFromId(), friendDto.getKeyword(), e);
-            throw new GlobalException(ResultCode.FAIL, "搜索好友失败");
-        }
+            return result;
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 
 
@@ -334,17 +314,11 @@ public class RelationshipServiceImpl implements RelationshipService {
      * 添加好友（加锁防重复）
      */
     @Override
-    public Result addFriend(FriendRequestDto friendRequestDto) {
-        long start = System.currentTimeMillis();
-        log.debug("addFriend() 开始 -> fromId={}, toId={}", friendRequestDto.getFromId(), friendRequestDto.getToId());
-
+    public Mono<String> addFriend(FriendRequestDto friendRequestDto) {
         String lockKey = LOCK_ADD_FRIEND_LOCK_PREFIX + friendRequestDto.getFromId() + ":" + friendRequestDto.getToId();
-        RLock lock = redissonClient.getLock(lockKey);
-        try {
-            if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
-                log.warn("无法获取addFriend锁 fromId={} toId={}", friendRequestDto.getFromId(), friendRequestDto.getToId());
-                return Result.failed("添加请求处理中，请稍后重试");
-            }
+        return withLock(lockKey, Mono.fromCallable(() -> {
+            long start = System.currentTimeMillis();
+            log.debug("addFriend() 开始 -> fromId={}, toId={}", friendRequestDto.getFromId(), friendRequestDto.getToId());
 
             ImFriendshipRequestPo existingRequests = imFriendshipRequestDubboService.selectOne(
                     new ImFriendshipRequestPo()
@@ -363,16 +337,8 @@ public class RelationshipServiceImpl implements RelationshipService {
 
             log.info("addFriend() 完成 -> fromId={}, toId={}, 耗时 {} ms",
                     friendRequestDto.getFromId(), friendRequestDto.getToId(), System.currentTimeMillis() - start);
-            return Result.success("添加好友请求成功");
-        } catch (Exception ex) {
-            log.error("addFriend() 处理失败 -> fromId={}, toId={}, 耗时 {} ms",
-                    friendRequestDto.getFromId(), friendRequestDto.getToId(), System.currentTimeMillis() - start, ex);
-            throw new GlobalException(ResultCode.FAIL, "添加好友请求失败");
-        } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
-        }
+            return "添加好友请求成功";
+        }).subscribeOn(Schedulers.boundedElastic()), "添加好友 " + friendRequestDto.getFromId() + "->" + friendRequestDto.getToId());
     }
 
 
@@ -380,24 +346,18 @@ public class RelationshipServiceImpl implements RelationshipService {
      * 批准好友（加锁防并发审批）
      */
     @Override
-    public Result approveFriend(FriendRequestDto friendshipRequestDto) {
-        long start = System.currentTimeMillis();
-        log.debug("approveFriend() 开始 -> requestId={}, approveStatus={}",
-                friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus());
-
+    public Mono<Void> approveFriend(FriendRequestDto friendshipRequestDto) {
         String lockKey = LOCK_APPROVE_FRIEND_LOCK_PREFIX + friendshipRequestDto.getId();
-        RLock lock = redissonClient.getLock(lockKey);
-        try {
-            if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
-                log.warn("无法获取approveFriend锁 requestId={}", friendshipRequestDto.getId());
-                return Result.failed("审批处理中，请稍后重试");
-            }
+        return withLock(lockKey, Mono.fromCallable(() -> {
+            long start = System.currentTimeMillis();
+            log.debug("approveFriend() 开始 -> requestId={}, approveStatus={}",
+                    friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus());
 
             ImFriendshipRequestPo request = imFriendshipRequestDubboService.selectOne(
                     new ImFriendshipRequestPo().setId(friendshipRequestDto.getId()));
 
             if (request == null) {
-                return Result.failed("好友请求不存在");
+                throw new GlobalException(ResultCode.NOT_FOUND, "好友请求不存在");
             }
 
             String fromId = request.getFromId();
@@ -412,33 +372,19 @@ public class RelationshipServiceImpl implements RelationshipService {
 
             log.info("approveFriend() 完成 -> requestId={}, approveStatus={}, 耗时 {} ms",
                     friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus(), System.currentTimeMillis() - start);
-            return Result.success();
-        } catch (Exception ex) {
-            log.error("approveFriend() 处理失败 -> requestId={}, approveStatus={}, 耗时 {} ms",
-                    friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus(), System.currentTimeMillis() - start, ex);
-            throw new GlobalException(ResultCode.FAIL, "审批好友请求失败");
-        } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
-        }
+            return true;
+        }).subscribeOn(Schedulers.boundedElastic()).then(), "审批好友请求 " + friendshipRequestDto.getId());
     }
 
     /**
      * 删除好友（加锁防重复删除）
      */
     @Override
-    public Result delFriend(FriendDto friendDto) {
-        long start = System.currentTimeMillis();
-        log.debug("delFriend() 开始 -> fromId={}, toId={}", friendDto.getFromId(), friendDto.getToId());
-
+    public Mono<Void> delFriend(FriendDto friendDto) {
         String lockKey = LOCK_DEL_FRIEND_LOCK_PREFIX + friendDto.getFromId() + ":" + friendDto.getToId();
-        RLock lock = redissonClient.getLock(lockKey);
-        try {
-            if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
-                log.warn("无法获取delFriend锁 fromId={} toId={}", friendDto.getFromId(), friendDto.getToId());
-                return Result.failed("删除处理中，请稍后重试");
-            }
+        return withLock(lockKey, Mono.fromCallable(() -> {
+            long start = System.currentTimeMillis();
+            log.debug("delFriend() 开始 -> fromId={}, toId={}", friendDto.getFromId(), friendDto.getToId());
 
             String fromId = friendDto.getFromId();
             String toId = friendDto.getToId();
@@ -448,38 +394,24 @@ public class RelationshipServiceImpl implements RelationshipService {
 
             log.info("delFriend() 完成 -> fromId={}, toId={}, 耗时 {} ms",
                     friendDto.getFromId(), friendDto.getToId(), System.currentTimeMillis() - start);
-            return Result.success();
-        } catch (Exception ex) {
-            log.error("delFriend() 处理失败 -> fromId={}, toId={}, 耗时 {} ms",
-                    friendDto.getFromId(), friendDto.getToId(), System.currentTimeMillis() - start, ex);
-            throw new GlobalException(ResultCode.FAIL, "删除好友失败");
-        } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
-        }
+            return true;
+        }).subscribeOn(Schedulers.boundedElastic()).then(), "删除好友 " + friendDto.getFromId() + "->" + friendDto.getToId());
     }
 
     /**
      * 修改好友备注（加锁防并发修改）
      */
     @Override
-    public Result updateFriendRemark(FriendDto friendDto) {
-        long start = System.currentTimeMillis();
-        log.debug("updateFriendRemark() 开始 -> ownerId={}, friendId={}", friendDto.getFromId(), friendDto.getToId());
-
+    public Mono<Boolean> updateFriendRemark(FriendDto friendDto) {
         String lockKey = LOCK_UPDATE_FRIEND_REMARK_PREFIX + friendDto.getFromId() + ":" + friendDto.getToId();
-        RLock lock = redissonClient.getLock(lockKey);
-        try {
-            if (!lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS)) {
-                log.warn("无法获取updateFriendRemark锁 ownerId={} friendId={}", friendDto.getFromId(), friendDto.getToId());
-                return Result.failed("备注更新处理中，请稍后重试");
-            }
+        return withLock(lockKey, Mono.fromCallable(() -> {
+            long start = System.currentTimeMillis();
+            log.debug("updateFriendRemark() 开始 -> ownerId={}, friendId={}", friendDto.getFromId(), friendDto.getToId());
 
             // 查询好友关系是否存在
             ImFriendshipPo friendshipPo = imFriendshipDubboService.selectOne(friendDto.getFromId(), friendDto.getToId());
             if (friendshipPo == null) {
-                return Result.failed("好友关系不存在");
+                throw new GlobalException(ResultCode.NOT_FOUND, "好友关系不存在");
             }
 
             // 更新备注信息
@@ -490,22 +422,15 @@ public class RelationshipServiceImpl implements RelationshipService {
             if (success) {
                 log.info("updateFriendRemark() 完成 -> ownerId={}, friendId={}, remark={}, 耗时 {} ms",
                         friendDto.getFromId(), friendDto.getToId(), friendDto.getRemark(), System.currentTimeMillis() - start);
-                return Result.success("备注更新成功");
+                return true;
             } else {
                 log.warn("updateFriendRemark() 失败 -> ownerId={}, friendId={}, remark={}, 耗时 {} ms",
                         friendDto.getFromId(), friendDto.getToId(), friendDto.getRemark(), System.currentTimeMillis() - start);
-                return Result.failed("备注更新失败");
+                return false;
             }
-        } catch (Exception ex) {
-            log.error("updateFriendRemark() 处理失败 -> ownerId={}, friendId={}, remark={}, 耗时 {} ms",
-                    friendDto.getFromId(), friendDto.getToId(), friendDto.getKeyword(), System.currentTimeMillis() - start, ex);
-            throw new GlobalException(ResultCode.FAIL, "备注更新失败");
-        } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
-            }
-        }
+        }).subscribeOn(Schedulers.boundedElastic()), "更新好友备注 " + friendDto.getFromId() + "->" + friendDto.getToId());
     }
+
 
     /**
      * 批量查询用户信息（不变）

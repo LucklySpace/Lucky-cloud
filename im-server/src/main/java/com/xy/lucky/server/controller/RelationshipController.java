@@ -3,7 +3,7 @@ package com.xy.lucky.server.controller;
 
 import com.xy.lucky.domain.dto.FriendDto;
 import com.xy.lucky.domain.dto.FriendRequestDto;
-import com.xy.lucky.general.response.domain.Result;
+import com.xy.lucky.domain.vo.FriendVo;
 import com.xy.lucky.server.service.RelationshipService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,6 +13,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 
 /**
@@ -33,7 +36,7 @@ public class RelationshipController {
             @Parameter(name = "userId", description = "请求对象", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "sequence", description = "时序", required = true, in = ParameterIn.QUERY)
     })
-    public Result contacts(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
+    public Mono<List<?>> contacts(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
         return relationshipService.contacts(userId, sequence);
     }
 
@@ -43,7 +46,7 @@ public class RelationshipController {
             @Parameter(name = "userId", description = "请求对象", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "sequence", description = "时序", required = true, in = ParameterIn.QUERY)
     })
-    public Result groups(@RequestParam("userId") String userId) {
+    public Mono<List<?>> groups(@RequestParam("userId") String userId) {
         return relationshipService.groups(userId);
     }
 
@@ -53,7 +56,7 @@ public class RelationshipController {
     @Parameters({
             @Parameter(name = "userId", description = "请求对象", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result newFriends(@RequestParam("userId") String userId) {
+    public Mono<List<?>> newFriends(@RequestParam("userId") String userId) {
         return relationshipService.newFriends(userId);
     }
 
@@ -62,7 +65,7 @@ public class RelationshipController {
     @Parameters({
             @Parameter(name = "friendDto", description = "请求对象", required = true, in = ParameterIn.QUERY),
     })
-    public Result getFriendInfo(@RequestBody FriendDto friendDto) {
+    public Mono<FriendVo> getFriendInfo(@RequestBody FriendDto friendDto) {
         return relationshipService.getFriendInfo(friendDto);
     }
 
@@ -71,7 +74,7 @@ public class RelationshipController {
     @Parameters({
             @Parameter(name = "friendDto", description = "请求对象", required = true, in = ParameterIn.QUERY),
     })
-    public Result getFriendInfoList(@RequestBody FriendDto friendDto) {
+    public Mono<List<?>> getFriendInfoList(@RequestBody FriendDto friendDto) {
         return relationshipService.getFriendInfoList(friendDto);
     }
 
@@ -81,7 +84,7 @@ public class RelationshipController {
     @Parameters({
             @Parameter(name = "friendRequestDto", description = "添加好友", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result addFriend(@RequestBody FriendRequestDto friendRequestDto) {
+    public Mono<String> addFriend(@RequestBody FriendRequestDto friendRequestDto) {
         return relationshipService.addFriend(friendRequestDto);
     }
 
@@ -90,7 +93,7 @@ public class RelationshipController {
     @Parameters({
             @Parameter(name = "friendshipRequestDto", description = "好友申请信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result approveFriend(@RequestBody FriendRequestDto friendshipRequestDto) {
+    public Mono<Void> approveFriend(@RequestBody FriendRequestDto friendshipRequestDto) {
         return relationshipService.approveFriend(friendshipRequestDto);
     }
 
@@ -99,7 +102,7 @@ public class RelationshipController {
     @Parameters({
             @Parameter(name = "friendDto", description = "好友信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result delFriend(@RequestBody FriendDto friendDto) {
+    public Mono<Void> delFriend(@RequestBody FriendDto friendDto) {
         return relationshipService.delFriend(friendDto);
     }
 
@@ -109,7 +112,7 @@ public class RelationshipController {
     @Parameters({
             @Parameter(name = "friendDto", description = "好友信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result updateFriendRemark(@RequestBody FriendDto friendDto) {
+    public Mono<Boolean> updateFriendRemark(@RequestBody FriendDto friendDto) {
         return relationshipService.updateFriendRemark(friendDto);
     }
 

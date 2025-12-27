@@ -3,13 +3,14 @@
     <el-header class="header">
       <div class="brand">
         <!-- 菜单切换按钮 (Optional: Toggle Outer Sidebar) -->
-        <el-button circle icon="Menu" text @click="isCollapse = !isCollapse"></el-button>
+        <!-- <el-button circle icon="Menu" text @click="isCollapse = !isCollapse"></el-button> -->
 
         <!-- LOGO/名称 -->
         <div>
+          <!-- <el-avatar src="../img/icon.png"></el-avatar> -->
           <div class="brand-title">Lucky IM 日志中心</div>
           <div style="font-size: 12px; color: var(--muted)">
-            可视化日志查询
+
           </div>
         </div>
       </div>

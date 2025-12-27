@@ -42,6 +42,13 @@ public interface ImChatDubboService {
     Boolean update(ImChatPo chatPo);
 
     /**
+     * 创建或更新会话信息
+     *
+     * @param chatPo 会话信息
+     */
+    Boolean createOrUpdate(ImChatPo chatPo);
+
+    /**
      * 删除会话信息
      *
      * @param id 会话id

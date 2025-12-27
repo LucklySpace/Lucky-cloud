@@ -5,17 +5,21 @@ import com.xy.lucky.general.exception.BusinessException;
 import com.xy.lucky.general.response.domain.ResultCode;
 import com.xy.lucky.server.service.FileService;
 import com.xy.lucky.server.utils.MinioUtil;
-import com.xy.lucky.server.utils.MockMultipartFile;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -76,82 +80,94 @@ public class FileServiceImpl implements FileService {
 
     @PostConstruct
     public void init() {
-        if (!minioUtil.bucketExists(bucketName)) {
-            // 创建bucket
-            minioUtil.makeBucket(bucketName);
-            // 公开bucket
-            minioUtil.setBucketPublic(bucketName);
-        }
+        // Initialization logic for Minio bucket
+        minioUtil.bucketExists(bucketName)
+                .flatMap(exists -> {
+                    if (!exists) {
+                        return minioUtil.makeBucket(bucketName)
+                                .flatMap(success -> {
+                                    if (success) {
+                                        return minioUtil.setBucketPublic(bucketName);
+                                    }
+                                    return Mono.just(false);
+                                });
+                    }
+                    return Mono.just(true);
+                })
+                .subscribe();
     }
 
     @Override
-    public FileVo uploadFile(MultipartFile file) {
+    public Mono<FileVo> uploadFile(FilePart file) {
+        return DataBufferUtils.join(file.content())
+                .publishOn(Schedulers.boundedElastic())
+                .flatMap(dataBuffer -> {
+                    byte[] bytes = new byte[dataBuffer.readableByteCount()];
+                    dataBuffer.read(bytes);
+                    DataBufferUtils.release(dataBuffer);
+                    InputStream inputStream = new java.io.ByteArrayInputStream(bytes);
 
-        // 大小校验
-        if (file.getSize() > 1000 * 1024 * 1024) {
-            throw new BusinessException(ResultCode.REQUEST_DATA_TOO_LARGE);
-        }
+                    // 大小校验
+                    long size = bytes.length;
+                    if (size > 1000 * 1024 * 1024) {
+                        return Mono.error(new BusinessException(ResultCode.REQUEST_DATA_TOO_LARGE));
+                    }
 
-        String filePath = getFileType(file.getOriginalFilename());
+                    String originalFilename = file.filename();
+                    String filePath = getFileType(originalFilename);
+                    MediaType contentType = file.headers().getContentType();
+                    String contentTypeStr = contentType != null ? contentType.toString() : "application/octet-stream";
 
-        // 上传
-        String fileName = minioUtil.upload(bucketName, filePath, file);
-
-        if (StringUtils.isEmpty(fileName)) {
-            throw new BusinessException(ResultCode.FAIL);
-        }
-
-        FileVo fileVo = new FileVo()
-                .setName(file.getOriginalFilename())
-                .setPath(generUrl(filePath, fileName));
-
-        return fileVo;
-
+                    // 上传
+                    return minioUtil.upload(bucketName, filePath, originalFilename, inputStream, size, contentTypeStr)
+                            .flatMap(fileName -> {
+                                if (StringUtils.isEmpty(fileName)) {
+                                    return Mono.error(new BusinessException(ResultCode.FAIL));
+                                }
+                                FileVo fileVo = new FileVo()
+                                        .setName(originalFilename)
+                                        .setPath(generUrl(filePath, fileName));
+                                return Mono.just(fileVo);
+                            });
+                });
     }
 
+    @Override
+    public Mono<FileVo> uploadFile(File file) {
+        // 大小校验
+        if (file.length() > 1000 * 1024 * 1024) {
+            return Mono.error(new BusinessException(ResultCode.REQUEST_DATA_TOO_LARGE));
+        }
+
+        String originalFilename = file.getName();
+        String filePath = getFileType(originalFilename);
+        String contentType = "application/octet-stream"; // Default or detect
+
+        return Mono.fromCallable(() -> new FileInputStream(file))
+                .subscribeOn(Schedulers.boundedElastic())
+                .flatMap(inputStream ->
+                        minioUtil.upload(bucketName, filePath, originalFilename, inputStream, file.length(), contentType)
+                                .doFinally(signal -> {
+                                    try {
+                                        inputStream.close();
+                                    } catch (IOException e) {
+                                        // ignore
+                                    }
+                                })
+                )
+                .flatMap(fileName -> {
+                    if (StringUtils.isEmpty(fileName)) {
+                        return Mono.error(new BusinessException(ResultCode.FAIL));
+                    }
+                    return Mono.just(new FileVo()
+                            .setName(originalFilename)
+                            .setPath(generUrl(filePath, fileName)));
+                });
+    }
 
     public String generUrl(String fileType, String fileName) {
         String url = minIOServer + "/" + bucketName + "/" + fileType + "/" + fileName;
         return url;
-    }
-
-    /**
-     * file 转 MultipartFile
-     *
-     * @param file
-     * @return
-     */
-    @Override
-    public MultipartFile fileToMultipartFile(File file) {
-        MultipartFile result = null;
-        if (null != file) {
-            try (FileInputStream input = new FileInputStream(file)) {
-                result = new MockMultipartFile(file.getName(), file.getName(), "text/plain", input);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return result;
-    }
-
-
-    /**
-     * file 转 MultipartFile
-     *
-     * @param file
-     * @return
-     */
-    @Override
-    public MultipartFile fileToImageMultipartFile(File file) {
-        MultipartFile result = null;
-        if (null != file) {
-            try (FileInputStream input = new FileInputStream(file)) {
-                result = new MockMultipartFile(file.getName(), file.getName(), "image/jpg", input);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return result;
     }
 
 }

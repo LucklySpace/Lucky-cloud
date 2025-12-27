@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
@@ -36,7 +37,7 @@ public class MessageController {
     @Parameters({
             @Parameter(name = "singleMessageDto", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
     })
-    public IMSingleMessage sendSingleMessage(@Valid @RequestBody IMSingleMessage singleMessageDto) {
+    public Mono<IMSingleMessage> sendSingleMessage(@Valid @RequestBody IMSingleMessage singleMessageDto) {
         return messageService.sendSingleMessage(singleMessageDto);
     }
 
@@ -45,7 +46,7 @@ public class MessageController {
     @Parameters({
             @Parameter(name = "groupMessageDto", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
     })
-    public IMGroupMessage sendGroupMessage(@Valid @RequestBody IMGroupMessage groupMessageDto) {
+    public Mono<IMGroupMessage> sendGroupMessage(@Valid @RequestBody IMGroupMessage groupMessageDto) {
         return messageService.sendGroupMessage(groupMessageDto);
     }
 
@@ -54,8 +55,8 @@ public class MessageController {
     @Parameters({
             @Parameter(name = "IMVideoMessageDto", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
     })
-    public void sendVideoMessage(@RequestBody IMVideoMessage videoMessageDto) {
-        messageService.sendVideoMessage(videoMessageDto);
+    public Mono<Void> sendVideoMessage(@RequestBody IMVideoMessage videoMessageDto) {
+        return messageService.sendVideoMessage(videoMessageDto);
     }
 
 
@@ -64,8 +65,8 @@ public class MessageController {
     @Parameters({
             @Parameter(name = "messageAction", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
     })
-    public void recallMessage(@RequestBody IMessageAction messageAction) {
-        messageService.recallMessage(messageAction);
+    public Mono<Void> recallMessage(@RequestBody IMessageAction messageAction) {
+        return messageService.recallMessage(messageAction);
     }
 
 
@@ -74,7 +75,7 @@ public class MessageController {
     @Parameters({
             @Parameter(name = "chatDto", description = "会话对象", required = true, in = ParameterIn.QUERY)
     })
-    public Map<Integer, Object> list(@RequestBody ChatDto chatDto) {
+    public Mono<Map<Integer, Object>> list(@RequestBody ChatDto chatDto) {
         return messageService.list(chatDto);
     }
 //
@@ -87,6 +88,5 @@ public class MessageController {
 //        return messageService.singleCheck(chatDto);
 //    }
 //
-
 
 }

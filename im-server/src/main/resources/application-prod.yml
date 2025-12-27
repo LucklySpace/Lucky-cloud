@@ -23,9 +23,15 @@ spring:
   threads:
     virtual:
       enabled: true  # 开启虚拟线程
-  servlet:
+  # WebFlux configuration
+  webflux:
     multipart:
-      max-file-size: 10MB
+      max-in-memory-size: 256KB
+  codec:
+    max-in-memory-size: 10MB # Set default codec limit
+  #  servlet:
+  #    multipart:
+  #      max-file-size: 10MB
   data:
     redis:
       redisson:

@@ -55,7 +55,7 @@ public interface IMOutboxDubboService {
      * @param outboxPo 消息信息
      * @return 是否成功
      */
-    boolean saveOrUpdate(IMOutboxPo outboxPo);
+    Boolean saveOrUpdate(IMOutboxPo outboxPo);
 
     /**
      * 删除消息

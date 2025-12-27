@@ -22,6 +22,7 @@ public enum IMessageType {
     PUBLIC(2001, "公众号"),
 
     MESSAGE_ACTION(3000, "消息更新"),
+    RECALL_MESSAGE(3001, "撤回消息"),
 
 
     ;

@@ -4,7 +4,6 @@ package com.xy.lucky.server.controller;
 import com.xy.lucky.domain.dto.GroupDto;
 import com.xy.lucky.domain.dto.GroupInviteDto;
 import com.xy.lucky.domain.dto.GroupMemberDto;
-import com.xy.lucky.general.response.domain.Result;
 import com.xy.lucky.server.service.GroupService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -17,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
@@ -37,7 +37,7 @@ public class GroupController {
     @Parameters({
             @Parameter(name = "groupInviteDto", description = "邀请信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public String inviteGroup(@RequestBody GroupInviteDto groupInviteDto) {
+    public Mono<String> inviteGroup(@RequestBody GroupInviteDto groupInviteDto) {
         return groupService.inviteGroup(groupInviteDto);
     }
 
@@ -46,7 +46,7 @@ public class GroupController {
     @Parameters({
             @Parameter(name = "groupDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public Map<?, ?> getGroupMembers(@RequestBody GroupDto groupDto) {
+    public Mono<Map<?, ?>> getGroupMembers(@RequestBody GroupDto groupDto) {
         return groupService.getGroupMembers(groupDto);
     }
 
@@ -55,7 +55,7 @@ public class GroupController {
     @Parameters({
             @Parameter(name = "groupInviteDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result approveGroupInvite(@RequestBody GroupInviteDto groupInviteDto) {
+    public Mono<String> approveGroupInvite(@RequestBody GroupInviteDto groupInviteDto) {
         return groupService.approveGroupInvite(groupInviteDto);
     }
 
@@ -64,7 +64,7 @@ public class GroupController {
     @Parameters({
             @Parameter(name = "groupDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result groupInfo(@RequestBody GroupDto groupDto) {
+    public Mono<com.xy.lucky.domain.po.ImGroupPo> groupInfo(@RequestBody GroupDto groupDto) {
         return groupService.groupInfo(groupDto);
     }
 
@@ -73,7 +73,7 @@ public class GroupController {
     @Parameters({
             @Parameter(name = "groupDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result updateGroupInfo(@RequestBody GroupDto groupDto) {
+    public Mono<Boolean> updateGroupInfo(@RequestBody GroupDto groupDto) {
         return groupService.updateGroupInfo(groupDto);
     }
 
@@ -82,8 +82,8 @@ public class GroupController {
     @Parameters({
             @Parameter(name = "groupDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public void quit(@RequestBody GroupDto groupDto) {
-        groupService.quitGroup(groupDto);
+    public Mono<Void> quit(@RequestBody GroupDto groupDto) {
+        return groupService.quitGroup(groupDto);
     }
 
     @PostMapping("/member/update")
@@ -91,7 +91,7 @@ public class GroupController {
     @Parameters({
             @Parameter(name = "groupMemberDto", description = "群成员信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result updateGroupMember(@RequestBody GroupMemberDto groupMemberDto) {
+    public Mono<Boolean> updateGroupMember(@RequestBody GroupMemberDto groupMemberDto) {
         return groupService.updateGroupMember(groupMemberDto);
     }
 }

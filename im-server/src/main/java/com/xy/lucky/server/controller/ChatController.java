@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -29,7 +30,7 @@ public class ChatController {
     @Parameters({
             @Parameter(name = "chatSetDto", description = "用户会话信息", required = true, in = ParameterIn.QUERY)
     })
-    public List<ChatVo> list(@RequestBody ChatDto chatDto) {
+    public Mono<List<ChatVo>> list(@RequestBody ChatDto chatDto) {
         return chatService.list(chatDto);
     }
 
@@ -39,8 +40,8 @@ public class ChatController {
     @Parameters({
             @Parameter(name = "chatSetDto", description = "用户会话已读", required = true, in = ParameterIn.DEFAULT)
     })
-    public void read(@RequestBody ChatDto chatDto) {
-        chatService.read(chatDto);
+    public Mono<Void> read(@RequestBody ChatDto chatDto) {
+        return chatService.read(chatDto);
     }
 
     @GetMapping("/one")
@@ -49,7 +50,7 @@ public class ChatController {
             @Parameter(name = "ownerId", description = "对象", required = true, in = ParameterIn.DEFAULT),
             @Parameter(name = "toId", description = "对象", required = true, in = ParameterIn.DEFAULT)
     })
-    public ChatVo one(@RequestParam("ownerId") String ownerId, @RequestParam("toId") String toId) {
+    public Mono<ChatVo> one(@RequestParam("ownerId") String ownerId, @RequestParam("toId") String toId) {
         return chatService.one(ownerId, toId);
     }
 
@@ -58,7 +59,7 @@ public class ChatController {
     @Parameters({
             @Parameter(name = "ChatSetDto", description = "用户单向创建会话", required = true, in = ParameterIn.DEFAULT)
     })
-    public ChatVo create(@RequestBody ChatDto ChatDto) {
+    public Mono<ChatVo> create(@RequestBody ChatDto ChatDto) {
         return chatService.create(ChatDto);
     }
 

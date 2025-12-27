@@ -1,6 +1,6 @@
 package com.xy.lucky.server;
 
-import com.github.xiaoymin.knife4j.spring.annotations.EnableKnife4j;
+
 import org.apache.dubbo.config.spring.context.annotation.EnableDubbo;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration;
@@ -11,7 +11,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
-@EnableKnife4j
+
 @EnableAsync
 @EnableDubbo
 @ComponentScan("com.xy.lucky") // 扫描包路径

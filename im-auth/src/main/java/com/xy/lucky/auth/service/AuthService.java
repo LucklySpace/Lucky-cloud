@@ -2,7 +2,9 @@ package com.xy.lucky.auth.service;
 
 
 import com.xy.lucky.auth.domain.IMLoginRequest;
-import com.xy.lucky.general.response.domain.Result;
+import com.xy.lucky.auth.domain.IMLoginResult;
+import com.xy.lucky.auth.domain.IMQRCodeResult;
+import com.xy.lucky.domain.vo.UserVo;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Map;
@@ -12,21 +14,21 @@ import java.util.Map;
  */
 public interface AuthService {
 
-    Result<?> login(IMLoginRequest imLoginRequest);
+    IMLoginResult login(IMLoginRequest imLoginRequest);
 
-    Result<?> info(String userId);
+    UserVo info(String userId);
 
-    Result<?> isOnline(String userId);
+    Boolean isOnline(String userId);
 
-    Result<?> refreshToken(HttpServletRequest request);
+    Map<String, String> refreshToken(HttpServletRequest request);
 
-    Result<?> generateQRCode(String qrCodeId);
+    IMQRCodeResult generateQRCode(String qrCodeId);
 
-    Result<?> scanQRCode(Map<String, String> payload);
+    IMQRCodeResult scanQRCode(Map<String, String> payload);
 
-    Result<?> getQRCodeStatus(String qrCodeId);
+    IMQRCodeResult getQRCodeStatus(String qrCodeId);
 
-    Result<?> getPublicKey();
+    Map<String, String> getPublicKey();
 
-    Result<?> sendSms(String phone);
+    String sendSms(String phone);
 }

@@ -4,8 +4,15 @@ import com.xy.lucky.core.model.IMetaId;
 import com.xy.lucky.leaf.service.IdService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -19,6 +26,7 @@ import java.util.List;
  */
 @Tag(name = "ID Generator", description = "ID生成服务接口")
 @RestController
+@Validated
 @RequestMapping("/api/v1/generator")
 public class IdController {
 
@@ -33,6 +41,11 @@ public class IdController {
      * @return ID对象
      */
     @Operation(summary = "生成单个ID", description = "根据指定策略和业务标识生成单个ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "查询成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = IMetaId.class)))
+    })
     @GetMapping("/id")
     public IMetaId generateId(
             @Parameter(description = "策略类型") @RequestParam("type") String type,
@@ -49,11 +62,16 @@ public class IdController {
      * @return ID列表
      */
     @Operation(summary = "批量生成ID", description = "根据指定策略和业务标识批量生成ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "查询成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = IMetaId.class)))
+    })
     @GetMapping("/ids")
     public List<IMetaId> generateBatchIds(
             @Parameter(description = "策略类型") @RequestParam("type") String type,
             @Parameter(description = "业务标识") @RequestParam("key") String key,
-            @Parameter(description = "生成数量") @RequestParam("count") Integer count) {
+            @Parameter(description = "生成数量") @RequestParam("count") @Min(1) @Max(1000) Integer count) {
         return idService.generateIds(type, key, count);
     }
 }

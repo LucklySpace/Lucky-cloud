@@ -24,17 +24,17 @@
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-domain</artifactId>
+            <artifactId>im-starter-domain</artifactId>
         </dependency>
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-dubbo</artifactId>
+            <artifactId>im-starter-dubbo</artifactId>
         </dependency>
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-common</artifactId>
+            <artifactId>im-starter-common</artifactId>
         </dependency>
 
         <dependency>

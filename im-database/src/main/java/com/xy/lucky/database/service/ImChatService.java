@@ -44,6 +44,11 @@ public class ImChatService extends ServiceImpl<ImChatMapper, ImChatPo>
         return updateById(chatPo);
     }
 
+    @Override
+    public Boolean createOrUpdate(ImChatPo chatPo) {
+        return saveOrUpdate(chatPo);
+    }
+
     public Boolean deleteById(String id) {
         return removeById(id);
     }

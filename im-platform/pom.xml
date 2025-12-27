@@ -37,7 +37,7 @@
         <!-- 地址与 IP 查询模块 -->
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-address</artifactId>
+            <artifactId>im-starter-address</artifactId>
             <version>${revision}</version>
         </dependency>
 

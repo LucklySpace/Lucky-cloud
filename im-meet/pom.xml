@@ -46,7 +46,7 @@
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-common</artifactId>
+            <artifactId>im-starter-common</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
 
@@ -98,7 +98,7 @@
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-core</artifactId>
+            <artifactId>im-starter-core</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
 

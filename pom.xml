@@ -247,21 +247,21 @@
             <!-- framework模块 项目内子模块统一版本管理 -->
             <dependency>
                 <groupId>com.xy.lucky</groupId>
-                <artifactId>im-core</artifactId>
+                <artifactId>im-starter-core</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- 实体类模块 -->
             <dependency>
                 <groupId>com.xy.lucky</groupId>
-                <artifactId>im-domain</artifactId>
+                <artifactId>im-starter-domain</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <!-- dubbo模块 -->
             <dependency>
                 <groupId>com.xy.lucky</groupId>
-                <artifactId>im-dubbo</artifactId>
+                <artifactId>im-starter-dubbo</artifactId>
                 <version>${revision}</version>
             </dependency>
 
@@ -309,7 +309,7 @@
             <!-- 接口加解密模块 -->
             <dependency>
                 <groupId>com.xy.lucky</groupId>
-                <artifactId>im-crypto</artifactId>
+                <artifactId>im-starter-crypto</artifactId>
                 <version>${revision}</version>
             </dependency>
 
@@ -323,7 +323,7 @@
             <!-- 工具类模块 -->
             <dependency>
                 <groupId>com.xy.lucky</groupId>
-                <artifactId>im-common</artifactId>
+                <artifactId>im-starter-common</artifactId>
                 <version>${revision}</version>
             </dependency>
 

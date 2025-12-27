@@ -29,22 +29,22 @@
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-core</artifactId>
+            <artifactId>im-starter-core</artifactId>
         </dependency>
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-dubbo</artifactId>
+            <artifactId>im-starter-dubbo</artifactId>
         </dependency>
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-domain</artifactId>
+            <artifactId>im-starter-domain</artifactId>
         </dependency>
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-common</artifactId>
+            <artifactId>im-starter-common</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>org.springframework.boot</groupId>

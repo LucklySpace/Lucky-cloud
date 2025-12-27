@@ -86,7 +86,7 @@
         </dependency>
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-core</artifactId>
+            <artifactId>im-starter-core</artifactId>
         </dependency>
 
     </dependencies>

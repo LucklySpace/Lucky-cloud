@@ -30,7 +30,7 @@
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-common</artifactId>
+            <artifactId>im-starter-common</artifactId>
         </dependency>
 
         <!-- Database Driver (PostgreSQL) -->

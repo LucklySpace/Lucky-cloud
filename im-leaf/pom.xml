@@ -29,12 +29,12 @@
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-dubbo</artifactId>
+            <artifactId>im-starter-dubbo</artifactId>
         </dependency>
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-core</artifactId>
+            <artifactId>im-starter-core</artifactId>
         </dependency>
 
         <!-- postgresql 数据库依赖 -->

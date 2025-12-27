@@ -14,7 +14,7 @@ public interface IMOutboxDubboService {
      *
      * @return 消息列表
      */
-    List<IMOutboxPo> selectList();
+    List<IMOutboxPo> queryList();
 
 
     /**
@@ -23,7 +23,7 @@ public interface IMOutboxDubboService {
      * @param id 消息ID
      * @return 消息信息
      */
-    IMOutboxPo selectOne(Long id);
+    IMOutboxPo queryOne(Long id);
 
     /**
      * 保存消息
@@ -31,7 +31,7 @@ public interface IMOutboxDubboService {
      * @param outboxPo 消息信息
      * @return 是否成功
      */
-    Boolean insert(IMOutboxPo outboxPo);
+    Boolean creat(IMOutboxPo outboxPo);
 
     /**
      * 批量保存消息
@@ -39,7 +39,7 @@ public interface IMOutboxDubboService {
      * @param list 待保存的消息列表
      * @return 是否成功
      */
-    Boolean batchInsert(List<IMOutboxPo> list);
+    Boolean creatBatch(List<IMOutboxPo> list);
 
     /**
      * 更新消息
@@ -47,7 +47,7 @@ public interface IMOutboxDubboService {
      * @param outboxPo 待更新的消息信息
      * @return 是否成功
      */
-    Boolean update(IMOutboxPo outboxPo);
+    Boolean modify(IMOutboxPo outboxPo);
 
     /**
      * 保存或更新消息
@@ -55,7 +55,7 @@ public interface IMOutboxDubboService {
      * @param outboxPo 消息信息
      * @return 是否成功
      */
-    boolean saveOrUpdate(IMOutboxPo outboxPo);
+    boolean creatOrModify(IMOutboxPo outboxPo);
 
     /**
      * 删除消息
@@ -63,7 +63,7 @@ public interface IMOutboxDubboService {
      * @param id id
      * @return 是否成功
      */
-    Boolean deleteById(Long id);
+    Boolean removeOne(Long id);
 
     /**
      * 批量获取待发送的消息
@@ -72,7 +72,7 @@ public interface IMOutboxDubboService {
      * @param limit  限制数量
      * @return 消息列表
      */
-    List<IMOutboxPo> listByStatus(String status, Integer limit);
+    List<IMOutboxPo> queryByStatus(String status, Integer limit);
 
     /**
      * 更新消息状态
@@ -82,7 +82,7 @@ public interface IMOutboxDubboService {
      * @param attempts 尝试次数
      * @return 是否更新成功
      */
-    Boolean updateStatus(Long id, String status, Integer attempts);
+    Boolean modifyStatus(Long id, String status, Integer attempts);
 
     /**
      * 更新消息为发送失败
@@ -92,5 +92,5 @@ public interface IMOutboxDubboService {
      * @param attempts  尝试次数
      * @return 是否更新成功
      */
-    Boolean markAsFailed(Long id, String lastError, Integer attempts);
+    Boolean modifyToFailed(Long id, String lastError, Integer attempts);
 }

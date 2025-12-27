@@ -1,52 +1,59 @@
 package com.xy.lucky.database.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.mapper.ImSingleMessageMapper;
 import com.xy.lucky.domain.po.ImSingleMessagePo;
 import com.xy.lucky.dubbo.api.database.message.ImSingleMessageDubboService;
-import jakarta.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 
 import java.util.List;
 
 @DubboService
+@RequiredArgsConstructor
 public class ImSingleMessageService extends ServiceImpl<ImSingleMessageMapper, ImSingleMessagePo>
-        implements ImSingleMessageDubboService, IService<ImSingleMessagePo> {
+        implements ImSingleMessageDubboService {
 
-    @Resource
-    private ImSingleMessageMapper imSingleMessageMapper;
+    private final ImSingleMessageMapper imSingleMessageMapper;
 
 
-    public List<ImSingleMessagePo> selectList(String userId, Long sequence) {
+    @Override
+    public List<ImSingleMessagePo> queryList(String userId, Long sequence) {
         return imSingleMessageMapper.selectSingleMessage(userId, sequence);
     }
 
-    public ImSingleMessagePo selectOne(String messageId) {
-        return this.getById(messageId);
+    @Override
+    public ImSingleMessagePo queryOne(String messageId) {
+        return super.getById(messageId);
     }
 
-    public Boolean insert(ImSingleMessagePo singleMessagePo) {
-        return this.save(singleMessagePo);
+    @Override
+    public Boolean creat(ImSingleMessagePo singleMessagePo) {
+        return super.save(singleMessagePo);
     }
 
-    public Boolean batchInsert(List<ImSingleMessagePo> singleMessagePoList) {
+    @Override
+    public Boolean creatBatch(List<ImSingleMessagePo> singleMessagePoList) {
         return !imSingleMessageMapper.insert(singleMessagePoList).isEmpty();
     }
 
-    public Boolean update(ImSingleMessagePo singleMessagePo) {
-        return this.updateById(singleMessagePo);
+    @Override
+    public Boolean modify(ImSingleMessagePo singleMessagePo) {
+        return super.updateById(singleMessagePo);
     }
 
-    public Boolean deleteById(String messageId) {
-        return this.removeById(messageId);
+    @Override
+    public Boolean removeOne(String messageId) {
+        return super.removeById(messageId);
     }
 
-    public ImSingleMessagePo last(String fromId, String toId) {
+    @Override
+    public ImSingleMessagePo queryLast(String fromId, String toId) {
         return imSingleMessageMapper.selectLastSingleMessage(fromId, toId);
     }
 
-    public Integer selectReadStatus(String fromId, String toId, Integer code) {
+    @Override
+    public Integer queryReadStatus(String fromId, String toId, Integer code) {
         return imSingleMessageMapper.selectReadStatus(fromId, toId, code);
     }
 

@@ -15,7 +15,7 @@ public interface ImFriendshipDubboService {
      * @param ownerId 用户id
      * @return 用户好友信息列表
      */
-    List<ImFriendshipPo> selectList(String ownerId, Long sequence);
+    List<ImFriendshipPo> queryList(String ownerId, Long sequence);
 
     /**
      * 根据用户和好友id查询
@@ -24,7 +24,7 @@ public interface ImFriendshipDubboService {
      * @param toId    好友ID
      * @return 好友关系信息
      */
-    ImFriendshipPo selectOne(String ownerId, String toId);
+    ImFriendshipPo queryOne(String ownerId, String toId);
 
     /**
      * 批量查询好友关系
@@ -33,7 +33,7 @@ public interface ImFriendshipDubboService {
      * @param ids     好友ID列表
      * @return 好友关系列表
      */
-    List<ImFriendshipPo> selectByIds(String ownerId, List<String> ids);
+    List<ImFriendshipPo> queryListByIds(String ownerId, List<String> ids);
 
 
     /**
@@ -42,7 +42,7 @@ public interface ImFriendshipDubboService {
      * @param friendship 好友关系信息
      * @return 是否保存成功
      */
-    Boolean insert(ImFriendshipPo friendship);
+    Boolean creat(ImFriendshipPo friendship);
 
     /**
      * 更新好友关系
@@ -50,7 +50,7 @@ public interface ImFriendshipDubboService {
      * @param friendship 好友关系信息
      * @return 是否保存成功
      */
-    Boolean update(ImFriendshipPo friendship);
+    Boolean modify(ImFriendshipPo friendship);
 
     /**
      * 删除好友关系
@@ -59,5 +59,5 @@ public interface ImFriendshipDubboService {
      * @param friendId 好友ID
      * @return 是否删除成功
      */
-    Boolean delete(String ownerId, String friendId);
+    Boolean removeOne(String ownerId, String friendId);
 }

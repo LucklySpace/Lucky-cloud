@@ -4,6 +4,11 @@ package com.xy.lucky.database.controller;
 import com.xy.lucky.database.security.SecurityInner;
 import com.xy.lucky.database.service.ImSingleMessageService;
 import com.xy.lucky.domain.po.ImSingleMessagePo;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -29,8 +34,15 @@ public class ImSingleMessageController {
      * @return 私聊消息
      */
     @GetMapping("/selectOne")
-    public ImSingleMessagePo selectOne(@RequestParam("messageId") String messageId) {
-        return imSingleMessageService.selectOne(messageId);
+    @Operation(summary = "根据ID获取私聊消息", description = "返回指定消息ID的单聊消息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImSingleMessagePo.class))),
+            @ApiResponse(responseCode = "404", description = "未找到")
+    })
+    public ImSingleMessagePo getSingleMessageById(@RequestParam("messageId") String messageId) {
+        return imSingleMessageService.queryOne(messageId);
     }
 
     /**
@@ -41,8 +53,14 @@ public class ImSingleMessageController {
      * @return 用户私聊消息
      */
     @GetMapping("/selectList")
-    public List<ImSingleMessagePo> selectList(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
-        return imSingleMessageService.selectList(userId, sequence);
+    @Operation(summary = "获取用户单聊消息列表", description = "按用户ID与序列获取单聊消息列表")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImSingleMessagePo.class)))
+    })
+    public List<ImSingleMessagePo> listSingleMessages(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
+        return imSingleMessageService.queryList(userId, sequence);
     }
 
     /**
@@ -53,8 +71,14 @@ public class ImSingleMessageController {
      * @return 私聊消息
      */
     @GetMapping("/last")
-    public ImSingleMessagePo last(@RequestParam("fromId") String fromId, @RequestParam("toId") String toId) {
-        return imSingleMessageService.last(fromId, toId);
+    @Operation(summary = "获取最后一条单聊消息", description = "按双方ID查询最新单聊消息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImSingleMessagePo.class)))
+    })
+    public ImSingleMessagePo getLastSingleMessage(@RequestParam("fromId") String fromId, @RequestParam("toId") String toId) {
+        return imSingleMessageService.queryLast(fromId, toId);
     }
 
     /**
@@ -66,8 +90,12 @@ public class ImSingleMessageController {
      * @return 未/已读消息数
      */
     @GetMapping("/selectReadStatus")
-    public Integer selectReadStatus(@RequestParam("fromId") String fromId, @RequestParam("toId") String toId, @RequestParam("code") Integer code) {
-        return imSingleMessageService.selectReadStatus(fromId, toId, code);
+    @Operation(summary = "查询单聊消息阅读状态", description = "按双方ID与状态码统计消息阅读状态")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功")
+    })
+    public Integer getSingleMessageReadStatus(@RequestParam("fromId") String fromId, @RequestParam("toId") String toId, @RequestParam("code") Integer code) {
+        return imSingleMessageService.queryReadStatus(fromId, toId, code);
     }
 
     /**
@@ -76,8 +104,12 @@ public class ImSingleMessageController {
      * @param messagePo 私聊消息
      */
     @PostMapping("/insert")
-    public Boolean insert(@RequestBody ImSingleMessagePo messagePo) {
-        return imSingleMessageService.insert(messagePo);
+    @Operation(summary = "创建单聊消息", description = "新增单聊消息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "创建成功")
+    })
+    public Boolean createSingleMessage(@RequestBody ImSingleMessagePo messagePo) {
+        return imSingleMessageService.creat(messagePo);
     }
 
 
@@ -87,8 +119,13 @@ public class ImSingleMessageController {
      * @param messageId 私聊消息id
      */
     @DeleteMapping("/deleteById")
-    public Boolean deleteById(@RequestParam("messageId") String messageId) {
-        return imSingleMessageService.deleteById(messageId);
+    @Operation(summary = "删除单聊消息", description = "根据ID删除单聊消息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "删除成功"),
+            @ApiResponse(responseCode = "404", description = "未找到")
+    })
+    public Boolean deleteSingleMessageById(@RequestParam("messageId") String messageId) {
+        return imSingleMessageService.removeOne(messageId);
     }
     
     /**
@@ -97,8 +134,12 @@ public class ImSingleMessageController {
      * @param messagePoList 私聊消息列表
      */
     @PostMapping("/batchInsert")
-    public Boolean batchInsert(@RequestBody List<ImSingleMessagePo> messagePoList) {
-        return imSingleMessageService.batchInsert(messagePoList);
+    @Operation(summary = "批量创建单聊消息", description = "批量新增单聊消息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "创建成功")
+    })
+    public Boolean createSingleMessagesBatch(@RequestBody List<ImSingleMessagePo> messagePoList) {
+        return imSingleMessageService.creatBatch(messagePoList);
     }
 
     /**
@@ -107,7 +148,11 @@ public class ImSingleMessageController {
      * @param messagePo 私聊消息
      */
     @PostMapping("/saveOrUpdate")
-    public Boolean saveOrUpdate(@RequestBody ImSingleMessagePo messagePo) {
+    @Operation(summary = "新增或更新单聊消息", description = "存在则更新，不存在则新增")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "操作成功")
+    })
+    public Boolean upsertSingleMessage(@RequestBody ImSingleMessagePo messagePo) {
         return imSingleMessageService.saveOrUpdate(messagePo);
     }
     
@@ -117,8 +162,12 @@ public class ImSingleMessageController {
      * @param messagePo 私聊消息
      */
     @PutMapping("/update")
-    public Boolean update(@RequestBody ImSingleMessagePo messagePo) {
-        return imSingleMessageService.update(messagePo);
+    @Operation(summary = "更新单聊消息", description = "根据ID更新单聊消息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "更新成功")
+    })
+    public Boolean updateSingleMessage(@RequestBody ImSingleMessagePo messagePo) {
+        return imSingleMessageService.modify(messagePo);
     }
 
 }

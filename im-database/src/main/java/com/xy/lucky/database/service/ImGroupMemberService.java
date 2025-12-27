@@ -1,53 +1,59 @@
 package com.xy.lucky.database.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.mapper.ImGroupMemberMapper;
 import com.xy.lucky.domain.po.ImGroupMemberPo;
 import com.xy.lucky.dubbo.api.database.group.ImGroupMemberDubboService;
-import jakarta.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 
 import java.util.List;
 
 @DubboService
+@RequiredArgsConstructor
 public class ImGroupMemberService extends ServiceImpl<ImGroupMemberMapper, ImGroupMemberPo>
-        implements ImGroupMemberDubboService, IService<ImGroupMemberPo> {
+        implements ImGroupMemberDubboService {
 
-    @Resource
-    private ImGroupMemberMapper imGroupMemberMapper;
+    private final ImGroupMemberMapper imGroupMemberMapper;
 
-    public List<ImGroupMemberPo> selectList(String groupId) {
+    @Override
+    public List<ImGroupMemberPo> queryList(String groupId) {
         QueryWrapper<ImGroupMemberPo> imGroupMemberPoQueryWrapper = new QueryWrapper<>();
         imGroupMemberPoQueryWrapper.eq("group_id", groupId);
-        return this.list(imGroupMemberPoQueryWrapper);
+        return super.list(imGroupMemberPoQueryWrapper);
     }
 
-    public ImGroupMemberPo selectOne(String groupId, String memberId) {
+    @Override
+    public ImGroupMemberPo queryOne(String groupId, String memberId) {
         QueryWrapper<ImGroupMemberPo> imGroupMemberPoQueryWrapper = new QueryWrapper<>();
         imGroupMemberPoQueryWrapper.eq("group_id", groupId);
         imGroupMemberPoQueryWrapper.eq("member_id", memberId);
-        return this.getOne(imGroupMemberPoQueryWrapper);
+        return super.getOne(imGroupMemberPoQueryWrapper);
     }
 
-    public List<String> selectNinePeopleAvatar(String groupId) {
+    @Override
+    public List<String> queryNinePeopleAvatar(String groupId) {
         return imGroupMemberMapper.selectNinePeopleAvatar(groupId);
     }
 
-    public Boolean insert(ImGroupMemberPo groupMember) {
-        return this.save(groupMember);
+    @Override
+    public Boolean creat(ImGroupMemberPo groupMember) {
+        return super.save(groupMember);
     }
 
-    public Boolean update(ImGroupMemberPo groupMember) {
-        return this.updateById(groupMember);
+    @Override
+    public Boolean modify(ImGroupMemberPo groupMember) {
+        return super.updateById(groupMember);
     }
 
-    public Boolean batchInsert(List<ImGroupMemberPo> groupMemberList) {
+    @Override
+    public Boolean creatBatch(List<ImGroupMemberPo> groupMemberList) {
         return !imGroupMemberMapper.insert(groupMemberList).isEmpty();
     }
 
-    public Boolean deleteById(String memberId) {
-        return this.removeById(memberId);
+    @Override
+    public Boolean removeOne(String memberId) {
+        return super.removeById(memberId);
     }
 }

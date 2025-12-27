@@ -124,7 +124,7 @@ public class MobileAuthenticationProvider implements AuthenticationProvider {
      * @return 用户信息
      */
     private ImUserPo getUserByPhoneNumber(String phoneNumber) {
-        return imUserDubboService.selectOneByMobile(phoneNumber);
+        return imUserDubboService.queryOneByMobile(phoneNumber);
     }
 
     /**

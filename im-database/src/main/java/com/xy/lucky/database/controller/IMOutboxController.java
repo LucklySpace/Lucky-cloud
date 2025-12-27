@@ -3,6 +3,11 @@ package com.xy.lucky.database.controller;
 
 import com.xy.lucky.database.service.IMOutboxService;
 import com.xy.lucky.domain.po.IMOutboxPo;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -25,8 +30,14 @@ public class IMOutboxController {
      * @return 消息列表
      */
     @GetMapping("/selectList")
-    public List<IMOutboxPo> selectList() {
-        return imOutboxService.selectList();
+    @Operation(summary = "查询Outbox消息列表", description = "返回所有待投递/已投递消息列表")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = IMOutboxPo.class)))
+    })
+    public List<IMOutboxPo> listOutboxMessages() {
+        return imOutboxService.queryList();
     }
 
     /**
@@ -36,8 +47,15 @@ public class IMOutboxController {
      * @return
      */
     @GetMapping("/selectOne")
-    public IMOutboxPo selectOne(@RequestParam("id") Long id) {
-        return imOutboxService.selectOne(id);
+    @Operation(summary = "根据ID获取Outbox消息", description = "返回指定ID的Outbox消息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = IMOutboxPo.class))),
+            @ApiResponse(responseCode = "404", description = "未找到")
+    })
+    public IMOutboxPo getOutboxMessageById(@RequestParam("id") Long id) {
+        return imOutboxService.queryOne(id);
     }
 
     /**
@@ -47,8 +65,12 @@ public class IMOutboxController {
      * @return
      */
     @PostMapping("/insert")
-    public Boolean insert(@RequestBody IMOutboxPo outboxPo) {
-        return imOutboxService.insert(outboxPo);
+    @Operation(summary = "创建Outbox消息", description = "新增一条待投递消息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "创建成功")
+    })
+    public Boolean createOutboxMessage(@RequestBody IMOutboxPo outboxPo) {
+        return imOutboxService.creat(outboxPo);
     }
 
     /**
@@ -58,8 +80,12 @@ public class IMOutboxController {
      * @return 是否插入成功
      */
     @PostMapping("/batchInsert")
-    public Boolean batchInsert(@RequestBody List<IMOutboxPo> outboxPoList) {
-        return imOutboxService.batchInsert(outboxPoList);
+    @Operation(summary = "批量创建Outbox消息", description = "批量新增待投递消息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "创建成功")
+    })
+    public Boolean createOutboxMessagesBatch(@RequestBody List<IMOutboxPo> outboxPoList) {
+        return imOutboxService.creatBatch(outboxPoList);
     }
 
     /**
@@ -69,8 +95,12 @@ public class IMOutboxController {
      * @return 是否更新成功
      */
     @PutMapping("/update")
-    public Boolean update(@RequestBody IMOutboxPo outboxPo) {
-        return imOutboxService.update(outboxPo);
+    @Operation(summary = "更新Outbox消息", description = "根据ID更新Outbox消息内容或状态")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "更新成功")
+    })
+    public Boolean updateOutboxMessage(@RequestBody IMOutboxPo outboxPo) {
+        return imOutboxService.modify(outboxPo);
     }
 
     /**
@@ -80,8 +110,13 @@ public class IMOutboxController {
      * @return
      */
     @DeleteMapping("/deleteById")
-    public Boolean deleteById(@RequestParam("id") Long id) {
-        return imOutboxService.deleteById(id);
+    @Operation(summary = "删除Outbox消息", description = "根据ID删除Outbox消息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "删除成功"),
+            @ApiResponse(responseCode = "404", description = "未找到")
+    })
+    public Boolean deleteOutboxMessageById(@RequestParam("id") Long id) {
+        return imOutboxService.removeOne(id);
     }
 
     /**
@@ -92,8 +127,14 @@ public class IMOutboxController {
      * @return 消息列表
      */
     @GetMapping("/selectListByStatus")
-    public List<IMOutboxPo> selectListByStatus(@RequestParam("status") String status, @RequestParam("limit") Integer limit) {
-        return imOutboxService.listByStatus(status, limit);
+    @Operation(summary = "按状态查询Outbox消息", description = "根据状态与数量限制查询Outbox消息列表")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = IMOutboxPo.class)))
+    })
+    public List<IMOutboxPo> listOutboxMessagesByStatus(@RequestParam("status") String status, @RequestParam("limit") Integer limit) {
+        return imOutboxService.queryByStatus(status, limit);
     }
 
     /**
@@ -105,8 +146,12 @@ public class IMOutboxController {
      * @return 是否更新成功
      */
     @PutMapping("/updateStatus")
-    public Boolean updateStatus(@RequestParam("id") Long id, @RequestParam("status") String status, @RequestParam("attempts") Integer attempts) {
-        return imOutboxService.updateStatus(id, status, attempts);
+    @Operation(summary = "更新Outbox消息状态", description = "更新消息投递状态与尝试次数")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "更新成功")
+    })
+    public Boolean updateOutboxStatus(@RequestParam("id") Long id, @RequestParam("status") String status, @RequestParam("attempts") Integer attempts) {
+        return imOutboxService.modifyStatus(id, status, attempts);
     }
 
     /**
@@ -118,7 +163,11 @@ public class IMOutboxController {
      * @return 是否更新成功
      */
     @PutMapping("/markAsFailed")
-    public Boolean markAsFailed(@RequestParam("id") Long id, @RequestParam("lastError") String lastError, @RequestParam("attempts") Integer attempts) {
-        return imOutboxService.markAsFailed(id, lastError, attempts);
+    @Operation(summary = "标记Outbox消息为失败", description = "记录错误信息并更新尝试次数")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "更新成功")
+    })
+    public Boolean markOutboxMessageFailed(@RequestParam("id") Long id, @RequestParam("lastError") String lastError, @RequestParam("attempts") Integer attempts) {
+        return imOutboxService.modifyToFailed(id, lastError, attempts);
     }
 }

@@ -220,7 +220,7 @@ public class MessageServiceImpl implements MessageService {
                         }).subscribeOn(Schedulers.boundedElastic()).subscribe();
 
                         // Get group members (Dubbo blocking)
-                        return Mono.fromCallable(() -> imGroupMemberDubboService.selectList(dto.getGroupId()))
+                        return Mono.fromCallable(() -> imGroupMemberDubboService.queryList(dto.getGroupId()))
                                 .subscribeOn(Schedulers.boundedElastic())
                                 .flatMap(userIds -> {
                                     if (CollectionUtils.isEmpty(userIds)) {
@@ -310,14 +310,14 @@ public class MessageServiceImpl implements MessageService {
             // Let's assume it's Single Message if not specified, or use a field.
 
             // Simplified logic: Check Single Message
-            return Mono.fromCallable(() -> imSingleMessageDubboService.selectOne(dto.getMessageId()))
+            return Mono.fromCallable(() -> imSingleMessageDubboService.queryOne(dto.getMessageId()))
                     .subscribeOn(Schedulers.boundedElastic())
                     .flatMap(singleMsg -> {
                         if (singleMsg != null) {
                             return processRecallSingle(singleMsg, dto);
                         }
                         // Check Group Message
-                        return Mono.fromCallable(() -> imGroupMessageDubboService.selectOne(dto.getMessageId()))
+                        return Mono.fromCallable(() -> imGroupMessageDubboService.queryOne(dto.getMessageId()))
                                 .subscribeOn(Schedulers.boundedElastic())
                                 .flatMap(groupMsg -> {
                                     if (groupMsg != null) {
@@ -360,7 +360,7 @@ public class MessageServiceImpl implements MessageService {
                     // Or update
                     msg.setMessageContentType(IMessageType.RECALL_MESSAGE.getCode());
                     msg.setMessageBody("撤回了一条消息");
-                    imSingleMessageDubboService.update(msg);
+                    imSingleMessageDubboService.modify(msg);
                     return true;
                 }).subscribeOn(Schedulers.boundedElastic())
                 .flatMap(r -> {
@@ -394,14 +394,14 @@ public class MessageServiceImpl implements MessageService {
         return Mono.fromCallable(() -> {
                     msg.setMessageContentType(IMessageType.RECALL_MESSAGE.getCode());
                     msg.setMessageBody("撤回了一条消息");
-                    imGroupMessageDubboService.update(msg);
+                    imGroupMessageDubboService.modify(msg);
                     return true;
                 }).subscribeOn(Schedulers.boundedElastic())
                 .flatMap(r -> {
                     // Notify Group
                     // Need to get group members again... similar to sendGroupMessage
                     // For brevity, using simplified notification or fetching members
-                    return Mono.fromCallable(() -> imGroupMemberDubboService.selectList(msg.getGroupId()))
+                    return Mono.fromCallable(() -> imGroupMemberDubboService.queryList(msg.getGroupId()))
                             .subscribeOn(Schedulers.boundedElastic())
                             .flatMap(memberIds -> {
                                 if (CollectionUtils.isEmpty(memberIds)) return Mono.empty();
@@ -438,9 +438,9 @@ public class MessageServiceImpl implements MessageService {
             List<?> messages = Collections.emptyList();
 
             if (IMessageType.SINGLE_MESSAGE.getCode().equals(chatDto.getChatType())) {
-                messages = imSingleMessageDubboService.selectList(chatDto.getFromId(), chatDto.getSequence());
+                messages = imSingleMessageDubboService.queryList(chatDto.getFromId(), chatDto.getSequence());
             } else if (IMessageType.GROUP_MESSAGE.getCode().equals(chatDto.getChatType())) {
-                messages = imGroupMessageDubboService.selectList(chatDto.getToId(), chatDto.getSequence());
+                messages = imGroupMessageDubboService.queryList(chatDto.getToId(), chatDto.getSequence());
             }
 
             // Reverse if needed or process
@@ -499,11 +499,11 @@ public class MessageServiceImpl implements MessageService {
     }
 
     private void insertImSingleMessage(ImSingleMessagePo po) {
-        imSingleMessageDubboService.insert(po); // Blocking
+        imSingleMessageDubboService.creat(po); // Blocking
     }
 
     private void insertImGroupMessage(ImGroupMessagePo po) {
-        imGroupMessageDubboService.insert(po); // Blocking
+        imGroupMessageDubboService.creat(po); // Blocking
     }
 
     private void createOrUpdateImChat(String userId, String friendId, Long time, Integer type) {
@@ -517,7 +517,7 @@ public class MessageServiceImpl implements MessageService {
             // Update outbox status asynchronously
             Mono.fromRunnable(() -> {
                 try {
-                    imOutboxDubboService.updateStatus(outboxId, String.valueOf(success ? 1 : 2), 1); // 1: SENT, 2: FAILED
+                    imOutboxDubboService.modifyStatus(outboxId, String.valueOf(success ? 1 : 2), 1); // 1: SENT, 2: FAILED
                 } catch (Exception e) {
                     log.error("Failed to update outbox status", e);
                 }

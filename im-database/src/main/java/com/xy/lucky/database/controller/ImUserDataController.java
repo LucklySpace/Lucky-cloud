@@ -4,6 +4,11 @@ package com.xy.lucky.database.controller;
 import com.xy.lucky.database.security.SecurityInner;
 import com.xy.lucky.database.service.ImUserDataService;
 import com.xy.lucky.domain.po.ImUserDataPo;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -28,8 +33,14 @@ public class ImUserDataController {
      * @return 符合条件的用户信息列表
      */
     @GetMapping("/selectList")
-    public List<ImUserDataPo> selectList(@RequestParam("keyword") String keyword) {
-        return imUserDataService.selectList();
+    @Operation(summary = "搜索用户数据", description = "按关键词搜索用户数据（userId、mobile等）")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImUserDataPo.class)))
+    })
+    public List<ImUserDataPo> searchUserData(@RequestParam("keyword") String keyword) {
+        return imUserDataService.queryByKeyword(keyword);
     }
 
     /**
@@ -39,8 +50,15 @@ public class ImUserDataController {
      * @return 用户信息集合
      */
     @GetMapping("/selectOne")
-    public ImUserDataPo selectOne(@RequestParam("userId") String userId) {
-        return imUserDataService.selectOne(userId);
+    @Operation(summary = "根据用户ID获取用户数据", description = "返回指定用户ID的用户数据信息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImUserDataPo.class))),
+            @ApiResponse(responseCode = "404", description = "未找到")
+    })
+    public ImUserDataPo getUserDataById(@RequestParam("userId") String userId) {
+        return imUserDataService.queryOne(userId);
     }
 
 
@@ -51,8 +69,14 @@ public class ImUserDataController {
      * @return 用户信息集合
      */
     @PostMapping("/selectListByIds")
-    public List<ImUserDataPo> selectListByIds(@RequestBody List<String> userIdList) {
-        return imUserDataService.listByIds(userIdList);
+    @Operation(summary = "根据ID列表批量获取用户数据", description = "通过用户ID集合批量查询用户数据信息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImUserDataPo.class)))
+    })
+    public List<ImUserDataPo> listUserDataByIds(@RequestBody List<String> userIdList) {
+        return imUserDataService.queryListByIds(userIdList);
     }
 
     /**
@@ -62,7 +86,11 @@ public class ImUserDataController {
      * @return 是否更新成功
      */
     @PostMapping("/update")
-    public boolean update(@RequestBody ImUserDataPo po) {
+    @Operation(summary = "更新用户数据", description = "根据ID更新用户数据信息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "更新成功")
+    })
+    public boolean updateUserData(@RequestBody ImUserDataPo po) {
         return imUserDataService.updateById(po);
     }
     
@@ -73,8 +101,12 @@ public class ImUserDataController {
      * @return 是否插入成功
      */
     @PostMapping("/insert")
-    public Boolean insert(@RequestBody ImUserDataPo userDataPo) {
-        return imUserDataService.insert(userDataPo);
+    @Operation(summary = "创建用户数据", description = "新增用户数据信息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "创建成功")
+    })
+    public Boolean createUserData(@RequestBody ImUserDataPo userDataPo) {
+        return imUserDataService.creat(userDataPo);
     }
     
     /**
@@ -84,8 +116,12 @@ public class ImUserDataController {
      * @return 是否插入成功
      */
     @PostMapping("/batchInsert")
-    public Boolean batchInsert(@RequestBody List<ImUserDataPo> userDataPoList) {
-        return imUserDataService.batchInsert(userDataPoList);
+    @Operation(summary = "批量创建用户数据", description = "批量新增用户数据信息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "创建成功")
+    })
+    public Boolean createUserDataBatch(@RequestBody List<ImUserDataPo> userDataPoList) {
+        return imUserDataService.creatBatch(userDataPoList);
     }
 
     /**
@@ -95,7 +131,12 @@ public class ImUserDataController {
      * @return 是否删除成功
      */
     @DeleteMapping("/deleteById")
-    public Boolean deleteById(@RequestParam("userId") String userId) {
-        return imUserDataService.deleteById(userId);
+    @Operation(summary = "删除用户数据", description = "根据ID删除用户数据信息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "删除成功"),
+            @ApiResponse(responseCode = "404", description = "未找到")
+    })
+    public Boolean deleteUserDataById(@RequestParam("userId") String userId) {
+        return imUserDataService.removeOne(userId);
     }
 }

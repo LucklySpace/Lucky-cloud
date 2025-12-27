@@ -15,7 +15,7 @@ public interface ImGroupDubboService {
      * @param userId 用户ID
      * @return 群列表
      */
-    List<ImGroupPo> selectList(String userId);
+    List<ImGroupPo> queryList(String userId);
 
     /**
      * 获取群信息
@@ -23,7 +23,7 @@ public interface ImGroupDubboService {
      * @param groupId 群ID
      * @return 群信息
      */
-    ImGroupPo selectOne(String groupId);
+    ImGroupPo queryOne(String groupId);
 
     /**
      * 插入群信息
@@ -31,7 +31,7 @@ public interface ImGroupDubboService {
      * @param groupPo 群信息
      * @return 是否成功
      */
-    Boolean insert(ImGroupPo groupPo);
+    Boolean creat(ImGroupPo groupPo);
 
     /**
      * 更新群信息
@@ -39,7 +39,7 @@ public interface ImGroupDubboService {
      * @param groupPo 群信息
      * @return 是否成功
      */
-    Boolean update(ImGroupPo groupPo);
+    Boolean modify(ImGroupPo groupPo);
 
 
     /**
@@ -48,7 +48,7 @@ public interface ImGroupDubboService {
      * @param list 群信息列表
      * @return 是否成功
      */
-    Boolean batchInsert(List<ImGroupPo> list);
+    Boolean creatBatch(List<ImGroupPo> list);
 
     /**
      * 删除群信息
@@ -56,5 +56,5 @@ public interface ImGroupDubboService {
      * @param groupId 群ID
      * @return 是否成功
      */
-    Boolean deleteById(String groupId);
+    Boolean removeOne(String groupId);
 }

@@ -1,57 +1,63 @@
 package com.xy.lucky.database.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.mapper.ImUserDataMapper;
 import com.xy.lucky.domain.po.ImUserDataPo;
 import com.xy.lucky.dubbo.api.database.user.ImUserDataDubboService;
-import jakarta.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 
 import java.util.List;
 
 @DubboService
+@RequiredArgsConstructor
 public class ImUserDataService extends ServiceImpl<ImUserDataMapper, ImUserDataPo>
-        implements ImUserDataDubboService, IService<ImUserDataPo> {
+        implements ImUserDataDubboService {
 
-    @Resource
-    private ImUserDataMapper imUserDataMapper;
+    private final ImUserDataMapper imUserDataMapper;
 
-    public List<ImUserDataPo> selectList() {
-        return this.list();
+    public List<ImUserDataPo> queryList() {
+        return super.list();
     }
 
-    public ImUserDataPo selectOne(String id) {
-        return this.getById(id);
+    @Override
+    public ImUserDataPo queryOne(String id) {
+        return super.getById(id);
     }
 
-    public List<ImUserDataPo> search(String keyword) {
+    @Override
+    public List<ImUserDataPo> queryByKeyword(String keyword) {
         QueryWrapper<ImUserDataPo> wrapper = new QueryWrapper<>();
         wrapper.select("user_id", "name", "avatar", "gender", "birthday", "location", "extra");
         wrapper.eq("user_id", keyword);
-        return this.list(wrapper);
+        return super.list(wrapper);
     }
 
-    public List<ImUserDataPo> selectByIds(List<String> userIdList) {
-        return this.listByIds(userIdList);
-    }
-
-
-    public Boolean insert(ImUserDataPo userDataPo) {
-        return this.save(userDataPo);
+    @Override
+    public List<ImUserDataPo> queryListByIds(List<String> userIdList) {
+        return super.listByIds(userIdList);
     }
 
 
-    public Boolean batchInsert(List<ImUserDataPo> userDataPoList) {
+    @Override
+    public Boolean creat(ImUserDataPo userDataPo) {
+        return super.save(userDataPo);
+    }
+
+
+    @Override
+    public Boolean creatBatch(List<ImUserDataPo> userDataPoList) {
         return !imUserDataMapper.insert(userDataPoList).isEmpty();
     }
 
-    public Boolean update(ImUserDataPo userDataPo) {
-        return this.updateById(userDataPo);
+    @Override
+    public Boolean modify(ImUserDataPo userDataPo) {
+        return super.updateById(userDataPo);
     }
 
-    public Boolean deleteById(String id) {
-        return this.removeById(id);
+    @Override
+    public Boolean removeOne(String id) {
+        return super.removeById(id);
     }
 }

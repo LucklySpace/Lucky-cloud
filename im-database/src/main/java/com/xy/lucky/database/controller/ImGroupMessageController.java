@@ -5,6 +5,11 @@ import com.xy.lucky.database.service.ImGroupMessageService;
 import com.xy.lucky.database.service.ImGroupMessageStatusService;
 import com.xy.lucky.domain.po.ImGroupMessagePo;
 import com.xy.lucky.domain.po.ImGroupMessageStatusPo;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -32,8 +37,15 @@ public class ImGroupMessageController {
      * @return 群聊消息
      */
     @GetMapping("/selectOne")
-    public ImGroupMessagePo selectOne(@RequestParam("messageId") String messageId) {
-        return imGroupMessageService.selectOne(messageId);
+    @Operation(summary = "根据ID获取群聊消息", description = "返回指定消息ID的群聊消息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImGroupMessagePo.class))),
+            @ApiResponse(responseCode = "404", description = "未找到")
+    })
+    public ImGroupMessagePo getGroupMessageById(@RequestParam("messageId") String messageId) {
+        return imGroupMessageService.queryOne(messageId);
     }
 
     /**
@@ -44,8 +56,14 @@ public class ImGroupMessageController {
      * @return 用户私聊消息
      */
     @GetMapping("/selectList")
-    public List<ImGroupMessagePo> selectList(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
-        return imGroupMessageService.selectList(userId, sequence);
+    @Operation(summary = "获取用户群聊消息列表", description = "按用户ID与序列获取群聊消息列表")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImGroupMessagePo.class)))
+    })
+    public List<ImGroupMessagePo> listGroupMessages(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
+        return imGroupMessageService.queryList(userId, sequence);
     }
 
     /**
@@ -54,8 +72,12 @@ public class ImGroupMessageController {
      * @param messagePo 群聊消息
      */
     @PostMapping("/insert")
-    public Boolean insert(@RequestBody ImGroupMessagePo messagePo) {
-        return imGroupMessageService.insert(messagePo);
+    @Operation(summary = "创建群聊消息", description = "新增群聊消息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "创建成功")
+    })
+    public Boolean createGroupMessage(@RequestBody ImGroupMessagePo messagePo) {
+        return imGroupMessageService.creat(messagePo);
     }
 
     /**
@@ -64,8 +86,12 @@ public class ImGroupMessageController {
      * @param messagePoList 群聊消息列表
      */
     @PostMapping("/batchInsert")
-    public Boolean batchInsert(@RequestBody List<ImGroupMessageStatusPo> messagePoList) {
-        return imGroupMessageService.batchInsert(messagePoList);
+    @Operation(summary = "批量创建群聊消息状态", description = "批量新增群聊消息阅读状态")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "创建成功")
+    })
+    public Boolean createGroupMessageStatusBatch(@RequestBody List<ImGroupMessageStatusPo> messagePoList) {
+        return imGroupMessageService.creatBatch(messagePoList);
     }
 
     /**
@@ -74,8 +100,12 @@ public class ImGroupMessageController {
      * @param messagePo 群聊消息
      */
     @PutMapping("/update")
-    public Boolean update(@RequestBody ImGroupMessagePo messagePo) {
-        return imGroupMessageService.update(messagePo);
+    @Operation(summary = "更新群聊消息", description = "根据ID更新群聊消息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "更新成功")
+    })
+    public Boolean updateGroupMessage(@RequestBody ImGroupMessagePo messagePo) {
+        return imGroupMessageService.modify(messagePo);
     }
 
     /**
@@ -84,8 +114,13 @@ public class ImGroupMessageController {
      * @param messageId 消息ID
      */
     @DeleteMapping("/deleteById")
-    public Boolean deleteById(@RequestParam("messageId") String messageId) {
-        return imGroupMessageService.deleteById(messageId);
+    @Operation(summary = "删除群聊消息", description = "根据ID删除群聊消息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "删除成功"),
+            @ApiResponse(responseCode = "404", description = "未找到")
+    })
+    public Boolean deleteGroupMessageById(@RequestParam("messageId") String messageId) {
+        return imGroupMessageService.removeOne(messageId);
     }
 
     /**
@@ -96,8 +131,14 @@ public class ImGroupMessageController {
      * @return 私聊消息
      */
     @GetMapping("/last")
-    public ImGroupMessagePo last(@RequestParam("groupId") String groupId, @RequestParam("userId") String userId) {
-        return imGroupMessageService.last(groupId, userId);
+    @Operation(summary = "获取最后一条群聊消息", description = "按群ID与用户ID查询最新群聊消息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImGroupMessagePo.class)))
+    })
+    public ImGroupMessagePo getLastGroupMessage(@RequestParam("groupId") String groupId, @RequestParam("userId") String userId) {
+        return imGroupMessageService.queryLast(groupId, userId);
     }
 
     /**
@@ -109,8 +150,12 @@ public class ImGroupMessageController {
      * @return 未/已读消息数
      */
     @GetMapping("/selectReadStatus")
-    public Integer selectReadStatus(@RequestParam("groupId") String groupId, @RequestParam("toId") String toId, @RequestParam("code") Integer code) {
-        return imGroupMessageService.selectReadStatus(groupId, toId, code);
+    @Operation(summary = "查询群聊消息阅读状态", description = "按群ID、接收者ID与状态码统计阅读状态")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功")
+    })
+    public Integer getGroupMessageReadStatus(@RequestParam("groupId") String groupId, @RequestParam("toId") String toId, @RequestParam("code") Integer code) {
+        return imGroupMessageService.queryReadStatus(groupId, toId, code);
     }
 
     /**
@@ -119,7 +164,11 @@ public class ImGroupMessageController {
      * @param groupReadStatusList 群聊消息群成员阅读状态
      */
     @PostMapping("/status/batch/insert")
-    public Boolean groupMessageStatusBatchInsert(@RequestBody List<ImGroupMessageStatusPo> groupReadStatusList) {
+    @Operation(summary = "批量插入群聊消息阅读状态", description = "批量保存群聊消息阅读状态")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "创建成功")
+    })
+    public Boolean insertGroupMessageStatusBatch(@RequestBody List<ImGroupMessageStatusPo> groupReadStatusList) {
         return imGroupMessageStatusService.saveBatch(groupReadStatusList);
     }
 }

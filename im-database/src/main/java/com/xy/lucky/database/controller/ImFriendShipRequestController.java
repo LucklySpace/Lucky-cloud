@@ -4,6 +4,11 @@ package com.xy.lucky.database.controller;
 import com.xy.lucky.database.security.SecurityInner;
 import com.xy.lucky.database.service.ImFriendshipRequestService;
 import com.xy.lucky.domain.po.ImFriendshipRequestPo;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -21,60 +26,58 @@ public class ImFriendShipRequestController {
     @Resource
     private ImFriendshipRequestService imFriendshipRequestService;
 
-    /**
-     * 查询添加好友请求
-     *
-     * @param userId
-     * @return
-     */
     @GetMapping("/selectList")
-    public List<ImFriendshipRequestPo> selectList(@RequestParam("userId") String userId) {
-        return imFriendshipRequestService.selectList(userId);
+    @Operation(summary = "查询好友请求列表", description = "根据用户ID查询收到的好友请求")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImFriendshipRequestPo.class)))
+    })
+    public List<ImFriendshipRequestPo> listFriendshipRequests(@RequestParam("userId") String userId) {
+        return imFriendshipRequestService.queryList(userId);
     }
 
-    /**
-     * 获取好友请求
-     *
-     * @param requestPo 请求
-     * @return
-     */
     @PostMapping("/selectOne")
-    public ImFriendshipRequestPo selectOne(@RequestBody ImFriendshipRequestPo requestPo) {
-        return imFriendshipRequestService.selectOne(requestPo);
-    }
-    
-    /**
-     * 插入好友请求
-     *
-     * @param requestPo 好友请求
-     * @return 是否插入成功
-     */
-    @PostMapping("/insert")
-    public Boolean insert(@RequestBody ImFriendshipRequestPo requestPo) {
-        return imFriendshipRequestService.insert(requestPo);
+    @Operation(summary = "获取单个好友请求", description = "根据请求内容查询单个好友请求")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImFriendshipRequestPo.class))),
+            @ApiResponse(responseCode = "404", description = "未找到")
+    })
+    public ImFriendshipRequestPo getFriendshipRequest(@RequestBody ImFriendshipRequestPo requestPo) {
+        return imFriendshipRequestService.queryOne(requestPo);
     }
 
-    /**
-     * 更新好友请求
-     *
-     * @param requestPo 好友请求
-     * @return 是否更新成功
-     */
+    @PostMapping("/insert")
+    @Operation(summary = "创建好友请求", description = "新增一条好友请求")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "创建成功")
+    })
+    public Boolean createFriendshipRequest(@RequestBody ImFriendshipRequestPo requestPo) {
+        return imFriendshipRequestService.creat(requestPo);
+    }
+
     @PutMapping("/update")
-    public Boolean update(@RequestBody ImFriendshipRequestPo requestPo) {
-        return imFriendshipRequestService.update(requestPo);
+    @Operation(summary = "更新好友请求", description = "根据ID更新好友请求状态或内容")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "更新成功")
+    })
+    public Boolean updateFriendshipRequest(@RequestBody ImFriendshipRequestPo requestPo) {
+        return imFriendshipRequestService.modify(requestPo);
     }
-    
-    /**
-     * 删除好友请求
-     *
-     * @param requestId 请求ID
-     * @return 是否删除成功
-     */
+
     @DeleteMapping("/deleteById")
-    public Boolean deleteById(@RequestParam("requestId") String requestId) {
-        return imFriendshipRequestService.deleteById(requestId);
+    @Operation(summary = "删除好友请求", description = "根据请求ID删除好友请求")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "删除成功"),
+            @ApiResponse(responseCode = "404", description = "未找到")
+    })
+    public Boolean deleteFriendshipRequestById(@RequestParam("requestId") String requestId) {
+        return imFriendshipRequestService.removeOne(requestId);
     }
+
+}
 
 
 //
@@ -104,5 +107,3 @@ public class ImFriendShipRequestController {
 //    public void updateFriendRequestStatus(@RequestParam("requestId") String requestId, @RequestParam("status") Integer status) {
 //        imFriendshipService.updateFriendRequestStatus(requestId, status);
 //    }
-
-}

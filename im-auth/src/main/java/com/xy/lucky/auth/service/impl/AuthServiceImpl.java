@@ -198,7 +198,7 @@ public class AuthServiceImpl implements AuthService {
         log.debug("获取用户信息：userId={}", userId);
 
         // 获取用户信息
-        ImUserDataPo data = imUserDataDubboService.selectOne(userId);
+        ImUserDataPo data = imUserDataDubboService.queryOne(userId);
 
         UserVo vo = new UserVo();
 

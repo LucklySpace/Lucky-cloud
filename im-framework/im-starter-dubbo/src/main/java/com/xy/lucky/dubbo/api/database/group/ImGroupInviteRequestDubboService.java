@@ -12,7 +12,7 @@ public interface ImGroupInviteRequestDubboService {
      * @param userId
      * @return
      */
-    List<ImGroupInviteRequestPo> selectList(String userId);
+    List<ImGroupInviteRequestPo> queryList(String userId);
 
     /**
      * 查询一个群邀请请求
@@ -20,7 +20,7 @@ public interface ImGroupInviteRequestDubboService {
      * @param imGroupInviteRequestPo
      * @return
      */
-    ImGroupInviteRequestPo selectOne(ImGroupInviteRequestPo imGroupInviteRequestPo);
+    ImGroupInviteRequestPo queryOne(ImGroupInviteRequestPo imGroupInviteRequestPo);
 
 
     /**
@@ -29,7 +29,7 @@ public interface ImGroupInviteRequestDubboService {
      * @param imGroupInviteRequestPo
      * @return
      */
-    Boolean insert(ImGroupInviteRequestPo imGroupInviteRequestPo);
+    Boolean creat(ImGroupInviteRequestPo imGroupInviteRequestPo);
 
     /**
      * 修改群邀请请求
@@ -37,7 +37,7 @@ public interface ImGroupInviteRequestDubboService {
      * @param imGroupInviteRequestPo
      * @return
      */
-    Boolean update(ImGroupInviteRequestPo imGroupInviteRequestPo);
+    Boolean modify(ImGroupInviteRequestPo imGroupInviteRequestPo);
 
     /**
      * 删除群邀请请求
@@ -45,7 +45,7 @@ public interface ImGroupInviteRequestDubboService {
      * @param requestId
      * @return
      */
-    Boolean deleteById(String requestId);
+    Boolean removeOne(String requestId);
 
-    Boolean batchInsert(List<ImGroupInviteRequestPo> requests);
+    Boolean creatBatch(List<ImGroupInviteRequestPo> requests);
 }

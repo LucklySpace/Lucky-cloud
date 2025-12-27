@@ -116,7 +116,7 @@ public class QrScanAuthenticationProvider implements AuthenticationProvider {
         }
 
         // 从用户服务获取用户信息
-        ImUserPo user = imUserDubboService.selectOne(userId);
+        ImUserPo user = imUserDubboService.queryOne(userId);
         if (Objects.isNull(user)) {
             log.warn("Account not found for user ID: {}", userId);
             throw new AuthenticationFailException(ResultCode.ACCOUNT_NOT_FOUND); // 账户未找到

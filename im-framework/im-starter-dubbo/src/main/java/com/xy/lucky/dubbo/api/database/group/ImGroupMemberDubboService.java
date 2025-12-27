@@ -15,7 +15,7 @@ public interface ImGroupMemberDubboService {
      * @param groupId 群id
      * @return 群成员集合
      */
-    List<ImGroupMemberPo> selectList(String groupId);
+    List<ImGroupMemberPo> queryList(String groupId);
 
     /**
      * 获取单个群成员
@@ -24,7 +24,7 @@ public interface ImGroupMemberDubboService {
      * @param memberId 成员id
      * @return 单个群成员
      */
-    ImGroupMemberPo selectOne(String groupId, String memberId);
+    ImGroupMemberPo queryOne(String groupId, String memberId);
 
     /**
      * 群成员退出群聊
@@ -32,7 +32,7 @@ public interface ImGroupMemberDubboService {
      * @param memberId 成员id
      * @return 是否成功
      */
-    Boolean deleteById(String memberId);
+    Boolean removeOne(String memberId);
 
     /**
      * 添加群成员
@@ -40,7 +40,7 @@ public interface ImGroupMemberDubboService {
      * @param groupMember 群成员信息
      * @return 是否成功
      */
-    Boolean insert(ImGroupMemberPo groupMember);
+    Boolean creat(ImGroupMemberPo groupMember);
 
     /**
      * 修改群成员信息
@@ -48,7 +48,7 @@ public interface ImGroupMemberDubboService {
      * @param groupMember 群成员信息
      * @return 是否成功
      */
-    Boolean update(ImGroupMemberPo groupMember);
+    Boolean modify(ImGroupMemberPo groupMember);
 
     /**
      * 批量插入群成员
@@ -56,7 +56,7 @@ public interface ImGroupMemberDubboService {
      * @param groupMemberList 群成员信息
      * @return 是否成功
      */
-    Boolean batchInsert(List<ImGroupMemberPo> groupMemberList);
+    Boolean creatBatch(List<ImGroupMemberPo> groupMemberList);
 
 
     /**
@@ -65,5 +65,5 @@ public interface ImGroupMemberDubboService {
      * @param groupId 群ID
      * @return 用户头像列表
      */
-    List<String> selectNinePeopleAvatar(String groupId);
+    List<String> queryNinePeopleAvatar(String groupId);
 }

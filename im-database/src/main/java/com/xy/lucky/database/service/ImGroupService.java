@@ -1,53 +1,52 @@
 package com.xy.lucky.database.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.mapper.ImGroupMapper;
 import com.xy.lucky.domain.po.ImGroupPo;
 import com.xy.lucky.dubbo.api.database.group.ImGroupDubboService;
-import jakarta.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 
 import java.util.List;
 
 @DubboService
+@RequiredArgsConstructor
 public class ImGroupService extends ServiceImpl<ImGroupMapper, ImGroupPo>
-        implements ImGroupDubboService, IService<ImGroupPo> {
+        implements ImGroupDubboService {
 
-    @Resource
-    private ImGroupMapper imGroupMapper;
+    private final ImGroupMapper imGroupMapper;
 
-    public List<ImGroupPo> selectList(String userId) {
+    @Override
+    public List<ImGroupPo> queryList(String userId) {
         return imGroupMapper.selectGroupsByUserId(userId);
     }
 
-
-    public ImGroupPo selectOne(String groupId) {
+    @Override
+    public ImGroupPo queryOne(String groupId) {
         return this.getById(groupId);
     }
 
-
-    public Boolean insert(ImGroupPo groupPo) {
+    @Override
+    public Boolean creat(ImGroupPo groupPo) {
         return this.save(groupPo);
     }
 
-
-    public Boolean batchInsert(List<ImGroupPo> list) {
+    @Override
+    public Boolean creatBatch(List<ImGroupPo> list) {
         return !imGroupMapper.insert(list).isEmpty();
     }
 
-
-    public Boolean update(ImGroupPo groupPo) {
+    @Override
+    public Boolean modify(ImGroupPo groupPo) {
         return this.updateById(groupPo);
     }
 
-
-    public Boolean deleteById(String groupId) {
+    @Override
+    public Boolean removeOne(String groupId) {
         return this.removeById(groupId);
     }
 
-
-    public long count() {
+    public long queryCount() {
         return imGroupMapper.selectCount(null);
     }
 

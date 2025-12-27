@@ -5,6 +5,11 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xy.lucky.database.security.SecurityInner;
 import com.xy.lucky.database.service.ImUserService;
 import com.xy.lucky.domain.po.ImUserPo;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -29,8 +34,14 @@ public class ImUserController {
      * @return 用户信息集合
      */
     @GetMapping("/selectOne")
-    public ImUserPo selectOne(@RequestParam("userId") String userId) {
-        return imUserService.selectOne(userId);
+    @Operation(summary = "根据用户ID获取用户信息", description = "返回指定用户ID的用户信息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImUserPo.class)))
+    })
+    public ImUserPo getUserById(@RequestParam("userId") String userId) {
+        return imUserService.queryOne(userId);
     }
 
 
@@ -41,7 +52,13 @@ public class ImUserController {
      * @return 用户信息集合
      */
     @GetMapping("/selectOneByMobile")
-    public ImUserPo selectOneByMobile(@RequestParam("mobile") String mobile) {
+    @Operation(summary = "根据手机号获取用户信息", description = "通过手机号查询用户信息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImUserPo.class)))
+    })
+    public ImUserPo getUserByMobile(@RequestParam("mobile") String mobile) {
         // 使用select方法只查询需要的字段，避免加载整个实体对象
         QueryWrapper<ImUserPo> wrapper = new QueryWrapper<>();
         wrapper.eq("mobile", mobile);
@@ -56,7 +73,13 @@ public class ImUserController {
      * @return 用户信息集合
      */
     @PostMapping("/selectListByIds")
-    public List<ImUserPo> selectListByIds(@RequestBody List<String> userIdList) {
+    @Operation(summary = "根据ID列表批量获取用户", description = "通过用户ID集合批量查询用户信息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImUserPo.class)))
+    })
+    public List<ImUserPo> listUsersByIds(@RequestBody List<String> userIdList) {
         return imUserService.listByIds(userIdList);
     }
 
@@ -68,8 +91,12 @@ public class ImUserController {
      * @return 是否插入成功
      */
     @PostMapping("/insert")
-    public Boolean insert(@RequestBody ImUserPo userPo) {
-        return imUserService.insert(userPo);
+    @Operation(summary = "创建用户", description = "新增用户信息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "创建成功")
+    })
+    public Boolean createUser(@RequestBody ImUserPo userPo) {
+        return imUserService.creat(userPo);
     }
     
     /**
@@ -79,8 +106,12 @@ public class ImUserController {
      * @return 是否插入成功
      */
     @PostMapping("/batchInsert")
-    public Boolean batchInsert(@RequestBody List<ImUserPo> userPoList) {
-        return imUserService.batchInsert(userPoList);
+    @Operation(summary = "批量创建用户", description = "批量新增用户信息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "创建成功")
+    })
+    public Boolean createUsersBatch(@RequestBody List<ImUserPo> userPoList) {
+        return imUserService.creatBatch(userPoList);
     }
     
     /**
@@ -90,8 +121,12 @@ public class ImUserController {
      * @return 是否更新成功
      */
     @PutMapping("/update")
-    public Boolean update(@RequestBody ImUserPo userPo) {
-        return imUserService.update(userPo);
+    @Operation(summary = "更新用户", description = "根据ID更新用户信息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "更新成功")
+    })
+    public Boolean updateUser(@RequestBody ImUserPo userPo) {
+        return imUserService.modify(userPo);
     }
     
     /**
@@ -101,7 +136,12 @@ public class ImUserController {
      * @return 是否删除成功
      */
     @DeleteMapping("/deleteById")
-    public Boolean deleteById(@RequestParam("userId") String userId) {
-        return imUserService.deleteById(userId);
+    @Operation(summary = "删除用户", description = "根据ID删除用户信息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "删除成功"),
+            @ApiResponse(responseCode = "404", description = "未找到")
+    })
+    public Boolean deleteUserById(@RequestParam("userId") String userId) {
+        return imUserService.removeOne(userId);
     }
 }

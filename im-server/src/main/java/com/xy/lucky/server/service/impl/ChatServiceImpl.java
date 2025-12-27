@@ -107,7 +107,7 @@ public class ChatServiceImpl implements ChatService {
         String lockKey = LOCK_CREATE_CHAT_PREFIX + chatDto.getFromId() + ":" + chatDto.getToId() + ":" + chatDto.getChatType();
         return withLock(lockKey, Mono.defer(() -> {
             long start = System.currentTimeMillis();
-            return Mono.fromCallable(() -> imChatDubboService.selectOne(chatDto.getFromId(), chatDto.getToId(), chatDto.getChatType()))
+            return Mono.fromCallable(() -> imChatDubboService.queryOne(chatDto.getFromId(), chatDto.getToId(), chatDto.getChatType()))
                     .subscribeOn(Schedulers.boundedElastic())
                     .flatMap(imChatPO -> {
                         if (Objects.isNull(imChatPO)) {
@@ -121,7 +121,7 @@ public class ChatServiceImpl implements ChatService {
                                     .setDelFlag(IMStatus.YES.getCode())
                                     .setChatType(chatDto.getChatType());
 
-                            return Mono.fromCallable(() -> imChatDubboService.insert(newChatPO))
+                            return Mono.fromCallable(() -> imChatDubboService.creat(newChatPO))
                                     .subscribeOn(Schedulers.boundedElastic())
                                     .flatMap(success -> {
                                         if (success) {
@@ -154,7 +154,7 @@ public class ChatServiceImpl implements ChatService {
         String lockKey = LOCK_READ_CHAT_PREFIX + ownerId + ":" + toId;
         return withLock(lockKey, Mono.defer(() -> {
             long start = System.currentTimeMillis();
-            return Mono.fromCallable(() -> imChatDubboService.selectOne(ownerId, toId, null))
+            return Mono.fromCallable(() -> imChatDubboService.queryOne(ownerId, toId, null))
                     .subscribeOn(Schedulers.boundedElastic())
                     .flatMap(this::getChat)
                     .doOnSuccess(v -> log.debug("one会话完成 from={} to={} 耗时:{}ms", ownerId, toId, System.currentTimeMillis() - start));
@@ -174,7 +174,7 @@ public class ChatServiceImpl implements ChatService {
         String lockKey = LOCK_READ_CHAT_PREFIX + chatDto.getFromId() + ":list";
         return withLock(lockKey, Mono.defer(() -> {
             long start = System.currentTimeMillis();
-            return Mono.fromCallable(() -> imChatDubboService.selectList(chatDto.getFromId(), chatDto.getSequence()))
+            return Mono.fromCallable(() -> imChatDubboService.queryList(chatDto.getFromId(), chatDto.getSequence()))
                     .subscribeOn(Schedulers.boundedElastic())
                     .flatMapMany(Flux::fromIterable)
                     .flatMap(this::getChat) // Concurrent processing
@@ -210,9 +210,9 @@ public class ChatServiceImpl implements ChatService {
         String targetUserId = ownerId.equals(toId) ? chatVo.getOwnerId() : chatVo.getToId();
 
         return Mono.zip(
-                Mono.fromCallable(() -> imSingleMessageDubboService.last(ownerId, toId)).subscribeOn(Schedulers.boundedElastic()).defaultIfEmpty(new ImSingleMessagePo()),
-                Mono.fromCallable(() -> imSingleMessageDubboService.selectReadStatus(toId, ownerId, IMessageReadStatus.UNREAD.getCode())).subscribeOn(Schedulers.boundedElastic()).defaultIfEmpty(0),
-                Mono.fromCallable(() -> imUserDataDubboService.selectOne(targetUserId)).subscribeOn(Schedulers.boundedElastic()).defaultIfEmpty(new ImUserDataPo())
+                Mono.fromCallable(() -> imSingleMessageDubboService.queryLast(ownerId, toId)).subscribeOn(Schedulers.boundedElastic()).defaultIfEmpty(new ImSingleMessagePo()),
+                Mono.fromCallable(() -> imSingleMessageDubboService.queryReadStatus(toId, ownerId, IMessageReadStatus.UNREAD.getCode())).subscribeOn(Schedulers.boundedElastic()).defaultIfEmpty(0),
+                Mono.fromCallable(() -> imUserDataDubboService.queryOne(targetUserId)).subscribeOn(Schedulers.boundedElastic()).defaultIfEmpty(new ImUserDataPo())
         ).map(tuple -> {
             ImSingleMessagePo msg = tuple.getT1();
             Integer unread = tuple.getT2();
@@ -245,9 +245,9 @@ public class ChatServiceImpl implements ChatService {
         String groupId = chatVo.getToId();
 
         return Mono.zip(
-                Mono.fromCallable(() -> imGroupMessageDubboService.last(ownerId, groupId)).subscribeOn(Schedulers.boundedElastic()).defaultIfEmpty(new ImGroupMessagePo()),
-                Mono.fromCallable(() -> imGroupMessageDubboService.selectReadStatus(groupId, ownerId, IMessageReadStatus.UNREAD.getCode())).subscribeOn(Schedulers.boundedElastic()).defaultIfEmpty(0),
-                Mono.fromCallable(() -> imGroupDubboService.selectOne(groupId)).subscribeOn(Schedulers.boundedElastic()).defaultIfEmpty(new ImGroupPo())
+                Mono.fromCallable(() -> imGroupMessageDubboService.queryLast(ownerId, groupId)).subscribeOn(Schedulers.boundedElastic()).defaultIfEmpty(new ImGroupMessagePo()),
+                Mono.fromCallable(() -> imGroupMessageDubboService.queryReadStatus(groupId, ownerId, IMessageReadStatus.UNREAD.getCode())).subscribeOn(Schedulers.boundedElastic()).defaultIfEmpty(0),
+                Mono.fromCallable(() -> imGroupDubboService.queryOne(groupId)).subscribeOn(Schedulers.boundedElastic()).defaultIfEmpty(new ImGroupPo())
         ).map(tuple -> {
             ImGroupMessagePo msg = tuple.getT1();
             Integer unread = tuple.getT2();
@@ -276,7 +276,7 @@ public class ChatServiceImpl implements ChatService {
     private Mono<ChatVo> buildChatVo(ImChatPo chatPo, Integer chatType) {
         ChatVo chatVo = ChatBeanMapper.INSTANCE.toChatVo(chatPo);
         if (IMessageType.SINGLE_MESSAGE.getCode().equals(chatType)) {
-            return Mono.fromCallable(() -> imUserDataDubboService.selectOne(chatVo.getToId()))
+            return Mono.fromCallable(() -> imUserDataDubboService.queryOne(chatVo.getToId()))
                     .subscribeOn(Schedulers.boundedElastic())
                     .map(user -> {
                         if (user != null) {
@@ -287,7 +287,7 @@ public class ChatServiceImpl implements ChatService {
                         return chatVo;
                     });
         } else if (IMessageType.GROUP_MESSAGE.getCode().equals(chatType)) {
-            return Mono.fromCallable(() -> imGroupDubboService.selectOne(chatVo.getToId()))
+            return Mono.fromCallable(() -> imGroupDubboService.queryOne(chatVo.getToId()))
                     .subscribeOn(Schedulers.boundedElastic())
                     .map(group -> {
                         if (group != null) {
@@ -307,7 +307,7 @@ public class ChatServiceImpl implements ChatService {
             updateMessage.setReadStatus(IMessageReadStatus.ALREADY_READ.getCode());
             updateMessage.setFromId(chatDto.getFromId());
             updateMessage.setToId(chatDto.getToId());
-            return imSingleMessageDubboService.update(updateMessage);
+            return imSingleMessageDubboService.modify(updateMessage);
         }).subscribeOn(Schedulers.boundedElastic()).then();
     }
 
@@ -317,7 +317,7 @@ public class ChatServiceImpl implements ChatService {
             updateMessage.setReadStatus(IMessageReadStatus.ALREADY_READ.getCode());
             updateMessage.setGroupId(chatDto.getFromId());
             updateMessage.setToId(chatDto.getToId());
-            return imGroupMessageDubboService.batchInsert(List.of(updateMessage));
+            return imGroupMessageDubboService.creatBatch(List.of(updateMessage));
         }).subscribeOn(Schedulers.boundedElastic()).then();
     }
 

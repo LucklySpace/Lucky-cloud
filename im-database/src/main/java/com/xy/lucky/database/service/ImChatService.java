@@ -1,12 +1,11 @@
 package com.xy.lucky.database.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.mapper.ImChatMapper;
 import com.xy.lucky.domain.po.ImChatPo;
 import com.xy.lucky.dubbo.api.database.chat.ImChatDubboService;
-import jakarta.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
 
@@ -16,41 +15,46 @@ import java.util.Objects;
 
 @Slf4j
 @DubboService
+@RequiredArgsConstructor
 public class ImChatService extends ServiceImpl<ImChatMapper, ImChatPo>
-        implements ImChatDubboService, IService<ImChatPo> {
+        implements ImChatDubboService {
 
-    @Resource
-    private ImChatMapper imChatMapper;
+    private final ImChatMapper imChatMapper;
 
-    public List<ImChatPo> selectList(String ownerId, Long sequence) {
+    @Override
+    public List<ImChatPo> queryList(String ownerId, Long sequence) {
         return imChatMapper.getChatList(ownerId, sequence);
     }
 
-    public ImChatPo selectOne(String ownerId, String toId, Integer chatType) {
+    @Override
+    public ImChatPo queryOne(String ownerId, String toId, Integer chatType) {
         QueryWrapper<ImChatPo> query = new QueryWrapper<>();
         query.eq("owner_id", ownerId)
                 .eq("to_id", toId);
         if (Objects.nonNull(chatType)) {
             query.eq("chat_type", chatType);
         }
-        return this.getOne(query);
-    }
-
-    public Boolean insert(ImChatPo chatPo) {
-        return this.save(chatPo);
-    }
-
-    public Boolean update(ImChatPo chatPo) {
-        return updateById(chatPo);
+        return super.getOne(query);
     }
 
     @Override
-    public Boolean createOrUpdate(ImChatPo chatPo) {
-        return saveOrUpdate(chatPo);
+    public Boolean creat(ImChatPo chatPo) {
+        return super.save(chatPo);
     }
 
-    public Boolean deleteById(String id) {
-        return removeById(id);
+    @Override
+    public Boolean modify(ImChatPo chatPo) {
+        return super.updateById(chatPo);
+    }
+
+    @Override
+    public Boolean creatOrModify(ImChatPo chatPo) {
+        return super.saveOrUpdate(chatPo);
+    }
+
+    @Override
+    public Boolean removeOne(String id) {
+        return super.removeById(id);
     }
 
 

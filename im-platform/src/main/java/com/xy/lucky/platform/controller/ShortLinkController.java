@@ -17,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * 短链控制器
@@ -45,9 +47,10 @@ public class ShortLinkController {
             @Parameter(in = ParameterIn.PATH, name = "version", description = "API 路径版本（占位）", required = true)
     })
     @PostMapping("/create")
-    public ShortLinkVo createShortLink(@Valid @RequestBody ShortLinkVo request) {
+    public Mono<ShortLinkVo> createShortLink(@Valid @RequestBody ShortLinkVo request) {
         log.info("收到短链创建请求，url={}", request.getOriginalUrl());
-        return shortLinkService.createShortLink(request);
+        return Mono.fromCallable(() -> shortLinkService.createShortLink(request))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -65,9 +68,10 @@ public class ShortLinkController {
             @Parameter(in = ParameterIn.PATH, name = "code", description = "短码", required = true)
     })
     @GetMapping("/info/{code}")
-    public ShortLinkVo info(@NotBlank(message = "短码不能为空") @PathVariable("code") String code) {
+    public Mono<ShortLinkVo> info(@NotBlank(message = "短码不能为空") @PathVariable("code") String code) {
         log.info("收到短链信息查询请求，code={}", code);
-        return shortLinkService.info(code);
+        return Mono.fromCallable(() -> shortLinkService.info(code))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -82,9 +86,10 @@ public class ShortLinkController {
             @Parameter(in = ParameterIn.PATH, name = "code", description = "短码", required = true)
     })
     @PostMapping("/disable/{code}")
-    public String disable(@NotBlank(message = "短码不能为空") @PathVariable("code") String code) {
+    public Mono<String> disable(@NotBlank(message = "短码不能为空") @PathVariable("code") String code) {
         log.info("收到短链禁用请求，code={}", code);
-        shortLinkService.disable(code);
-        return "OK";
+        return Mono.fromRunnable(() -> shortLinkService.disable(code))
+                .subscribeOn(Schedulers.boundedElastic())
+                .thenReturn("OK");
     }
 }

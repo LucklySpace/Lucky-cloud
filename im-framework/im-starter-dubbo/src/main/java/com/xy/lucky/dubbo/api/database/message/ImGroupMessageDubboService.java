@@ -14,7 +14,7 @@ public interface ImGroupMessageDubboService {
      * @param sequence 消息序号
      * @return 群组消息列表
      */
-    List<ImGroupMessagePo> selectList(String groupId, Long sequence);
+    List<ImGroupMessagePo> queryList(String groupId, Long sequence);
 
     /**
      * 查询群组消息
@@ -22,7 +22,7 @@ public interface ImGroupMessageDubboService {
      * @param messageId 消息ID
      * @return 群组消息
      */
-    ImGroupMessagePo selectOne(String messageId);
+    ImGroupMessagePo queryOne(String messageId);
 
     /**
      * 插入群组消息
@@ -30,7 +30,7 @@ public interface ImGroupMessageDubboService {
      * @param groupMessagePo 群组消息
      * @return 是否成功
      */
-    boolean insert(ImGroupMessagePo groupMessagePo);
+    boolean creat(ImGroupMessagePo groupMessagePo);
 
     /**
      * 批量插入群组消息
@@ -38,7 +38,7 @@ public interface ImGroupMessageDubboService {
      * @param groupMessagePoList 群组消息列表
      * @return 是否成功
      */
-    boolean batchInsert(List<ImGroupMessageStatusPo> groupMessagePoList);
+    boolean creatBatch(List<ImGroupMessageStatusPo> groupMessagePoList);
 
     /**
      * 更新群组消息
@@ -46,7 +46,7 @@ public interface ImGroupMessageDubboService {
      * @param groupMessagePo 群组消息
      * @return 是否成功
      */
-    boolean update(ImGroupMessagePo groupMessagePo);
+    boolean modify(ImGroupMessagePo groupMessagePo);
 
     /**
      * 删除群组消息
@@ -54,7 +54,7 @@ public interface ImGroupMessageDubboService {
      * @param messageId 群组消息ID
      * @return 是否成功
      */
-    boolean deleteById(String messageId);
+    boolean removeOne(String messageId);
 
     /**
      * 查询群组消息阅读状态
@@ -63,7 +63,7 @@ public interface ImGroupMessageDubboService {
      * @param userId  接收方ID
      * @return 群组消息阅读状态
      */
-    ImGroupMessagePo last(String groupId, String userId);
+    ImGroupMessagePo queryLast(String groupId, String userId);
 
     /**
      * 查询群组消息阅读状态
@@ -73,5 +73,5 @@ public interface ImGroupMessageDubboService {
      * @param code    群组消息状态码
      * @return 群组消息阅读状态
      */
-    Integer selectReadStatus(String groupId, String ownerId, Integer code);
+    Integer queryReadStatus(String groupId, String ownerId, Integer code);
 }

@@ -1,38 +1,40 @@
 package com.xy.lucky.database.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.mapper.ImFriendshipGroupMapper;
 import com.xy.lucky.domain.po.ImFriendshipGroupPo;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
-public class ImFriendshipGroupService extends ServiceImpl<ImFriendshipGroupMapper, ImFriendshipGroupPo>
-        implements IService<ImFriendshipGroupPo> {
+@RequiredArgsConstructor
+public class ImFriendshipGroupService extends ServiceImpl<ImFriendshipGroupMapper, ImFriendshipGroupPo> {
 
-    public List<ImFriendshipGroupPo> selectList() {
-        return this.list();
+    private final ImFriendshipGroupMapper imFriendshipGroupMapper;
+
+    public List<ImFriendshipGroupPo> queryList() {
+        return super.list();
     }
 
-    public ImFriendshipGroupPo selectOne(String id) {
-        return this.getById(id);
+    public ImFriendshipGroupPo queryOne(String id) {
+        return imFriendshipGroupMapper.selectById(id);
     }
 
-    public boolean insert(ImFriendshipGroupPo friendshipGroupPo) {
-        return this.save(friendshipGroupPo);
+    public boolean creat(ImFriendshipGroupPo friendshipGroupPo) {
+        return super.save(friendshipGroupPo);
     }
 
-    public boolean batchInsert(List<ImFriendshipGroupPo> friendshipGroupPoList) {
-        return this.saveBatch(friendshipGroupPoList);
+    public boolean creatBatch(List<ImFriendshipGroupPo> friendshipGroupPoList) {
+        return super.saveBatch(friendshipGroupPoList);
     }
 
-    public boolean update(ImFriendshipGroupPo friendshipGroupPo) {
-        return this.updateById(friendshipGroupPo);
+    public boolean modify(ImFriendshipGroupPo friendshipGroupPo) {
+        return super.updateById(friendshipGroupPo);
     }
 
-    public boolean deleteById(String id) {
-        return this.removeById(id);
+    public boolean removeOne(String id) {
+        return super.removeById(id);
     }
 }

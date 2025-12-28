@@ -22,6 +22,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -59,12 +61,13 @@ public class LogController {
             @ApiResponse(responseCode = "400", description = "参数校验失败")
     })
     @PostMapping
-    public String ingest(@RequestBody @Valid LogRecordVo record) {
+    public Mono<String> ingest(@RequestBody @Valid LogRecordVo record) {
         if (log.isDebugEnabled()) {
             log.debug("接收日志采集请求: module={} level={}", record.getModule(), record.getLevel());
         }
-        ingestService.ingest(record);
-        return record.getId();
+        return Mono.fromRunnable(() -> ingestService.ingest(record))
+                .subscribeOn(Schedulers.boundedElastic())
+                .thenReturn(record.getId());
     }
 
     /**
@@ -81,13 +84,14 @@ public class LogController {
             @ApiResponse(responseCode = "400", description = "参数校验失败")
     })
     @PostMapping("/batch")
-    public int ingestBatch(@RequestBody @Valid List<LogRecordVo> records) {
+    public Mono<Integer> ingestBatch(@RequestBody @Valid List<LogRecordVo> records) {
         int size = records != null ? records.size() : 0;
         if (log.isDebugEnabled()) {
             log.debug("接收批量日志采集请求: count={}", size);
         }
-        ingestService.ingestBatch(records);
-        return size;
+        return Mono.fromRunnable(() -> ingestService.ingestBatch(records))
+                .subscribeOn(Schedulers.boundedElastic())
+                .thenReturn(size);
     }
 
     /**
@@ -111,7 +115,7 @@ public class LogController {
             )
     })
     @GetMapping
-    public Page<LogRecordVo> query(
+    public Mono<Page<LogRecordVo>> query(
             @Parameter(description = "模块名（不传则不过滤）", example = "im-server") @RequestParam(name = "module", required = false) String module,
             @Parameter(description = "开始时间（ISO-8601，不传默认从1970开始）", example = "2025-12-24T00:00:00Z")
             @RequestParam(name = "start", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
@@ -126,7 +130,8 @@ public class LogController {
         if (log.isDebugEnabled()) {
             log.debug("查询日志请求: module={} service={} env={} level={} keyword={}", module, service, env, level, keyword);
         }
-        return queryService.query(module, start, end, level, service, env, page, size, keyword);
+        return Mono.fromCallable(() -> queryService.query(module, start, end, level, service, env, page, size, keyword))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -143,8 +148,8 @@ public class LogController {
             )
     })
     @GetMapping("/stats/overview")
-    public Map<String, Object> overview() {
-        return analysisService.overview();
+    public Mono<Map<String, Object>> overview() {
+        return Mono.fromCallable(analysisService::overview).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -163,14 +168,15 @@ public class LogController {
             )
     })
     @GetMapping("/stats/hourly")
-    public Map<String, Long> hourly(
+    public Mono<Map<String, Long>> hourly(
             @Parameter(description = "日志级别") @RequestParam(name = "level", defaultValue = "ERROR") String level,
             @Parameter(description = "最近小时数") @RequestParam(name = "hours", defaultValue = "24") int hours) {
-        return analysisService.hourlySeries(level, hours);
+        return Mono.fromCallable(() -> analysisService.hourlySeries(level, hours))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @GetMapping("/stats/histogram")
-    public Map<String, Long> histogram(
+    public Mono<Map<String, Long>> histogram(
             @RequestParam(name = "module", required = false) String module,
             @RequestParam(name = "start", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
             @RequestParam(name = "end", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end,
@@ -179,30 +185,31 @@ public class LogController {
             @RequestParam(name = "env", required = false) String env,
             @RequestParam(name = "keyword", required = false) String keyword,
             @RequestParam(name = "interval", defaultValue = "hour") String interval) {
-        return queryService.histogram(module, start, end, level, service, env, keyword, interval);
+        return Mono.fromCallable(() -> queryService.histogram(module, start, end, level, service, env, keyword, interval))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
 
     @Operation(summary = "元数据", description = "获取元数据，包括模块、服务、环境、地址")
     @GetMapping("/meta/services")
-    public List<String> metaServices(@RequestParam(name = "env", required = false) String env) {
-        return queryService.listServices(env);
+    public Mono<List<String>> metaServices(@RequestParam(name = "env", required = false) String env) {
+        return Mono.fromCallable(() -> queryService.listServices(env)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @GetMapping("/aggs/top/services")
-    public List<Map<String, Object>> aggsTopServices(
+    public Mono<List<Map<String, Object>>> aggsTopServices(
             @RequestParam(name = "start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
             @RequestParam(name = "end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end,
             @RequestParam(name = "limit", defaultValue = "10") int limit) {
-        return queryService.topServices(start, end, limit);
+        return Mono.fromCallable(() -> queryService.topServices(start, end, limit)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @GetMapping("/aggs/top/addresses")
-    public List<Map<String, Object>> aggsTopAddresses(
+    public Mono<List<Map<String, Object>>> aggsTopAddresses(
             @RequestParam(name = "start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
             @RequestParam(name = "end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end,
             @RequestParam(name = "limit", defaultValue = "10") int limit) {
-        return queryService.topAddresses(start, end, limit);
+        return Mono.fromCallable(() -> queryService.topAddresses(start, end, limit)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -218,10 +225,11 @@ public class LogController {
             )
     })
     @DeleteMapping("/before")
-    public String deleteBefore(@Parameter(description = "截止时间") @RequestParam(name = "cutoff") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime cutoff) {
+    public Mono<String> deleteBefore(@Parameter(description = "截止时间") @RequestParam(name = "cutoff") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime cutoff) {
         log.warn("执行日志清理: cutoff={}", cutoff);
-        queryService.deleteBefore(cutoff);
-        return "ok";
+        return Mono.fromRunnable(() -> queryService.deleteBefore(cutoff))
+                .subscribeOn(Schedulers.boundedElastic())
+                .thenReturn("ok");
     }
 
     /**

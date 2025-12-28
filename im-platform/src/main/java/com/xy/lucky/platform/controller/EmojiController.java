@@ -16,9 +16,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -45,9 +47,9 @@ public class EmojiController {
                             schema = @Schema(implementation = String.class)))
     })
     @GetMapping("/pack/code")
-    public String getPackCode() {
+    public Mono<String> getPackCode() {
         log.info("收到获取表情包编码请求");
-        return emojiService.getPackCode();
+        return Mono.fromCallable(emojiService::getPackCode).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Operation(summary = "创建或更新表情包", description = "根据 code 创建或更新表情包")
@@ -57,9 +59,9 @@ public class EmojiController {
                             schema = @Schema(implementation = EmojiPackVo.class)))
     })
     @PostMapping("/pack")
-    public EmojiPackVo upsertPack(@Valid @RequestBody EmojiPackVo request) {
+    public Mono<EmojiPackVo> upsertPack(@Valid @RequestBody EmojiPackVo request) {
         log.info("收到表情包创建/更新请求，code={}", request.getCode());
-        return emojiService.upsertPack(request);
+        return Mono.fromCallable(() -> emojiService.upsertPack(request)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Operation(summary = "列出所有表情包", description = "返回所有可用表情包列表")
@@ -69,8 +71,8 @@ public class EmojiController {
                             schema = @Schema(implementation = EmojiPackVo.class)))
     })
     @GetMapping("/pack/list")
-    public List<EmojiPackVo> listPacks() {
-        return emojiService.listPacks();
+    public Mono<List<EmojiPackVo>> listPacks() {
+        return Mono.fromCallable(emojiService::listPacks).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Operation(summary = "上传表情", description = "将图片上传到指定表情包")
@@ -80,12 +82,12 @@ public class EmojiController {
                             schema = @Schema(implementation = EmojiVo.class)))
     })
     @PostMapping("/upload")
-    public EmojiVo upload(
+    public Mono<EmojiVo> upload(
             @Parameter(description = "表情元数据", required = true) @Valid @RequestPart("emojiVo") EmojiVo emojiVo,
-            @Parameter(description = "图片文件", required = true) @RequestPart("file") MultipartFile file
+            @Parameter(description = "图片文件", required = true) @RequestPart("file") FilePart file
     ) {
         log.info("收到表情上传请求，packId={} name={}", emojiVo.getPackId(), emojiVo.getName());
-        return emojiService.uploadEmoji(emojiVo, file);
+        return Mono.fromCallable(() -> emojiService.uploadEmoji(emojiVo, file)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Operation(summary = "批量上传表情", description = "一次上传多个图片文件到指定表情包")
@@ -95,25 +97,25 @@ public class EmojiController {
                             schema = @Schema(implementation = EmojiVo.class)))
     })
     @PostMapping("/pack/{packId}/upload/batch")
-    public List<EmojiVo> uploadBatch(
+    public Mono<List<EmojiVo>> uploadBatch(
             @Parameter(description = "表情包ID", required = true) @PathVariable("packId") String packId,
-            @Parameter(description = "图片文件列表", required = true) @RequestPart("files") List<MultipartFile> files,
+            @Parameter(description = "图片文件列表", required = true) @RequestPart("files") List<FilePart> files,
             @Parameter(description = "统一标签（可选）") @RequestParam(value = "tags", required = false) String tags
     ) {
         log.info("收到批量上传请求，packId={} 文件数={}", packId, files == null ? 0 : files.size());
-        return emojiService.uploadEmojiBatch(packId, files, tags);
+        return Mono.fromCallable(() -> emojiService.uploadEmojiBatch(packId, files, tags)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Operation(summary = "列出表情包内的所有表情", description = "按 packId 返回表情列表")
     @GetMapping("/pack/{packId}/items")
-    public List<EmojiVo> listByPack(@NotBlank(message = "packId 不能为空") @PathVariable("packId") String packId) {
-        return emojiService.listEmojis(packId);
+    public Mono<List<EmojiVo>> listByPack(@NotBlank(message = "packId 不能为空") @PathVariable("packId") String packId) {
+        return Mono.fromCallable(() -> emojiService.listEmojis(packId)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Operation(summary = "下载表情文件", description = "流式传输图片文件")
     @GetMapping("/item/{emojiId}/download")
-    public ResponseEntity<Resource> download(@NotBlank(message = "emojiId 不能为空") @PathVariable("emojiId") String emojiId) {
-        return emojiService.downloadEmoji(emojiId);
+    public Mono<ResponseEntity<Resource>> download(@NotBlank(message = "emojiId 不能为空") @PathVariable("emojiId") String emojiId) {
+        return Mono.fromCallable(() -> emojiService.downloadEmoji(emojiId)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Operation(summary = "上传表情包封面", description = "上传封面图片并更新表情包")
@@ -123,35 +125,36 @@ public class EmojiController {
                             schema = @Schema(implementation = EmojiPackVo.class)))
     })
     @PostMapping("/pack/{packId}/cover")
-    public EmojiPackVo uploadCover(
+    public Mono<EmojiPackVo> uploadCover(
             @Parameter(description = "表情包ID", required = true) @PathVariable("packId") String packId,
-            @Parameter(description = "封面图片", required = true) @RequestPart("file") MultipartFile file
+            @Parameter(description = "封面图片", required = true) @RequestPart("file") FilePart file
     ) {
-        return emojiService.uploadCover(packId, file);
+        return Mono.fromCallable(() -> emojiService.uploadCover(packId, file)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Operation(summary = "启用/禁用表情包", description = "按 code 切换启用状态")
     @PostMapping("/pack/{code}/enable/{enabled}")
-    public EmojiPackVo toggle(
+    public Mono<EmojiPackVo> toggle(
             @Parameter(description = "包编码", required = true) @PathVariable("code") String code,
             @Parameter(description = "是否启用", required = true) @PathVariable("enabled") boolean enabled
     ) {
-        return emojiService.togglePack(code, enabled);
+        return Mono.fromCallable(() -> emojiService.togglePack(code, enabled)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Operation(summary = "查询表情包详情", description = "按 code 查询表情包")
     @GetMapping("/pack/{code}")
-    public EmojiPackVo getPack(@Parameter(description = "包编码", required = true) @PathVariable("code") String code) {
-        return emojiService.getPack(code);
+    public Mono<EmojiPackVo> getPack(@Parameter(description = "包编码", required = true) @PathVariable("code") String code) {
+        return Mono.fromCallable(() -> emojiService.getPack(code)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Operation(summary = "删除表情", description = "可选同时删除 MinIO 对象")
     @DeleteMapping("/item/{emojiId}")
-    public String deleteEmoji(
+    public Mono<String> deleteEmoji(
             @Parameter(description = "表情ID", required = true) @PathVariable("emojiId") String emojiId,
             @Parameter(description = "是否删除对象", required = false) @RequestParam(value = "removeObject", defaultValue = "true") boolean removeObject
     ) {
-        emojiService.deleteEmoji(emojiId, removeObject);
-        return "OK";
+        return Mono.fromRunnable(() -> emojiService.deleteEmoji(emojiId, removeObject))
+                .subscribeOn(Schedulers.boundedElastic())
+                .thenReturn("OK");
     }
 }

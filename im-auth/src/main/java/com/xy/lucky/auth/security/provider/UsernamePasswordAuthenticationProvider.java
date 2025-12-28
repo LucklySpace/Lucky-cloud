@@ -67,7 +67,7 @@ public class UsernamePasswordAuthenticationProvider implements AuthenticationPro
      * @throws AuthenticationFailException 如果用户不存在
      */
     private ImUserPo getUserByUserId(String userId) {
-        ImUserPo user = imUserDubboService.selectOne(userId);
+        ImUserPo user = imUserDubboService.queryOne(userId);
         if (Objects.isNull(user)) {
             log.warn("Account not found for userId: {}", userId);
             throw new AuthenticationFailException(ResultCode.ACCOUNT_NOT_FOUND);

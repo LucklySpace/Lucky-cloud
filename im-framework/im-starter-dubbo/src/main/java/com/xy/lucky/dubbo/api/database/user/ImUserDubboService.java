@@ -11,56 +11,36 @@ public interface ImUserDubboService {
 
     /**
      * 获取用户列表
-     *
-     * @return 用户列表
      */
-    List<ImUserPo> selectList();
+    List<ImUserPo> queryList();
 
     /**
      * 获取用户信息
-     *
-     * @param userId 用户id
-     * @return 用户信息
      */
-    ImUserPo selectOne(String userId);
+    ImUserPo queryOne(String userId);
 
     /**
      * 创建用户信息
-     *
-     * @param userDataPo 用户信息
-     * @return 是否成功
      */
-    Boolean insert(ImUserPo userDataPo);
+    Boolean creat(ImUserPo userDataPo);
 
     /**
      * 批量创建用户信息
-     *
-     * @param userDataPoList 用户信息列表
-     * @return 是否成功
      */
-    Boolean batchInsert(List<ImUserPo> userDataPoList);
+    Boolean creatBatch(List<ImUserPo> userDataPoList);
 
     /**
      * 更新用户信息
-     *
-     * @param userDataPo 用户信息
-     * @return 是否成功
      */
-    Boolean update(ImUserPo userDataPo);
+    Boolean modify(ImUserPo userDataPo);
 
     /**
      * 删除用户信息
-     *
-     * @param userId 用户id
-     * @return 是否成功
      */
-    Boolean deleteById(String userId);
+    Boolean removeOne(String userId);
 
     /**
      * 根据手机号获取用户信息
-     *
-     * @param phoneNumber 手机号
-     * @return 用户信息
      */
-    ImUserPo selectOneByMobile(String phoneNumber);
+    ImUserPo queryOneByMobile(String phoneNumber);
 }

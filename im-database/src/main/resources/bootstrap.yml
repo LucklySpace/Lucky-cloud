@@ -53,7 +53,7 @@ server:
 
 # seata 配置
 seata:
-  enabled: true
+  enabled: false
   # 数据源代理模式
   data-source-proxy-mode: AT
   application-id: ${spring.application.name}

@@ -2,6 +2,7 @@ package com.xy.lucky.domain.po;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,6 +18,7 @@ import java.io.Serializable;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "好友分组信息")
 @TableName(value = "im_friendship_group")
 public class ImFriendshipGroupPo implements Serializable {
 

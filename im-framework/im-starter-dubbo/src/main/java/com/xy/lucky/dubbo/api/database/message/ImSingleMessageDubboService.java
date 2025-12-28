@@ -13,7 +13,7 @@ public interface ImSingleMessageDubboService {
      * @param sequence 消息序列
      * @return 单聊消息列表
      */
-    List<ImSingleMessagePo> selectList(String userId, Long sequence);
+    List<ImSingleMessagePo> queryList(String userId, Long sequence);
 
     /**
      * 查询单聊消息
@@ -21,7 +21,7 @@ public interface ImSingleMessageDubboService {
      * @param messageId 消息ID
      * @return 单聊消息
      */
-    ImSingleMessagePo selectOne(String messageId);
+    ImSingleMessagePo queryOne(String messageId);
 
     /**
      * 插入单聊消息
@@ -29,7 +29,7 @@ public interface ImSingleMessageDubboService {
      * @param singleMessagePo 单聊消息
      * @return 插入结果
      */
-    Boolean insert(ImSingleMessagePo singleMessagePo);
+    Boolean creat(ImSingleMessagePo singleMessagePo);
 
     /**
      * 批量插入单聊消息
@@ -37,7 +37,7 @@ public interface ImSingleMessageDubboService {
      * @param singleMessagePoList 单聊消息列表
      * @return 批量插入结果
      */
-    Boolean batchInsert(List<ImSingleMessagePo> singleMessagePoList);
+    Boolean creatBatch(List<ImSingleMessagePo> singleMessagePoList);
 
     /**
      * 更新单聊消息
@@ -45,7 +45,7 @@ public interface ImSingleMessageDubboService {
      * @param singleMessagePo 单聊消息
      * @return 更新结果
      */
-    Boolean update(ImSingleMessagePo singleMessagePo);
+    Boolean modify(ImSingleMessagePo singleMessagePo);
 
     /**
      * 删除单聊消息
@@ -53,7 +53,7 @@ public interface ImSingleMessageDubboService {
      * @param messageId 消息ID
      * @return 删除结果
      */
-    Boolean deleteById(String messageId);
+    Boolean removeOne(String messageId);
 
     /**
      * 查询单聊消息最后消息
@@ -62,7 +62,7 @@ public interface ImSingleMessageDubboService {
      * @param toId   接收方ID
      * @return 单聊消息
      */
-    ImSingleMessagePo last(String fromId, String toId);
+    ImSingleMessagePo queryLast(String fromId, String toId);
 
     /**
      * 查询单聊消息已读状态
@@ -72,6 +72,6 @@ public interface ImSingleMessageDubboService {
      * @param code   状态码
      * @return 单聊消息已读状态
      */
-    Integer selectReadStatus(String fromId, String toId, Integer code);
+    Integer queryReadStatus(String fromId, String toId, Integer code);
 
 }

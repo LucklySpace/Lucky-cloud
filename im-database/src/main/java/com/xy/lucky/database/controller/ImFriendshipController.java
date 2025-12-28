@@ -4,10 +4,20 @@ package com.xy.lucky.database.controller;
 import com.xy.lucky.database.security.SecurityInner;
 import com.xy.lucky.database.service.ImFriendshipService;
 import com.xy.lucky.domain.po.ImFriendshipPo;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -16,73 +26,72 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/{version}/database/friend")
 @Tag(name = "ImFriendShip", description = "好友关系数据库接口")
+@Validated
 public class ImFriendshipController {
 
     @Resource
     private ImFriendshipService imFriendshipService;
 
-    /**
-     * 查询所有好友
-     */
     @GetMapping("/selectList")
-    public List<ImFriendshipPo> selectList(@RequestParam("ownerId") String ownerId, @RequestParam("sequence") Long sequence) {
-        return imFriendshipService.selectList(ownerId, sequence);
+    @Operation(summary = "查询好友列表", description = "根据ownerId与序列查询好友列表")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImFriendshipPo.class)))
+    })
+    public Mono<List<ImFriendshipPo>> listFriendships(@RequestParam("ownerId") @NotBlank @Size(max = 64) String ownerId, @RequestParam("sequence") @NotNull @PositiveOrZero Long sequence) {
+        return Mono.fromCallable(() -> imFriendshipService.queryList(ownerId, sequence)).subscribeOn(Schedulers.boundedElastic());
     }
 
-    /**
-     * 获取好友关系
-     *
-     * @param ownerId  用户ID
-     * @param toId 好友id
-     * @return
-     */
     @GetMapping("/ship/selectOne")
-    public ImFriendshipPo selectOne(@RequestParam("ownerId") String ownerId, @RequestParam("toId") String toId) {
-        return imFriendshipService.selectOne(ownerId, toId);
+    @Operation(summary = "获取好友关系", description = "根据ownerId与toId查询单个好友关系")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImFriendshipPo.class))),
+            @ApiResponse(responseCode = "404", description = "未找到")
+    })
+    public Mono<ImFriendshipPo> getFriendship(@RequestParam("ownerId") @NotBlank @Size(max = 64) String ownerId, @RequestParam("toId") @NotBlank @Size(max = 64) String toId) {
+        return Mono.fromCallable(() -> imFriendshipService.queryOne(ownerId, toId)).subscribeOn(Schedulers.boundedElastic());
     }
 
-    /**
-     * 批量查询好友关系
-     *
-     * @param ownerId 用户ID
-     * @param ids     好友ID列表
-     * @return 好友关系列表
-     */
     @GetMapping("/ship/selectByIds")
-    public List<ImFriendshipPo> selectByIds(@RequestParam("ownerId") String ownerId, @RequestParam("ids") List<String> ids) {
-        return imFriendshipService.selectByIds(ownerId, ids);
+    @Operation(summary = "批量查询好友关系", description = "根据好友ID列表查询好友关系")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImFriendshipPo.class)))
+    })
+    public Mono<List<ImFriendshipPo>> listFriendshipsByIds(@RequestParam("ownerId") @NotBlank @Size(max = 64) String ownerId, @RequestParam("ids") @NotEmpty List<@NotBlank @Size(max = 64) String> ids) {
+        return Mono.fromCallable(() -> imFriendshipService.queryListByIds(ownerId, ids)).subscribeOn(Schedulers.boundedElastic());
     }
 
-    /**
-     * 创建好友关系
-     *
-     * @param friendship 好友关系信息
-     */
     @PostMapping("/insert")
-    public void insert(@RequestBody ImFriendshipPo friendship) {
-        imFriendshipService.insert(friendship);
+    @Operation(summary = "创建好友关系", description = "新增好友关系")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "创建成功")
+    })
+    public Mono<Void> createFriendship(@RequestBody @Valid ImFriendshipPo friendship) {
+        return Mono.fromRunnable(() -> imFriendshipService.creat(friendship)).subscribeOn(Schedulers.boundedElastic()).then();
     }
 
-    /**
-     * 更新好友关系
-     *
-     * @param friendship 好友关系信息
-     * @return 是否更新成功
-     */
     @PutMapping("/update")
-    public Boolean update(@RequestBody ImFriendshipPo friendship) {
-        return imFriendshipService.update(friendship);
+    @Operation(summary = "更新好友关系", description = "根据ID更新好友关系")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "更新成功")
+    })
+    public Mono<Boolean> updateFriendship(@RequestBody @Valid ImFriendshipPo friendship) {
+        return Mono.fromCallable(() -> imFriendshipService.modify(friendship)).subscribeOn(Schedulers.boundedElastic());
     }
 
-    /**
-     * 删除好友关系
-     *
-     * @param ownerId  用户ID
-     * @param friendId 好友ID
-     */
     @DeleteMapping("/delete")
-    public Boolean delete(@RequestParam("ownerId") String ownerId, @RequestParam("friendId") String friendId) {
-        return imFriendshipService.delete(ownerId, friendId);
+    @Operation(summary = "删除好友关系", description = "根据ownerId与friendId删除好友关系")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "删除成功"),
+            @ApiResponse(responseCode = "404", description = "未找到")
+    })
+    public Mono<Boolean> deleteFriendship(@RequestParam("ownerId") @NotBlank @Size(max = 64) String ownerId, @RequestParam("friendId") @NotBlank @Size(max = 64) String friendId) {
+        return Mono.fromCallable(() -> imFriendshipService.removeOne(ownerId, friendId)).subscribeOn(Schedulers.boundedElastic());
     }
 
 }

@@ -13,9 +13,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * 应用更新控制器
@@ -46,9 +48,10 @@ public class PlatformController {
             )
     })
     @PostMapping("/release")
-    public ReleaseVo publishRelease(@Valid @RequestBody ReleaseVo createReleaseVo) {
+    public Mono<ReleaseVo> publishRelease(@Valid @RequestBody ReleaseVo createReleaseVo) {
         log.info("收到发布版本请求，版本号: {}", createReleaseVo.getVersion());
-        return platformService.publishRelease(createReleaseVo);
+        return Mono.fromCallable(() -> platformService.publishRelease(createReleaseVo))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -67,11 +70,12 @@ public class PlatformController {
             )
     })
     @PostMapping(value = "/assets")
-    public AssetVo publishAssets(
+    public Mono<AssetVo> publishAssets(
             @Parameter(description = "资产信息", required = true) @Valid @RequestPart("createAssetVo") AssetVo createAssetVo,
-            @Parameter(description = "上传文件", required = true) @RequestPart("file") MultipartFile file
+            @Parameter(description = "上传文件", required = true) @RequestPart("file") FilePart file
     ) {
         log.info("收到发布资产请求，版本id: {} 版本号: {}，平台: {}", createAssetVo.getReleaseId(), createAssetVo.getVersion(), createAssetVo.getPlatform());
-        return platformService.publishAssets(createAssetVo, file);
+        return Mono.fromCallable(() -> platformService.publishAssets(createAssetVo, file))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 }

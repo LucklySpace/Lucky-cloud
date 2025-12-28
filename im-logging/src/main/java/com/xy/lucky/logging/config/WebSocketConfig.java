@@ -1,22 +1,53 @@
 package com.xy.lucky.logging.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.xy.lucky.logging.domain.vo.LogRecordVo;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.messaging.simp.config.MessageBrokerRegistry;
-import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
-import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
-import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping;
+import org.springframework.web.reactive.socket.WebSocketHandler;
+import org.springframework.web.reactive.socket.server.support.WebSocketHandlerAdapter;
+import reactor.core.publisher.Sinks;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Configuration
-@EnableWebSocketMessageBroker
-public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
-    @Override
-    public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws").setAllowedOriginPatterns("*").withSockJS();
+public class WebSocketConfig {
+
+    @Bean
+    public WebSocketHandler logWebSocketHandler(ObjectMapper mapper, Sinks.Many<LogRecordVo> logSink) {
+        return session -> {
+            var flux = logSink.asFlux()
+                    .map(record -> {
+                        try {
+                            return mapper.writeValueAsString(record);
+                        } catch (Exception e) {
+                            return "{\"error\":\"serialize\"}";
+                        }
+                    })
+                    .map(session::textMessage);
+            return session.send(flux).and(session.receive().then());
+        };
     }
 
-    @Override
-    public void configureMessageBroker(MessageBrokerRegistry registry) {
-        registry.enableSimpleBroker("/topic");
-        registry.setApplicationDestinationPrefixes("/app");
+    @Bean
+    public SimpleUrlHandlerMapping handlerMapping(WebSocketHandler logWebSocketHandler) {
+        Map<String, WebSocketHandler> map = new HashMap<>();
+        map.put("/ws", logWebSocketHandler);
+        SimpleUrlHandlerMapping mapping = new SimpleUrlHandlerMapping();
+        mapping.setUrlMap(map);
+        mapping.setOrder(-1);
+        return mapping;
+    }
+
+    @Bean
+    public WebSocketHandlerAdapter handlerAdapter() {
+        return new WebSocketHandlerAdapter();
+    }
+
+    @Bean
+    public Sinks.Many<LogRecordVo> logSink() {
+        return Sinks.many().multicast().onBackpressureBuffer();
     }
 }

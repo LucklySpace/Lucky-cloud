@@ -14,9 +14,9 @@ import com.xy.lucky.platform.utils.MinioUtils;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Optional;
 
@@ -103,19 +103,25 @@ public class PlatformService {
      * @return 资产信息
      */
     @Transactional
-    public AssetVo publishAssets(AssetVo createAssetVo, MultipartFile file) {
+    public AssetVo publishAssets(AssetVo createAssetVo, FilePart file) {
         log.info("开始处理资产发布请求，版本号: {}，平台: {}", createAssetVo.getVersion(), createAssetVo.getPlatform());
 
-        // 验证文件
-        if (file.isEmpty() || !StringUtils.hasText(file.getOriginalFilename())) {
+        if (file == null || !StringUtils.hasText(file.filename())) {
             log.warn("上传的文件为空");
             throw new ReleaseException("上传的文件为空");
         }
 
-        // 验证文件MD5
-        MD5Utils.checkMD5(createAssetVo.getMd5(), file);
+        java.nio.file.Path temp;
+        try {
+            temp = java.nio.file.Files.createTempFile("asset-", "-" + file.filename());
+            file.transferTo(temp.toFile()).block();
+        } catch (Exception e) {
+            throw new ReleaseException("文件接收失败: " + e.getMessage());
+        }
 
-        String filename = file.getOriginalFilename();
+        MD5Utils.checkMD5(createAssetVo.getMd5(), temp);
+
+        String filename = file.filename();
 
         // 查找关联的版本
         ReleasePo release = releaseRepository.findById(createAssetVo.getReleaseId())
@@ -141,18 +147,27 @@ public class PlatformService {
 
         String objectKey = String.format("releases/%s/%s/%s", release.getVersion(), createAssetVo.getPlatform(), objectName);
 
-        String contentType = file.getContentType();
-        long size = file.getSize();
+        String contentType = file.headers() != null && file.headers().getContentType() != null
+                ? file.headers().getContentType().toString() : null;
+        long size;
+        try {
+            size = java.nio.file.Files.size(temp);
+        } catch (Exception e) {
+            throw new ReleaseException("计算文件大小失败: " + e.getMessage());
+        }
 
         log.info("开始上传文件到MinIO，存储桶={}，对象键={}，大小={}字节", bucket, objectKey, size);
 
-        try {
-            // 上传到MinIO
-            minioUtils.uploadObject(bucket, objectKey, file.getInputStream(), size, contentType);
+        try (java.io.InputStream in = java.nio.file.Files.newInputStream(temp)) {
+            minioUtils.uploadObject(bucket, objectKey, in, size, contentType);
             log.debug("文件上传成功");
         } catch (Exception e) {
             log.error("文件上传失败，存储桶={}，对象键={}", bucket, objectKey, e);
             throw new ReleaseException("文件上传失败: " + e.getMessage());
+        }
+        try {
+            java.nio.file.Files.deleteIfExists(temp);
+        } catch (Exception ignore) {
         }
 
         // 创建资产记录

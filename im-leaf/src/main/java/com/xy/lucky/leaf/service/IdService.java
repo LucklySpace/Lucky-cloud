@@ -11,10 +11,11 @@ import org.apache.dubbo.config.annotation.DubboService;
 import org.hibernate.service.spi.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -29,7 +30,7 @@ import java.util.List;
 public class IdService implements ImIdDubboService {
 
     @Resource
-    private RedisTemplate<String, Long> redisTemplate;
+    private ReactiveRedisTemplate<String, Object> reactiveRedisTemplate;
 
     @Resource
     private IdMetaInfoRepository idMetaInfoRepo;
@@ -74,11 +75,7 @@ public class IdService implements ImIdDubboService {
      * @return 生成的ID对象
      */
     public IMetaId generateId(String type, String key) {
-        IDGen strategy = strategyContext.getStrategy(type);
-        if (strategy == null) {
-            throw new IllegalArgumentException("Unknown IDGen type: " + type);
-        }
-        return strategy.getId(key);
+        return strategyContext.getStrategy(type).getId(key);
     }
 
     /**
@@ -106,16 +103,17 @@ public class IdService implements ImIdDubboService {
      * @return 生成的用户ID
      */
     public String generateUserId() {
-        String key = "id:segment:user";
-        Long increment = redisTemplate.opsForValue().increment(key, 1);
+        String type = "user";
+        String key = "id:segment:" + type;
+        Long increment = reactiveRedisTemplate.opsForValue().increment(key, 1).block(Duration.ofSeconds(2));
 
         if (increment == null) {
             throw new ServiceException("Redis ID生成失败");
         }
 
         // 号段用尽时从数据库加载新号段
-        if (increment % 1000 == 0) { // 假设步长1000
-            loadNewSegment(key);
+        if (increment % 1000 == 0) {
+            loadNewSegment(type);
         }
 
         return "UID" + System.currentTimeMillis() / 1000 + String.format("%06d", increment % 1000);
@@ -129,7 +127,10 @@ public class IdService implements ImIdDubboService {
      */
     public String generateMsgId(int machineId) {
         String key = "id:msg:" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        Long seq = redisTemplate.opsForValue().increment(key);
+        Long seq = reactiveRedisTemplate.opsForValue().increment(key).block(Duration.ofSeconds(2));
+        if (seq == null) {
+            seq = 0L;
+        }
         return String.format("MSG%02d%tM%S%04d", machineId, System.currentTimeMillis(), seq % 10000);
     }
 
@@ -144,7 +145,7 @@ public class IdService implements ImIdDubboService {
                 .orElseThrow(() -> new IllegalArgumentException("无效ID类型"));
 
         long newMaxId = meta.getMaxId() + meta.getStep();
-        redisTemplate.opsForValue().set("id:segment:" + id.toLowerCase(), newMaxId);
+        reactiveRedisTemplate.opsForValue().set("id:segment:" + id.toLowerCase(), newMaxId).block(Duration.ofSeconds(2));
         meta.setMaxId(newMaxId);
         idMetaInfoRepo.save(meta);
     }

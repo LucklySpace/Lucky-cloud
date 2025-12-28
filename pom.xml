@@ -15,6 +15,7 @@
         <module>im-framework</module>
         <module>im-server</module>
         <module>im-database</module>
+        <module>im-database-webflux</module>
         <module>im-file</module>
         <module>im-analysis</module>
         <module>im-leaf</module>
@@ -84,6 +85,7 @@
         <mysql.version>8.2.0</mysql.version>
         <postgresql.version>42.7.5</postgresql.version>
         <clickhouse.version>0.5.0</clickhouse.version>
+        <r2dbc-postgresql.version>0.8.13.RELEASE</r2dbc-postgresql.version>
 
         <!-- 分布式 / 缓存 -->
         <redis.version>4.2.3</redis.version>

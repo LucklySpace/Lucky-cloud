@@ -2,8 +2,10 @@ package com.xy.lucky.auth.controller;
 
 
 import com.xy.lucky.auth.domain.IMLoginRequest;
+import com.xy.lucky.auth.domain.IMLoginResult;
+import com.xy.lucky.auth.domain.IMQRCodeResult;
 import com.xy.lucky.auth.service.AuthService;
-import com.xy.lucky.general.response.domain.Result;
+import com.xy.lucky.domain.vo.UserVo;
 import com.xy.lucky.security.RSAKeyProperties;
 import com.xy.lucky.security.util.RSAUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,8 +13,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,108 +33,71 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/{version}/auth")
 @Tag(name = "auth", description = "用户认证")
+@RequiredArgsConstructor
 public class AuthController {
 
-    @Resource
-    private AuthService authService;
+    private final AuthService authService;
 
-    @Resource
-    private RSAKeyProperties RSAKeyProperties;
+    private final RSAKeyProperties RSAKeyProperties;
 
-    /**
-     * 统一登录接口，根据 authType 选择认证方式
-     *
-     * @param imLoginRequest 登录信息
-     * @return 返回登录结果
-     */
     @PostMapping("/login")
     @Operation(summary = "用户登录", tags = {"auth"}, description = "请使用此接口进行用户登录")
     @Parameters({
             @Parameter(name = "loginRequest", description = "用户登录信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result<?> login(@RequestBody IMLoginRequest imLoginRequest) {
+    public IMLoginResult login(@RequestBody IMLoginRequest imLoginRequest) {
         return authService.login(imLoginRequest);
     }
 
-    /**
-     * 生成用于认证的二维码。
-     *
-     * @param qrCodeId 要编码到二维码中的随机字符串
-     * @return 包含base64编码的二维码图片的Map
-     */
     @GetMapping("/qrcode")
     @Operation(summary = "生成认证二维码", tags = {"auth"}, description = "请使用此接口生成认证二维码")
     @Parameters({
             @Parameter(name = "qrcode", description = "二维码内容字符串", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result<?> generateQRCode(
+    public IMQRCodeResult generateQRCode(
             @Parameter(description = "二维码凭证 ID", required = true)
             @RequestParam("qrCode") String qrCodeId) {
         return authService.generateQRCode(qrCodeId);
     }
 
-    /**
-     * 用户扫描二维码后调用此接口，更新二维码状态为“已扫描”。
-     *
-     * @param payload 包含二维码和用户信息的Map
-     * @return 包含扫描结果的ResponseEntity
-     */
     @PostMapping("/qrcode/scan")
     @Operation(summary = "处理二维码扫描", tags = {"auth"}, description = "请使用此接口处理二维码扫描")
     @Parameters({
             @Parameter(name = "map", description = "二维码信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result<?> scanQRCode(
+    public IMQRCodeResult scanQRCode(
             @RequestBody
             @Parameter(description = "扫码信息，需包含 qrCodeId 和 userId", required = true)
             Map<String, String> payload) {
         return authService.scanQRCode(payload);
     }
 
-    /**
-     * 前端轮询调用此接口，检查二维码认证状态。
-     *
-     * @param qrCodeId 要检查的二维码字符串
-     * @return 二维码当前状态
-     */
     @GetMapping("/qrcode/status")
     @Operation(summary = "检查二维码状态", tags = {"auth"}, description = "请使用此接口检查二维码状态")
     @Parameters({
             @Parameter(name = "qrcode", description = "二维码字符串", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result<?> getQRCodeStatus(
+    public IMQRCodeResult getQRCodeStatus(
             @Parameter(description = "二维码凭证 ID", required = true)
             @RequestParam("qrCode") String qrCodeId) {
         return authService.getQRCodeStatus(qrCodeId);
     }
 
-    /**
-     * 获取用户信息。
-     *
-     * @param userId 用户ID
-     * @return 包含用户信息的对象
-     */
     @GetMapping("/info")
     @Operation(summary = "获取用户信息", tags = {"auth"}, description = "请使用此接口获取用户信息")
     @Parameters({
             @Parameter(name = "userId", description = "用户id", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result<?> info(@RequestParam("userId") String userId) {
+    public UserVo info(@RequestParam("userId") String userId) {
         return authService.info(userId);
     }
 
-    /**
-     * 验证手机号码并发送验证码。
-     *
-     * @param phone 要验证并发送验证码的手机号码
-     * @return 发送结果的字符串响应
-     */
     @GetMapping(value = "/sms")
     @Operation(summary = "验证手机号码并发送验证码", tags = {"auth"}, description = "请使用此接口验证手机号码并发送验证码")
     @Parameters({
             @Parameter(name = "phone", description = "用户手机号码", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result<?> sms(@RequestParam("phone") String phone) {
+    public String sms(@RequestParam("phone") String phone) {
         return authService.sendSms(phone);
     }
 
@@ -144,7 +109,7 @@ public class AuthController {
     @GetMapping(value = "/publickey")
     //@Cacheable(value = "publicKey")
     @Operation(summary = "获取RSA公钥", tags = {"auth"}, description = "请使用此接口获取RSA公钥")
-    public Result<?> getPublicKey() {
+    public Map<String, String> getPublicKey() {
         return authService.getPublicKey();
     }
 
@@ -155,7 +120,7 @@ public class AuthController {
      */
     @Operation(summary = "token 刷新", tags = {"auth"}, description = "请使用此接口验证手机号码并发送验证码")
     @GetMapping(value = "/refresh/token")
-    public Result<?> refreshToken(HttpServletRequest request) {
+    public Map<String, String> refreshToken(HttpServletRequest request) {
         return authService.refreshToken(request);
     }
 
@@ -170,7 +135,7 @@ public class AuthController {
     @Parameters({
             @Parameter(name = "userId", description = "用户id", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result<?> isOnline(@RequestParam("userId") String userId) {
+    public Boolean isOnline(@RequestParam("userId") String userId) {
         return authService.isOnline(userId);
     }
 
@@ -184,8 +149,8 @@ public class AuthController {
     @Parameters({
             @Parameter(name = "userId", description = "用户id", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result<?> logout(@RequestParam("userId") String userId) {
-        return Result.success();
+    public Boolean logout(@RequestParam("userId") String userId) {
+        return Boolean.TRUE;
     }
 
 
@@ -201,8 +166,8 @@ public class AuthController {
     @Parameters({
             @Parameter(name = "password", description = "密码原文", required = true, in = ParameterIn.DEFAULT)
     })
-    public Result<?> passwordEncode(@RequestParam("password") String password) throws Exception {
-        return Result.success(RSAUtil.encrypt(password, RSAKeyProperties.getPublicKeyStr()));
+    public String passwordEncode(@RequestParam("password") String password) throws Exception {
+        return RSAUtil.encrypt(password, RSAKeyProperties.getPublicKeyStr());
     }
 //    /**
 //     * 密码加密

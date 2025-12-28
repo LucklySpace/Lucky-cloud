@@ -100,7 +100,7 @@ public class RelationshipServiceImpl implements RelationshipService {
             long start = System.currentTimeMillis();
             log.debug("contacts() 开始 -> ownerId={}", ownerId);
 
-            List<ImFriendshipPo> friendships = imFriendshipDubboService.selectList(ownerId, sequence);
+            List<ImFriendshipPo> friendships = imFriendshipDubboService.queryList(ownerId, sequence);
             if (isEmpty(friendships)) {
                 log.debug("没有好友关系 -> ownerId={}, 耗时 {} ms", ownerId, System.currentTimeMillis() - start);
                 return Collections.emptyList();
@@ -153,7 +153,7 @@ public class RelationshipServiceImpl implements RelationshipService {
             long start = System.currentTimeMillis();
             log.debug("groups() 开始 -> userId={}", userId);
 
-            List<ImGroupPo> groups = imGroupDubboService.selectList(userId);
+            List<ImGroupPo> groups = imGroupDubboService.queryList(userId);
             if (isEmpty(groups)) {
                 log.debug("未查询到任何群组 -> userId={}, 耗时 {} ms", userId, System.currentTimeMillis() - start);
                 return Collections.emptyList();
@@ -183,7 +183,7 @@ public class RelationshipServiceImpl implements RelationshipService {
             long startMs = System.currentTimeMillis();
             log.debug("开始获取用户的新的好友请求 -> userId={}", userId);
 
-            List<ImFriendshipRequestPo> requests = imFriendshipRequestDubboService.selectList(userId);
+            List<ImFriendshipRequestPo> requests = imFriendshipRequestDubboService.queryList(userId);
             if (isEmpty(requests)) {
                 log.debug("未查询到任何好友请求 -> userId={}，耗时 {} ms", userId, System.currentTimeMillis() - startMs);
                 return Collections.emptyList();
@@ -203,7 +203,7 @@ public class RelationshipServiceImpl implements RelationshipService {
 
             log.debug("待查询的唯一用户 ID 数量：{} -> ids={}", requesterIds.size(), requesterIds);
 
-            List<ImUserDataPo> userDataList = imUserDataDubboService.selectByIds(new ArrayList<>(requesterIds));
+            List<ImUserDataPo> userDataList = imUserDataDubboService.queryListByIds(new ArrayList<>(requesterIds));
             if (userDataList == null) userDataList = Collections.emptyList();
             log.info("从用户服务查询到 {} 条用户数据", userDataList.size());
 
@@ -240,7 +240,7 @@ public class RelationshipServiceImpl implements RelationshipService {
 
             FriendVo vo = new FriendVo();
 
-            ImUserDataPo userDataPo = imUserDataDubboService.selectOne(toId);
+            ImUserDataPo userDataPo = imUserDataDubboService.queryOne(toId);
             if (userDataPo == null) {
                 vo.setUserId(ownerId).setFriendId(toId).setFlag(IMStatus.NO.getCode());
                 log.warn("getFriendInfo: user not found for friendId={}", toId);
@@ -250,7 +250,7 @@ public class RelationshipServiceImpl implements RelationshipService {
             vo.setUserId(ownerId)
                     .setFriendId(userDataPo.getUserId());
 
-            ImFriendshipPo friendshipPo = imFriendshipDubboService.selectOne(ownerId, toId);
+            ImFriendshipPo friendshipPo = imFriendshipDubboService.queryOne(ownerId, toId);
             if (Objects.nonNull(friendshipPo)) {
                 vo.setFlag(IMStatus.YES.getCode());
                 Optional.ofNullable(friendshipPo.getBlack()).ifPresent(vo::setBlack);
@@ -282,7 +282,7 @@ public class RelationshipServiceImpl implements RelationshipService {
                 return Collections.emptyList();
             }
 
-            List<ImUserDataPo> users = imUserDataDubboService.search(keyword.trim());
+            List<ImUserDataPo> users = imUserDataDubboService.queryByKeyword(keyword.trim());
             if (isEmpty(users)) {
                 return Collections.emptyList();
             }
@@ -320,18 +320,18 @@ public class RelationshipServiceImpl implements RelationshipService {
             long start = System.currentTimeMillis();
             log.debug("addFriend() 开始 -> fromId={}, toId={}", friendRequestDto.getFromId(), friendRequestDto.getToId());
 
-            ImFriendshipRequestPo existingRequests = imFriendshipRequestDubboService.selectOne(
+            ImFriendshipRequestPo existingRequests = imFriendshipRequestDubboService.queryOne(
                     new ImFriendshipRequestPo()
                             .setFromId(friendRequestDto.getFromId())
                             .setToId(friendRequestDto.getToId()));
 
             if (Objects.isNull(existingRequests)) {
                 ImFriendshipRequestPo request = createFriendRequest(friendRequestDto);
-                imFriendshipRequestDubboService.insert(request);
+                imFriendshipRequestDubboService.creat(request);
                 log.info("好友请求已创建 -> id={}, fromId={}, toId={}", request.getId(), request.getFromId(), request.getToId());
             } else {
                 updateExistingRequest(existingRequests, friendRequestDto);
-                imFriendshipRequestDubboService.update(existingRequests);
+                imFriendshipRequestDubboService.modify(existingRequests);
                 log.debug("好友请求已存在，更新信息 -> fromId={}, toId={}", friendRequestDto.getFromId(), friendRequestDto.getToId());
             }
 
@@ -353,7 +353,7 @@ public class RelationshipServiceImpl implements RelationshipService {
             log.debug("approveFriend() 开始 -> requestId={}, approveStatus={}",
                     friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus());
 
-            ImFriendshipRequestPo request = imFriendshipRequestDubboService.selectOne(
+            ImFriendshipRequestPo request = imFriendshipRequestDubboService.queryOne(
                     new ImFriendshipRequestPo().setId(friendshipRequestDto.getId()));
 
             if (request == null) {
@@ -368,7 +368,7 @@ public class RelationshipServiceImpl implements RelationshipService {
                 log.info("已建立双向好友关系 -> {} <-> {}", fromId, toId);
             }
 
-            imFriendshipRequestDubboService.updateStatus(friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus());
+            imFriendshipRequestDubboService.modifyStatus(friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus());
 
             log.info("approveFriend() 完成 -> requestId={}, approveStatus={}, 耗时 {} ms",
                     friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus(), System.currentTimeMillis() - start);
@@ -389,7 +389,7 @@ public class RelationshipServiceImpl implements RelationshipService {
             String fromId = friendDto.getFromId();
             String toId = friendDto.getToId();
 
-            imFriendshipDubboService.delete(fromId, toId);
+            imFriendshipDubboService.removeOne(fromId, toId);
             log.info("已删除好友关系 -> {} -> {}", fromId, toId);
 
             log.info("delFriend() 完成 -> fromId={}, toId={}, 耗时 {} ms",
@@ -409,7 +409,7 @@ public class RelationshipServiceImpl implements RelationshipService {
             log.debug("updateFriendRemark() 开始 -> ownerId={}, friendId={}", friendDto.getFromId(), friendDto.getToId());
 
             // 查询好友关系是否存在
-            ImFriendshipPo friendshipPo = imFriendshipDubboService.selectOne(friendDto.getFromId(), friendDto.getToId());
+            ImFriendshipPo friendshipPo = imFriendshipDubboService.queryOne(friendDto.getFromId(), friendDto.getToId());
             if (friendshipPo == null) {
                 throw new GlobalException(ResultCode.NOT_FOUND, "好友关系不存在");
             }
@@ -417,7 +417,7 @@ public class RelationshipServiceImpl implements RelationshipService {
             // 更新备注信息
             friendshipPo.setRemark(friendDto.getRemark());
             friendshipPo.setSequence(DateTimeUtils.getCurrentUTCTimestamp());
-            boolean success = imFriendshipDubboService.update(friendshipPo);
+            boolean success = imFriendshipDubboService.modify(friendshipPo);
 
             if (success) {
                 log.info("updateFriendRemark() 完成 -> ownerId={}, friendId={}, remark={}, 耗时 {} ms",
@@ -441,7 +441,7 @@ public class RelationshipServiceImpl implements RelationshipService {
             int end = Math.min(i + BATCH_SIZE, ids.size());
             List<String> batch = ids.subList(i, end);
             try {
-                List<ImUserDataPo> part = imUserDataDubboService.selectByIds(batch);
+                List<ImUserDataPo> part = imUserDataDubboService.queryListByIds(batch);
                 if (part != null && !part.isEmpty()) {
                     userDataAll.addAll(part);
                 } else {
@@ -505,7 +505,7 @@ public class RelationshipServiceImpl implements RelationshipService {
     private Map<String, ImFriendshipPo> getFriendshipMap(String ownerId, List<String> userIds) {
         Map<String, ImFriendshipPo> relMap = new HashMap<>();
         try {
-            List<ImFriendshipPo> rels = imFriendshipDubboService.selectByIds(ownerId, userIds);
+            List<ImFriendshipPo> rels = imFriendshipDubboService.queryListByIds(ownerId, userIds);
             if (rels != null) {
                 for (ImFriendshipPo r : rels) {
                     if (r != null && r.getToId() != null) {
@@ -521,7 +521,7 @@ public class RelationshipServiceImpl implements RelationshipService {
         if (!missingIds.isEmpty()) {
             for (String fid : missingIds) {
                 try {
-                    ImFriendshipPo singleRel = imFriendshipDubboService.selectOne(ownerId, fid);
+                    ImFriendshipPo singleRel = imFriendshipDubboService.queryOne(ownerId, fid);
                     if (singleRel != null) relMap.put(fid, singleRel);
                 } catch (Exception ex) {
                     log.debug("查询单个好友关系失败 ownerId={} friendId={}", ownerId, fid, ex);
@@ -611,8 +611,8 @@ public class RelationshipServiceImpl implements RelationshipService {
         friendship2.setSequence(currentUTCTimestamp);
         friendship2.setCreateTime(currentUTCTimestamp);
 
-        imFriendshipDubboService.insert(friendship1);
-        imFriendshipDubboService.insert(friendship2);
+        imFriendshipDubboService.creat(friendship1);
+        imFriendshipDubboService.creat(friendship2);
     }
 
     /**

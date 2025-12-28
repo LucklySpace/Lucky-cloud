@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * Tauri 应用更新控制器
@@ -53,9 +55,10 @@ public class UpdateController {
             @Parameter(in = ParameterIn.PATH, name = "version", description = "API 路径版本（占位）", required = true)
     })
     @GetMapping("/tauri/latest")
-    public UpdaterResponseVo latest() {
+    public Mono<UpdaterResponseVo> latest() {
         log.info("收到获取最新版本信息请求");
-        return updaterService.latest();
+        return Mono.fromCallable(updaterService::latest)
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -80,8 +83,9 @@ public class UpdateController {
             @Parameter(in = ParameterIn.PATH, name = "fileName", description = "要下载的文件名（含扩展名），支持中文，注意不能包含路径穿越）", required = true)
     })
     @GetMapping("/download/{fileName:.+}")
-    public ResponseEntity<Resource> downloadFile(@NotBlank(message = "请输入文件名") @PathVariable("fileName") String fileName) {
+    public Mono<ResponseEntity<Resource>> downloadFile(@NotBlank(message = "请输入文件名") @PathVariable("fileName") String fileName) {
         log.info("收到文件下载请求，文件名: {}", fileName);
-        return updaterService.downloadFile(fileName);
+        return Mono.fromCallable(() -> updaterService.downloadFile(fileName))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 }

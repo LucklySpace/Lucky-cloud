@@ -14,10 +14,19 @@ import java.io.Serializable;
 @NoArgsConstructor
 public class IMetaId implements Serializable {
 
+    /**
+     * 元ID
+     */
     private Object metaId;
 
+    /**
+     * 字符串ID
+     */
     private String stringId;
 
+    /**
+     * 长整型ID
+     */
     private Long longId;
 
 }

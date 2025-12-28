@@ -45,7 +45,7 @@ public class UserServiceImpl implements UserService {
                 // Or if we had a proper list method in Dubbo service.
                 // Assuming basic implementation based on available Dubbo methods.
                 if (userDto != null && StringUtils.isNotBlank(userDto.getUserId())) {
-                    ImUserDataPo po = imUserDataDubboService.selectOne(userDto.getUserId());
+                    ImUserDataPo po = imUserDataDubboService.queryOne(userDto.getUserId());
                     if (po != null) {
                         log.debug("list用户完成 耗时:{}ms", System.currentTimeMillis() - start);
                         return List.of(UserDataBeanMapper.INSTANCE.toUserVo(po));
@@ -70,7 +70,7 @@ public class UserServiceImpl implements UserService {
         String lockKey = LOCK_USER_PREFIX + "read:" + userId;
         return withLock(lockKey, Mono.defer(() -> {
             long start = System.currentTimeMillis();
-            return Mono.fromCallable(() -> imUserDataDubboService.selectOne(userId))
+            return Mono.fromCallable(() -> imUserDataDubboService.queryOne(userId))
                     .subscribeOn(Schedulers.boundedElastic())
                     .map(userDataPo -> {
                         UserVo userVo = UserDataBeanMapper.INSTANCE.toUserVo(userDataPo);
@@ -93,7 +93,7 @@ public class UserServiceImpl implements UserService {
                 if (StringUtils.isBlank(po.getUserId())) {
                     throw new RuntimeException("UserId不能为空");
                 }
-                boolean success = imUserDataDubboService.insert(po);
+                boolean success = imUserDataDubboService.creat(po);
                 if (success) {
                     log.debug("create用户完成 耗时:{}ms", System.currentTimeMillis() - start);
                     return UserDataBeanMapper.INSTANCE.toUserVo(po);
@@ -119,7 +119,7 @@ public class UserServiceImpl implements UserService {
             long start = System.currentTimeMillis();
             ImUserDataPo userDataPo = UserDataBeanMapper.INSTANCE.toImUserDataPo(userDto);
 
-            return Mono.fromCallable(() -> imUserDataDubboService.update(userDataPo))
+            return Mono.fromCallable(() -> imUserDataDubboService.modify(userDataPo))
                     .subscribeOn(Schedulers.boundedElastic())
                     .map(success -> {
                         if (success) {
@@ -143,7 +143,7 @@ public class UserServiceImpl implements UserService {
         String lockKey = LOCK_USER_PREFIX + "delete:" + userId;
         return withLock(lockKey, Mono.defer(() -> {
             long start = System.currentTimeMillis();
-            return Mono.fromCallable(() -> imUserDataDubboService.deleteById(userId))
+            return Mono.fromCallable(() -> imUserDataDubboService.removeOne(userId))
                     .subscribeOn(Schedulers.boundedElastic())
                     .map(success -> {
                         log.debug("delete用户完成 userId={} 耗时:{}ms", userId, System.currentTimeMillis() - start);

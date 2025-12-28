@@ -213,8 +213,7 @@ export default {
     const services = ref([]);
     const uiServiceFilter = ref('');
 
-    // stomp websocket 客户端引用
-    let stompClient = null;
+    let ws = null;
 
     // 可选的日志等级列表
     const levels = ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR'];
@@ -323,33 +322,31 @@ export default {
     // 已移除静态查询模式
 
     // -----------------------------
-    // 实时 WebSocket 连接（SockJS + STOMP）
+    // 实时 WebSocket 连接
     // -----------------------------
     function connectSocket() {
       try {
-        const socket = new SockJS('/ws');
-        stompClient = Stomp.over(socket);
-        // 关闭内置 debug 输出
-        stompClient.debug = null;
-        stompClient.connect({}, frame => {
+        const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
+        const url = `${scheme}://${location.host}/ws`;
+        ws = new WebSocket(url);
+        ws.onopen = () => {
           ui.wsConnected = true;
-          // 订阅日志 topic（后端需要推送到 /topic/logs）
-          stompClient.subscribe('/topic/logs', msg => {
-            try {
-              const payload = JSON.parse(msg.body);
-              handleRealtimeLog(payload);
-            } catch (e) {
-              console.warn('invalid realtime payload', e);
-            }
-          });
-        }, error => {
+        };
+        ws.onmessage = (evt) => {
+          try {
+            const payload = JSON.parse(evt.data);
+            handleRealtimeLog(payload);
+          } catch (e) {
+          }
+        };
+        ws.onerror = () => {
           ui.wsConnected = false;
-          console.warn('stomp connect failed', error);
-          // 自动重连（指数回退可在生产中实现）
+        };
+        ws.onclose = () => {
+          ui.wsConnected = false;
           setTimeout(connectSocket, 3000);
-        });
+        };
       } catch (e) {
-        console.error('connectSocket error', e);
         ui.wsConnected = false;
       }
     }

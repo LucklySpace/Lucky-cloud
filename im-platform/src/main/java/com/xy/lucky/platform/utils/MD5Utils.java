@@ -7,6 +7,8 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 
 /**
@@ -48,6 +50,40 @@ public class MD5Utils {
             }
             return sb.toString();
         }
+    }
+
+    @SneakyThrows
+    public static void checkMD5(String md5, Path path) {
+        try (InputStream inputStream = Files.newInputStream(path)) {
+            String md5File = getMD5(inputStream);
+            if (!md5.equals(md5File)) {
+                throw new UpdateException("文件MD5校验失败");
+            }
+            log.info("[文件MD5校验] 文件MD5校验成功, md5={}", md5);
+        }
+    }
+
+    @SneakyThrows
+    public static String getMD5(Path path) {
+        try (InputStream inputStream = Files.newInputStream(path)) {
+            return getMD5(inputStream);
+        }
+    }
+
+    @SneakyThrows
+    public static String getMD5(InputStream inputStream) {
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        byte[] buffer = new byte[8192];
+        int bytesRead;
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+            md.update(buffer, 0, bytesRead);
+        }
+        byte[] digest = md.digest();
+        StringBuilder sb = new StringBuilder();
+        for (byte b : digest) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
     }
 
     /**

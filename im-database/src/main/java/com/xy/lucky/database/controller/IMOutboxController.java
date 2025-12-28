@@ -10,8 +10,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -19,6 +24,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/{version}/database/outbox")
 @Tag(name = "IMOutbox", description = "用户会话数据库接口")
+@Validated
 public class IMOutboxController {
 
     @Resource
@@ -36,8 +42,8 @@ public class IMOutboxController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = IMOutboxPo.class)))
     })
-    public List<IMOutboxPo> listOutboxMessages() {
-        return imOutboxService.queryList();
+    public Mono<List<IMOutboxPo>> listOutboxMessages() {
+        return Mono.fromCallable(imOutboxService::queryList).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -54,8 +60,8 @@ public class IMOutboxController {
                             schema = @Schema(implementation = IMOutboxPo.class))),
             @ApiResponse(responseCode = "404", description = "未找到")
     })
-    public IMOutboxPo getOutboxMessageById(@RequestParam("id") Long id) {
-        return imOutboxService.queryOne(id);
+    public Mono<IMOutboxPo> getOutboxMessageById(@RequestParam("id") @NotNull @Positive Long id) {
+        return Mono.fromCallable(() -> imOutboxService.queryOne(id)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -69,8 +75,8 @@ public class IMOutboxController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
-    public Boolean createOutboxMessage(@RequestBody IMOutboxPo outboxPo) {
-        return imOutboxService.creat(outboxPo);
+    public Mono<Boolean> createOutboxMessage(@RequestBody @Valid IMOutboxPo outboxPo) {
+        return Mono.fromCallable(() -> imOutboxService.creat(outboxPo)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -84,8 +90,8 @@ public class IMOutboxController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
-    public Boolean createOutboxMessagesBatch(@RequestBody List<IMOutboxPo> outboxPoList) {
-        return imOutboxService.creatBatch(outboxPoList);
+    public Mono<Boolean> createOutboxMessagesBatch(@RequestBody @NotEmpty List<@Valid IMOutboxPo> outboxPoList) {
+        return Mono.fromCallable(() -> imOutboxService.creatBatch(outboxPoList)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -99,8 +105,8 @@ public class IMOutboxController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "更新成功")
     })
-    public Boolean updateOutboxMessage(@RequestBody IMOutboxPo outboxPo) {
-        return imOutboxService.modify(outboxPo);
+    public Mono<Boolean> updateOutboxMessage(@RequestBody @Valid IMOutboxPo outboxPo) {
+        return Mono.fromCallable(() -> imOutboxService.modify(outboxPo)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -115,8 +121,8 @@ public class IMOutboxController {
             @ApiResponse(responseCode = "200", description = "删除成功"),
             @ApiResponse(responseCode = "404", description = "未找到")
     })
-    public Boolean deleteOutboxMessageById(@RequestParam("id") Long id) {
-        return imOutboxService.removeOne(id);
+    public Mono<Boolean> deleteOutboxMessageById(@RequestParam("id") @NotNull @Positive Long id) {
+        return Mono.fromCallable(() -> imOutboxService.removeOne(id)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -133,8 +139,9 @@ public class IMOutboxController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = IMOutboxPo.class)))
     })
-    public List<IMOutboxPo> listOutboxMessagesByStatus(@RequestParam("status") String status, @RequestParam("limit") Integer limit) {
-        return imOutboxService.queryByStatus(status, limit);
+    public Mono<List<IMOutboxPo>> listOutboxMessagesByStatus(@RequestParam("status") @NotBlank @Pattern(regexp = "PENDING|SENT|DELIVERED|FAILED") String status,
+                                                             @RequestParam("limit") @NotNull @Positive @Max(1000) Integer limit) {
+        return Mono.fromCallable(() -> imOutboxService.queryByStatus(status, limit)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -150,8 +157,10 @@ public class IMOutboxController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "更新成功")
     })
-    public Boolean updateOutboxStatus(@RequestParam("id") Long id, @RequestParam("status") String status, @RequestParam("attempts") Integer attempts) {
-        return imOutboxService.modifyStatus(id, status, attempts);
+    public Mono<Boolean> updateOutboxStatus(@RequestParam("id") @NotNull @Positive Long id,
+                                            @RequestParam("status") @NotBlank @Pattern(regexp = "PENDING|SENT|DELIVERED|FAILED") String status,
+                                            @RequestParam("attempts") @NotNull @PositiveOrZero @Max(1000) Integer attempts) {
+        return Mono.fromCallable(() -> imOutboxService.modifyStatus(id, status, attempts)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -167,7 +176,9 @@ public class IMOutboxController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "更新成功")
     })
-    public Boolean markOutboxMessageFailed(@RequestParam("id") Long id, @RequestParam("lastError") String lastError, @RequestParam("attempts") Integer attempts) {
-        return imOutboxService.modifyToFailed(id, lastError, attempts);
+    public Mono<Boolean> markOutboxMessageFailed(@RequestParam("id") @NotNull @Positive Long id,
+                                                 @RequestParam("lastError") @NotBlank @Size(max = 1024) String lastError,
+                                                 @RequestParam("attempts") @NotNull @PositiveOrZero @Max(1000) Integer attempts) {
+        return Mono.fromCallable(() -> imOutboxService.modifyToFailed(id, lastError, attempts)).subscribeOn(Schedulers.boundedElastic());
     }
 }

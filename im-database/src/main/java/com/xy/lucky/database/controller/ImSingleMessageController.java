@@ -11,8 +11,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -21,6 +26,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/{version}/database/single/message")
 @Tag(name = "ImPrivate", description = "私聊消息数据库接口")
+@Validated
 public class ImSingleMessageController {
 
     @Resource
@@ -41,8 +47,8 @@ public class ImSingleMessageController {
                             schema = @Schema(implementation = ImSingleMessagePo.class))),
             @ApiResponse(responseCode = "404", description = "未找到")
     })
-    public ImSingleMessagePo getSingleMessageById(@RequestParam("messageId") String messageId) {
-        return imSingleMessageService.queryOne(messageId);
+    public Mono<ImSingleMessagePo> getSingleMessageById(@RequestParam("messageId") @NotBlank @Size(max = 64) String messageId) {
+        return Mono.fromCallable(() -> imSingleMessageService.queryOne(messageId)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -59,8 +65,8 @@ public class ImSingleMessageController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ImSingleMessagePo.class)))
     })
-    public List<ImSingleMessagePo> listSingleMessages(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
-        return imSingleMessageService.queryList(userId, sequence);
+    public Mono<List<ImSingleMessagePo>> listSingleMessages(@RequestParam("userId") @NotBlank @Size(max = 64) String userId, @RequestParam("sequence") @NotNull @PositiveOrZero Long sequence) {
+        return Mono.fromCallable(() -> imSingleMessageService.queryList(userId, sequence)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -77,8 +83,8 @@ public class ImSingleMessageController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ImSingleMessagePo.class)))
     })
-    public ImSingleMessagePo getLastSingleMessage(@RequestParam("fromId") String fromId, @RequestParam("toId") String toId) {
-        return imSingleMessageService.queryLast(fromId, toId);
+    public Mono<ImSingleMessagePo> getLastSingleMessage(@RequestParam("fromId") @NotBlank @Size(max = 64) String fromId, @RequestParam("toId") @NotBlank @Size(max = 64) String toId) {
+        return Mono.fromCallable(() -> imSingleMessageService.queryLast(fromId, toId)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -94,8 +100,8 @@ public class ImSingleMessageController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "成功")
     })
-    public Integer getSingleMessageReadStatus(@RequestParam("fromId") String fromId, @RequestParam("toId") String toId, @RequestParam("code") Integer code) {
-        return imSingleMessageService.queryReadStatus(fromId, toId, code);
+    public Mono<Integer> getSingleMessageReadStatus(@RequestParam("fromId") @NotBlank @Size(max = 64) String fromId, @RequestParam("toId") @NotBlank @Size(max = 64) String toId, @RequestParam("code") @NotNull @PositiveOrZero Integer code) {
+        return Mono.fromCallable(() -> imSingleMessageService.queryReadStatus(fromId, toId, code)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -108,8 +114,8 @@ public class ImSingleMessageController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
-    public Boolean createSingleMessage(@RequestBody ImSingleMessagePo messagePo) {
-        return imSingleMessageService.creat(messagePo);
+    public Mono<Boolean> createSingleMessage(@RequestBody @Valid ImSingleMessagePo messagePo) {
+        return Mono.fromCallable(() -> imSingleMessageService.creat(messagePo)).subscribeOn(Schedulers.boundedElastic());
     }
 
 
@@ -124,8 +130,8 @@ public class ImSingleMessageController {
             @ApiResponse(responseCode = "200", description = "删除成功"),
             @ApiResponse(responseCode = "404", description = "未找到")
     })
-    public Boolean deleteSingleMessageById(@RequestParam("messageId") String messageId) {
-        return imSingleMessageService.removeOne(messageId);
+    public Mono<Boolean> deleteSingleMessageById(@RequestParam("messageId") @NotBlank @Size(max = 64) String messageId) {
+        return Mono.fromCallable(() -> imSingleMessageService.removeOne(messageId)).subscribeOn(Schedulers.boundedElastic());
     }
     
     /**
@@ -138,8 +144,8 @@ public class ImSingleMessageController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
-    public Boolean createSingleMessagesBatch(@RequestBody List<ImSingleMessagePo> messagePoList) {
-        return imSingleMessageService.creatBatch(messagePoList);
+    public Mono<Boolean> createSingleMessagesBatch(@RequestBody @NotEmpty List<@Valid ImSingleMessagePo> messagePoList) {
+        return Mono.fromCallable(() -> imSingleMessageService.creatBatch(messagePoList)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -152,8 +158,8 @@ public class ImSingleMessageController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "操作成功")
     })
-    public Boolean upsertSingleMessage(@RequestBody ImSingleMessagePo messagePo) {
-        return imSingleMessageService.saveOrUpdate(messagePo);
+    public Mono<Boolean> upsertSingleMessage(@RequestBody @Valid ImSingleMessagePo messagePo) {
+        return Mono.fromCallable(() -> imSingleMessageService.saveOrUpdate(messagePo)).subscribeOn(Schedulers.boundedElastic());
     }
     
     /**
@@ -166,8 +172,8 @@ public class ImSingleMessageController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "更新成功")
     })
-    public Boolean updateSingleMessage(@RequestBody ImSingleMessagePo messagePo) {
-        return imSingleMessageService.modify(messagePo);
+    public Mono<Boolean> updateSingleMessage(@RequestBody @Valid ImSingleMessagePo messagePo) {
+        return Mono.fromCallable(() -> imSingleMessageService.modify(messagePo)).subscribeOn(Schedulers.boundedElastic());
     }
 
 }

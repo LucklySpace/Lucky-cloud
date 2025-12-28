@@ -12,6 +12,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -39,8 +41,8 @@ public class ImGroupInviteRequestController {
                             schema = @Schema(implementation = ImGroupInviteRequestPo.class))),
             @ApiResponse(responseCode = "404", description = "未找到")
     })
-    public ImGroupInviteRequestPo getGroupInviteRequestById(@RequestParam("requestId") String requestId) {
-        return imGroupInviteRequestService.getById(requestId);
+    public Mono<ImGroupInviteRequestPo> getGroupInviteRequestById(@RequestParam("requestId") String requestId) {
+        return Mono.fromCallable(() -> imGroupInviteRequestService.getById(requestId)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -54,8 +56,8 @@ public class ImGroupInviteRequestController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "操作成功")
     })
-    public Boolean upsertGroupInviteRequest(@RequestBody ImGroupInviteRequestPo requestPo) {
-        return imGroupInviteRequestService.saveOrUpdate(requestPo);
+    public Mono<Boolean> upsertGroupInviteRequest(@RequestBody ImGroupInviteRequestPo requestPo) {
+        return Mono.fromCallable(() -> imGroupInviteRequestService.saveOrUpdate(requestPo)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping("/saveOrUpdate/batch")
@@ -63,8 +65,8 @@ public class ImGroupInviteRequestController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "操作成功")
     })
-    public Boolean upsertGroupInviteRequestsBatch(@RequestBody List<ImGroupInviteRequestPo> requestPoList) {
-        return imGroupInviteRequestService.saveOrUpdateBatch(requestPoList);
+    public Mono<Boolean> upsertGroupInviteRequestsBatch(@RequestBody List<ImGroupInviteRequestPo> requestPoList) {
+        return Mono.fromCallable(() -> imGroupInviteRequestService.saveOrUpdateBatch(requestPoList)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -79,8 +81,8 @@ public class ImGroupInviteRequestController {
             @ApiResponse(responseCode = "200", description = "删除成功"),
             @ApiResponse(responseCode = "404", description = "未找到")
     })
-    public Boolean deleteGroupInviteRequestById(@RequestParam("requestId") String requestId) {
-        return imGroupInviteRequestService.removeOne(requestId);
+    public Mono<Boolean> deleteGroupInviteRequestById(@RequestParam("requestId") String requestId) {
+        return Mono.fromCallable(() -> imGroupInviteRequestService.removeOne(requestId)).subscribeOn(Schedulers.boundedElastic());
     }
 
 }

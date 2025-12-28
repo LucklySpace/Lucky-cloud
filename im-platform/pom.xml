@@ -27,10 +27,10 @@
             <artifactId>im-starter-logging</artifactId>
         </dependency>
 
-        <!-- 通用模块 -->
+        <!-- 通用模块（WebFlux） -->
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-starter-general</artifactId>
+            <artifactId>im-starter-general-webflux</artifactId>
             <version>${revision}</version>
         </dependency>
 
@@ -95,23 +95,10 @@
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
 
-        <!-- Spring web-->
+        <!-- Spring WebFlux -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-            <exclusions>
-                <!--排除tomcat依赖-->
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-tomcat</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <!--使用undertow替换tomcat-->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-undertow</artifactId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
 
         <dependency>

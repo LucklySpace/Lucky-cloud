@@ -18,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * 地址与 IP 查询接口
@@ -50,9 +52,10 @@ public class AddressController {
             @Parameter(in = ParameterIn.PATH, name = "ip", description = "IPv4 地址，如 8.8.8.8", required = true)
     })
     @GetMapping("/ip/{ip}")
-    public AreaVo queryByIp(@NotBlank(message = "IP 不能为空") @PathVariable("ip") String ip) {
+    public Mono<AreaVo> queryByIp(@NotBlank(message = "IP 不能为空") @PathVariable("ip") String ip) {
         log.info("收到 IP 区域查询请求 ip={}", ip);
-        return addressService.getAreaByIp(ip).setIp(ip);
+        return Mono.fromCallable(() -> addressService.getAreaByIp(ip).setIp(ip))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -68,9 +71,10 @@ public class AddressController {
             @Parameter(in = ParameterIn.PATH, name = "id", description = "地区编号", required = true)
     })
     @GetMapping("/area/{id}")
-    public AreaVo queryById(@Min(value = 0, message = "id 必须为非负数") @PathVariable("id") Integer id) {
+    public Mono<AreaVo> queryById(@Min(value = 0, message = "id 必须为非负数") @PathVariable("id") Integer id) {
         log.info("收到编号区域查询请求 id={}", id);
-        return addressService.getAreaById(id);
+        return Mono.fromCallable(() -> addressService.getAreaById(id))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -86,9 +90,10 @@ public class AddressController {
             @Parameter(in = ParameterIn.QUERY, name = "path", description = "完整路径，如 上海上海市静安区", required = true)
     })
     @GetMapping("/area/parse")
-    public AreaVo parse(@NotBlank(message = "path 不能为空") @RequestParam("path") String path) {
+    public Mono<AreaVo> parse(@NotBlank(message = "path 不能为空") @RequestParam("path") String path) {
         log.info("收到路径区域解析请求 path={}", path);
-        return addressService.parseArea(path);
+        return Mono.fromCallable(() -> addressService.parseArea(path))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -106,8 +111,9 @@ public class AddressController {
     })
     @ResponseNotIntercept
     @GetMapping("/area/format/{id}")
-    public String format(@Min(value = 0, message = "id 必须为非负数") @PathVariable("id") Integer id) {
+    public Mono<String> format(@Min(value = 0, message = "id 必须为非负数") @PathVariable("id") Integer id) {
         log.info("收到地区路径格式化请求 id={}", id);
-        return addressService.formatArea(id);
+        return Mono.fromCallable(() -> addressService.formatArea(id))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 }

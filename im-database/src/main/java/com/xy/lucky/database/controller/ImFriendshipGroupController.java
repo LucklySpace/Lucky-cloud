@@ -11,8 +11,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Size;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -21,6 +28,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/{version}/database/friend/group")
 @Tag(name = "ImFriendshipGroup", description = "好友分组数据库接口")
+@Validated
 public class ImFriendshipGroupController {
 
     @Resource
@@ -33,10 +41,10 @@ public class ImFriendshipGroupController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ImFriendshipGroupPo.class)))
     })
-    public List<ImFriendshipGroupPo> listFriendshipGroups(@RequestParam("ownerId") String ownerId) {
+    public Mono<List<ImFriendshipGroupPo>> listFriendshipGroups(@RequestParam("ownerId") @NotBlank @Size(max = 64) String ownerId) {
         QueryWrapper<ImFriendshipGroupPo> query = new QueryWrapper<>();
         query.eq("owner_id", ownerId);
-        return imFriendshipGroupService.list(query);
+        return Mono.fromCallable(() -> imFriendshipGroupService.list(query)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @GetMapping("/selectOne")
@@ -47,8 +55,8 @@ public class ImFriendshipGroupController {
                             schema = @Schema(implementation = ImFriendshipGroupPo.class))),
             @ApiResponse(responseCode = "404", description = "未找到")
     })
-    public ImFriendshipGroupPo getFriendshipGroup(@RequestParam("id") String id) {
-        return imFriendshipGroupService.getById(id);
+    public Mono<ImFriendshipGroupPo> getFriendshipGroup(@RequestParam("id") @NotBlank @Size(max = 64) String id) {
+        return Mono.fromCallable(() -> imFriendshipGroupService.getById(id)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping("/insert")
@@ -56,8 +64,8 @@ public class ImFriendshipGroupController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
-    public Boolean createFriendshipGroup(@RequestBody ImFriendshipGroupPo friendshipGroupPo) {
-        return imFriendshipGroupService.save(friendshipGroupPo);
+    public Mono<Boolean> createFriendshipGroup(@RequestBody @Valid ImFriendshipGroupPo friendshipGroupPo) {
+        return Mono.fromCallable(() -> imFriendshipGroupService.save(friendshipGroupPo)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping("/batchInsert")
@@ -65,8 +73,8 @@ public class ImFriendshipGroupController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
-    public Boolean createFriendshipGroupsBatch(@RequestBody List<ImFriendshipGroupPo> friendshipGroupPoList) {
-        return imFriendshipGroupService.saveBatch(friendshipGroupPoList);
+    public Mono<Boolean> createFriendshipGroupsBatch(@RequestBody @NotEmpty List<@Valid ImFriendshipGroupPo> friendshipGroupPoList) {
+        return Mono.fromCallable(() -> imFriendshipGroupService.saveBatch(friendshipGroupPoList)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @PutMapping("/update")
@@ -74,8 +82,8 @@ public class ImFriendshipGroupController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "更新成功")
     })
-    public Boolean updateFriendshipGroup(@RequestBody ImFriendshipGroupPo friendshipGroupPo) {
-        return imFriendshipGroupService.updateById(friendshipGroupPo);
+    public Mono<Boolean> updateFriendshipGroup(@RequestBody @Valid ImFriendshipGroupPo friendshipGroupPo) {
+        return Mono.fromCallable(() -> imFriendshipGroupService.updateById(friendshipGroupPo)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @DeleteMapping("/deleteById")
@@ -84,7 +92,7 @@ public class ImFriendshipGroupController {
             @ApiResponse(responseCode = "200", description = "删除成功"),
             @ApiResponse(responseCode = "404", description = "未找到")
     })
-    public Boolean deleteFriendshipGroupById(@RequestParam("id") String id) {
-        return imFriendshipGroupService.removeById(id);
+    public Mono<Boolean> deleteFriendshipGroupById(@RequestParam("id") @NotBlank @Size(max = 64) String id) {
+        return Mono.fromCallable(() -> imFriendshipGroupService.removeById(id)).subscribeOn(Schedulers.boundedElastic());
     }
 }

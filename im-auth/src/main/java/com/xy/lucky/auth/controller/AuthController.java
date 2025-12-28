@@ -2,6 +2,7 @@ package com.xy.lucky.auth.controller;
 
 
 import com.xy.lucky.auth.domain.IMLoginRequest;
+import com.xy.lucky.auth.domain.IMLoginResult;
 import com.xy.lucky.auth.domain.IMQRCodeResult;
 import com.xy.lucky.auth.service.AuthService;
 import com.xy.lucky.domain.vo.UserVo;
@@ -44,7 +45,7 @@ public class AuthController {
     @Parameters({
             @Parameter(name = "loginRequest", description = "用户登录信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public com.xy.lucky.auth.domain.IMLoginResult login(@RequestBody IMLoginRequest imLoginRequest) {
+    public IMLoginResult login(@RequestBody IMLoginRequest imLoginRequest) {
         return authService.login(imLoginRequest);
     }
 

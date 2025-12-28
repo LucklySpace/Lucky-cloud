@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * 短链控制器
@@ -45,9 +47,10 @@ public class RedirectController {
             @Parameter(in = ParameterIn.PATH, name = "code", description = "短码", required = true)
     })
     @GetMapping("/{code}")
-    public ResponseEntity<Void> redirect(@NotBlank(message = "短码不能为空") @PathVariable("code") String code) {
+    public Mono<ResponseEntity<Void>> redirect(@NotBlank(message = "短码不能为空") @PathVariable("code") String code) {
         log.info("收到短码解析请求，code={}", code);
-        return shortLinkService.redirect(code);
+        return Mono.fromCallable(() -> shortLinkService.redirect(code))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
 }

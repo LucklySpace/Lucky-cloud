@@ -11,8 +11,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -20,6 +25,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/{version}/database/chat")
 @Tag(name = "ImChat", description = "用户会话数据库接口")
+@Validated
 public class ImChatController {
 
     @Resource
@@ -32,8 +38,9 @@ public class ImChatController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ImChatPo.class)))
     })
-    public List<ImChatPo> listChats(@RequestParam("ownerId") String ownerId, @RequestParam("sequence") Long sequence) {
-        return imChatService.queryList(ownerId, sequence);
+    public Mono<List<ImChatPo>> listChats(@RequestParam("ownerId") @NotBlank @Size(max = 64) String ownerId,
+                                          @RequestParam("sequence") @NotNull @PositiveOrZero Long sequence) {
+        return Mono.fromCallable(() -> imChatService.queryList(ownerId, sequence)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @GetMapping("/selectOne")
@@ -44,8 +51,10 @@ public class ImChatController {
                             schema = @Schema(implementation = ImChatPo.class))),
             @ApiResponse(responseCode = "404", description = "未找到")
     })
-    public ImChatPo getChat(@RequestParam("ownerId") String ownerId, @RequestParam("toId") String toId, @RequestParam(value = "chatType", required = false) Integer chatType) {
-        return imChatService.queryOne(ownerId, toId, chatType);
+    public Mono<ImChatPo> getChat(@RequestParam("ownerId") @NotBlank @Size(max = 64) String ownerId,
+                                  @RequestParam("toId") @NotBlank @Size(max = 64) String toId,
+                                  @RequestParam(value = "chatType", required = false) @Min(0) Integer chatType) {
+        return Mono.fromCallable(() -> imChatService.queryOne(ownerId, toId, chatType)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping("/insert")
@@ -53,8 +62,8 @@ public class ImChatController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
-    public Boolean createChat(@RequestBody ImChatPo chatPo) {
-        return imChatService.creat(chatPo);
+    public Mono<Boolean> createChat(@RequestBody @Valid ImChatPo chatPo) {
+        return Mono.fromCallable(() -> imChatService.creat(chatPo)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @SecurityInner
@@ -63,8 +72,8 @@ public class ImChatController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "更新成功")
     })
-    public Boolean updateChat(@RequestBody ImChatPo chatPo) {
-        return imChatService.modify(chatPo);
+    public Mono<Boolean> updateChat(@RequestBody @Valid ImChatPo chatPo) {
+        return Mono.fromCallable(() -> imChatService.modify(chatPo)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @DeleteMapping("/deleteById")
@@ -73,8 +82,8 @@ public class ImChatController {
             @ApiResponse(responseCode = "200", description = "删除成功"),
             @ApiResponse(responseCode = "404", description = "未找到")
     })
-    public Boolean deleteChatById(@RequestParam("id") String id) {
-        return imChatService.removeOne(id);
+    public Mono<Boolean> deleteChatById(@RequestParam("id") @NotBlank @Size(max = 64) String id) {
+        return Mono.fromCallable(() -> imChatService.removeOne(id)).subscribeOn(Schedulers.boundedElastic());
     }
 
 }

@@ -9,8 +9,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -18,6 +24,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/{version}/database/group")
 @Tag(name = "ImGroup", description = "群数据库接口")
+@Validated
 public class ImGroupController {
 
     @Resource
@@ -33,8 +40,8 @@ public class ImGroupController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ImGroupPo.class)))
     })
-    public List<ImGroupPo> listGroupsByUser(@RequestParam("userId") String userId) {
-        return imGroupService.queryList(userId);
+    public Mono<List<ImGroupPo>> listGroupsByUser(@RequestParam("userId") @NotBlank @Size(max = 64) String userId) {
+        return Mono.fromCallable(() -> imGroupService.queryList(userId)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -50,8 +57,8 @@ public class ImGroupController {
                             schema = @Schema(implementation = ImGroupPo.class))),
             @ApiResponse(responseCode = "404", description = "未找到")
     })
-    public ImGroupPo getGroupById(@RequestParam("groupId") String groupId) {
-        return imGroupService.queryOne(groupId);
+    public Mono<ImGroupPo> getGroupById(@RequestParam("groupId") @NotBlank @Size(max = 64) String groupId) {
+        return Mono.fromCallable(() -> imGroupService.queryOne(groupId)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -64,8 +71,8 @@ public class ImGroupController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
-    public Boolean createGroup(@RequestBody ImGroupPo groupPo) {
-        return imGroupService.creat(groupPo);
+    public Mono<Boolean> createGroup(@RequestBody @Valid ImGroupPo groupPo) {
+        return Mono.fromCallable(() -> imGroupService.creat(groupPo)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -78,8 +85,8 @@ public class ImGroupController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "更新成功")
     })
-    public Boolean updateGroup(@RequestBody ImGroupPo groupPo) {
-        return imGroupService.modify(groupPo);
+    public Mono<Boolean> updateGroup(@RequestBody @Valid ImGroupPo groupPo) {
+        return Mono.fromCallable(() -> imGroupService.modify(groupPo)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**
@@ -93,8 +100,8 @@ public class ImGroupController {
             @ApiResponse(responseCode = "200", description = "删除成功"),
             @ApiResponse(responseCode = "404", description = "未找到")
     })
-    public Boolean deleteGroupById(@RequestParam("groupId") String groupId) {
-        return imGroupService.removeOne(groupId);
+    public Mono<Boolean> deleteGroupById(@RequestParam("groupId") @NotBlank @Size(max = 64) String groupId) {
+        return Mono.fromCallable(() -> imGroupService.removeOne(groupId)).subscribeOn(Schedulers.boundedElastic());
     }
 
 }

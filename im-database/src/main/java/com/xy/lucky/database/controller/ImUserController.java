@@ -12,8 +12,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Size;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -22,6 +29,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/{version}/database/user")
 @Tag(name = "ImUser", description = "用户数据库接口")
+@Validated
 public class ImUserController {
 
     @Resource
@@ -40,8 +48,8 @@ public class ImUserController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ImUserPo.class)))
     })
-    public ImUserPo getUserById(@RequestParam("userId") String userId) {
-        return imUserService.queryOne(userId);
+    public Mono<ImUserPo> getUserById(@RequestParam("userId") @NotBlank @Size(max = 64) String userId) {
+        return Mono.fromCallable(() -> imUserService.queryOne(userId)).subscribeOn(Schedulers.boundedElastic());
     }
 
 
@@ -58,11 +66,10 @@ public class ImUserController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ImUserPo.class)))
     })
-    public ImUserPo getUserByMobile(@RequestParam("mobile") String mobile) {
-        // 使用select方法只查询需要的字段，避免加载整个实体对象
+    public Mono<ImUserPo> getUserByMobile(@RequestParam("mobile") @NotBlank @Size(min = 5, max = 32) String mobile) {
         QueryWrapper<ImUserPo> wrapper = new QueryWrapper<>();
         wrapper.eq("mobile", mobile);
-        return imUserService.getOne(wrapper);
+        return Mono.fromCallable(() -> imUserService.getOne(wrapper)).subscribeOn(Schedulers.boundedElastic());
     }
 
 
@@ -79,8 +86,8 @@ public class ImUserController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ImUserPo.class)))
     })
-    public List<ImUserPo> listUsersByIds(@RequestBody List<String> userIdList) {
-        return imUserService.listByIds(userIdList);
+    public Mono<List<ImUserPo>> listUsersByIds(@RequestBody @NotEmpty List<@NotBlank @Size(max = 64) String> userIdList) {
+        return Mono.fromCallable(() -> imUserService.listByIds(userIdList)).subscribeOn(Schedulers.boundedElastic());
     }
 
 
@@ -95,8 +102,8 @@ public class ImUserController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
-    public Boolean createUser(@RequestBody ImUserPo userPo) {
-        return imUserService.creat(userPo);
+    public Mono<Boolean> createUser(@RequestBody @Valid ImUserPo userPo) {
+        return Mono.fromCallable(() -> imUserService.creat(userPo)).subscribeOn(Schedulers.boundedElastic());
     }
     
     /**
@@ -110,8 +117,8 @@ public class ImUserController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
-    public Boolean createUsersBatch(@RequestBody List<ImUserPo> userPoList) {
-        return imUserService.creatBatch(userPoList);
+    public Mono<Boolean> createUsersBatch(@RequestBody @NotEmpty List<@Valid ImUserPo> userPoList) {
+        return Mono.fromCallable(() -> imUserService.creatBatch(userPoList)).subscribeOn(Schedulers.boundedElastic());
     }
     
     /**
@@ -125,8 +132,8 @@ public class ImUserController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "更新成功")
     })
-    public Boolean updateUser(@RequestBody ImUserPo userPo) {
-        return imUserService.modify(userPo);
+    public Mono<Boolean> updateUser(@RequestBody @Valid ImUserPo userPo) {
+        return Mono.fromCallable(() -> imUserService.modify(userPo)).subscribeOn(Schedulers.boundedElastic());
     }
     
     /**
@@ -141,7 +148,7 @@ public class ImUserController {
             @ApiResponse(responseCode = "200", description = "删除成功"),
             @ApiResponse(responseCode = "404", description = "未找到")
     })
-    public Boolean deleteUserById(@RequestParam("userId") String userId) {
-        return imUserService.removeOne(userId);
+    public Mono<Boolean> deleteUserById(@RequestParam("userId") @NotBlank @Size(max = 64) String userId) {
+        return Mono.fromCallable(() -> imUserService.removeOne(userId)).subscribeOn(Schedulers.boundedElastic());
     }
 }

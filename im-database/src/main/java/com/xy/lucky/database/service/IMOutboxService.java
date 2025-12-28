@@ -56,21 +56,28 @@ public class IMOutboxService extends ServiceImpl<IMOutboxPoMapper, IMOutboxPo> i
     @Override
     public Boolean modifyStatus(Long id, String status, Integer attempts) {
         UpdateWrapper<IMOutboxPo> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.set("status", status).set("attempts", attempts).eq("id", id);
+        String s = status == null ? null : status.trim().toUpperCase();
+        int a = attempts == null ? 0 : Math.max(0, attempts);
+        updateWrapper.set("status", s).set("attempts", a).eq("id", id);
         return super.update(updateWrapper);
     }
 
     @Override
     public Boolean modifyToFailed(Long id, String lastError, Integer attempts) {
         UpdateWrapper<IMOutboxPo> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.set("last_error", lastError).set("attempts", attempts).eq("id", id);
+        String err = lastError == null ? null : (lastError.length() > 1024 ? lastError.substring(0, 1024) : lastError);
+        int a = attempts == null ? 0 : Math.max(0, attempts);
+        updateWrapper.set("last_error", err).set("attempts", a).eq("id", id);
         return super.update(updateWrapper);
     }
 
     @Override
     public List<IMOutboxPo> queryByStatus(String status, Integer limit) {
+        String s = status == null ? null : status.trim().toUpperCase();
+        int lim = limit == null ? 100 : limit;
+        lim = Math.max(1, Math.min(lim, 1000));
         QueryWrapper<IMOutboxPo> query = new QueryWrapper<>();
-        query.eq("status", status).last("limit " + limit);
+        query.eq("status", s).last("limit " + lim);
         return super.list(query);
     }
 

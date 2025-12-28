@@ -17,7 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 @Validated
 @RestController
-@RequestMapping("/api/{version}/media")
+@RequestMapping("/api/v1/media")
 @Tag(name = "media", description = "媒体文件管理")
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class MediaMinioController {

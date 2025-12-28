@@ -22,7 +22,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/{version}/database/outbox")
+@RequestMapping("/api/v1/database/outbox")
 @Tag(name = "IMOutbox", description = "用户会话数据库接口")
 @Validated
 public class IMOutboxController {

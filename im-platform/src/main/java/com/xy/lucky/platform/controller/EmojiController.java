@@ -32,7 +32,7 @@ import java.util.List;
 @Slf4j
 @Validated
 @RestController
-@RequestMapping("/api/{version}/emoji")
+@RequestMapping("/api/v1/emoji")
 @RequiredArgsConstructor
 @Tag(name = "emoji", description = "表情包管理")
 public class EmojiController {

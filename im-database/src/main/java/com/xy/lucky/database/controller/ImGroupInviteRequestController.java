@@ -20,7 +20,7 @@ import java.util.List;
 @Slf4j
 @SecurityInner
 @RestController
-@RequestMapping("/api/v1/database/group/invite")
+@RequestMapping("/api/{version}/database/group/invite")
 @Tag(name = "ImFriendShip", description = "群邀请请求接口")
 public class ImGroupInviteRequestController {
 

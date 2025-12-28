@@ -27,7 +27,7 @@ import java.util.List;
 @Tag(name = "ID Generator", description = "ID生成服务接口")
 @RestController
 @Validated
-@RequestMapping("/api/v1/generator")
+@RequestMapping("/api/{version}/generator")
 public class IdController {
 
     @Resource

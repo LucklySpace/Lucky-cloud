@@ -23,7 +23,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/database/chat")
+@RequestMapping("/api/{version}/database/chat")
 @Tag(name = "ImChat", description = "用户会话数据库接口")
 @Validated
 public class ImChatController {

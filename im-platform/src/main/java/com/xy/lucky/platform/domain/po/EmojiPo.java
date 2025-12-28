@@ -58,6 +58,10 @@ public class EmojiPo {
     @Column(name = "url", length = 512)
     private String url;
 
+    @Schema(description = "顺序")
+    @Column(name = "sort")
+    private Integer sort;
+
     @Schema(description = "内容类型")
     @Column(name = "content_type", length = 128)
     private String contentType;

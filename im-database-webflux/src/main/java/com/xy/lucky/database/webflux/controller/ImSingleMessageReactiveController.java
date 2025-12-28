@@ -18,7 +18,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/database/single/message")
+@RequestMapping("/api/{version}/database/single/message")
 @Tag(name = "ImPrivate", description = "私聊消息数据库接口(WebFlux-R2DBC)")
 @Validated
 public class ImSingleMessageReactiveController {

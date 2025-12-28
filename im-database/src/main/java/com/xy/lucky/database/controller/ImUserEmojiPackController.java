@@ -23,7 +23,7 @@ import java.util.List;
 @Slf4j
 @SecurityInner
 @RestController
-@RequestMapping("/api/v1/database/emoji/user-pack")
+@RequestMapping("/api/{version}/database/emoji/user-pack")
 @Tag(name = "ImUserEmojiPack", description = "用户-表情包关联数据库接口")
 @Validated
 public class ImUserEmojiPackController {

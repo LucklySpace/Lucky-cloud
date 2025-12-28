@@ -19,7 +19,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/database/group")
+@RequestMapping("/api/{version}/database/group")
 @Tag(name = "ImGroup", description = "群数据库接口(WebFlux-R2DBC)")
 @Validated
 public class ImGroupReactiveController {

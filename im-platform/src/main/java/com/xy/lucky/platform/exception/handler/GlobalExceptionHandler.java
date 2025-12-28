@@ -5,30 +5,24 @@ import com.xy.lucky.general.exception.BusinessException;
 import com.xy.lucky.general.exception.ForbiddenException;
 import com.xy.lucky.general.response.domain.Result;
 import com.xy.lucky.general.response.domain.ResultCode;
-import com.xy.lucky.platform.domain.vo.UpdaterResponseVo;
-import com.xy.lucky.platform.exception.*;
-import jakarta.servlet.ServletException;
+import com.xy.lucky.platform.exception.AddressException;
+import com.xy.lucky.platform.exception.EmojiException;
+import com.xy.lucky.platform.exception.ShortLinkException;
+import com.xy.lucky.platform.exception.UpdateException;
 import jakarta.validation.ConstraintViolationException;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.MethodParameter;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.server.ServerHttpRequest;
-import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.core.io.buffer.DataBufferLimitException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
+import org.springframework.web.server.ServerWebInputException;
 
 import javax.naming.SizeLimitExceededException;
 import java.nio.file.AccessDeniedException;
@@ -43,7 +37,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestControllerAdvice(basePackages = "com.xy.lucky")
 @Order(Ordered.HIGHEST_PRECEDENCE)// 设置最高优先级
-public class GlobalExceptionHandler implements ResponseBodyAdvice<Object> {
+public class GlobalExceptionHandler {
 
     /**
      * 处理自定义业务异常
@@ -91,15 +85,6 @@ public class GlobalExceptionHandler implements ResponseBodyAdvice<Object> {
     }
 
     /**
-     * 处理缺失必填参数异常
-     */
-    @ExceptionHandler(MissingServletRequestParameterException.class)
-    public Result<?> handle(MissingServletRequestParameterException ex) {
-        log.error("Missing Parameter: {}", ex.getMessage(), ex);
-        return Result.failed(ResultCode.VALIDATION_INCOMPLETE, ex.getMessage());
-    }
-
-    /**
      * 处理 PathVariable / RequestParam 校验失败
      */
     @ExceptionHandler(ConstraintViolationException.class)
@@ -127,12 +112,28 @@ public class GlobalExceptionHandler implements ResponseBodyAdvice<Object> {
         return Result.failed(ResultCode.VALIDATION_INCOMPLETE, "参数: " + ex.getName() + " 类型错误");
     }
 
+    @ExceptionHandler(ServerWebInputException.class)
+    public Result<?> handle(ServerWebInputException ex) {
+        log.error("ServerWebInputException: {}", ex.getMessage(), ex);
+        String msg = ex.getReason() == null ? ex.getMessage() : ex.getReason();
+        return Result.failed(ResultCode.VALIDATION_INCOMPLETE, msg);
+    }
+
     /**
      * 处理输入体校验异常 (@RequestBody)
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Result<?> handle(MethodArgumentNotValidException ex) {
         log.error("MethodArgumentNotValid: {}", ex.getMessage(), ex);
+        String msg = ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .collect(Collectors.joining(", "));
+        return Result.failed(ResultCode.VALIDATION_INCOMPLETE, msg);
+    }
+
+    @ExceptionHandler(WebExchangeBindException.class)
+    public Result<?> handle(WebExchangeBindException ex) {
+        log.error("WebExchangeBindException: {}", ex.getMessage(), ex);
         String msg = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining(", "));
@@ -161,15 +162,6 @@ public class GlobalExceptionHandler implements ResponseBodyAdvice<Object> {
     }
 
     /**
-     * 处理系统 Servlet 异常
-     */
-    @ExceptionHandler(ServletException.class)
-    public Result<?> handle(ServletException ex) {
-        log.error("ServletException: {}", ex.getMessage(), ex);
-        return Result.failed(ResultCode.SERVICE_EXCEPTION, ex.getMessage());
-    }
-
-    /**
      * 处理访问权限异常
      */
     @ExceptionHandler(AccessDeniedException.class)
@@ -184,6 +176,12 @@ public class GlobalExceptionHandler implements ResponseBodyAdvice<Object> {
     @ExceptionHandler(SizeLimitExceededException.class)
     public Result<?> handle(SizeLimitExceededException ex) {
         log.error("SizeLimitExceededException: {}", ex.getMessage(), ex);
+        return Result.failed(ResultCode.REQUEST_DATA_TOO_LARGE);
+    }
+
+    @ExceptionHandler(DataBufferLimitException.class)
+    public Result<?> handle(DataBufferLimitException ex) {
+        log.error("DataBufferLimitException: {}", ex.getMessage(), ex);
         return Result.failed(ResultCode.REQUEST_DATA_TOO_LARGE);
     }
 
@@ -222,44 +220,4 @@ public class GlobalExceptionHandler implements ResponseBodyAdvice<Object> {
         log.error("Unhandled Exception: {}", ex.getMessage(), ex);
         return Result.failed(ResultCode.INTERNAL_SERVER_ERROR);
     }
-
-    /**
-     * 支持返回体前置处理
-     * 如果类或方法标记了 @ResponseNotIntercept 则不处理
-     */
-    @Override
-    public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
-        return !(returnType.getDeclaringClass().isAnnotationPresent(ResponseNotIntercept.class)
-                || returnType.getMethod().isAnnotationPresent(ResponseNotIntercept.class));
-    }
-
-    /**
-     * 将非 Result 类型结果装裱为 Result.success
-     * 特别处理 String 类型不兼容的问题
-     */
-    @SneakyThrows
-    @Override
-    public Object beforeBodyWrite(Object body, MethodParameter returnType, MediaType selectedContentType,
-                                  Class<? extends HttpMessageConverter<?>> selectedConverterType,
-                                  ServerHttpRequest request, ServerHttpResponse response) {
-
-        if (body instanceof Result) {
-            return body;
-        }
-
-        if (body instanceof ResponseEntity) {
-            return body;
-        }
-
-        if (body instanceof UpdaterResponseVo) {
-            return body;
-        }
-
-        if (body instanceof InputStreamResource) {
-            return body;
-        }
-
-        return Result.success(body);
-    }
-
 }

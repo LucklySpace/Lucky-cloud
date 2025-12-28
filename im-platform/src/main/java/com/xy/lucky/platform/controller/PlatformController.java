@@ -26,7 +26,7 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 @Validated
 @RestController
-@RequestMapping("/api/v1/platform")
+@RequestMapping("/api/{version}/platform")
 @RequiredArgsConstructor
 @Tag(name = "platform", description = "平台应用发布与安装包资产上传")
 public class PlatformController {

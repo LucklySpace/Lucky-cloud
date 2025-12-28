@@ -32,7 +32,7 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 @Validated
 @RestController
-@RequestMapping("/api/v1/address")
+@RequestMapping("/api/{version}/address")
 @RequiredArgsConstructor
 @Tag(name = "address", description = "IP 与区域查询接口")
 public class AddressController {

@@ -39,6 +39,12 @@
             <groupId>com.xy.lucky</groupId>
             <artifactId>im-starter-address</artifactId>
             <version>${revision}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-web</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Google Guava -->
@@ -85,7 +91,7 @@
         <!--引入Knife4j的官方start包,Spring Boot版本 > 3.0,开发者需要注意-->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+            <artifactId>knife4j-openapi3-webflux-jakarta-spring-boot-starter</artifactId>
             <version>${knife4j.version}</version>
         </dependency>
 
@@ -99,12 +105,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
         </dependency>
 
         <dependency>

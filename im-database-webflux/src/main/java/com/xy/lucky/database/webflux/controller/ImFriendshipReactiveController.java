@@ -18,7 +18,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/database/friend")
+@RequestMapping("/api/{version}/database/friend")
 @Tag(name = "ImFriendShip", description = "好友关系数据库接口(WebFlux-R2DBC)")
 @Validated
 public class ImFriendshipReactiveController {

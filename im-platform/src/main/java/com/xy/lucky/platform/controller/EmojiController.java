@@ -32,13 +32,12 @@ import java.util.List;
 @Slf4j
 @Validated
 @RestController
-@RequestMapping("/api/v1/emoji")
+@RequestMapping("/api/{version}/emoji")
 @RequiredArgsConstructor
 @Tag(name = "emoji", description = "表情包管理")
 public class EmojiController {
 
     private final EmojiService emojiService;
-
 
     @Operation(summary = "获取表情包编码", description = "返回表情包的code")
     @ApiResponses(value = {
@@ -49,7 +48,7 @@ public class EmojiController {
     @GetMapping("/pack/code")
     public Mono<String> getPackCode() {
         log.info("收到获取表情包编码请求");
-        return Mono.fromCallable(emojiService::getPackCode).subscribeOn(Schedulers.boundedElastic());
+        return Mono.fromCallable(() -> emojiService.getPackCode()).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Operation(summary = "创建或更新表情包", description = "根据 code 创建或更新表情包")
@@ -83,11 +82,10 @@ public class EmojiController {
     })
     @PostMapping("/upload")
     public Mono<EmojiVo> upload(
-            @Parameter(description = "表情元数据", required = true) @Valid @RequestPart("emojiVo") EmojiVo emojiVo,
-            @Parameter(description = "图片文件", required = true) @RequestPart("file") FilePart file
+            @Parameter(description = "表情元数据", required = true) @Valid EmojiVo emojiVo
     ) {
         log.info("收到表情上传请求，packId={} name={}", emojiVo.getPackId(), emojiVo.getName());
-        return Mono.fromCallable(() -> emojiService.uploadEmoji(emojiVo, file)).subscribeOn(Schedulers.boundedElastic());
+        return Mono.fromCallable(() -> emojiService.uploadEmoji(emojiVo)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Operation(summary = "批量上传表情", description = "一次上传多个图片文件到指定表情包")

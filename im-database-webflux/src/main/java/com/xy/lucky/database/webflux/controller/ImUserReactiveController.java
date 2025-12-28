@@ -20,7 +20,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/database/user")
+@RequestMapping("/api/{version}/database/user")
 @Tag(name = "ImUser", description = "用户数据库接口(WebFlux-R2DBC)")
 @Validated
 public class ImUserReactiveController {

@@ -33,7 +33,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 @Validated
 @RestController
-@RequestMapping("/api/v1/file")
+@RequestMapping("/api/{version}/file")
 @Tag(name = "file", description = "文件管理")
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class FileMinioController {

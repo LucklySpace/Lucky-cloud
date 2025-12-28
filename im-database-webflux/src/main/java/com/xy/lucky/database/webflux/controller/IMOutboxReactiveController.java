@@ -18,7 +18,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/database/outbox")
+@RequestMapping("/api/{version}/database/outbox")
 @Tag(name = "IMOutbox", description = "用户会话数据库接口(WebFlux-R2DBC)")
 @Validated
 public class IMOutboxReactiveController {

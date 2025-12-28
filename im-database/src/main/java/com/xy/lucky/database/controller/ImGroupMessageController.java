@@ -25,7 +25,7 @@ import java.util.List;
 @Slf4j
 @SecurityInner
 @RestController
-@RequestMapping("/api/v1/database/group/message")
+@RequestMapping("/api/{version}/database/group/message")
 @Tag(name = "ImGroup", description = "群聊消息数据库接口")
 @Validated
 public class ImGroupMessageController {

@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: im-database-webflux
+  jackson:
+    time-zone: UTC
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false
+  banner:
+    location: classpath:banner.txt
+  threads:
+    virtual:
+      enabled: true  # 开启虚拟线程
+  r2dbc:
+    url: ${R2DBC_URL:r2dbc:postgresql://localhost:5432/imdb}
+    username: ${PGUSER:postgres}
+    password: ${PGPASSWORD:postgres}
+
+#springdoc相关配置
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  group-configs:
+    - group: 'server'
+      paths-to-match: '/**'
+      packages-to-scan: com.xy.server  #改成你自己的包名，一般到启动类的包名
+
+# TODO: knife4j相关配置 可以不用改
+knife4j:
+  enable: true        # 开启增强配置
+  production: false   # 开启生产环境屏蔽
+  setting:
+    language: zh_cn   # 默认中文
+    swagger-model-name: 实体类
+
+# TODO: log settings
+# TODO: log settings
+logging:
+  config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件
+  level:
+    com.xy.lucky.*: info
+    org.springframework: warn

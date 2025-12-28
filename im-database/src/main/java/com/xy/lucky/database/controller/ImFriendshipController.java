@@ -24,7 +24,7 @@ import java.util.List;
 @Slf4j
 @SecurityInner
 @RestController
-@RequestMapping("/api/{version}/database/friend")
+@RequestMapping("/api/v1/database/friend")
 @Tag(name = "ImFriendShip", description = "好友关系数据库接口")
 @Validated
 public class ImFriendshipController {

@@ -22,7 +22,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/{version}/database/group")
+@RequestMapping("/api/v1/database/group")
 @Tag(name = "ImGroup", description = "群数据库接口")
 @Validated
 public class ImGroupController {

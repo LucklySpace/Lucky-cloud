@@ -23,7 +23,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/{version}/relationship")
+@RequestMapping("/api/v1/relationship")
 @Tag(name = "relationship", description = "用户关系")
 public class RelationshipController {
 

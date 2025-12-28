@@ -31,7 +31,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/{version}/auth")
+@RequestMapping("/api/v1/auth")
 @Tag(name = "auth", description = "用户认证")
 @RequiredArgsConstructor
 public class AuthController {

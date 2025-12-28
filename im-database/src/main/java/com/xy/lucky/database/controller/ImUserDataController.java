@@ -26,7 +26,7 @@ import java.util.List;
 @Slf4j
 @SecurityInner
 @RestController
-@RequestMapping("/api/{version}/database/user/data")
+@RequestMapping("/api/v1/database/user/data")
 @Tag(name = "ImUserData", description = "用户数据数据库接口")
 @Validated
 public class ImUserDataController {

@@ -24,7 +24,7 @@ import java.util.List;
 @Slf4j
 @SecurityInner
 @RestController
-@RequestMapping("/api/{version}/database/single/message")
+@RequestMapping("/api/v1/database/single/message")
 @Tag(name = "ImPrivate", description = "私聊消息数据库接口")
 @Validated
 public class ImSingleMessageController {

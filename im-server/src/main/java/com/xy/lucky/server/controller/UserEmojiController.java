@@ -18,7 +18,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/{version}/emoji/userPack")
+@RequestMapping("/api/{version}/emoji")
 @Tag(name = "emoji-user", description = "用户与表情包关联接口")
 @Validated
 public class UserEmojiController {

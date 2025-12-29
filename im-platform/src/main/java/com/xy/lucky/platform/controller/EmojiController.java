@@ -1,6 +1,7 @@
 package com.xy.lucky.platform.controller;
 
 import com.xy.lucky.platform.domain.vo.EmojiPackVo;
+import com.xy.lucky.platform.domain.vo.EmojiRespVo;
 import com.xy.lucky.platform.domain.vo.EmojiVo;
 import com.xy.lucky.platform.service.EmojiService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,6 +40,12 @@ public class EmojiController {
 
     private final EmojiService emojiService;
 
+    @Operation(summary = "查询表情包详情", description = "按 packId 查询表情包")
+    @GetMapping("/pack/{packId}")
+    public Mono<EmojiRespVo> getPackId(@Parameter(description = "包编码", required = true) @PathVariable("packId") String packId) {
+        return Mono.fromCallable(() -> emojiService.getPackId(packId)).subscribeOn(Schedulers.boundedElastic());
+    }
+
     @Operation(summary = "获取表情包编码", description = "返回表情包的code")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "成功",
@@ -48,7 +55,7 @@ public class EmojiController {
     @GetMapping("/pack/code")
     public Mono<String> getPackCode() {
         log.info("收到获取表情包编码请求");
-        return Mono.fromCallable(() -> emojiService.getPackCode()).subscribeOn(Schedulers.boundedElastic());
+        return Mono.fromCallable(() -> emojiService.getPackCode(0)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Operation(summary = "创建或更新表情包", description = "根据 code 创建或更新表情包")
@@ -130,19 +137,13 @@ public class EmojiController {
         return Mono.fromCallable(() -> emojiService.uploadCover(packId, file)).subscribeOn(Schedulers.boundedElastic());
     }
 
-    @Operation(summary = "启用/禁用表情包", description = "按 code 切换启用状态")
-    @PostMapping("/pack/{code}/enable/{enabled}")
+    @Operation(summary = "启用/禁用表情包", description = "按 packId 切换启用状态")
+    @PostMapping("/pack/{packId}/enable/{enabled}")
     public Mono<EmojiPackVo> toggle(
-            @Parameter(description = "包编码", required = true) @PathVariable("code") String code,
+            @Parameter(description = "包编码", required = true) @PathVariable("packId") String packId,
             @Parameter(description = "是否启用", required = true) @PathVariable("enabled") boolean enabled
     ) {
-        return Mono.fromCallable(() -> emojiService.togglePack(code, enabled)).subscribeOn(Schedulers.boundedElastic());
-    }
-
-    @Operation(summary = "查询表情包详情", description = "按 code 查询表情包")
-    @GetMapping("/pack/{code}")
-    public Mono<EmojiPackVo> getPack(@Parameter(description = "包编码", required = true) @PathVariable("code") String code) {
-        return Mono.fromCallable(() -> emojiService.getPack(code)).subscribeOn(Schedulers.boundedElastic());
+        return Mono.fromCallable(() -> emojiService.togglePack(packId, enabled)).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Operation(summary = "删除表情", description = "可选同时删除 MinIO 对象")

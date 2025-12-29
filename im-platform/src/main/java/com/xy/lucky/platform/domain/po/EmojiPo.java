@@ -24,7 +24,8 @@ import java.time.LocalDateTime;
 @Table(name = "im_platform_emoji",
         indexes = {
                 @Index(name = "idx_emoji_pack", columnList = "pack_id"),
-                @Index(name = "idx_emoji_name", columnList = "name")
+                @Index(name = "idx_emoji_name", columnList = "name"),
+                @Index(name = "idx_emoji_pack_sort", columnList = "pack_id, sort")
         }
 )
 public class EmojiPo {
@@ -59,7 +60,7 @@ public class EmojiPo {
     private String url;
 
     @Schema(description = "顺序")
-    @Column(name = "sort")
+    @Column(name = "sort", nullable = false)
     private Integer sort;
 
     @Schema(description = "内容类型")
@@ -75,4 +76,3 @@ public class EmojiPo {
     @Column(name = "create_time", nullable = false, updatable = false)
     private LocalDateTime createTime;
 }
-

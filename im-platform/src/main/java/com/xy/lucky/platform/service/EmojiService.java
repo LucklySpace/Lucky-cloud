@@ -4,6 +4,7 @@ import com.xy.lucky.platform.config.MinioProperties;
 import com.xy.lucky.platform.domain.po.EmojiPackPo;
 import com.xy.lucky.platform.domain.po.EmojiPo;
 import com.xy.lucky.platform.domain.vo.EmojiPackVo;
+import com.xy.lucky.platform.domain.vo.EmojiRespVo;
 import com.xy.lucky.platform.domain.vo.EmojiVo;
 import com.xy.lucky.platform.exception.EmojiException;
 import com.xy.lucky.platform.mapper.EmojiVoMapper;
@@ -69,7 +70,7 @@ public class EmojiService {
      * 列出所有表情包
      */
     public List<EmojiPackVo> listPacks() {
-        return packRepository.findAll().stream()
+        return packRepository.findAllByOrderByHeatDesc().stream()
                 .map(emojiVoMapper::toVo)
                 .collect(Collectors.toList());
     }
@@ -104,7 +105,7 @@ public class EmojiService {
         // 获取对象名称
         String objectName = minioUtils.getObjectName(filename);
 
-        String objectKey = String.format("emoji/%s/%s", Optional.ofNullable(pack.getCode()).orElse(pack.getId()), objectName);
+        String objectKey = String.format("emoji/%s/%s", pack.getId(), objectName);
         String contentType = file.headers() != null && file.headers().getContentType() != null
                 ? file.headers().getContentType().toString() : null;
         Path temp;
@@ -131,6 +132,8 @@ public class EmojiService {
 
         String url = minioUtils.presignedGetUrl(bucket, objectKey, 60 * 60 * 24);
 
+        int sort = Optional.ofNullable(meta.getSort()).orElseGet(() -> emojiRepository.findMaxSortByPackId(packId) + 1);
+
         EmojiPo emo = EmojiPo.builder()
                 .pack(pack)
                 .name(name)
@@ -138,6 +141,7 @@ public class EmojiService {
                 .bucket(bucket)
                 .objectKey(objectKey)
                 .url(url)
+                .sort(sort)
                 .contentType(contentType)
                 .fileSize(size)
                 .build();
@@ -150,7 +154,7 @@ public class EmojiService {
      * 列出指定表情包中的所有表情
      */
     public List<EmojiVo> listEmojis(String packId) {
-        return emojiRepository.findByPackId(packId).stream()
+        return emojiRepository.findByPackIdOrderBySortAsc(packId).stream()
                 .map(emojiVoMapper::toVo)
                 .collect(Collectors.toList());
     }
@@ -174,6 +178,7 @@ public class EmojiService {
         String bucket = minioProperties.getBucketName();
         List<EmojiVo> result = new ArrayList<>();
 
+        int baseSort = emojiRepository.findMaxSortByPackId(packId);
         for (FilePart file : files) {
             if (file == null || !StringUtils.hasText(file.filename())) {
                 continue;
@@ -189,7 +194,7 @@ public class EmojiService {
                 continue;
             }
 
-            String objectKey = String.format("emoji/%s/items/%s", Optional.ofNullable(pack.getCode()).orElse(pack.getId()), objectName);
+            String objectKey = String.format("emoji/%s/items/%s", pack.getId(), objectName);
 
             try {
                 Path temp = Files.createTempFile("emoji-batch-", "-" + filename);
@@ -197,7 +202,7 @@ public class EmojiService {
                 long size = Files.size(temp);
                 String ct = file.headers() != null && file.headers().getContentType() != null
                         ? file.headers().getContentType().toString() : null;
-                try (java.io.InputStream in = Files.newInputStream(temp)) {
+                try (InputStream in = Files.newInputStream(temp)) {
                     minioUtils.uploadObject(bucket, objectKey, in, size, ct);
                 }
                 try {
@@ -207,6 +212,7 @@ public class EmojiService {
 
                 String url = minioUtils.presignedGetUrl(bucket, objectKey);
 
+                baseSort += 1;
                 EmojiPo emo = EmojiPo.builder()
                         .pack(pack)
                         .name(filename)
@@ -214,7 +220,8 @@ public class EmojiService {
                         .bucket(bucket)
                         .objectKey(objectKey)
                         .url(url)
-                        .contentType(file.headers() != null && file.headers().getContentType() != null ? file.headers().getContentType().toString() : null)
+                        .sort(baseSort)
+                        .contentType(ct)
                         .fileSize(size)
                         .build();
 
@@ -229,9 +236,15 @@ public class EmojiService {
     /**
      * 下载表情文件（流式传输）
      */
+    @Transactional
     public ResponseEntity<Resource> downloadEmoji(String emojiId) {
         EmojiPo emo = emojiRepository.findById(emojiId)
                 .orElseThrow(() -> new EmojiException("表情不存在"));
+        try {
+            packRepository.incrementHeatById(emo.getPack().getId(), 1L);
+        } catch (Exception e) {
+            log.warn("热度更新失败 packId={} err={}", emo.getPack().getId(), e.getMessage());
+        }
         return minioUtils.streamObject(
                 emo.getBucket(),
                 emo.getObjectKey(),
@@ -252,12 +265,12 @@ public class EmojiService {
                 .orElseThrow(() -> new EmojiException("表情包不存在"));
 
         String bucket = minioProperties.getBucketName();
-        String filename = Optional.ofNullable(file.filename()).filter(StringUtils::hasText)
+        String filename = Optional.of(file.filename()).filter(StringUtils::hasText)
                 .orElse("cover.png");
 
         String objectName = minioUtils.getObjectName(filename);
 
-        String objectKey = String.format("emoji/%s/cover/%s", Optional.ofNullable(pack.getCode()).orElse(pack.getId()), objectName);
+        String objectKey = String.format("emoji/%s/cover/%s", pack.getId(), objectName);
 
         try {
             java.nio.file.Path temp = java.nio.file.Files.createTempFile("emoji-cover-", "-" + filename);
@@ -286,11 +299,11 @@ public class EmojiService {
     }
 
     /**
-     * 启用/禁用表情包（按 code）
+     * 启用/禁用表情包（按 packId）
      */
     @Transactional
-    public EmojiPackVo togglePack(String code, boolean enabled) {
-        EmojiPackPo pack = packRepository.findByCode(code)
+    public EmojiPackVo togglePack(String packId, boolean enabled) {
+        EmojiPackPo pack = packRepository.findById(packId)
                 .orElseThrow(() -> new EmojiException("表情包不存在"));
         pack.setEnabled(enabled);
         EmojiPackPo saved = packRepository.save(pack);
@@ -298,12 +311,23 @@ public class EmojiService {
     }
 
     /**
-     * 查询表情包详情（按 code）
+     * 查询表情包详情（按 packId）
      */
-    public EmojiPackVo getPack(String code) {
-        EmojiPackPo pack = packRepository.findByCode(code)
+    public EmojiRespVo getPackId(String packId) {
+
+        EmojiPackPo pack = packRepository.findById(packId)
                 .orElseThrow(() -> new EmojiException("表情包不存在"));
-        return emojiVoMapper.toVo(pack);
+
+        EmojiRespVo vo = emojiVoMapper.toRespVo(pack);
+
+        List<EmojiVo> list = emojiRepository.findByPackIdOrderBySort(packId)
+                .stream().map(emojiVoMapper::toVo).toList();
+
+        if (!list.isEmpty()) {
+            vo.setEmojis(list);
+        }
+
+        return vo;
     }
 
     /**
@@ -322,9 +346,17 @@ public class EmojiService {
     /**
      * 生成表情包编码
      */
-    public String getPackCode() {
+    public String getPackCode(int i) {
+        if (i % 5 > 0) {
+            throw new EmojiException("生成表情包编码异常");
+        }
         String s = IdUtils.base62Uuid();
         log.info("生成表情包编码: {}", s);
+        if (packRepository.existsByCode(s)) {
+            log.info("已存在: {}", s);
+            i += 1;
+            return getPackCode(i);
+        }
         return s;
     }
 }

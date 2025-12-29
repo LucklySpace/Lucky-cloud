@@ -25,7 +25,8 @@ import java.time.LocalDateTime;
 @Table(name = "im_platform_emoji_pack",
         indexes = {
                 @Index(name = "idx_pack_code", columnList = "code"),
-                @Index(name = "idx_pack_name", columnList = "name")
+                @Index(name = "idx_pack_name", columnList = "name"),
+                @Index(name = "idx_pack_heat", columnList = "heat")
         },
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_pack_code", columnNames = {"code"})
@@ -67,6 +68,11 @@ public class EmojiPackPo {
     @Builder.Default
     private Boolean enabled = Boolean.TRUE;
 
+    @Schema(description = "热度（受访问/下载等行为影响）")
+    @Column(name = "heat", nullable = false)
+    @Builder.Default
+    private Long heat = 0L;
+
     @Schema(description = "创建时间")
     @CreationTimestamp
     @Column(name = "create_time", nullable = false, updatable = false)
@@ -77,4 +83,3 @@ public class EmojiPackPo {
     @Column(name = "update_time")
     private LocalDateTime updateTime;
 }
-

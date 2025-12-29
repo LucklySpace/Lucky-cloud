@@ -34,5 +34,5 @@ public class EmojiPackVo {
 
     @Schema(description = "是否启用")
     private Boolean enabled;
-}
 
+}

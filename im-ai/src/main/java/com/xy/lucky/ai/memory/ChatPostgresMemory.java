@@ -1,14 +1,16 @@
 package com.xy.lucky.ai.memory;
 
-import com.xy.lucky.ai.domain.ChatMessage;
+import com.xy.lucky.ai.domain.po.ChatMessagePo;
 import com.xy.lucky.ai.repository.ChatMessageRepository;
 import com.xy.lucky.ai.repository.ChatSessionRepository;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.*;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -35,14 +37,15 @@ public class ChatPostgresMemory implements ChatMemory {
 
             String messageId = UUID.randomUUID().toString();
 
-            ChatMessage ent = new ChatMessage()
+            ChatMessagePo ent = new ChatMessagePo()
                     .setId(messageId)
                     .setContent(text)
                     .setType(message.getMessageType().getValue())
                     .setSession(session);
 
             chatMessageRepository.save(ent);
-
+            session.setMessageCount((session.getMessageCount() == null ? 0 : session.getMessageCount()) + 1);
+            session.setLastMessageAt(java.time.LocalDateTime.now());
             chatSessionRepository.save(session);
 
             log.info("[add] 会话 {} 存储消息到 Postgres。消息内容:{}", conversationId, ent);
@@ -58,7 +61,7 @@ public class ChatPostgresMemory implements ChatMemory {
 
         chatSessionRepository.findById(conversationId).ifPresentOrElse(session -> {
 
-                    List<ChatMessage> listIn = new ArrayList<>();
+            List<ChatMessagePo> listIn = new ArrayList<>();
 
                     for (Message msg : messages) {
 
@@ -68,7 +71,7 @@ public class ChatPostgresMemory implements ChatMemory {
 
                         String messageId = UUID.randomUUID().toString();
 
-                        ChatMessage ent = new ChatMessage()
+                        ChatMessagePo ent = new ChatMessagePo()
                                 .setId(messageId)
                                 .setContent(text)
                                 .setType(msg.getMessageType().getValue())
@@ -78,7 +81,8 @@ public class ChatPostgresMemory implements ChatMemory {
                     }
 
                     chatMessageRepository.saveAll(listIn);
-
+            session.setMessageCount((session.getMessageCount() == null ? 0 : session.getMessageCount()) + listIn.size());
+            session.setLastMessageAt(LocalDateTime.now());
                     chatSessionRepository.save(session);
 
                     log.info("[add] 会话 {} 存储 {} 条消息到 Postgres。消息内容:{}", conversationId, listIn.size(), listIn);
@@ -101,29 +105,33 @@ public class ChatPostgresMemory implements ChatMemory {
             return Collections.emptyList();
         }
 
-        // 根据会话id查询消息
-        List<ChatMessage> messageList = chatMessageRepository.findBySessionIdOrderByCreatedAtDesc(conversationId);
+        // 根据会话id查询最近 lastN 条消息（按时间倒序）
+        List<ChatMessagePo> messageList = chatMessageRepository.findBySession_Id(
+                conversationId, PageRequest.of(0, Math.max(lastN, 1), org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")));
 
         List<Message> listOut = new ArrayList<>();
 
         if (!messageList.isEmpty()) {
 
-            for (ChatMessage chatMessage : messageList) {
+            for (ChatMessagePo chatMessagePo : messageList) {
 
-                if (MessageType.USER.getValue().equals(chatMessage.getType())) {
+                if (MessageType.USER.getValue().equals(chatMessagePo.getType())) {
 
-                    listOut.add(new UserMessage(chatMessage.getContent()));
+                    listOut.add(new UserMessage(chatMessagePo.getContent()));
 
-                } else if (MessageType.ASSISTANT.getValue().equals(chatMessage.getType())) {
+                } else if (MessageType.ASSISTANT.getValue().equals(chatMessagePo.getType())) {
 
-                    listOut.add(new AssistantMessage(chatMessage.getContent()));
+                    listOut.add(new AssistantMessage(chatMessagePo.getContent()));
 
-                } else if (MessageType.SYSTEM.getValue().equals(chatMessage.getType())) {
+                } else if (MessageType.SYSTEM.getValue().equals(chatMessagePo.getType())) {
 
-                    listOut.add(new SystemMessage(chatMessage.getContent()));
+                    listOut.add(new SystemMessage(chatMessagePo.getContent()));
                 }
             }
         }
+
+        // 转为时间正序（从老到新），便于模型理解上下文
+        Collections.reverse(listOut);
 
         log.info("[get] 会话 {} 获取最近 {} 条消息，实际返回 {} 条。", conversationId, lastN, listOut.size());
 
@@ -134,7 +142,7 @@ public class ChatPostgresMemory implements ChatMemory {
     public void clear(String conversationId) {
 
         // 删除消息
-        chatMessageRepository.deleteBySessionId(conversationId);
+        chatMessageRepository.deleteBySession_Id(conversationId);
 
         // 删除会话
         chatSessionRepository.deleteById(conversationId);

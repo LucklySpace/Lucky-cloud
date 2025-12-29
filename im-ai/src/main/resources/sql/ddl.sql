@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS vector_store
     metadata json,
     embedding vector
 (
-    1536
+    1024
 )
     );
 

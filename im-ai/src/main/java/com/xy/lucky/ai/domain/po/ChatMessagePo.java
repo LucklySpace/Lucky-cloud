@@ -1,4 +1,4 @@
-package com.xy.lucky.ai.domain;
+package com.xy.lucky.ai.domain.po;
 
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -20,17 +20,17 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(name = "ChatMessage", description = "聊天消息实体，记录用户提问、AI 回复、系统提示等内容")
-public class ChatMessage {
+public class ChatMessagePo {
 
     @Id
-    @Column(columnDefinition = "id")
+    @Column(name = "id", length = 64)
     @Schema(description = "消息主键 ID，通常使用 UUID")
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id")
     @Schema(description = "所属的对话会话对象")
-    private ChatSession session;
+    private ChatSessionPo session;
 
     @Column(name = "type")
     @Schema(description = "消息类型，如 user / assistant / system")

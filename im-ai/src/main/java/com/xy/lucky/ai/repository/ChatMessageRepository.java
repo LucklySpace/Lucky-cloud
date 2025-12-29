@@ -1,17 +1,18 @@
 package com.xy.lucky.ai.repository;
 
-import com.xy.lucky.ai.domain.ChatMessage;
+import com.xy.lucky.ai.domain.po.ChatMessagePo;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 @Repository
-public interface ChatMessageRepository extends JpaRepository<ChatMessage, String> {
+public interface ChatMessageRepository extends JpaRepository<ChatMessagePo, String> {
 
-    List<ChatMessage> findBySessionId(String sessionId);
+    List<ChatMessagePo> findBySession_IdOrderByCreatedAtDesc(String sessionId);
 
-    List<ChatMessage> findBySessionIdOrderByCreatedAtDesc(String sessionId);
+    List<ChatMessagePo> findBySession_Id(String sessionId, Pageable pageable);
 
-    void deleteBySessionId(String sessionId);
+    void deleteBySession_Id(String sessionId);
 }

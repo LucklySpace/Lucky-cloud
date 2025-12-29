@@ -1,4 +1,4 @@
-package com.xy.lucky.ai.domain;
+package com.xy.lucky.ai.domain.po;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
@@ -21,10 +21,10 @@ import java.time.LocalDateTime;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-public class ChatSession {
+public class ChatSessionPo {
 
     @Id
-    @Column(columnDefinition = "id")
+    @Column(name = "id", length = 64)
     private String id;
 
     @Schema(description = "用户ID")
@@ -70,7 +70,7 @@ public class ChatSession {
     @Column(name = "version")
     private Integer version;
 
-    public ChatSession(String id) {
+    public ChatSessionPo(String id) {
         this.id = id;
     }
 

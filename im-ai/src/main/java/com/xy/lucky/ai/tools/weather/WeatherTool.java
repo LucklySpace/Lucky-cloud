@@ -21,14 +21,19 @@ public class WeatherTool {
     public String getWeatherServiceMethod(@ToolParam(description = "城市名称") String city,
                                           @ToolParam(description = "天气预报的天数。值的范围为1到14") int days) {
 
-        if (StringUtils.hasText(city)) {
+        if (!StringUtils.hasText(city)) {
             log.error("无效请求，必须传城市名称");
             return null;
         }
         String location = this.preprocessLocation(city);
+        int safeDays = Math.max(1, Math.min(days, 14));
+        if (webClient == null) {
+            webClient = WebClient.create();
+        }
         String url = UriComponentsBuilder.fromHttpUrl(WEATHER_API_URL)
                 .queryParam("q", location)
-                .queryParam("days", days)
+                .queryParam("days", safeDays)
+                .queryParam("key", System.getenv().getOrDefault("WEATHER_API_KEY", ""))
                 .toUriString();
 
         log.info("url : {}", url);

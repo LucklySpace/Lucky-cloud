@@ -1,4 +1,4 @@
-package com.xy.lucky.ai.domain;
+package com.xy.lucky.ai.domain.po;
 
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -19,10 +19,10 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(name = "ChatPrompt", description = "Prompt 配置实体，用于保存系统提示词或输入模板")
-public class ChatPrompt {
+public class ChatPromptPo {
 
     @Id
-    @Column(columnDefinition = "id")
+    @Column(name = "id", length = 64)
     @Schema(description = "Prompt 唯一标识 ID，通常为 UUID")
     private String id;
 

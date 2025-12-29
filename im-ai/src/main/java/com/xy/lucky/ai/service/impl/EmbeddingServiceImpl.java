@@ -48,8 +48,10 @@ public class EmbeddingServiceImpl implements EmbeddingService {
 
         try {
             InputStreamResource inputStreamResource = new InputStreamResource(file.getInputStream());
+            String filename = file.getOriginalFilename();
+            String lowerName = filename == null ? "" : filename.toLowerCase();
 
-            if (file.getName().endsWith(".pdf")) {
+            if (lowerName.endsWith(".pdf")) {
                 DocumentReader pdfDocumentReader = new PagePdfDocumentReader(inputStreamResource);
                 // 将文本内容划分成更小的块
                 documents = new TokenTextSplitter()
@@ -61,11 +63,11 @@ public class EmbeddingServiceImpl implements EmbeddingService {
                 documents = new TokenTextSplitter()
                         .apply(tikaDocumentReader.read());
             }
-            log.debug("文件解析成功: {} , 解析时长: {}ms", file.getName(), (System.currentTimeMillis() - startTime));
+            log.debug("文件解析成功: {} , 解析时长: {}ms", filename, (System.currentTimeMillis() - startTime));
 
         } catch (Exception e) {
 
-            log.error("{} 解析失败", file.getName());
+            log.error("文件解析失败: {}", file.getOriginalFilename(), e);
         }
 
         if (!documents.isEmpty()) {

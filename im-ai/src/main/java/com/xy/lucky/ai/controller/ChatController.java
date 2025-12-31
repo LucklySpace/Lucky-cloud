@@ -1,7 +1,6 @@
 package com.xy.lucky.ai.controller;
 
 
-import com.xy.lucky.ai.tools.time.DateTimeTool;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -49,7 +48,7 @@ public class ChatController {
     @GetMapping("/ask")
     @Operation(summary = "单轮问答")
     public String ask(@RequestParam("text") String text) {
-        log.info("[ask] 用户提问：{}", text);
+        log.info("[chat] 用户提问：{}", text);
         return chatClient.prompt().user(text).call().content().trim();
     }
 
@@ -63,8 +62,8 @@ public class ChatController {
     @PostMapping(value = "/ask/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "多轮对话SSE流")
     public Flux<ServerSentEvent<String>> chat(@RequestParam("sessionId") String sessionId, @RequestParam(value = "text", defaultValue = "Hello!") String text) {
-
-        return chatClient.prompt(text).tools(new DateTimeTool())
+        log.info("[chat] 会话 {} 用户输入：{}", sessionId, text);
+        return chatClient.prompt(text)
                 .advisors(advisorSpec -> advisorSpec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, sessionId).param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 100))
                 .stream().content()
                 .map(content -> ServerSentEvent.builder(content).event("message").build())
@@ -80,41 +79,6 @@ public class ChatController {
                             .event("error")
                             .build());
                 });
-//        log.info("[chat] 会话 {} 用户输入：{}", sessionId, text);
-//
-//        return chatClient.prompt(text)
-//                .advisors(advisorSpec -> advisorSpec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, sessionId).param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 100))
-//                .stream().content().map(content -> ServerSentEvent.builder(content).event("message").build())
-//                //问题回答结速标识,以便前端消息展示处理
-//                .concatWithValues(ServerSentEvent.builder("").build())
-//                .onErrorResume(e -> Flux.just(ServerSentEvent.builder("Error: " + e.getMessage()).event("error").build()));
     }
-
-
-//    /**
-//     * 获取历史记录（最多 20 条）
-//     *
-//     * @param conversationId 会话 ID
-//     * @return 历史消息列表
-//     */
-//    @GetMapping("/history")
-//    public List<Message> history(@RequestParam String conversationId) {
-//        List<Message> history = chatMemory.get(conversationId, 20);
-//        log.info("[history] 获取会话 {} 的历史，共 {} 条记录", conversationId, history.size());
-//        return history;
-//    }
-//
-//    /**
-//     * 清空历史记录
-//     *
-//     * @param conversationId 会话 ID
-//     */
-//    @DeleteMapping("/clear")
-//    public void clear(@RequestParam String conversationId) {
-//        chatMemory.clear(conversationId);
-//        log.info("[clear] 会话 {} 已清除历史记录", conversationId);
-//    }
-
-
 }
 

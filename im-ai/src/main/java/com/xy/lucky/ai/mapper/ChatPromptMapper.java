@@ -6,6 +6,7 @@ import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
 public interface ChatPromptMapper {
+
     ChatPromptVo toVo(ChatPromptPo po);
 
     ChatPromptPo toPo(ChatPromptVo vo);

@@ -6,6 +6,8 @@ import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
 public interface ChatSessionMapper {
+
     ChatSessionVo toVo(ChatSessionPo po);
+
 }
 

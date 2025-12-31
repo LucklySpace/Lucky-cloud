@@ -111,6 +111,12 @@
             </exclusions>
         </dependency>
 
+        <!-- Jakarta Servlet API for Knife4j compatibility -->
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+        </dependency>
+
         <!--使用undertow替换tomcat-->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -29,6 +29,7 @@ public class PromptController {
     @GetMapping
     @Cacheable(cacheNames = "prompts", key = "'all'")
     public List<ChatPromptVo> list() {
+        log.info("[prompt] 列出所有 Prompt");
         return promptService.list();
     }
 
@@ -40,6 +41,7 @@ public class PromptController {
     @PostMapping
     @CacheEvict(cacheNames = "prompts", key = "'all'")
     public boolean add(@RequestBody ChatPromptVo chatPrompt) {
+        log.debug("[prompt] 添加新的 Prompt: {}", chatPrompt);
         return promptService.add(chatPrompt);
     }
 
@@ -55,6 +57,7 @@ public class PromptController {
             @Parameter(description = "Prompt ID", required = true) @PathVariable("id") String id,
             @RequestBody ChatPromptVo chatPrompt
     ) {
+        log.debug("[prompt] 更新 Prompt: {}", chatPrompt);
         chatPrompt.setId(id);
         return promptService.update(chatPrompt);
     }
@@ -67,6 +70,7 @@ public class PromptController {
     @DeleteMapping("/{id}")
     @CacheEvict(cacheNames = "prompts", key = "'all'")
     public boolean delete(@Parameter(description = "Prompt ID", required = true) @PathVariable("id") String id) {
+        log.debug("[prompt] 删除 Prompt: {}", id);
         return promptService.delete(id);
     }
 }

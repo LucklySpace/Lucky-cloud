@@ -36,7 +36,7 @@ public class SessionController {
     @Operation(summary = "列出所有会话")
     public List<ChatSessionVo> listSessions(@RequestParam("userId") String userId) {
         List<ChatSessionVo> sessions = chatSessionService.listByUser(userId);
-        log.info("[listSessions] 用户 {} 返回 {} 个会话", userId, sessions.size());
+        log.info("[session] 用户 {} 返回 {} 个会话", userId, sessions.size());
         return sessions;
     }
 
@@ -49,7 +49,7 @@ public class SessionController {
     @GetMapping("/{sessionId}")
     @Operation(summary = "获取会话详情")
     public ChatSessionVo getSession(@PathVariable("sessionId") String sessionId) {
-        log.info("[getSession] 获取会话 {} 的详情", sessionId);
+        log.info("[session] 获取会话 {} 的详情", sessionId);
         return chatSessionService.getWithMessages(sessionId);
     }
 
@@ -64,7 +64,7 @@ public class SessionController {
     public ChatSessionVo createSession(@RequestParam("userId") String userId) {
         Assert.notNull(userId, "userId不能为空");
         ChatSessionVo vo = chatSessionService.create(userId);
-        log.info("[createSession] 用户: {} 创建会话: {}", userId, vo.getId());
+        log.info("[session] 用户: {} 创建会话: {}", userId, vo.getId());
         return vo;
     }
 
@@ -78,7 +78,7 @@ public class SessionController {
     @Operation(summary = "删除会话")
     public void deleteSession(
             @RequestParam String sessionId) {
+        log.info("[session] 删除会话 {}", sessionId);
         chatSessionService.delete(sessionId);
-        log.info("[deleteSession] 已删除会话 {}", sessionId);
     }
 }

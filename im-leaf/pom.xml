@@ -29,7 +29,7 @@
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-starter-dubbo</artifactId>
+            <artifactId>im-starter-dubbo-web</artifactId>
         </dependency>
 
         <dependency>

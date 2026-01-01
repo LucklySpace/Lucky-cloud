@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.mapper.ImUserDataMapper;
 import com.xy.lucky.domain.po.ImUserDataPo;
-import com.xy.lucky.dubbo.api.database.user.ImUserDataDubboService;
+import com.xy.lucky.dubbo.web.api.database.user.ImUserDataDubboService;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 

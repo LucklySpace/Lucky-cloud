@@ -5,7 +5,7 @@ import com.xy.lucky.database.mapper.ImGroupMessageMapper;
 import com.xy.lucky.database.mapper.ImGroupMessageStatusMapper;
 import com.xy.lucky.domain.po.ImGroupMessagePo;
 import com.xy.lucky.domain.po.ImGroupMessageStatusPo;
-import com.xy.lucky.dubbo.api.database.message.ImGroupMessageDubboService;
+import com.xy.lucky.dubbo.web.api.database.message.ImGroupMessageDubboService;
 import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;

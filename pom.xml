@@ -98,7 +98,7 @@
         <kryo.version>5.6.2</kryo.version>
         <tika.version>3.0.0</tika.version>
         <hanlp.version>portable-1.8.6</hanlp.version>
-        <knife4j.version>4.3.0</knife4j.version>
+        <knife4j.version>4.4.0</knife4j.version>
 
         <!-- 额外第三方组件 -->
         <sms.version>2.0.2</sms.version>
@@ -264,6 +264,18 @@
             <dependency>
                 <groupId>com.xy.lucky</groupId>
                 <artifactId>im-starter-dubbo</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-starter-dubbo-web</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-starter-dubbo-webflux</artifactId>
                 <version>${revision}</version>
             </dependency>
 

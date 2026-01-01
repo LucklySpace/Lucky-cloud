@@ -3,7 +3,7 @@ package com.xy.lucky.database.service;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.mapper.ImSingleMessageMapper;
 import com.xy.lucky.domain.po.ImSingleMessagePo;
-import com.xy.lucky.dubbo.api.database.message.ImSingleMessageDubboService;
+import com.xy.lucky.dubbo.web.api.database.message.ImSingleMessageDubboService;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 

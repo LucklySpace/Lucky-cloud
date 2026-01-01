@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.mapper.IMOutboxPoMapper;
 import com.xy.lucky.domain.po.IMOutboxPo;
-import com.xy.lucky.dubbo.api.database.outbox.IMOutboxDubboService;
+import com.xy.lucky.dubbo.web.api.database.outbox.IMOutboxDubboService;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 

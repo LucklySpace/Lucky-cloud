@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.mapper.ImFriendshipMapper;
 import com.xy.lucky.domain.po.ImFriendshipPo;
-import com.xy.lucky.dubbo.api.database.friend.ImFriendshipDubboService;
+import com.xy.lucky.dubbo.web.api.database.friend.ImFriendshipDubboService;
 import com.xy.lucky.utils.time.DateTimeUtils;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;

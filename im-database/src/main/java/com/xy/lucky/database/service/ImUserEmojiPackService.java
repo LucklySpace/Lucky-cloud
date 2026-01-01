@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.mapper.ImUserEmojiPackMapper;
 import com.xy.lucky.database.utils.MybatisBatchExecutor;
 import com.xy.lucky.domain.po.ImUserEmojiPackPo;
-import com.xy.lucky.dubbo.api.database.emoji.ImUserEmojiPackDubboService;
+import com.xy.lucky.dubbo.web.api.database.emoji.ImUserEmojiPackDubboService;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.util.CollectionUtils;

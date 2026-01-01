@@ -101,9 +101,9 @@ springdoc:
     enabled: true
     path: /v3/api-docs
   group-configs:
-    - group: 'server'
+    - group: 'database'
       paths-to-match: '/**'
-      packages-to-scan: com.xy.server  #改成你自己的包名，一般到启动类的包名
+      packages-to-scan: com.xy.lucky  #改成你自己的包名，一般到启动类的包名
 
 # TODO: knife4j相关配置 可以不用改
 knife4j:
@@ -113,7 +113,6 @@ knife4j:
     language: zh_cn   # 默认中文
     swagger-model-name: 实体类
 
-# TODO: log settings
 # TODO: log settings
 logging:
   config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件

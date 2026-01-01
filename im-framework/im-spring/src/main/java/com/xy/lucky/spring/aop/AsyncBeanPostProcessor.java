@@ -1,59 +1,92 @@
 package com.xy.lucky.spring.aop;
 
-import com.xy.lucky.spring.XSpringApplication;
 import com.xy.lucky.spring.annotations.core.Async;
+import com.xy.lucky.spring.annotations.core.Autowired;
 import com.xy.lucky.spring.core.ProxyType;
-import com.xy.lucky.spring.exception.BeansException;
+import com.xy.lucky.spring.factory.BeanProxyFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
 
 /**
  * 异步方法处理器
  */
 public class AsyncBeanPostProcessor implements BeanPostProcessor {
 
-    private final Executor taskExecutor;
+    private static final Logger log = LoggerFactory.getLogger(AsyncBeanPostProcessor.class);
+    private final ConcurrentHashMap<String, Object> earlyProxyReferences = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Class<?>, Boolean> asyncMethodCache = new ConcurrentHashMap<>();
+    @Autowired(name = "taskExecutor", required = false)
+    private Executor taskExecutor;
 
     public AsyncBeanPostProcessor() {
-        // 使用默认的线程池
-        this.taskExecutor = XSpringApplication.getContext().getTaskExecutor();
     }
 
     @Override
-    public Object postProcessBeforeInitialization(Object bean, String beanName, ProxyType proxyType) throws BeansException {
-        return BeanPostProcessor.super.postProcessBeforeInitialization(bean, beanName, proxyType);
-    }
-
-    @Override
-    public Object postProcessAfterInitialization(Object bean, String beanName) {
-        // 检查是否有@Async注解的方法
-        boolean hasAsyncMethods = false;
-        Method[] methods = bean.getClass().getDeclaredMethods();
-        for (Method method : methods) {
-            if (method.isAnnotationPresent(Async.class)) {
-                hasAsyncMethods = true;
-                break;
-            }
-        }
-
-        // 如果有@Async注解的方法，则创建代理
-        if (hasAsyncMethods) {
-            return Proxy.newProxyInstance(
-                    bean.getClass().getClassLoader(),
-                    bean.getClass().getInterfaces(),
-                    new AsyncInvocationHandler(bean, taskExecutor)
-            );
-        }
-
+    public Object postProcessBeforeInitialization(Object bean, String beanName, ProxyType proxyType) {
         return bean;
     }
 
     @Override
-    public Object getEarlyBeanReference(Object early, String name) {
-        return null;
+    public Object postProcessAfterInitialization(Object bean, String beanName, ProxyType proxyType) {
+        Object earlyProxy = earlyProxyReferences.remove(beanName);
+        if (earlyProxy != null) return earlyProxy;
+
+        if (!hasAsyncMethod(bean.getClass())) return bean;
+
+        ProxyType effectiveType = resolveProxyType(bean, proxyType);
+        if (effectiveType == ProxyType.NONE) return bean;
+
+        Object proxy = BeanProxyFactory.createProxy(bean, new AsyncInvocationHandler(bean, getExecutor()), effectiveType);
+        return proxy;
+    }
+
+    @Override
+    public Object getEarlyBeanReference(Object early, String beanName, ProxyType proxyType) {
+        Object existing = earlyProxyReferences.get(beanName);
+        if (existing != null) return existing;
+
+        if (!hasAsyncMethod(early.getClass())) return early;
+
+        ProxyType effectiveType = resolveProxyType(early, proxyType);
+        if (effectiveType == ProxyType.NONE) return early;
+
+        Object proxy = BeanProxyFactory.createProxy(early, new AsyncInvocationHandler(early, getExecutor()), effectiveType);
+        earlyProxyReferences.put(beanName, proxy);
+        return proxy;
+    }
+
+    private Executor getExecutor() {
+        Executor executor = this.taskExecutor;
+        return executor != null ? executor : ForkJoinPool.commonPool();
+    }
+
+    private boolean hasAsyncMethod(Class<?> targetClass) {
+        return asyncMethodCache.computeIfAbsent(targetClass, cls -> {
+            for (Method m : cls.getMethods()) {
+                if (m.isAnnotationPresent(Async.class)) return true;
+            }
+            return false;
+        });
+    }
+
+    private ProxyType resolveProxyType(Object bean, ProxyType configured) {
+        ProxyType type = configured == null ? ProxyType.NONE : configured;
+        if (type == ProxyType.AUTO) {
+            return bean.getClass().getInterfaces().length > 0 ? ProxyType.JDK : ProxyType.NONE;
+        }
+        if (type == ProxyType.JDK && bean.getClass().getInterfaces().length == 0) {
+            return ProxyType.NONE;
+        }
+        return type;
     }
 
     /**
@@ -68,24 +101,41 @@ public class AsyncBeanPostProcessor implements BeanPostProcessor {
             this.taskExecutor = taskExecutor;
         }
 
+        private static Method resolveTargetMethod(Method interfaceMethod, Object target) {
+            try {
+                return target.getClass().getMethod(interfaceMethod.getName(), interfaceMethod.getParameterTypes());
+            } catch (NoSuchMethodException ignored) {
+                return interfaceMethod;
+            }
+        }
+
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            // 检查方法是否有@Async注解
-            if (method.isAnnotationPresent(Async.class)) {
-                // 异步执行方法
+            Method targetMethod = resolveTargetMethod(method, target);
+            MethodHandle invoker = MethodHandles.lookup()
+                    .findVirtual(target.getClass(), targetMethod.getName(),
+                            MethodType.methodType(targetMethod.getReturnType(), targetMethod.getParameterTypes()))
+                    .bindTo(target);
+            if (targetMethod.isAnnotationPresent(Async.class)) {
                 taskExecutor.execute(() -> {
                     try {
-                        method.invoke(target, args);
+                        if (args == null || args.length == 0) {
+                            invoker.invoke();
+                        } else {
+                            invoker.invokeWithArguments(args);
+                        }
                     } catch (Exception e) {
-                        // 记录异常，实际项目中可能需要更完善的异常处理机制
-                        e.printStackTrace();
+                        log.error("异步方法执行异常: {}.{}", target.getClass().getName(), targetMethod.getName(), e);
+                    } catch (Throwable t) {
+                        log.error("异步方法执行异常: {}.{}", target.getClass().getName(), targetMethod.getName(), t);
                     }
                 });
-                // 异步方法不返回结果
                 return null;
             } else {
-                // 同步执行方法
-                return method.invoke(target, args);
+                if (args == null || args.length == 0) {
+                    return invoker.invoke();
+                }
+                return invoker.invokeWithArguments(args);
             }
         }
     }

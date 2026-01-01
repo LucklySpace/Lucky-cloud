@@ -32,7 +32,27 @@ public interface BeanPostProcessor {
         return bean;
     }
 
-    Object getEarlyBeanReference(Object early, String name);
+    /**
+     * 初始化后处理（带 ProxyType）。默认回退到旧签名以保持兼容。
+     */
+    default Object postProcessAfterInitialization(Object bean, String beanName, ProxyType proxyType) throws BeansException {
+        return postProcessAfterInitialization(bean, beanName);
+    }
+
+    /**
+     * 早期引用（用于解决单例循环依赖的提前暴露/提前代理）。
+     * 默认不做处理，直接返回 early，避免返回 null 破坏创建流程。
+     */
+    default Object getEarlyBeanReference(Object early, String beanName) {
+        return early;
+    }
+
+    /**
+     * 早期引用（带 ProxyType）。默认回退到不带 ProxyType 的实现。
+     */
+    default Object getEarlyBeanReference(Object early, String beanName, ProxyType proxyType) {
+        return getEarlyBeanReference(early, beanName);
+    }
 }
 
 

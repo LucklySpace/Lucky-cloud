@@ -22,11 +22,13 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * WebSocket 服务（基于 Netty）
  * - 支持多端口绑定
  * - 支持协议切换（json / proto）
+ * - 异步启动，不阻塞主线程
  * - 更稳健的启动/关闭与配置校验
  * <p>
  * 建议：把大量 @Value 配置替换为 @ConfigurationProperties 更清晰。
@@ -67,7 +69,16 @@ public class WebSocketTemplate extends AbstractRemoteServer {
     private NacosTemplate nacosTemplate;
 
     @PostConstruct
-    public synchronized void start() {
+    public void start() {
+        // 异步启动，不阻塞主线程
+        CompletableFuture.runAsync(this::startAsync)
+                .exceptionally(throwable -> {
+                    log.error("WebSocket 异步启动失败", throwable);
+                    return null;
+                });
+    }
+
+    private synchronized void startAsync() {
         // 避免重复启动
         if (ready.get()) {
             log.warn("WebSocket 已经处于运行状态，忽略重复启动请求");

@@ -10,11 +10,16 @@
     </parent>
 
     <artifactId>im-starter-dubbo-webflux</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <name>im-starter-dubbo-webflux</name>
     <description>im-starter-dubbo-webflux</description>
 
     <dependencies>
+
+        <!-- WebFlux -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

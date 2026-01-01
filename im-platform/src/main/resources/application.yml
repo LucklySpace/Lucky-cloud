@@ -4,3 +4,23 @@ spring: #springboot的配置
     include: undertow  # 引用其他的yml文件
   jackson:
     default-property-inclusion: non_null
+
+email:
+  enabled: false
+  default-provider: smtp
+  smtp:
+    host: ${EMAIL_SMTP_HOST:}
+    port: ${EMAIL_SMTP_PORT:587}
+    username: ${EMAIL_SMTP_USERNAME:}
+    password: ${EMAIL_SMTP_PASSWORD:}
+    from: ${EMAIL_SMTP_FROM:}
+    ssl: ${EMAIL_SMTP_SSL:false}
+
+sms:
+  enabled: false
+  default-provider: zhenzi
+  zhenzi:
+    api-url: ${SMS_ZHENZI_API_URL:https://sms_developer.zhenzikj.com}
+    app-id: ${SMS_ZHENZI_APP_ID:}
+    app-secret: ${SMS_ZHENZI_APP_SECRET:}
+    default-template-id: ${SMS_ZHENZI_TEMPLATE_ID:10120}

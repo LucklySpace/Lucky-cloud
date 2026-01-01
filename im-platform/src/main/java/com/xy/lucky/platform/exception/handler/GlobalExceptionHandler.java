@@ -5,10 +5,7 @@ import com.xy.lucky.general.exception.BusinessException;
 import com.xy.lucky.general.exception.ForbiddenException;
 import com.xy.lucky.general.response.domain.Result;
 import com.xy.lucky.general.response.domain.ResultCode;
-import com.xy.lucky.platform.exception.AddressException;
-import com.xy.lucky.platform.exception.EmojiException;
-import com.xy.lucky.platform.exception.ShortLinkException;
-import com.xy.lucky.platform.exception.UpdateException;
+import com.xy.lucky.platform.exception.*;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
@@ -63,6 +60,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UpdateException.class)
     public Result<?> handle(UpdateException ex) {
         log.error("FileException: {}", ex.getMessage(), ex);
+        return Result.failed(ex.getCode(), ex.getMessage());
+    }
+
+    @ExceptionHandler(NotifyException.class)
+    public Result<?> handle(NotifyException ex) {
+        log.error("NotifyException: {}", ex.getMessage(), ex);
         return Result.failed(ex.getCode(), ex.getMessage());
     }
 

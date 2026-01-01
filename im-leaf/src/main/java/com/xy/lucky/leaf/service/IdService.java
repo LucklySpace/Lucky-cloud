@@ -1,7 +1,7 @@
 package com.xy.lucky.leaf.service;
 
 import com.xy.lucky.core.model.IMetaId;
-import com.xy.lucky.dubbo.api.id.ImIdDubboService;
+import com.xy.lucky.dubbo.web.api.id.ImIdDubboService;
 import com.xy.lucky.leaf.core.IDGen;
 import com.xy.lucky.leaf.model.IdMetaInfo;
 import com.xy.lucky.leaf.repository.IdMetaInfoRepository;

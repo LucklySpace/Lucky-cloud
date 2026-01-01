@@ -8,6 +8,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +22,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/chat")
+@RequestMapping("/api/{version}/chat")
 @Tag(name = "chat", description = "用户会话")
 public class ChatController {
 
@@ -27,6 +31,11 @@ public class ChatController {
 
     @PostMapping("/list")
     @Operation(summary = "查询用户会话", tags = {"chat"}, description = "请使用此接口查找用户会话")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "上传成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ChatVo.class)))
+    })
     @Parameters({
             @Parameter(name = "chatSetDto", description = "用户会话信息", required = true, in = ParameterIn.QUERY)
     })
@@ -37,6 +46,10 @@ public class ChatController {
 
     @PostMapping("/read")
     @Operation(summary = "用户会话已读", tags = {"chat"}, description = "请使用此接口设置会话已读")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "上传成功",
+                    content = @Content(mediaType = "application/json"))
+    })
     @Parameters({
             @Parameter(name = "chatSetDto", description = "用户会话已读", required = true, in = ParameterIn.DEFAULT)
     })
@@ -46,6 +59,11 @@ public class ChatController {
 
     @GetMapping("/one")
     @Operation(summary = "查询用户会话", tags = {"chat"}, description = "请使用此接口获取用户会话")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "上传成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ChatVo.class)))
+    })
     @Parameters({
             @Parameter(name = "ownerId", description = "对象", required = true, in = ParameterIn.DEFAULT),
             @Parameter(name = "toId", description = "对象", required = true, in = ParameterIn.DEFAULT)
@@ -56,6 +74,11 @@ public class ChatController {
 
     @PostMapping("/create")
     @Operation(summary = "用户单向创建会话", tags = {"chat"}, description = "请使用此接口创建会话")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "上传成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ChatVo.class)))
+    })
     @Parameters({
             @Parameter(name = "ChatSetDto", description = "用户单向创建会话", required = true, in = ParameterIn.DEFAULT)
     })

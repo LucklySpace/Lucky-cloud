@@ -1,0 +1,121 @@
+server:
+  compression:
+    # http响应的gzip压缩
+    enabled: true
+    # 压缩所需的最小长度，响应长度大于等于该值就会压缩，默认2KB
+    min-response-size: 2048
+    # 需要压缩的响应的Content-type
+    mime-types:
+      - image/png
+      - image/jpeg
+      - image/jpg
+      - text/html
+      - application/javascript
+      - text/css
+      - application/octet-stream
+      - application/json
+
+spring:
+  jackson:
+    time-zone: UTC
+  banner:
+    location: classpath:banner.txt
+  threads:
+    virtual:
+      enabled: true  # 开启虚拟线程
+  servlet:
+    multipart:
+      max-file-size: 10MB
+  datasource:
+    # 默认数据源配置
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://127.0.0.1:5432/im-core
+    username: postgres # 数据库账号
+    password: 123456 # 数据库密码
+
+    # HikariCP连接池配置
+    hikari:
+      # 连接池名称
+      pool-name: IM-Database-HikariCP
+      # 连接池最大连接数
+      maximum-pool-size: 20
+      # 连接池最小空闲连接数
+      minimum-idle: 5
+      # 连接超时时间(毫秒)
+      connection-timeout: 30000
+      # 空闲连接超时时间(毫秒)
+      idle-timeout: 600000
+      # 连接最大生存时间(毫秒)
+      max-lifetime: 1800000
+      # 连接泄漏检测阈值(毫秒)
+      leak-detection-threshold: 60000
+
+  #    引入sharding配置
+  #    driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
+  #    url: jdbc:shardingsphere:classpath:sharding-jdbc-dev.yml
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      username:
+      database: 0      # 数据库索引（默认为0）
+      timeout: 1800000 # 连接超时时间（毫秒）
+      lettuce:
+        pool:
+          max-active: 20  # 连接池最大连接数
+          max-wait: -1    # 最大阻塞等待时间（负数表示无限制）
+          max-idle: 5     # 最大空闲连接数
+          min-idle: 0     # 最小空闲连接数
+
+  # mybatis-plus相关配置
+mybatis-plus:
+  # xml扫描，多个目录用逗号或者分号分隔（告诉 Mapper 所对应的 XML 文件位置）
+  mapper-locations: classpath:/mapper/*.xml
+  # 以下配置均有默认值,可以不设置
+  global-config:
+    db-config:
+      #主键类型 AUTO:"数据库ID自增" INPUT:"用户输入ID",ID_WORKER:"全局唯一ID (数字类型唯一ID)", UUID:"全局唯一ID UUID";
+      id-type: auto
+      #字段策略 IGNORED:"忽略判断"  NOT_NULL:"非 NULL 判断")  NOT_EMPTY:"非空判断"
+      field-strategy: NOT_EMPTY
+      #数据库类型
+      db-type: MYSQL
+  configuration:
+    # 是否开启自动驼峰命名规则映射:从数据库列名到Java属性驼峰命名的类似映射
+    map-underscore-to-camel-case: true
+    # 如果查询结果中包含空值的列，则 MyBatis 在映射的时候，不会映射这个字段
+    call-setters-on-nulls: true
+    # 这个配置会将执行的sql打印出来，在开发或测试的时候可以用
+    #log-impl: org.apache.ibatis.logging.stdout.StdOutImpl   #打印sql
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+
+#springdoc相关配置
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  group-configs:
+    - group: 'database'
+      paths-to-match: '/**'
+      packages-to-scan: com.xy.lucky  #改成你自己的包名，一般到启动类的包名
+
+# TODO: knife4j相关配置 可以不用改
+knife4j:
+  enable: true        # 开启增强配置
+  production: false   # 开启生产环境屏蔽
+  setting:
+    language: zh_cn   # 默认中文
+    swagger-model-name: 实体类
+
+# TODO: log settings
+logging:
+  config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件
+  level:
+    com.xy.lucky.*: info
+    org.springframework: warn

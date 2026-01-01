@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xy.lucky.database.web.mapper.ImChatMapper">
+
+    <select id="getChatList" resultType="com.xy.lucky.domain.po.ImChatPo">
+        SELECT *
+        FROM im_chat
+        WHERE owner_id = #{ownerId}
+          AND sequence > #{sequence}
+    </select>
+</mapper>

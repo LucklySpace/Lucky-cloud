@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 
-import java.lang.reflect.Method;
+import java.lang.invoke.MethodHandle;
 
 @ToString
 @Data
@@ -17,14 +17,16 @@ public class BeanDefinition {
 
 
     /**
-     * 方法
+     * 工厂方法句柄（@Bean 方法）
      */
-    public Method factoryMethod;
-    public Class FactoryBeanClass;
+    private MethodHandle factoryMethodHandle;
+    private Class<?>[] factoryMethodParamTypes;
+    private boolean factoryMethodStatic;
+    private Class<?> factoryBeanClass;
     /**
      * 类
      */
-    public Object factoryBean;
+    private Object factoryBean;
     /**
      * bean的名称
      */
@@ -51,6 +53,6 @@ public class BeanDefinition {
     private ProxyType proxyType;
 
     public boolean hasFactoryMethod() {
-        return this.factoryMethod != null;
+        return this.factoryMethodHandle != null;
     }
 }

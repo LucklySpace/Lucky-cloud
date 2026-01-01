@@ -11,6 +11,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
@@ -25,7 +29,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/message")
+@RequestMapping("/api/{version}/message")
 @Tag(name = "message", description = "消息")
 public class MessageController {
 
@@ -34,6 +38,11 @@ public class MessageController {
 
     @PostMapping("/single")
     @Operation(summary = "单聊发送消息", tags = {"single"}, description = "请使用此接口发送单聊消息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "上传成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = IMSingleMessage.class)))
+    })
     @Parameters({
             @Parameter(name = "singleMessageDto", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
     })
@@ -43,6 +52,11 @@ public class MessageController {
 
     @PostMapping("/group")
     @Operation(summary = "群聊发送消息", tags = {"group"}, description = "请使用此接口发送群聊消息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "上传成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = IMGroupMessage.class)))
+    })
     @Parameters({
             @Parameter(name = "groupMessageDto", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
     })

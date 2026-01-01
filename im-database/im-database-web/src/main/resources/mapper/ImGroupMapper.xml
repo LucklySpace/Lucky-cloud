@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xy.lucky.database.web.mapper.ImGroupMapper">
+
+    <select id="selectGroupsByUserId" resultType="com.xy.lucky.domain.po.ImGroupPo">
+        SELECT g.*, gm.member_count
+        FROM im_group AS g
+                 JOIN (SELECT group_id, COUNT(1) AS member_count
+                       FROM im_group_member
+                       GROUP BY group_id) AS gm ON gm.group_id = g.group_id
+                 JOIN im_group_member AS m ON m.group_id = g.group_id
+        WHERE m.member_id = #{userId};
+    </select>
+</mapper>

@@ -10,12 +10,12 @@ import com.xy.lucky.domain.mapper.MessageBeanMapper;
 import com.xy.lucky.domain.po.IMOutboxPo;
 import com.xy.lucky.domain.po.ImGroupMessagePo;
 import com.xy.lucky.domain.po.ImSingleMessagePo;
-import com.xy.lucky.dubbo.api.database.chat.ImChatDubboService;
-import com.xy.lucky.dubbo.api.database.group.ImGroupMemberDubboService;
-import com.xy.lucky.dubbo.api.database.message.ImGroupMessageDubboService;
-import com.xy.lucky.dubbo.api.database.message.ImSingleMessageDubboService;
-import com.xy.lucky.dubbo.api.database.outbox.IMOutboxDubboService;
-import com.xy.lucky.dubbo.api.id.ImIdDubboService;
+import com.xy.lucky.dubbo.web.api.database.chat.ImChatDubboService;
+import com.xy.lucky.dubbo.web.api.database.group.ImGroupMemberDubboService;
+import com.xy.lucky.dubbo.web.api.database.message.ImGroupMessageDubboService;
+import com.xy.lucky.dubbo.web.api.database.message.ImSingleMessageDubboService;
+import com.xy.lucky.dubbo.web.api.database.outbox.IMOutboxDubboService;
+import com.xy.lucky.dubbo.web.api.id.ImIdDubboService;
 import com.xy.lucky.mq.rabbit.core.RabbitTemplateFactory;
 import com.xy.lucky.server.config.IdGeneratorConstant;
 import com.xy.lucky.server.exception.MessageException;
@@ -37,7 +37,10 @@ import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -434,22 +437,23 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public Mono<Map<Integer, Object>> list(ChatDto chatDto) {
         return Mono.fromCallable(() -> {
-            Map<Integer, Object> result = new HashMap<>();
-            List<?> messages = Collections.emptyList();
 
-            if (IMessageType.SINGLE_MESSAGE.getCode().equals(chatDto.getChatType())) {
-                messages = imSingleMessageDubboService.queryList(chatDto.getFromId(), chatDto.getSequence());
-            } else if (IMessageType.GROUP_MESSAGE.getCode().equals(chatDto.getChatType())) {
-                messages = imGroupMessageDubboService.queryList(chatDto.getToId(), chatDto.getSequence());
+            String userId = chatDto.getFromId();
+            Long sequence = chatDto.getSequence();
+
+            Map<Integer, Object> map = new HashMap<>();
+
+            List<ImSingleMessagePo> singleMessages = imSingleMessageDubboService.queryList(userId, sequence);
+            if (!CollectionUtils.isEmpty(singleMessages)) {
+                map.put(IMessageType.SINGLE_MESSAGE.getCode(), singleMessages);
             }
 
-            // Reverse if needed or process
-            // Assuming selectList returns POs
-            // We might need to map to VO or DTO?
-            // Original returns Map<Integer, Object>? Maybe just "list" -> List
+            List<ImGroupMessagePo> groupMessages = imGroupMessageDubboService.queryList(userId, sequence);
+            if (!CollectionUtils.isEmpty(groupMessages)) {
+                map.put(IMessageType.GROUP_MESSAGE.getCode(), groupMessages);
+            }
 
-            result.put(chatDto.getChatType(), messages);
-            return result;
+            return map;
         }).subscribeOn(Schedulers.boundedElastic());
     }
 

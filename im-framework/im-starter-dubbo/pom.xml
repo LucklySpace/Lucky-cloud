@@ -14,6 +14,13 @@
     <artifactId>im-starter-dubbo</artifactId>
     <description>im-starter-dubbo</description>
 
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>im-starter-dubbo-web</module>
+        <module>im-starter-dubbo-webflux</module>
+    </modules>
+
     <dependencies>
         <dependency>
             <groupId>com.xy.lucky</groupId>

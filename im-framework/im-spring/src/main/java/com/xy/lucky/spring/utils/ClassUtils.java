@@ -2,7 +2,6 @@ package com.xy.lucky.spring.utils;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -46,7 +45,7 @@ public class ClassUtils {
             if ("jar".equals(protocol)) {
                 processJar(resource, basePackage, classLoader, classSet);
             } else if ("file".equals(protocol)) {
-                processFileSystem(resource, basePackage, classSet);
+                processFileSystem(resource, basePackage, classLoader, classSet);
             }
         } catch (IOException e) {
             throw new RuntimeException("扫描包路径失败：" + path, e);
@@ -101,7 +100,7 @@ public class ClassUtils {
      * @param basePackage 要扫描的包路径
      * @param classSet    用于存储结果的集合
      */
-    private static void processFileSystem(URL resource, String basePackage, Set<Class<?>> classSet)
+    private static void processFileSystem(URL resource, String basePackage, ClassLoader classLoader, Set<Class<?>> classSet)
             throws ClassNotFoundException {
 
         // 解码URL路径（处理空格等特殊字符）
@@ -110,7 +109,7 @@ public class ClassUtils {
         if (!directory.exists()) return;
 
         // 递归扫描目录
-        scanDirectory(basePackage, directory, classSet);
+        scanDirectory(basePackage, directory, classLoader, classSet);
     }
 
     /**
@@ -120,7 +119,7 @@ public class ClassUtils {
      * @param directory      要扫描的目录
      * @param classSet       用于存储结果的集合
      */
-    private static void scanDirectory(String currentPackage, File directory, Set<Class<?>> classSet)
+    private static void scanDirectory(String currentPackage, File directory, ClassLoader classLoader, Set<Class<?>> classSet)
             throws ClassNotFoundException {
 
         File[] files = directory.listFiles();
@@ -131,12 +130,12 @@ public class ClassUtils {
 
             if (file.isDirectory()) {
                 // 递归处理子目录（包路径累加）
-                scanDirectory(currentPackage + "." + fileName, file, classSet);
+                scanDirectory(currentPackage + "." + fileName, file, classLoader, classSet);
             } else if (fileName.endsWith(".class")) {
                 // 处理.class文件（移除后缀后加载类）
                 String className = currentPackage + '.' + fileName.replace(".class", "");
                 try {
-                    Class<?> clazz = Class.forName(className);
+                    Class<?> clazz = classLoader.loadClass(className);
                     classSet.add(clazz);
                 } catch (ClassNotFoundException e) {
                     throw new ClassNotFoundException("加载类失败：" + className, e);
@@ -230,9 +229,12 @@ public class ClassUtils {
         if (dims == 0) {
             return component;
         }
-        // 创建多维数组类型
-        int[] dimensions = new int[dims];
-        return Array.newInstance(component, dimensions).getClass();
+        // 创建多维数组类型（避免使用反射 Array.newInstance）
+        Class<?> arrayType = component;
+        for (int i = 0; i < dims; i++) {
+            arrayType = arrayType.arrayType();
+        }
+        return arrayType;
     }
 
     /**

@@ -27,7 +27,7 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 @Validated
 @RestController
-@RequestMapping("/api/v1/short/link")
+@RequestMapping("/api/{version}/short/link")
 @RequiredArgsConstructor
 @Tag(name = "short", description = "短链服务接口")
 public class ShortLinkController {

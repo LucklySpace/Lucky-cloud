@@ -2,7 +2,7 @@ package com.xy.lucky.auth.security.provider;
 
 
 import com.xy.lucky.domain.po.ImUserPo;
-import com.xy.lucky.dubbo.api.database.user.ImUserDubboService;
+import com.xy.lucky.dubbo.web.api.database.user.ImUserDubboService;
 import com.xy.lucky.general.response.domain.ResultCode;
 import com.xy.lucky.security.RSAKeyProperties;
 import com.xy.lucky.security.exception.AuthenticationFailException;

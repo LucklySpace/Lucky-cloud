@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import org.springframework.http.codec.multipart.FilePart;
 
 /**
  * 表情条目请求/响应对象
@@ -33,5 +34,11 @@ public class EmojiVo {
 
     @Schema(description = "下载URL（预签名）")
     private String url;
+
+    @Schema(description = "顺序")
+    private Integer sort;
+
+    @Schema(description = "上传文件")
+    private FilePart file;
 }
 

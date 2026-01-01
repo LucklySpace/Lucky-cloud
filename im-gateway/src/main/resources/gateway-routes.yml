@@ -34,10 +34,10 @@ spring:
           predicates:
             - Path=/gen/**
 
-        - id: im-update  # 更新服务
-          uri: lb://im-update
+        - id: im-platform  # 平台服务
+          uri: lb://im-platform
           predicates:
-            - Path=/up/**
+            - Path=/plat/**
           filters:
             # 去除一个前缀
             - StripPrefix=1

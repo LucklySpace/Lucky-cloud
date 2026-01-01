@@ -2,10 +2,13 @@ package com.xy.lucky.spring.context;
 
 
 import com.xy.lucky.spring.annotations.SpringApplication;
+import com.xy.lucky.spring.annotations.aop.Aspect;
+import com.xy.lucky.spring.annotations.aop.EnableAop;
 import com.xy.lucky.spring.annotations.core.*;
 import com.xy.lucky.spring.annotations.event.EventListener;
 import com.xy.lucky.spring.aop.AsyncBeanPostProcessor;
 import com.xy.lucky.spring.aop.BeanPostProcessor;
+import com.xy.lucky.spring.aop.ProxyBeanPostProcessor;
 import com.xy.lucky.spring.core.*;
 import com.xy.lucky.spring.event.ApplicationEventBus;
 import com.xy.lucky.spring.event.ApplicationEventPublisher;
@@ -19,6 +22,10 @@ import com.xy.lucky.spring.utils.ClassUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.beans.Introspector;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.lang.invoke.VarHandle;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -66,12 +73,13 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
     private final ExceptionHandler exceptionHandler = new GlobalExceptionHandler();
     // 事件发布
     private final ApplicationEventBus applicationEventBus = new ApplicationEventBus();
+    // 扫描到的 Class 集合（用于 AOP 等基于扫描结果的功能）
+    private final Set<Class<?>> scannedClasses = ConcurrentHashMap.newKeySet();
 
     // ------------------ 新增缓存/索引（性能优化点） ------------------
-    // 反射元数据缓存，避免重复调用反射 API
-    private final ConcurrentHashMap<Class<?>, Constructor<?>> constructorCache = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<Class<?>, Field[]> injectableFieldsCache = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<Class<?>, Method> postConstructCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Class<?>, ConstructorPlan> constructorCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Class<?>, InjectionPoint[]> injectionPointCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Class<?>, Optional<MethodHandle>> postConstructCache = new ConcurrentHashMap<>();
     // 类型索引：类型 -> beanName 列表（加速按类型查找）
     private final ConcurrentHashMap<Class<?>, List<String>> typeIndex = new ConcurrentHashMap<>();
     // 标记容器是否已关闭
@@ -125,11 +133,10 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
         return runnerPool;
     }
 
-    /**
-     * 对外暴露事件发布器
-     */
-    public ApplicationEventPublisher getEventPublisher() {
-        return (ApplicationEventPublisher) getBean(deriveBeanName(ApplicationEventPublisher.class));
+    private static String normalizeAutowiredName(Autowired autowired) {
+        String name = autowired.name().trim();
+        if (!name.isEmpty()) return name;
+        return autowired.value().trim();
     }
 
 //    /**
@@ -140,11 +147,10 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
 //    }
 
     /**
-     * 注册内置 Bean（例如 ApplicationEventBus, configLoader）
+     * 对外暴露事件发布器
      */
-    private void registerInternalBeans() {
-        // 通过 registerSingleton 把已实例化对象注册到 definitions 与 singletons
-        registerSingleton(applicationEventBus);
+    public ApplicationEventPublisher getEventPublisher() {
+        return (ApplicationEventPublisher) getBean(ApplicationEventPublisher.class);
     }
 
     /**
@@ -154,6 +160,16 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
         if (!startupClass.isAnnotationPresent(SpringApplication.class)) {
             throw new IllegalArgumentException("启动类缺少 @SpringApplication 注解");
         }
+    }
+
+    /**
+     * 注册内置 Bean（例如 ApplicationEventBus, configLoader）
+     */
+    private void registerInternalBeans() {
+        // 通过 registerSingleton 把已实例化对象注册到 definitions 与 singletons
+        registerSingleton("applicationContext", this);
+        registerSingleton("applicationEventBus", applicationEventBus);
+        registerSingleton("taskExecutor", runnerPool);
     }
 
     /**
@@ -172,6 +188,8 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
                     .filter(v -> !v.isEmpty())
                     .orElse(startupClass.getPackageName());
             Set<Class<?>> classes = ClassUtils.scan(basePkg);
+            scannedClasses.clear();
+            scannedClasses.addAll(classes);
 
             // 1) 第一遍：只处理 @Configuration（并注册配置类本身与其 @Bean 方法）
             for (Class<?> cls : classes) {
@@ -190,6 +208,12 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
             // 3) 第三步：注册框架/功能性的 BeanDefinition（例如 Async BPP 等）
             if (startupClass.isAnnotationPresent(EnableAsync.class)) {
                 registerAsyncBeanPostProcessor();
+            }
+
+            //
+            if (startupClass.isAnnotationPresent(EnableAop.class)) {
+                registerAspectBeans(classes);
+                registerAopBeanPostProcessor();
             }
         } catch (Exception e) {
             throw new RuntimeException("扫描注册失败", e);
@@ -212,6 +236,39 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
         indexBeanType(def.getType(), name);
     }
 
+    private void registerAspectBeans(Set<Class<?>> classes) {
+        for (Class<?> cls : classes) {
+            if (!cls.isAnnotationPresent(Aspect.class)) continue;
+            String name = deriveBeanName(cls);
+            if (definitions.containsKey(name)) continue;
+            BeanDefinition def = new BeanDefinition()
+                    .setType(cls)
+                    .setName(name)
+                    .setFullName(cls.getName())
+                    .setLazy(false)
+                    .setScope(SINGLETON)
+                    .setProxyType(ProxyType.NONE);
+            definitions.put(name, def);
+            indexBeanType(def.getType(), name);
+        }
+    }
+
+    /**
+     * 注册 AOP 相关的 BeanPostProcessor（只注册定义）
+     */
+    private void registerAopBeanPostProcessor() {
+        String name = "proxyBeanPostProcessor";
+        BeanDefinition def = new BeanDefinition()
+                .setType(ProxyBeanPostProcessor.class)
+                .setName(name)
+                .setFullName(ProxyBeanPostProcessor.class.getName())
+                .setLazy(false)
+                .setScope(SINGLETON)
+                .setProxyType(ProxyType.NONE);
+        definitions.put(name, def);
+        indexBeanType(def.getType(), name);
+    }
+
     /**
      * 手动注册一个已实例化的单例 Bean 到容器（支持依赖注入）
      * <p>
@@ -224,6 +281,17 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
         if (instance == null) throw new IllegalArgumentException("实例不能为空");
 
         String name = deriveBeanName(instance.getClass());
+        registerSingleton(name, instance);
+    }
+
+    /**
+     * 手动注册一个已实例化的单例 Bean 到容器（指定 beanName）
+     */
+    public void registerSingleton(String name, Object instance) {
+        if (closed) throw new IllegalStateException("ApplicationContext 已关闭");
+        if (name == null || name.trim().isEmpty()) throw new IllegalArgumentException("beanName 不能为空");
+        if (instance == null) throw new IllegalArgumentException("实例不能为空");
+        name = name.trim();
 
         // 检查 definitions：如果存在，检查类型匹配
         BeanDefinition existingDef = definitions.get(name);
@@ -259,7 +327,7 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
             invokeInitMethods(processed);
 
             // 5. 后置处理（支持 AOP 代理）
-            Object finalInstance = applyPostProcessAfterInitialization(processed, name);
+            Object finalInstance = applyPostProcessAfterInitialization(processed, name, def);
 
             // 6. 放入 singletons（使用最终处理后的实例）
             singletons.put(name, finalInstance);
@@ -272,55 +340,6 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
             singletons.remove(name);
             exceptionHandler.handle(e, "手动注册 Bean[" + name + "] 失败");
             throw new RuntimeException("手动注册 Bean[" + name + "] 失败", e);
-        }
-    }
-
-    /**
-     * 注册配置类及其 @Bean 方法（第一遍，优先执行）
-     * <p>
-     * 要点：
-     * - 将配置类本身注册为 singleton（非懒），以便后续我们能够尽早实例化配置类
-     * - 将其 @Bean 方法注册为 BeanDefinition（工厂方法模式），并且把 factoryBeanClass 设置为配置类（cfgClass）
-     * - 注意：此阶段只注册定义，不做实例化
-     */
-    private void registerConfigClassAndBeansFirstPass(Class<?> cfgClass) {
-        // 配置类本身的 beanName（例如 myConfig -> myConfig）
-        String cfgName = deriveBeanName(cfgClass);
-        // 如果已经注册过，不覆盖（避免重复）
-        if (!definitions.containsKey(cfgName)) {
-            BeanDefinition cfgDef = new BeanDefinition()
-                    .setType(cfgClass)
-                    .setName(cfgName)
-                    .setFullName(cfgClass.getName())
-                    .setLazy(false)                 // 强制非懒，保证配置类尽早可用
-                    .setScope(SINGLETON)           // 配置类通常为单例
-                    .setProxyType(ProxyType.NONE);
-            definitions.put(cfgName, cfgDef);
-            indexBeanType(cfgClass, cfgName);
-        }
-
-        // 注册 @Bean 方法（工厂方法） —— 重要：不要在这里实例化配置类，仅注册定义
-        for (Method m : cfgClass.getDeclaredMethods()) {
-            if (!m.isAnnotationPresent(Bean.class)) continue;
-            String name = Optional.of(m.getAnnotation(Bean.class).value())
-                    .filter(v -> !v.isEmpty())
-                    .orElse(m.getName());
-            // 如果已有同名定义，则跳过或记录冲突（避免覆盖）
-            if (definitions.containsKey(name)) {
-                log.warn("Bean 名称冲突：配置类 {} 的 @Bean 方法 {} 名称 {} 已存在，跳过注册", cfgClass.getName(), m.getName(), name);
-                continue;
-            }
-            BeanDefinition def = new BeanDefinition()
-                    .setType(m.getReturnType())
-                    .setName(name)
-                    .setFullName(m.getReturnType().getName())
-                    .setLazy(m.isAnnotationPresent(Lazy.class))     // @Bean 可声明 lazy
-                    .setScope(determineScope(m.getReturnType()))
-                    .setFactoryMethod(m)
-                    .setFactoryBeanClass(cfgClass)                   // 关键：记录 factoryBeanClass 为配置类类型
-                    .setProxyType(ProxyType.NONE);
-            definitions.put(name, def);
-            indexBeanType(def.getType(), name);
         }
     }
 
@@ -374,6 +393,58 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
                 .map(Scope::value)
                 .filter(PROTOTYPE::equals)
                 .orElse(SINGLETON);
+    }
+
+    /**
+     * 注册配置类及其 @Bean 方法（第一遍，优先执行）
+     * <p>
+     * 要点：
+     * - 将配置类本身注册为 singleton（非懒），以便后续我们能够尽早实例化配置类
+     * - 将其 @Bean 方法注册为 BeanDefinition（工厂方法模式），并且把 factoryBeanClass 设置为配置类（cfgClass）
+     * - 注意：此阶段只注册定义，不做实例化
+     */
+    private void registerConfigClassAndBeansFirstPass(Class<?> cfgClass) {
+        // 配置类本身的 beanName（例如 myConfig -> myConfig）
+        String cfgName = deriveBeanName(cfgClass);
+        // 如果已经注册过，不覆盖（避免重复）
+        if (!definitions.containsKey(cfgName)) {
+            BeanDefinition cfgDef = new BeanDefinition()
+                    .setType(cfgClass)
+                    .setName(cfgName)
+                    .setFullName(cfgClass.getName())
+                    .setLazy(false)                 // 强制非懒，保证配置类尽早可用
+                    .setScope(SINGLETON)           // 配置类通常为单例
+                    .setProxyType(ProxyType.NONE);
+            definitions.put(cfgName, cfgDef);
+            indexBeanType(cfgClass, cfgName);
+        }
+
+        // 注册 @Bean 方法（工厂方法） —— 重要：不要在这里实例化配置类，仅注册定义
+        for (Method m : cfgClass.getDeclaredMethods()) {
+            if (!m.isAnnotationPresent(Bean.class)) continue;
+            String name = Optional.of(m.getAnnotation(Bean.class).value())
+                    .filter(v -> !v.isEmpty())
+                    .orElse(m.getName());
+            // 如果已有同名定义，则跳过或记录冲突（避免覆盖）
+            if (definitions.containsKey(name)) {
+                log.warn("Bean 名称冲突：配置类 {} 的 @Bean 方法 {} 名称 {} 已存在，跳过注册", cfgClass.getName(), m.getName(), name);
+                continue;
+            }
+            FactoryMethodPlan plan = createFactoryMethodPlan(cfgClass, m);
+            BeanDefinition def = new BeanDefinition()
+                    .setType(m.getReturnType())
+                    .setName(name)
+                    .setFullName(m.getReturnType().getName())
+                    .setLazy(m.isAnnotationPresent(Lazy.class))     // @Bean 可声明 lazy
+                    .setScope(determineScope(m, m.getReturnType()))
+                    .setFactoryMethodHandle(plan.handle)
+                    .setFactoryMethodParamTypes(plan.paramTypes)
+                    .setFactoryMethodStatic(plan.isStatic)
+                    .setFactoryBeanClass(cfgClass)                   // 关键：记录 factoryBeanClass 为配置类类型
+                    .setProxyType(ProxyType.NONE);
+            definitions.put(name, def);
+            indexBeanType(def.getType(), name);
+        }
     }
 
     /**
@@ -468,6 +539,12 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
 
     // ------------------ Bean 获取与创建 ------------------
 
+    private String determineScope(Method factoryMethod, Class<?> returnType) {
+        Scope scope = factoryMethod.getAnnotation(Scope.class);
+        if (scope != null && PROTOTYPE.equals(scope.value())) return PROTOTYPE;
+        return SINGLETON;
+    }
+
     /**
      * 根据名称获取 Bean（入口）
      */
@@ -475,7 +552,7 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
     public Object getBean(String name) {
         if (closed) throw new IllegalStateException("ApplicationContext 已关闭");
         BeanDefinition def = definitions.get(name);
-        if (def == null) return null;
+        if (def == null) throw new NoSuchBeanException("No bean named '" + name + "' is defined");
         if (SINGLETON.equals(def.getScope())) {
             return getSingleton(name, def);
         } else {
@@ -489,6 +566,7 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
      */
     @Override
     public Object getBean(String beanName, Class type) {
+        if (beanName == null || beanName.trim().isEmpty()) throw new IllegalStateException("beanName 不能为空！");
         if (type == null) throw new IllegalStateException("bean类型不能为空！");
         BeanDefinition bd = definitions.get(beanName);
         if (bd != null && type.isAssignableFrom(bd.getType())) {
@@ -497,27 +575,6 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
             return bean;
         }
         throw new NoSuchBeanException();
-    }
-
-    /**
-     * 按类型查找单一 Bean（优化版：使用 typeIndex，fallback 全表扫描）
-     */
-    @Override
-    public Object getBean(Class type) {
-        List<String> names = typeIndex.get(type);
-        if (names == null || names.isEmpty()) {
-            // fallback: 全表扫描（保持兼容）
-            List<Map.Entry<String, BeanDefinition>> matches = definitions.entrySet().stream()
-                    .filter(e -> type.isAssignableFrom(e.getValue().getType()))
-                    .toList();
-            if (matches.isEmpty()) throw new NoSuchBeanException();
-            if (matches.size() > 1) throw new TooMuchBeanException();
-            return getBean(matches.get(0).getKey());
-        }
-        if (names.size() > 1) {
-            throw new TooMuchBeanException();
-        }
-        return getBean(names.get(0));
     }
 
     /**
@@ -563,6 +620,29 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
     }
 
     /**
+     * 按类型查找单一 Bean（优化版：使用 typeIndex，fallback 全表扫描）
+     */
+    @Override
+    public Object getBean(Class type) {
+        if (type == null) throw new IllegalArgumentException("type 不能为空");
+        List<String> names = typeIndex.get(type);
+        if (names == null || names.isEmpty()) {
+            // fallback: 全表扫描（保持兼容）
+            List<Map.Entry<String, BeanDefinition>> matches = definitions.entrySet().stream()
+                    .filter(e -> type.isAssignableFrom(e.getValue().getType()))
+                    .toList();
+            if (matches.isEmpty()) throw new NoSuchBeanException();
+            if (matches.size() > 1)
+                throw new TooMuchBeanException("匹配到多个 Bean，类型: " + type.getName() + ", 数量: " + matches.size());
+            return getBean(matches.get(0).getKey());
+        }
+        if (names.size() > 1) {
+            throw new TooMuchBeanException("匹配到多个 Bean，类型: " + type.getName() + ", beanNames: " + names);
+        }
+        return getBean(names.get(0));
+    }
+
+    /**
      * 获取早期引用（优先 factory）
      */
     private Object getEarlyReferenceIfPossible(String name) {
@@ -571,7 +651,8 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
             try {
                 Object o = factory.getObject();
                 if (o != null) return o;
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                log.warn("获取早期引用失败: {}", name, e);
             }
         }
         return null;
@@ -620,7 +701,7 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
             invokeInitMethods(bean);
 
             // ---------- 后置处理（postProcessAfterInitialization） ----------
-            bean = applyPostProcessAfterInitialization(bean, name);
+            bean = applyPostProcessAfterInitialization(bean, name, def);
 
             // ---------- 成功：将最终对象放入 singletons 并清除 early maps ----------
             if (SINGLETON.equals(def.getScope())) {
@@ -645,40 +726,18 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
         if (def.hasFactoryMethod()) {
             // 若是配置类的 @Bean，先确保 factory bean 实例化（factoryBeanClass 指向配置类）
             Object factoryBean = null;
-            if (def.getFactoryBeanClass() != null) {
-                // factoryBean name derive from class
-                String cfgName = deriveBeanName(def.getFactoryBeanClass());
-                factoryBean = getBean(cfgName);
-            } else {
-                factoryBean = def.getFactoryBean();
+            if (!def.isFactoryMethodStatic()) {
+                if (def.getFactoryBeanClass() != null) {
+                    String cfgName = deriveBeanName(def.getFactoryBeanClass());
+                    factoryBean = getBean(cfgName);
+                } else {
+                    factoryBean = def.getFactoryBean();
+                }
             }
-            return def.getFactoryMethod().invoke(factoryBean, resolveMethodArgs(def.getFactoryMethod()));
+            Object[] args = resolveMethodArgs(def.getFactoryMethodParamTypes());
+            return invokeFactoryMethod(def, factoryBean, args);
         } else {
             return instantiate(def.getType());
-        }
-    }
-
-    /**
-     * 早期引用暴露（单例）
-     * 仅保留 factories（避免保存 raw bean 到 earlySingletonObjects 导致重复引用）
-     */
-    private void exposeEarlySingletonIfNeeded(String name, BeanDefinition def, Object bean) {
-        if (SINGLETON.equals(def.getScope())) {
-            final Object rawBean = bean;
-            earlySingletonFactories.put(name, () -> {
-                Object early = rawBean;
-                for (BeanPostProcessor bpp : postProcessors) {
-                    try {
-                        // 兼容：若 BPP 未实现 getEarlyBeanReference，可能抛出 NoSuchMethodError
-                        early = bpp.getEarlyBeanReference(early, name);
-                    } catch (NoSuchMethodError | AbstractMethodError ignored) {
-                        // ignore
-                    } catch (Exception ex) {
-                        log.warn("getEarlyBeanReference failed for " + name, ex);
-                    }
-                }
-                return early;
-            });
         }
     }
 
@@ -698,13 +757,35 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
     }
 
     /**
+     * 早期引用暴露（单例）
+     * 仅保留 factories（避免保存 raw bean 到 earlySingletonObjects 导致重复引用）
+     */
+    private void exposeEarlySingletonIfNeeded(String name, BeanDefinition def, Object bean) {
+        if (SINGLETON.equals(def.getScope())) {
+            final Object rawBean = bean;
+            final ProxyType proxyType = def.getProxyType();
+            earlySingletonFactories.put(name, () -> {
+                Object early = rawBean;
+                for (BeanPostProcessor bpp : postProcessors) {
+                    try {
+                        early = bpp.getEarlyBeanReference(early, name, proxyType);
+                    } catch (Exception ex) {
+                        log.warn("getEarlyBeanReference failed for " + name, ex);
+                    }
+                }
+                return early;
+            });
+        }
+    }
+
+    /**
      * 将 postProcessAfterInitialization 应用到 bean
      */
-    private Object applyPostProcessAfterInitialization(Object bean, String name) {
+    private Object applyPostProcessAfterInitialization(Object bean, String name, BeanDefinition def) {
         Object result = bean;
         for (BeanPostProcessor bpp : postProcessors) {
             try {
-                result = bpp.postProcessAfterInitialization(result, name);
+                result = bpp.postProcessAfterInitialization(result, name, def.getProxyType());
                 // 如果返回了代理对象，则使用代理对象（并立即返回以减少多次 wrap）
                 if (result != bean) {
                     return result;
@@ -719,10 +800,13 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
     /**
      * 解析工厂方法参数（支持按类型注入）
      */
-    private Object[] resolveMethodArgs(Method m) {
-        return Arrays.stream(m.getParameterTypes())
-                .map(this::getBean)
-                .toArray();
+    private Object[] resolveMethodArgs(Class<?>[] paramTypes) {
+        if (paramTypes == null || paramTypes.length == 0) return new Object[0];
+        Object[] args = new Object[paramTypes.length];
+        for (int i = 0; i < paramTypes.length; i++) {
+            args[i] = getBean(paramTypes[i]);
+        }
+        return args;
     }
 
     /**
@@ -732,92 +816,105 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
      * 注意：这里只查找 public 构造器。若想支持 private 构造器，请改为 getDeclaredConstructors() 并 setAccessible(true)。
      */
     private Object instantiate(Class<?> cls) throws Exception {
-        Constructor<?> c = findConstructorForClass(cls);
-        if (c.getParameterCount() > 0) {
-            return c.newInstance(resolveConstructorArgs(c));
-        } else {
-            return c.newInstance();
+        ConstructorPlan plan = findConstructorForClass(cls);
+        Object[] args = resolveConstructorArgs(plan.paramTypes);
+        try {
+            return args.length == 0 ? plan.ctor.invoke() : plan.ctor.invokeWithArguments(args);
+        } catch (Throwable t) {
+            if (t instanceof Exception e) throw e;
+            throw new RuntimeException("实例化失败: " + cls.getName(), t);
         }
     }
 
     /**
      * 查找并缓存用于实例化的构造器（首选带 @Autowired 的构造器，否则首选无参构造器）
      */
-    private Constructor<?> findConstructorForClass(Class<?> cls) {
+    private ConstructorPlan findConstructorForClass(Class<?> cls) {
         return constructorCache.computeIfAbsent(cls, key -> {
-            // prefer @Autowired constructor
             for (Constructor<?> c : key.getConstructors()) {
                 if (c.isAnnotationPresent(Autowired.class)) {
-                    return c;
+                    return createConstructorPlan(key, c.getParameterTypes());
                 }
             }
-            // fallback to no-arg
             return Arrays.stream(key.getConstructors())
                     .filter(c -> c.getParameterCount() == 0)
                     .findFirst()
+                    .map(c -> createConstructorPlan(key, c.getParameterTypes()))
                     .orElseThrow(() -> new NoSuchBeanException("缺少可用构造器: " + key.getName()));
         });
     }
 
-    private Object[] resolveConstructorArgs(Constructor<?> c) {
-        return Arrays.stream(c.getParameterTypes())
-                .map(this::getBean)
-                .toArray();
+    private Object[] resolveConstructorArgs(Class<?>[] paramTypes) {
+        if (paramTypes == null || paramTypes.length == 0) return new Object[0];
+        Object[] args = new Object[paramTypes.length];
+        for (int i = 0; i < paramTypes.length; i++) {
+            args[i] = getBean(paramTypes[i]);
+        }
+        return args;
     }
 
     /**
      * 字段注入：处理 @Autowired 与 @Value
-     * 优化：使用 injectableFieldsCache 缓存待注入字段列表并提前 setAccessible(true)
      */
     private void injectFields(Object bean) throws IllegalAccessException {
-        Class<?> cls = bean.getClass();
-        Field[] fields = getInjectableFieldsForClass(cls);
-        for (Field f : fields) {
-            if (f.isAnnotationPresent(Autowired.class)) {
-                Autowired autowired = f.getAnnotation(Autowired.class);
-                boolean required = autowired.required();
-                String name = autowired.name().trim();
-                if (name.isEmpty()) name = autowired.value().trim();
-                Object dep = null;
-                if (!name.isEmpty()) {
-                    dep = getBeanOrNullByName(name, f.getType());
-                }
-                if (dep == null && required) {
-                    try {
-                        dep = getBean(f.getType());
-                    } catch (NoSuchBeanException | TooMuchBeanException ex) {
-                        dep = getBeanOrNullByName(f.getName(), f.getType());
+        Class<?> userClass = ClassUtils.getUserClass(bean);
+        InjectionPoint[] points = getInjectionPointsForClass(userClass);
+        for (InjectionPoint p : points) {
+            switch (p.kind) {
+                case AUTOWIRED -> {
+                    Object dep = resolveAutowiredDependency(p);
+                    if (dep == null && p.required) {
+                        throw new NoSuchBeanException("无法注入字段: " + p.fieldName + " of " + userClass.getName() + " (required=true)");
                     }
+                    setField(bean, p.type, p.varHandle, dep);
                 }
-                if (dep == null && required) {
-                    throw new NoSuchBeanException("无法注入字段: " + f.getName() + " of " + cls.getName() + " (required=true)");
-                }
-                f.set(bean, dep);
-            } else if (f.isAnnotationPresent(Value.class)) {
-                Value valAnno = f.getAnnotation(Value.class);
-                String expr = valAnno.value();
-                try {
-                    Object val = ApplicationConfigLoader.get(expr, f);
-                    f.set(bean, val);
-                } catch (Exception e) {
-                    throw new RuntimeException("注入 @Value 字段失败: " + f + " expr=" + expr + " -> " + e.getMessage(), e);
+                case VALUE -> {
+                    try {
+                        Object val = ApplicationConfigLoader.get(p.valueExpression, p.fieldForValue);
+                        setField(bean, p.type, p.varHandle, val);
+                    } catch (Exception e) {
+                        throw new RuntimeException("注入 @Value 字段失败: " + p.fieldName + " expr=" + p.valueExpression + " -> " + e.getMessage(), e);
+                    }
                 }
             }
         }
     }
 
-    private Field[] getInjectableFieldsForClass(Class<?> cls) {
-        return injectableFieldsCache.computeIfAbsent(cls, key -> {
+    private InjectionPoint[] getInjectionPointsForClass(Class<?> cls) {
+        return injectionPointCache.computeIfAbsent(cls, key -> {
             Field[] fields = key.getDeclaredFields();
-            // mark accessible 和筛选需要注入的字段，一次性完成反射开销
-            List<Field> list = new ArrayList<>();
+            if (fields.length == 0) return new InjectionPoint[0];
+
+            List<InjectionPoint> list = new ArrayList<>();
             for (Field f : fields) {
-                if (f.isAnnotationPresent(Autowired.class) || f.isAnnotationPresent(Value.class)) {
-                    f.setAccessible(true);
-                    list.add(f);
+                Autowired autowired = f.getAnnotation(Autowired.class);
+                Value value = f.getAnnotation(Value.class);
+                if (autowired == null && value == null) continue;
+                list.add(autowired != null
+                        ? InjectionPoint.autowired(null, f.getName(), f.getType(), normalizeAutowiredName(autowired), autowired.required())
+                        : InjectionPoint.value(null, f.getName(), f.getType(), value.value(), f));
+            }
+
+            if (list.isEmpty()) return new InjectionPoint[0];
+
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
+            MethodHandles.Lookup privateLookup;
+            try {
+                privateLookup = MethodHandles.privateLookupIn(key, lookup);
+            } catch (Exception e) {
+                throw new IllegalStateException("无法创建 privateLookup: " + key.getName(), e);
+            }
+
+            for (int i = 0; i < list.size(); i++) {
+                InjectionPoint p = list.get(i);
+                try {
+                    VarHandle vh = privateLookup.findVarHandle(key, p.fieldName, p.type);
+                    list.set(i, p.withVarHandle(vh));
+                } catch (Exception e) {
+                    throw new IllegalStateException("无法解析字段句柄: " + key.getName() + "." + p.fieldName, e);
                 }
             }
-            return list.toArray(new Field[0]);
+            return list.toArray(new InjectionPoint[0]);
         });
     }
 
@@ -840,24 +937,37 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
         if (bean instanceof InitializingBean) {
             ((InitializingBean) bean).afterPropertiesSet();
         }
-        Method m = getPostConstructMethodForClass(bean.getClass());
-        if (m != null) {
-            m.invoke(bean);
+        Optional<MethodHandle> h = getPostConstructHandleForClass(ClassUtils.getUserClass(bean));
+        if (h.isPresent()) {
+            try {
+                h.get().bindTo(bean).invoke();
+            } catch (Throwable t) {
+                if (t instanceof Exception e) throw e;
+                throw new RuntimeException("调用 @PostConstruct 失败: " + bean.getClass().getName(), t);
+            }
         }
     }
 
-    private Method getPostConstructMethodForClass(Class<?> cls) {
+    private Optional<MethodHandle> getPostConstructHandleForClass(Class<?> cls) {
         return postConstructCache.computeIfAbsent(cls, key -> {
             for (Method m : key.getDeclaredMethods()) {
-                if (m.isAnnotationPresent(PostConstruct.class)) {
-                    if (m.getParameterCount() > 0) {
-                        throw new IllegalStateException("@PostConstruct 方法不能有参数: " + m.getName());
-                    }
-                    m.setAccessible(true);
-                    return m;
+                if (!m.isAnnotationPresent(PostConstruct.class)) continue;
+                if (m.getParameterCount() > 0) {
+                    throw new IllegalStateException("@PostConstruct 方法不能有参数: " + m.getName());
+                }
+                try {
+                    MethodHandles.Lookup lookup = MethodHandles.lookup();
+                    MethodHandles.Lookup privateLookup = MethodHandles.privateLookupIn(key, lookup);
+                    MethodType type = MethodType.methodType(m.getReturnType());
+                    MethodHandle handle = java.lang.reflect.Modifier.isStatic(m.getModifiers())
+                            ? privateLookup.findStatic(key, m.getName(), type)
+                            : privateLookup.findVirtual(key, m.getName(), type);
+                    return Optional.of(handle);
+                } catch (Exception e) {
+                    throw new IllegalStateException("解析 @PostConstruct 句柄失败: " + key.getName() + "." + m.getName(), e);
                 }
             }
-            return null;
+            return Optional.empty();
         });
     }
 
@@ -908,14 +1018,7 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
                 if (bean instanceof DisposableBean) {
                     ((DisposableBean) bean).destroy();
                 }
-                // @PreDestroy 支持（若实现）
-                for (Method m : bean.getClass().getDeclaredMethods()) {
-                    if (m.isAnnotationPresent(PreDestroy.class)) {
-                        m.setAccessible(true);
-                        m.invoke(bean);
-                        break;
-                    }
-                }
+                invokePreDestroy(bean);
             } catch (Exception ex) {
                 log.warn("销毁 bean 失败: " + e.getKey(), ex);
             }
@@ -929,7 +1032,7 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
         postProcessors.clear();
         creationLocks.clear();
         constructorCache.clear();
-        injectableFieldsCache.clear();
+        injectionPointCache.clear();
         postConstructCache.clear();
         typeIndex.clear();
     }
@@ -966,11 +1069,180 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
 
     // ------------------ 辅助工具方法 ------------------
 
+    private ConstructorPlan createConstructorPlan(Class<?> cls, Class<?>[] paramTypes) {
+        try {
+            MethodHandle ctor = MethodHandles.lookup().findConstructor(cls, MethodType.methodType(void.class, paramTypes));
+            return new ConstructorPlan(ctor, paramTypes);
+        } catch (Exception e) {
+            throw new IllegalStateException("解析构造器句柄失败: " + cls.getName(), e);
+        }
+    }
+
+    private FactoryMethodPlan createFactoryMethodPlan(Class<?> declaringClass, Method m) {
+        try {
+            boolean isStatic = java.lang.reflect.Modifier.isStatic(m.getModifiers());
+            MethodHandles.Lookup lookup = MethodHandles.lookup();
+            MethodHandles.Lookup privateLookup = MethodHandles.privateLookupIn(declaringClass, lookup);
+            MethodType type = MethodType.methodType(m.getReturnType(), m.getParameterTypes());
+            MethodHandle handle = isStatic
+                    ? privateLookup.findStatic(declaringClass, m.getName(), type)
+                    : privateLookup.findVirtual(declaringClass, m.getName(), type);
+            return new FactoryMethodPlan(handle, m.getParameterTypes(), isStatic);
+        } catch (Exception e) {
+            throw new IllegalStateException("解析工厂方法句柄失败: " + declaringClass.getName() + "." + m.getName(), e);
+        }
+    }
+
+    private Object invokeFactoryMethod(BeanDefinition def, Object factoryBean, Object[] args) throws Exception {
+        MethodHandle h = def.getFactoryMethodHandle();
+        if (!def.isFactoryMethodStatic()) {
+            if (factoryBean == null) throw new IllegalStateException("factoryBean 为空: " + def.getName());
+            h = h.bindTo(factoryBean);
+        }
+        try {
+            return args.length == 0 ? h.invoke() : h.invokeWithArguments(args);
+        } catch (Throwable t) {
+            if (t instanceof Exception e) throw e;
+            throw new RuntimeException("调用工厂方法失败: " + def.getName(), t);
+        }
+    }
+
+    private Object resolveAutowiredDependency(InjectionPoint p) {
+        Object dep = null;
+        if (p.beanName != null && !p.beanName.isEmpty()) {
+            dep = getBeanOrNullByName(p.beanName, p.type);
+        }
+        if (dep == null && p.required) {
+            try {
+                dep = getBean(p.type);
+            } catch (NoSuchBeanException | TooMuchBeanException ex) {
+                dep = getBeanOrNullByName(p.fieldName, p.type);
+            }
+        }
+        return dep;
+    }
+
+    private void setField(Object bean, Class<?> type, VarHandle handle, Object value) {
+        Object v = adaptPrimitiveValue(type, value);
+        handle.set(bean, v);
+    }
+
+    private Object adaptPrimitiveValue(Class<?> type, Object value) {
+        if (value == null) return null;
+        if (!type.isPrimitive()) return value;
+        if (type == int.class) return ((Number) value).intValue();
+        if (type == long.class) return ((Number) value).longValue();
+        if (type == boolean.class) return (value instanceof Boolean) ? value : Boolean.parseBoolean(value.toString());
+        if (type == short.class) return ((Number) value).shortValue();
+        if (type == byte.class) return ((Number) value).byteValue();
+        if (type == float.class) return ((Number) value).floatValue();
+        if (type == double.class) return ((Number) value).doubleValue();
+        if (type == char.class) {
+            String s = value.toString();
+            return s.isEmpty() ? '\0' : s.charAt(0);
+        }
+        return value;
+    }
+
+    private void invokePreDestroy(Object bean) throws Exception {
+        Class<?> userClass = ClassUtils.getUserClass(bean);
+        for (Method m : userClass.getDeclaredMethods()) {
+            if (!m.isAnnotationPresent(PreDestroy.class)) continue;
+            if (m.getParameterCount() > 0) {
+                throw new IllegalStateException("@PreDestroy 方法不能有参数: " + userClass.getName() + "." + m.getName());
+            }
+            try {
+                MethodHandles.Lookup lookup = MethodHandles.lookup();
+                MethodHandles.Lookup privateLookup = MethodHandles.privateLookupIn(userClass, lookup);
+                MethodType type = MethodType.methodType(m.getReturnType());
+                MethodHandle h = java.lang.reflect.Modifier.isStatic(m.getModifiers())
+                        ? privateLookup.findStatic(userClass, m.getName(), type)
+                        : privateLookup.findVirtual(userClass, m.getName(), type).bindTo(bean);
+                if (java.lang.reflect.Modifier.isStatic(m.getModifiers())) {
+                    h.invoke();
+                } else {
+                    h.invoke();
+                }
+                return;
+            } catch (Throwable t) {
+                if (t instanceof Exception e) throw e;
+                throw new RuntimeException("调用 @PreDestroy 失败: " + userClass.getName() + "." + m.getName(), t);
+            }
+        }
+    }
+
+    public Set<Class<?>> getScannedClasses() {
+        return Collections.unmodifiableSet(scannedClasses);
+    }
+
+    private enum InjectionKind {
+        AUTOWIRED,
+        VALUE
+    }
+
+    private record ConstructorPlan(MethodHandle ctor, Class<?>[] paramTypes) {
+    }
+
+    private record FactoryMethodPlan(MethodHandle handle, Class<?>[] paramTypes, boolean isStatic) {
+    }
+
     /**
      * 简化的 ObjectFactory 接口，用于早期引用工厂（返回可能为代理的对象）
      */
     @FunctionalInterface
     private interface ObjectFactory<T> {
         T getObject();
+    }
+
+    private static final class InjectionPoint {
+        private final InjectionKind kind;
+        private final VarHandle varHandle;
+        private final String fieldName;
+        private final Class<?> type;
+
+        private final String beanName;
+        private final boolean required;
+
+        private final String valueExpression;
+        private final Field fieldForValue;
+
+        private InjectionPoint(InjectionKind kind,
+                               VarHandle varHandle,
+                               String fieldName,
+                               Class<?> type,
+                               String beanName,
+                               boolean required,
+                               String valueExpression,
+                               Field fieldForValue) {
+            this.kind = kind;
+            this.varHandle = varHandle;
+            this.fieldName = fieldName;
+            this.type = type;
+            this.beanName = beanName;
+            this.required = required;
+            this.valueExpression = valueExpression;
+            this.fieldForValue = fieldForValue;
+        }
+
+        private static InjectionPoint autowired(VarHandle varHandle, String fieldName, Class<?> type, String beanName, boolean required) {
+            return new InjectionPoint(InjectionKind.AUTOWIRED, varHandle, fieldName, type, beanName, required, null, null);
+        }
+
+        private static InjectionPoint value(VarHandle varHandle, String fieldName, Class<?> type, String valueExpression, Field fieldForValue) {
+            return new InjectionPoint(InjectionKind.VALUE, varHandle, fieldName, type, null, true, valueExpression, fieldForValue);
+        }
+
+        private InjectionPoint withVarHandle(VarHandle varHandle) {
+            return new InjectionPoint(
+                    this.kind,
+                    varHandle,
+                    this.fieldName,
+                    this.type,
+                    this.beanName,
+                    this.required,
+                    this.valueExpression,
+                    this.fieldForValue
+            );
+        }
     }
 }

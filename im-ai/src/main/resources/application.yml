@@ -24,7 +24,7 @@ spring:
         options:
           model: m3e
       api-key: "sk-0b48339cb3bd49f58bab98d972e180ee" # 安全起见，从系统环境变量读取
-      base-url: https://api.deepseek.com/v1
+      base-url: https://api.deepseek.com
       chat:
         options:
           model: deepseek-chat

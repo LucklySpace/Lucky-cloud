@@ -110,9 +110,27 @@ public class JwtUtil {
      */
     public static boolean validate(String token) {
         try {
+            if (token == null || token.isBlank()) {
+                return false;
+            }
             JWSObject jwsObject = parse(token);
             JWSVerifier verifier = new MACVerifier(SECRET);
-            return jwsObject.verify(verifier);
+            if (!jwsObject.verify(verifier)) {
+                return false;
+            }
+
+            Date now = new Date();
+            Date notBefore = getNotBefore(token);
+            if (notBefore != null && now.before(notBefore)) {
+                return false;
+            }
+
+            Date expiresAt = getExpiresAt(token);
+            if (expiresAt == null || !now.before(expiresAt)) {
+                return false;
+            }
+
+            return true;
         } catch (Exception e) {
             log.error("validate token error:", e);
             return false;

@@ -1,6 +1,6 @@
 package com.xy.lucky.platform;
 
-import com.github.xiaoymin.knife4j.spring.annotations.EnableKnife4j;
+
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.info.Info;
 import org.springframework.boot.SpringApplication;
@@ -18,7 +18,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
  * 3. 客户端更新检查和下载服务
  *
  */
-@EnableKnife4j
+
 @EnableAsync
 @ComponentScan("com.xy.lucky")
 @SpringBootApplication(exclude = {SecurityAutoConfiguration.class})

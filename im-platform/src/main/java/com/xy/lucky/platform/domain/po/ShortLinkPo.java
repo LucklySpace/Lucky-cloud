@@ -48,7 +48,7 @@ public class ShortLinkPo {
     @Column(name = "original_url", columnDefinition = "text", nullable = false)
     private String originalUrl;
 
-    @Schema(description = "完整短链", example = "https://s.example.com/api/v1/short/r/a1B2c3")
+    @Schema(description = "完整短链", example = "https://s.example.com/api/{version}/short/r/a1B2c3")
     @Column(name = "short_url", columnDefinition = "text", nullable = false)
     private String shortUrl;
 

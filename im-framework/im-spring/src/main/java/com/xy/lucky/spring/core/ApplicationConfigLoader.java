@@ -4,7 +4,9 @@ import com.xy.lucky.spring.context.ApplicationContext;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.InputStream;
-import java.lang.reflect.Array;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -185,11 +187,18 @@ public class ApplicationConfigLoader {
      */
     private static Object convertArray(Class<?> componentType, String val) {
         String[] parts = splitTrim(val);
-        Object array = Array.newInstance(componentType, parts.length);
-        for (int i = 0; i < parts.length; i++) {
-            Array.set(array, i, convertSimpleValue(componentType, parts[i]));
+        Class<?> arrayClass = componentType.arrayType();
+        try {
+            MethodHandle ctor = MethodHandles.arrayConstructor(arrayClass);
+            Object array = ctor.invoke(parts.length);
+            VarHandle element = MethodHandles.arrayElementVarHandle(arrayClass);
+            for (int i = 0; i < parts.length; i++) {
+                element.set(array, i, convertSimpleValue(componentType, parts[i]));
+            }
+            return array;
+        } catch (Throwable t) {
+            throw new RuntimeException("数组转换失败: " + componentType.getName() + " <- " + val, t);
         }
-        return array;
     }
 
     /**

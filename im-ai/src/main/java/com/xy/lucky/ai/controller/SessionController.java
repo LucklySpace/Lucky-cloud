@@ -1,14 +1,15 @@
 package com.xy.lucky.ai.controller;
 
-import com.xy.lucky.ai.domain.ChatSession;
+import com.xy.lucky.ai.domain.vo.ChatSessionVo;
+import com.xy.lucky.ai.service.ChatSessionService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.*;
+import java.util.List;
 
 /**
  * SessionController 提供会话管理接口：
@@ -19,12 +20,12 @@ import java.util.*;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/session")
+@RequestMapping({"/api/session", "/api/{version}/ai/session"})
 @RequiredArgsConstructor
+@Tag(name = "session", description = "会话管理")
 public class SessionController {
 
-    // 简化示例：内存存储会话列表，生产请替换为数据库或持久化存储
-    private final Map<String, String> sessions = new LinkedHashMap<>();
+    private final ChatSessionService chatSessionService;
 
     /**
      * 列出所有会话的基本信息（ID 和名称）
@@ -32,11 +33,11 @@ public class SessionController {
      * @return 会话列表
      */
     @GetMapping("/list")
-    public ResponseEntity<List<Map<String, String>>> listSessions() {
-        List<Map<String, String>> result = new ArrayList<>();
-        sessions.forEach((id, name) -> result.add(Map.of("sessionId", id, "name", name)));
-        log.info("[listSessions] 返回 {} 个会话", result.size());
-        return ResponseEntity.ok(result);
+    @Operation(summary = "列出所有会话")
+    public List<ChatSessionVo> listSessions(@RequestParam("userId") String userId) {
+        List<ChatSessionVo> sessions = chatSessionService.listByUser(userId);
+        log.info("[session] 用户 {} 返回 {} 个会话", userId, sessions.size());
+        return sessions;
     }
 
     /**
@@ -46,14 +47,10 @@ public class SessionController {
      * @return 会话信息
      */
     @GetMapping("/{sessionId}")
-    public ResponseEntity<Map<String, String>> getSession(
-            @PathVariable String sessionId) {
-        String name = sessions.get(sessionId);
-        if (name == null) {
-            log.warn("[getSession] 会话 {} 不存在", sessionId);
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(Map.of("sessionId", sessionId, "name", name));
+    @Operation(summary = "获取会话详情")
+    public ChatSessionVo getSession(@PathVariable("sessionId") String sessionId) {
+        log.info("[session] 获取会话 {} 的详情", sessionId);
+        return chatSessionService.getWithMessages(sessionId);
     }
 
     /**
@@ -64,14 +61,11 @@ public class SessionController {
      */
     @Operation(summary = "创建会话")
     @GetMapping("/create")
-    public ResponseEntity<ChatSession> createSession(@RequestParam String userId) {
+    public ChatSessionVo createSession(@RequestParam("userId") String userId) {
         Assert.notNull(userId, "userId不能为空");
-        String sessionId = UUID.randomUUID().toString();
-        log.info("[createSession] 用户: {} 创建会话: {}", userId, sessionId);
-        ChatSession sessionDto = new ChatSession()
-                .setId(sessionId)
-                .setUserId(userId);
-        return ResponseEntity.ok(sessionDto);
+        ChatSessionVo vo = chatSessionService.create(userId);
+        log.info("[session] 用户: {} 创建会话: {}", userId, vo.getId());
+        return vo;
     }
 
     /**
@@ -81,10 +75,10 @@ public class SessionController {
      * @return 无内容
      */
     @DeleteMapping("/delete")
-    public ResponseEntity<Void> deleteSession(
+    @Operation(summary = "删除会话")
+    public void deleteSession(
             @RequestParam String sessionId) {
-        sessions.remove(sessionId);
-        log.info("[deleteSession] 已删除会话 {}", sessionId);
-        return ResponseEntity.noContent().build();
+        log.info("[session] 删除会话 {}", sessionId);
+        chatSessionService.delete(sessionId);
     }
 }

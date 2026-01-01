@@ -9,6 +9,9 @@ import net.bytebuddy.implementation.bind.annotation.RuntimeType;
 import net.bytebuddy.implementation.bind.annotation.SuperCall;
 import net.bytebuddy.matcher.ElementMatchers;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -83,25 +86,12 @@ public class BeanProxyFactory {
                     .load(target.getClass().getClassLoader(), net.bytebuddy.dynamic.loading.ClassLoadingStrategy.Default.WRAPPER)
                     .getLoaded();
 
-            // 创建代理实例并复制目标对象的状态
-            T proxy = dynamicType.getDeclaredConstructor().newInstance();
-            return proxy;
+            MethodHandle ctor = MethodHandles.lookup().findConstructor(dynamicType, MethodType.methodType(void.class));
+            return (T) ctor.invoke();
         } catch (Exception e) {
             throw new RuntimeException("Failed to create Byte Buddy proxy for " + target.getClass().getName(), e);
-        }
-    }
-
-    /**
-     * 复制目标对象的字段值到代理对象
-     */
-    private static void copyFields(Object source, Object target) {
-        try {
-            for (java.lang.reflect.Field field : source.getClass().getDeclaredFields()) {
-                field.setAccessible(true);
-                field.set(target, field.get(source));
-            }
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException("Failed to copy fields from source to proxy", e);
+        } catch (Throwable t) {
+            throw new RuntimeException("Failed to instantiate Byte Buddy proxy for " + target.getClass().getName(), t);
         }
     }
 
@@ -122,13 +112,7 @@ public class BeanProxyFactory {
                 @Origin Method method,
                 @AllArguments Object[] args,
                 @SuperCall Callable<?> superCall) throws Throwable {
-            try {
-                // 优先尝试通过 InvocationHandler 处理
-                return handler.invoke(target, method, args);
-            } catch (Throwable t) {
-                // 如果 InvocationHandler 抛出异常，尝试调用原始方法
-                return superCall.call();
-            }
+            return handler.invoke(target, method, args);
         }
     }
 
@@ -145,7 +129,10 @@ public class BeanProxyFactory {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             System.out.println("Before method: " + method.getName());
-            Object result = method.invoke(target, args);
+            MethodHandle handle = MethodHandles.lookup()
+                    .findVirtual(target.getClass(), method.getName(), MethodType.methodType(method.getReturnType(), method.getParameterTypes()))
+                    .bindTo(target);
+            Object result = (args == null || args.length == 0) ? handle.invoke() : handle.invokeWithArguments(args);
             System.out.println("After method: " + method.getName());
             return result;
         }

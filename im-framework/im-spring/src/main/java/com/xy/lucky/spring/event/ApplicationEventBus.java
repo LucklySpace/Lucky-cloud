@@ -3,6 +3,9 @@ package com.xy.lucky.spring.event;
 import com.xy.lucky.spring.annotations.event.EventListener;
 import lombok.extern.slf4j.Slf4j;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,12 +43,20 @@ public class ApplicationEventBus implements ApplicationEventPublisher {
         List<Method> listenerMethods = new ArrayList<>();
         for (Method m : bean.getClass().getDeclaredMethods()) {
             if (m.isAnnotationPresent(EventListener.class)) {
-                m.setAccessible(true);
                 listenerMethods.add(m);
             }
         }
 
         // 并行添加（如果方法多，但通常少；提升微小）
+        Class<?> beanClass = bean.getClass();
+        MethodHandles.Lookup lookup = MethodHandles.lookup();
+        MethodHandles.Lookup privateLookup;
+        try {
+            privateLookup = MethodHandles.privateLookupIn(beanClass, lookup);
+        } catch (Exception e) {
+            throw new IllegalStateException("无法创建 privateLookup: " + beanClass.getName(), e);
+        }
+
         listenerMethods.parallelStream().forEach(m -> {
             Class<?> eventType = m.getAnnotation(EventListener.class).value();
             if (eventType == Object.class) { // 默认或空时，用方法参数类型
@@ -56,8 +67,20 @@ public class ApplicationEventBus implements ApplicationEventPublisher {
                     return;
                 }
             }
+            if (m.getParameterCount() != 1) {
+                log.warn("EventListener 方法 {} 参数无效，跳过", m.getName());
+                return;
+            }
+
+            MethodHandle handle;
+            try {
+                MethodType type = MethodType.methodType(m.getReturnType(), m.getParameterTypes());
+                handle = privateLookup.findVirtual(beanClass, m.getName(), type).bindTo(bean);
+            } catch (Exception e) {
+                throw new IllegalStateException("解析事件监听器句柄失败: " + beanClass.getName() + "." + m.getName(), e);
+            }
             listenerMap.computeIfAbsent(eventType, k -> new CopyOnWriteArrayList<>())
-                    .add(new ListenerInvoker(bean, m));
+                    .add(new ListenerInvoker(handle, m.getName(), 0));
         });
 
         log.debug("注册监听器: {} 个方法到 Bean {}", listenerMethods.size(), bean.getClass().getSimpleName());
@@ -70,7 +93,7 @@ public class ApplicationEventBus implements ApplicationEventPublisher {
         if (bean == null) return;
 
         listenerMap.values().parallelStream().forEach(listeners -> {
-            listeners.removeIf(invoker -> invoker.bean == bean);
+            listeners.removeIf(invoker -> invoker.methodName == bean);
         });
         log.debug("注销监听器: Bean {}", bean.getClass().getSimpleName());
     }
@@ -103,10 +126,9 @@ public class ApplicationEventBus implements ApplicationEventPublisher {
         }
 
         if (async) {
-            // 异步：使用 CompletableFuture 并行调用，提高吞吐
-            listeners.parallelStream()
-                    .map(invoker -> CompletableFuture.runAsync(() -> safeInvoke(invoker, event), executor))
-                    .forEach(CompletableFuture::join); // 等待所有完成（fire-and-forget 可去掉）
+            for (ListenerInvoker invoker : listeners) {
+                CompletableFuture.runAsync(() -> safeInvoke(invoker, event), executor);
+            }
         } else {
             // 同步：串行调用，保持顺序
             for (ListenerInvoker invoker : listeners) {
@@ -124,7 +146,7 @@ public class ApplicationEventBus implements ApplicationEventPublisher {
         try {
             invoker.invoke(event);
         } catch (Exception e) {
-            log.error("事件监听器执行异常: {} 处理 {}", invoker.method.getName(), event.getClass().getSimpleName(), e);
+            log.error("事件监听器执行异常: {} 处理 {}", invoker.methodName, event.getClass().getSimpleName(), e);
             // 可抛出或继续（当前静默，继续下一个）
         }
     }
@@ -149,15 +171,15 @@ public class ApplicationEventBus implements ApplicationEventPublisher {
     /**
      * 内部类：监听器调用器（record 高效，immutable）
      */
-    record ListenerInvoker(Object bean, Method method, int priority) { // 可扩展优先级
-
-        ListenerInvoker(Object bean, Method method) {
-            this(bean, method, 0); // 默认优先级
-        }
+    record ListenerInvoker(MethodHandle handle, String methodName, int priority) { // 可扩展优先级
 
         void invoke(Object event) throws Exception {
-            // 支持优先级排序（如果 List 按优先级维护）
-            method.invoke(bean, event);
+            try {
+                handle.invoke(event);
+            } catch (Throwable t) {
+                if (t instanceof Exception e) throw e;
+                throw new RuntimeException(t);
+            }
         }
     }
 }

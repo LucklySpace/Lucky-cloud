@@ -1,6 +1,6 @@
 package com.xy.lucky.server.service.impl;
 
-import com.xy.lucky.dubbo.api.database.emoji.ImUserEmojiPackDubboService;
+import com.xy.lucky.dubbo.web.api.database.emoji.ImUserEmojiPackDubboService;
 import com.xy.lucky.server.service.UserEmojiService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;

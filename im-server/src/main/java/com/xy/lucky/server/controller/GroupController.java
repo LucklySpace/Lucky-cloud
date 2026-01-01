@@ -4,11 +4,16 @@ package com.xy.lucky.server.controller;
 import com.xy.lucky.domain.dto.GroupDto;
 import com.xy.lucky.domain.dto.GroupInviteDto;
 import com.xy.lucky.domain.dto.GroupMemberDto;
+import com.xy.lucky.domain.po.ImGroupPo;
 import com.xy.lucky.server.service.GroupService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +30,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/group")
+@RequestMapping("/api/{version}/group")
 @Tag(name = "group", description = "群聊")
 public class GroupController {
 
@@ -34,6 +39,11 @@ public class GroupController {
 
     @PostMapping("/invite")
     @Operation(summary = "群聊邀请", tags = {"group"}, description = "请使用此接口群聊邀请")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "上传成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = String.class)))
+    })
     @Parameters({
             @Parameter(name = "groupInviteDto", description = "邀请信息", required = true, in = ParameterIn.DEFAULT)
     })
@@ -43,6 +53,11 @@ public class GroupController {
 
     @PostMapping("/member")
     @Operation(summary = "群成员", tags = {"group"}, description = "请使用此接口查询群成员")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "上传成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = Map.class)))
+    })
     @Parameters({
             @Parameter(name = "groupDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })
@@ -52,6 +67,11 @@ public class GroupController {
 
     @PostMapping("/approve")
     @Operation(summary = "群聊邀请接受或拒绝", tags = {"group"}, description = "请使用此接口群聊邀请接受或拒绝")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "上传成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = String.class)))
+    })
     @Parameters({
             @Parameter(name = "groupInviteDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })
@@ -61,15 +81,25 @@ public class GroupController {
 
     @PostMapping("/info")
     @Operation(summary = "群信息", tags = {"group"}, description = "请使用此接口查询群信息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "上传成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ImGroupPo.class)))
+    })
     @Parameters({
             @Parameter(name = "groupDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public Mono<com.xy.lucky.domain.po.ImGroupPo> groupInfo(@RequestBody GroupDto groupDto) {
+    public Mono<ImGroupPo> groupInfo(@RequestBody GroupDto groupDto) {
         return groupService.groupInfo(groupDto);
     }
 
     @PostMapping("/update")
     @Operation(summary = "修改群信息", tags = {"group"}, description = "请使用此接口修改群信息")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "上传成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = Boolean.class)))
+    })
     @Parameters({
             @Parameter(name = "groupDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })

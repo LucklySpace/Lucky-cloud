@@ -31,7 +31,7 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 @Validated
 @RestController
-@RequestMapping("/api/v1/update")
+@RequestMapping("/api/{version}/update")
 @RequiredArgsConstructor
 @Tag(name = "update", description = "应用更新检查与安装包下载接口")
 public class UpdateController {

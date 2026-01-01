@@ -69,7 +69,7 @@ public class ImFriendshipReactiveController {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
     public Mono<Void> createFriendship(@RequestBody @Valid ImFriendshipPo friendship) {
-        return imFriendshipService.creat(friendship).then();
+        return imFriendshipService.create(friendship).then();
     }
 
     @PutMapping("/update")

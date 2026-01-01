@@ -4,7 +4,7 @@ import com.xy.lucky.domain.po.ImFriendshipRequestPo;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public interface ImFriendshipRequestDubboWebfluxService {
+public interface ImFriendshipRequestDubboService {
 
     Flux<ImFriendshipRequestPo> queryList(String userId);
 

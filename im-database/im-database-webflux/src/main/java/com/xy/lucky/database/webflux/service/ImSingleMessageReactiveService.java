@@ -1,11 +1,12 @@
 package com.xy.lucky.database.webflux.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xy.lucky.database.webflux.entity.ImSingleMessageEntity;
 import com.xy.lucky.database.webflux.repository.ImSingleMessageRepository;
 import com.xy.lucky.domain.po.ImSingleMessagePo;
+import com.xy.lucky.dubbo.webflux.api.database.message.ImSingleMessageDubboService;
+import com.xy.lucky.utils.json.JacksonUtils;
 import lombok.RequiredArgsConstructor;
+import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -13,44 +14,53 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 @Service
+@DubboService
 @RequiredArgsConstructor
-public class ImSingleMessageReactiveService {
+public class ImSingleMessageReactiveService implements ImSingleMessageDubboService {
     private final ImSingleMessageRepository repository;
-    private final ObjectMapper objectMapper;
 
+    @Override
     public Mono<ImSingleMessagePo> queryOne(String messageId) {
         return repository.findById(messageId).map(this::toPo);
     }
 
+    @Override
     public Flux<ImSingleMessagePo> queryList(String userId, Long sequence) {
         return repository.findListByUserIdAndSequence(userId, sequence).map(this::toPo);
     }
 
+    @Override
     public Mono<ImSingleMessagePo> queryLast(String fromId, String toId) {
         return repository.findLastBetween(fromId, toId).map(this::toPo);
     }
 
+    @Override
     public Mono<Integer> queryReadStatus(String fromId, String toId, Integer code) {
         return repository.countReadStatus(fromId, toId, code);
     }
 
-    public Mono<Boolean> creat(ImSingleMessagePo singleMessagePo) {
+    @Override
+    public Mono<Boolean> create(ImSingleMessagePo singleMessagePo) {
         return repository.save(fromPo(singleMessagePo)).map(e -> true);
     }
 
-    public Mono<Boolean> creatBatch(List<ImSingleMessagePo> singleMessagePoList) {
+    @Override
+    public Mono<Boolean> createBatch(List<ImSingleMessagePo> singleMessagePoList) {
         return repository.saveAll(singleMessagePoList.stream().map(this::fromPo).toList())
                 .count().map(count -> count == singleMessagePoList.size());
     }
 
+    @Override
     public Mono<Boolean> modify(ImSingleMessagePo singleMessagePo) {
         return repository.save(fromPo(singleMessagePo)).map(e -> true);
     }
 
+    @Override
     public Mono<Boolean> removeOne(String messageId) {
         return repository.deleteById(messageId).thenReturn(true);
     }
 
+    @Override
     public Mono<Boolean> saveOrUpdate(ImSingleMessagePo messagePo) {
         return repository.save(fromPo(messagePo)).map(e -> true);
     }
@@ -61,28 +71,16 @@ public class ImSingleMessageReactiveService {
         p.setFromId(e.getFromId());
         p.setToId(e.getToId());
         if (e.getMessageBody() != null) {
-            try {
-                p.setMessageBody(objectMapper.readValue(e.getMessageBody(), Object.class));
-            } catch (JsonProcessingException ex) {
-                p.setMessageBody(e.getMessageBody());
-            }
+            p.setMessageBody(JacksonUtils.parseObject(e.getMessageBody(), Object.class));
         }
         p.setMessageTime(e.getMessageTime());
         p.setMessageContentType(e.getMessageContentType());
         p.setReadStatus(e.getReadStatus());
         if (e.getExtra() != null) {
-            try {
-                p.setExtra(objectMapper.readValue(e.getExtra(), Object.class));
-            } catch (JsonProcessingException ex) {
-                p.setExtra(e.getExtra());
-            }
+            p.setExtra(JacksonUtils.parseObject(e.getExtra(), Object.class));
         }
         if (e.getReplyMessage() != null) {
-            try {
-                p.setReplyMessage(objectMapper.readValue(e.getReplyMessage(), Object.class));
-            } catch (JsonProcessingException ex) {
-                p.setReplyMessage(e.getReplyMessage());
-            }
+            p.setReplyMessage(JacksonUtils.parseObject(e.getReplyMessage(), Object.class));
         }
         p.setDelFlag(e.getDelFlag());
         p.setSequence(e.getSequence());
@@ -99,28 +97,16 @@ public class ImSingleMessageReactiveService {
         e.setFromId(p.getFromId());
         e.setToId(p.getToId());
         if (p.getMessageBody() != null) {
-            try {
-                e.setMessageBody(objectMapper.writeValueAsString(p.getMessageBody()));
-            } catch (JsonProcessingException ex) {
-                e.setMessageBody(String.valueOf(p.getMessageBody()));
-            }
+            e.setMessageBody(JacksonUtils.toJSONString(p.getMessageBody()));
         }
         e.setMessageTime(p.getMessageTime());
         e.setMessageContentType(p.getMessageContentType());
         e.setReadStatus(p.getReadStatus());
         if (p.getExtra() != null) {
-            try {
-                e.setExtra(objectMapper.writeValueAsString(p.getExtra()));
-            } catch (JsonProcessingException ex) {
-                e.setExtra(String.valueOf(p.getExtra()));
-            }
+            e.setExtra(JacksonUtils.toJSONString(p.getExtra()));
         }
         if (p.getReplyMessage() != null) {
-            try {
-                e.setReplyMessage(objectMapper.writeValueAsString(p.getReplyMessage()));
-            } catch (JsonProcessingException ex) {
-                e.setReplyMessage(String.valueOf(p.getReplyMessage()));
-            }
+            e.setReplyMessage(JacksonUtils.toJSONString(p.getReplyMessage()));
         }
         e.setDelFlag(p.getDelFlag());
         e.setSequence(p.getSequence());

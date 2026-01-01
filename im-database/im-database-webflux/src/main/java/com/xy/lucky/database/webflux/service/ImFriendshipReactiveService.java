@@ -3,8 +3,9 @@ package com.xy.lucky.database.webflux.service;
 import com.xy.lucky.database.webflux.entity.ImFriendshipEntity;
 import com.xy.lucky.database.webflux.repository.ImFriendshipRepository;
 import com.xy.lucky.domain.po.ImFriendshipPo;
-import com.xy.lucky.utils.time.DateTimeUtils;
+import com.xy.lucky.dubbo.webflux.api.database.friend.ImFriendshipDubboService;
 import lombok.RequiredArgsConstructor;
+import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -12,34 +13,46 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 @Service
+@DubboService
 @RequiredArgsConstructor
-public class ImFriendshipReactiveService {
+public class ImFriendshipReactiveService implements ImFriendshipDubboService {
 
     private final ImFriendshipRepository repository;
 
+    @Override
+    public Mono<ImFriendshipPo> queryOne(String fromId, String toId) {
+        return repository.findFirstByOwnerIdAndToId(fromId, toId).map(this::toPo);
+    }
+
+    @Override
     public Flux<ImFriendshipPo> queryList(String ownerId, Long sequence) {
         return repository.selectFriendList(ownerId, sequence).map(this::toPo);
     }
 
+    @Override
     public Flux<ImFriendshipPo> queryListByIds(String ownerId, List<String> ids) {
         return repository.selectByOwnerIdAndToIds(ownerId, ids).map(this::toPo);
     }
 
-    public Mono<ImFriendshipPo> queryOne(String ownerId, String toId) {
-        return repository.findFirstByOwnerIdAndToId(ownerId, toId).map(this::toPo);
+    @Override
+    public Mono<Boolean> create(ImFriendshipPo friendshipPo) {
+        return repository.save(fromPo(friendshipPo)).map(e -> true);
     }
 
-    public Mono<Boolean> creat(ImFriendshipPo friendship) {
-        return repository.save(fromPo(friendship)).map(e -> true);
+    @Override
+    public Mono<Boolean> createBatch(List<ImFriendshipPo> friendshipPoList) {
+        return repository.saveAll(friendshipPoList.stream().map(this::fromPo).toList())
+                .count().map(count -> count == friendshipPoList.size());
     }
 
-    public Mono<Boolean> modify(ImFriendshipPo friendship) {
-        return repository.save(fromPo(friendship)).map(e -> true);
+    @Override
+    public Mono<Boolean> modify(ImFriendshipPo friendshipPo) {
+        return repository.save(fromPo(friendshipPo)).map(e -> true);
     }
 
-    public Mono<Boolean> removeOne(String ownerId, String friendId) {
-        return repository.softDelete(ownerId, friendId, DateTimeUtils.getCurrentUTCTimestamp())
-                .map(rows -> rows > 0);
+    @Override
+    public Mono<Boolean> removeOne(String ownerId, String toId) {
+        return repository.deleteByOwnerIdAndToId(ownerId, toId).thenReturn(true);
     }
 
     private ImFriendshipPo toPo(ImFriendshipEntity e) {

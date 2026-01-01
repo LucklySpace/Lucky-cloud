@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xy.lucky.database.webflux.entity.ImOutboxEntity;
 import com.xy.lucky.database.webflux.repository.ImOutboxRepository;
 import com.xy.lucky.domain.po.IMOutboxPo;
+import com.xy.lucky.dubbo.webflux.api.database.outbox.ImOutboxDubboService;
 import lombok.RequiredArgsConstructor;
+import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -13,42 +15,51 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 @Service
+@DubboService
 @RequiredArgsConstructor
-public class ImOutboxReactiveService {
+public class ImOutboxReactiveService implements ImOutboxDubboService {
     private final ImOutboxRepository repository;
     private final ObjectMapper objectMapper;
 
+    @Override
     public Flux<IMOutboxPo> queryList() {
         return repository.findAll().map(this::toPo);
     }
 
+    @Override
     public Mono<IMOutboxPo> queryOne(Long id) {
         return repository.findById(id).map(this::toPo);
     }
 
+    @Override
     public Mono<Boolean> create(IMOutboxPo po) {
         return repository.save(fromPo(po)).map(e -> true);
     }
 
+    @Override
     public Mono<Boolean> createBatch(List<IMOutboxPo> list) {
         return repository.saveAll(list.stream().map(this::fromPo).toList())
                 .count().map(count -> count == list.size());
     }
 
+    @Override
     public Mono<Boolean> modify(IMOutboxPo po) {
         return repository.save(fromPo(po)).map(e -> true);
     }
 
+    @Override
     public Mono<Boolean> removeOne(Long id) {
         return repository.deleteById(id).thenReturn(true);
     }
 
+    @Override
     public Flux<IMOutboxPo> queryByStatus(String status, Integer limit) {
         String s = status == null ? null : status.trim().toUpperCase();
         int lim = limit == null ? 100 : Math.max(1, Math.min(limit, 1000));
         return repository.findByStatusLimit(s, lim).map(this::toPo);
     }
 
+    @Override
     public Mono<Boolean> modifyStatus(Long id, String status, Integer attempts) {
         return repository.findById(id)
                 .flatMap(e -> {
@@ -59,6 +70,7 @@ public class ImOutboxReactiveService {
                 .map(saved -> true);
     }
 
+    @Override
     public Mono<Boolean> modifyToFailed(Long id, String lastError, Integer attempts) {
         return repository.findById(id)
                 .flatMap(e -> {

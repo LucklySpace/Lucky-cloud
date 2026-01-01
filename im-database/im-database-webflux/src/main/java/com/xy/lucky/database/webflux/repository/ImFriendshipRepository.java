@@ -34,5 +34,7 @@ public interface ImFriendshipRepository extends ReactiveCrudRepository<ImFriends
               and to_id = :friendId
             """)
     Mono<Integer> softDelete(String ownerId, String friendId, Long seq);
+
+    Mono<Integer> deleteByOwnerIdAndToId(String ownerId, String toId);
 }
 

@@ -3,7 +3,9 @@ package com.xy.lucky.database.webflux.service;
 import com.xy.lucky.database.webflux.entity.ImFriendshipGroupMemberEntity;
 import com.xy.lucky.database.webflux.repository.ImFriendshipGroupMemberRepository;
 import com.xy.lucky.domain.po.ImFriendshipGroupMemberPo;
+import com.xy.lucky.dubbo.webflux.api.database.friend.ImFriendshipGroupMemberDubboService;
 import lombok.RequiredArgsConstructor;
+import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -11,32 +13,39 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 @Service
+@DubboService
 @RequiredArgsConstructor
-public class ImFriendshipGroupMemberReactiveService {
+public class ImFriendshipGroupMemberReactiveService implements ImFriendshipGroupMemberDubboService {
 
     private final ImFriendshipGroupMemberRepository repository;
 
+    @Override
     public Flux<ImFriendshipGroupMemberPo> queryList(String groupId) {
         return repository.findByGroupId(groupId).map(this::toPo);
     }
 
-    public Mono<ImFriendshipGroupMemberPo> queryOne(String groupId, String memberId) {
-        return repository.findFirstByGroupIdAndToId(groupId, memberId).map(this::toPo);
+    @Override
+    public Mono<ImFriendshipGroupMemberPo> queryOne(String groupId, String toId) {
+        return repository.findByGroupIdAndToId(Long.valueOf(groupId), toId).map(this::toPo);
     }
 
-    public Mono<Boolean> creat(ImFriendshipGroupMemberPo memberPo) {
-        return repository.save(fromPo(memberPo)).map(e -> true);
+    @Override
+    public Mono<Boolean> create(ImFriendshipGroupMemberPo friendshipGroupMemberPo) {
+        return repository.save(fromPo(friendshipGroupMemberPo)).map(e -> true);
     }
 
-    public Mono<Boolean> creatBatch(List<ImFriendshipGroupMemberPo> memberPoList) {
-        return repository.saveAll(memberPoList.stream().map(this::fromPo).toList())
-                .count().map(count -> count == memberPoList.size());
+    @Override
+    public Mono<Boolean> createBatch(List<ImFriendshipGroupMemberPo> friendshipGroupMemberPoList) {
+        return repository.saveAll(friendshipGroupMemberPoList.stream().map(this::fromPo).toList())
+                .count().map(count -> count == friendshipGroupMemberPoList.size());
     }
 
-    public Mono<Boolean> modify(ImFriendshipGroupMemberPo memberPo) {
-        return repository.save(fromPo(memberPo)).map(e -> true);
+    @Override
+    public Mono<Boolean> modify(ImFriendshipGroupMemberPo friendshipGroupMemberPo) {
+        return repository.save(fromPo(friendshipGroupMemberPo)).map(e -> true);
     }
 
+    @Override
     public Mono<Boolean> removeOne(String memberId) {
         return repository.deleteById(memberId).thenReturn(true);
     }
@@ -60,5 +69,6 @@ public class ImFriendshipGroupMemberReactiveService {
         e.setVersion(p.getVersion());
         return e;
     }
+
 }
 

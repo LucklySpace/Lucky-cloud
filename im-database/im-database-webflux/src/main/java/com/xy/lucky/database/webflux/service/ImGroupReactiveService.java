@@ -3,7 +3,9 @@ package com.xy.lucky.database.webflux.service;
 import com.xy.lucky.database.webflux.entity.ImGroupEntity;
 import com.xy.lucky.database.webflux.repository.ImGroupRepository;
 import com.xy.lucky.domain.po.ImGroupPo;
+import com.xy.lucky.dubbo.webflux.api.database.group.ImGroupDubboService;
 import lombok.RequiredArgsConstructor;
+import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -11,32 +13,39 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 @Service
+@DubboService
 @RequiredArgsConstructor
-public class ImGroupReactiveService {
+public class ImGroupReactiveService implements ImGroupDubboService {
 
     private final ImGroupRepository repository;
 
+    @Override
     public Flux<ImGroupPo> queryList(String userId) {
         return repository.selectGroupsByUserId(userId).map(this::toPo);
     }
 
+    @Override
     public Mono<ImGroupPo> queryOne(String groupId) {
         return repository.findById(groupId).map(this::toPo);
     }
 
+    @Override
     public Mono<Boolean> create(ImGroupPo groupPo) {
         return repository.save(fromPo(groupPo)).map(e -> true);
     }
 
+    @Override
     public Mono<Boolean> createBatch(List<ImGroupPo> list) {
         return repository.saveAll(list.stream().map(this::fromPo).toList())
                 .count().map(count -> count == list.size());
     }
 
+    @Override
     public Mono<Boolean> modify(ImGroupPo groupPo) {
         return repository.save(fromPo(groupPo)).map(e -> true);
     }
 
+    @Override
     public Mono<Boolean> removeOne(String groupId) {
         return repository.deleteById(groupId).thenReturn(true);
     }

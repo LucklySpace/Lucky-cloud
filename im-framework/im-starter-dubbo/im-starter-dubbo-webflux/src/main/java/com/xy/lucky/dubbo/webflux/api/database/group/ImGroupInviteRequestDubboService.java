@@ -6,7 +6,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-public interface ImGroupInviteRequestDubboWebfluxService {
+public interface ImGroupInviteRequestDubboService {
 
     Flux<ImGroupInviteRequestPo> queryList(String userId);
 

@@ -58,7 +58,7 @@ public class ImGroupMemberReactiveController {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
     public Mono<Boolean> createGroupMember(@RequestBody @Valid ImGroupMemberPo groupMember) {
-        return imGroupMemberService.creat(groupMember);
+        return imGroupMemberService.create(groupMember);
     }
 
     @PostMapping("/batchInsert")
@@ -67,7 +67,7 @@ public class ImGroupMemberReactiveController {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
     public Mono<Boolean> createGroupMembersBatch(@RequestBody @NotEmpty List<@Valid ImGroupMemberPo> groupMemberList) {
-        return imGroupMemberService.creatBatch(groupMemberList);
+        return imGroupMemberService.createBatch(groupMemberList);
     }
 
     @PutMapping("/update")

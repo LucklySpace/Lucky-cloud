@@ -21,6 +21,13 @@
             <artifactId>im-starter-general-webflux</artifactId>
         </dependency>
 
+        <!-- Dubbo WebFlux 接口 -->
+        <dependency>
+            <groupId>com.xy.lucky</groupId>
+            <artifactId>im-starter-dubbo-webflux</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
         <!-- R2DBC -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

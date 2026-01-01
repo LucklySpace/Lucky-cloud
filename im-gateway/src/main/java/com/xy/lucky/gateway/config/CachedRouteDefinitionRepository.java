@@ -10,6 +10,8 @@ import org.springframework.cloud.gateway.filter.FilterDefinition;
 import org.springframework.cloud.gateway.handler.predicate.PredicateDefinition;
 import org.springframework.cloud.gateway.route.RouteDefinition;
 import org.springframework.cloud.gateway.route.RouteDefinitionRepository;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.util.StreamUtils;
 import org.springframework.util.StringUtils;
 import org.yaml.snakeyaml.Yaml;
 import reactor.core.publisher.Flux;
@@ -17,6 +19,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.Executor;
@@ -111,6 +114,12 @@ public class CachedRouteDefinitionRepository implements RouteDefinitionRepositor
             log.debug("从 Nacos 读取路由配置，dataId={}, group={}", dataId, group);
             String config = nacosConfigManager.getConfigService().getConfig(dataId, group, timeoutMillis);
             if (!StringUtils.hasText(config)) {
+                List<RouteDefinition> local = loadFromClasspath(dataId);
+                if (!local.isEmpty()) {
+                    cache.put(CACHE_KEY, local);
+                    log.info("[Nacos Route] 使用本地 classpath 路由，数量={}", local.size());
+                    return local;
+                }
                 log.warn("[Nacos Route] config is empty for dataId={}, group={}", dataId, group);
                 return Collections.emptyList();
             }
@@ -339,7 +348,12 @@ public class CachedRouteDefinitionRepository implements RouteDefinitionRepositor
                 public void receiveConfigInfo(String configInfo) {
                     log.info("[Nacos Route] config changed, refreshing cache, dataId={}, group={}", dataId, group);
                     try {
-                        List<RouteDefinition> list = parseYamlToRoutes(configInfo == null ? "" : configInfo);
+                        List<RouteDefinition> list;
+                        if (!StringUtils.hasText(configInfo)) {
+                            list = loadFromClasspath(dataId);
+                        } else {
+                            list = parseYamlToRoutes(configInfo);
+                        }
                         cache.put(CACHE_KEY, list);
                         log.info("[Nacos Route] cache refreshed, total routes = {}", list.size());
                     } catch (Exception e) {
@@ -350,6 +364,26 @@ public class CachedRouteDefinitionRepository implements RouteDefinitionRepositor
             log.debug("已为 Nacos dataId={} group={} 注册 listener", dataId, group);
         } catch (Exception e) {
             log.error("为 Nacos 注册 listener 失败", e);
+        }
+    }
+
+    private List<RouteDefinition> loadFromClasspath(String resourceName) {
+        try {
+            ClassPathResource resource = new ClassPathResource(resourceName);
+            if (!resource.exists()) {
+                resource = new ClassPathResource("gateway-routes.yml");
+                if (!resource.exists()) {
+                    return Collections.emptyList();
+                }
+            }
+            String yml = StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
+            if (!StringUtils.hasText(yml)) {
+                return Collections.emptyList();
+            }
+            return parseYamlToRoutes(yml);
+        } catch (Exception e) {
+            log.error("从 classpath 加载路由失败", e);
+            return Collections.emptyList();
         }
     }
 

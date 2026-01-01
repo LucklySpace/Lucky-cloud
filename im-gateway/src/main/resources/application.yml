@@ -16,28 +16,31 @@ spring:
   cloud:
     # gateway 配置
     gateway:
-      httpclient:
-        response-timeout: 5s # 超时时间
-        compression: true
-      #跨域设置
-      globalCors:
-        corsConfigurations:
-          '[/**]':
-            allowedOriginPatterns: "*"
-            allowed-methods: "*"
-            allowed-headers: "*"
-            allow-credentials: true
-            exposedHeaders: "Content-Disposition,Content-Type,Cache-Control"
-      #g开启服务注册和发现
-      discovery:
-        locator:
-          #表明gateway开启服务注册和发现的功能，并且spring cloud gateway自动根据服务发现为每一个服务创建了一个router，这个router将以服务名开头的请求路径转发到对应的服务
-          enabled: true
-          #是将请求路径上的服务名配置为小写（因为服务注册的时候，向注册中心注册时将服务名转成大写的了
-          lowerCaseServiceId: true
-          #另一种写法
-          #lower-case-service-id: true
+      server:
+        webflux:
+          httpclient:
+            response-timeout: 5s
+            compression: true
+          #跨域设置
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowed-origin-patterns: "*"
+                allowed-methods: "*"
+                allowed-headers: "*"
+                allow-credentials: true
+                exposed-headers: "Content-Disposition,Content-Type,Cache-Control"
+          #开启服务注册和发现
+          discovery:
+            locator:
+              enabled: true
+              lower-case-service-id: true
 
+  gateway:
+    nacos:
+      data-id: gateway-routes.yml
+      group: DEFAULT_GROUP
+      timeout-ms: 5000
 
 
 

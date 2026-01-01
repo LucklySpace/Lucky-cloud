@@ -15,7 +15,6 @@
         <module>im-framework</module>
         <module>im-server</module>
         <module>im-database</module>
-        <module>im-database-webflux</module>
         <module>im-file</module>
         <module>im-analysis</module>
         <module>im-leaf</module>
@@ -401,6 +400,18 @@
             <dependency>
                 <groupId>com.xy.lucky</groupId>
                 <artifactId>im-database</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-database-web</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-database-webflux</artifactId>
                 <version>${revision}</version>
             </dependency>
 

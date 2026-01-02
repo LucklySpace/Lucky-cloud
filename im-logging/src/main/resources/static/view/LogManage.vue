@@ -1,91 +1,159 @@
 <template>
-  <div class="page">
-    <div class="toolbar">
-      <el-select v-model="filters.env" placeholder="环境" size="large" style="width: 120px">
+  <div class="flex flex-col h-full bg-slate-50">
+    <!-- Search Toolbar -->
+    <div class="bg-white border-b border-slate-200 p-4 flex flex-wrap gap-3 items-center shadow-sm z-10">
+      <el-select v-model="filters.env" class="w-32" placeholder="环境">
         <el-option label="DEV" value="dev"></el-option>
         <el-option label="STAGE" value="test"></el-option>
         <el-option label="PROD" value="prod"></el-option>
       </el-select>
-      <el-select v-model="filters.service" clearable filterable placeholder="服务" size="large" style="width: 220px">
+      <el-select v-model="filters.service" class="w-56" clearable filterable placeholder="服务">
         <el-option v-for="s in services" :key="s" :label="s" :value="s"></el-option>
       </el-select>
-      <el-select v-model="filters.level" clearable placeholder="级别" size="large" style="width: 120px">
+      <el-select v-model="filters.level" class="w-32" clearable placeholder="级别">
         <el-option v-for="l in levels" :key="l" :label="l" :value="l"></el-option>
       </el-select>
-      <el-input v-model="filters.module" clearable placeholder="模块" size="large" style="width: 180px"></el-input>
-      <el-input v-model="filters.keyword" clearable placeholder="关键字" size="large" style="width: 280px"></el-input>
-      <el-date-picker v-model="filters.range" end-placeholder="结束时间" range-separator="至" size="large"
-                      start-placeholder="开始时间" type="datetimerange"/>
-      <el-button size="large" type="primary" @click="onSearch">查询</el-button>
-      <el-button size="large" @click="onExport">导出</el-button>
+      <el-input v-model="filters.module" class="w-48" clearable placeholder="模块"></el-input>
+      <el-input v-model="filters.keyword" class="w-64" clearable placeholder="关键字" prefix-icon="Search"></el-input>
+      <el-date-picker v-model="filters.range" class="!w-80" end-placeholder="结束时间"
+                      range-separator="至" start-placeholder="开始时间" type="datetimerange"/>
+      <div class="flex-1"></div>
+      <el-button icon="Search" type="primary" @click="onSearch">查询</el-button>
+      <el-button icon="Download" @click="onExport">导出</el-button>
     </div>
-    <div class="content">
-      <el-table :data="rows" border height="100%" style="width: 100%" @row-click="openDetail">
-        <el-table-column label="时间" width="220">
-          <template #default="{ row }">
-            <div class="mono">{{ formatTimestamp(row.timestamp) }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column align="center" label="级别" width="100">
-          <template #default="{ row }">
-            <span :class="['pill', levelBadgeClass(row.level)]">{{ row.level || 'INFO' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="服务" prop="service" show-overflow-tooltip width="180"></el-table-column>
-        <el-table-column label="模块" prop="module" show-overflow-tooltip width="160"></el-table-column>
-        <el-table-column label="消息" min-width="360" prop="message" show-overflow-tooltip></el-table-column>
-      </el-table>
-      <div class="pager">
-        <el-pagination
-            :current-page="page.index"
-            :page-size="page.size"
-            :page-sizes="[10,20,50,100]"
-            :total="page.total"
-            background
-            layout="prev, pager, next, sizes, total"
-            @size-change="onSizeChange"
-            @current-change="onPageChange"
-        />
+
+    <!-- Main Content -->
+    <div class="flex-1 overflow-hidden p-4">
+      <div class="bg-white rounded-lg shadow border border-slate-200 h-full flex flex-col">
+        <el-table :data="rows" :header-cell-style="{background: '#f8fafc', color: '#475569', fontWeight: '600'}" border height="100%" style="width: 100%; flex: 1"
+                  @row-click="openDetail">
+          <el-table-column label="时间" width="200">
+            <template #default="{ row }">
+              <div class="font-mono text-xs text-slate-600">{{ formatTimestamp(row.timestamp) }}</div>
+            </template>
+          </el-table-column>
+          <el-table-column align="center" label="级别" width="90">
+            <template #default="{ row }">
+              <span :class="['px-2 py-1 rounded text-xs font-bold text-white', levelBadgeClass(row.level)]">
+                {{ row.level || 'INFO' }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="服务" prop="service" show-overflow-tooltip width="160">
+            <template #default="{ row }">
+              <span class="font-medium text-slate-700">{{ row.service }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="模块" prop="module" show-overflow-tooltip width="140">
+            <template #default="{ row }">
+              <span class="text-slate-500">{{ row.module }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="消息" min-width="300" prop="message" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span class="font-mono text-sm text-slate-800">{{ row.message }}</span>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <!-- Pagination -->
+        <div class="p-3 border-t border-slate-100 flex justify-end bg-white">
+          <el-pagination
+              :current-page="page.index"
+              :page-size="page.size"
+              :page-sizes="[10, 20, 50, 100]"
+              :total="page.total"
+              background
+              layout="total, sizes, prev, pager, next, jumper"
+              @size-change="onSizeChange"
+              @current-change="onPageChange"
+          />
+        </div>
       </div>
     </div>
-    <div class="danger">
-      <el-date-picker v-model="cleanup.cutoff" placeholder="截止时间" size="large" style="width: 240px"
-                      type="datetime"/>
-      <el-button :disabled="!cleanup.cutoff" size="large" type="danger" @click="onDeleteBefore">删除截止时间前
+
+    <!-- Danger Zone (Collapsible or Bottom Bar) -->
+    <div class="bg-red-50 border-t border-red-100 p-3 flex gap-4 items-center px-6">
+      <div class="text-red-800 font-bold flex items-center gap-2 text-sm">
+        <el-icon>
+          <Warning/>
+        </el-icon>
+        数据清理
+      </div>
+      <el-date-picker v-model="cleanup.cutoff" class="!w-56" placeholder="选择截止时间" size="default" type="datetime"/>
+      <el-button :disabled="!cleanup.cutoff" plain size="small" type="danger" @click="onDeleteBefore">
+        删除截止时间前的数据
       </el-button>
-      <el-input v-model="cleanup.module" placeholder="模块" size="large" style="width: 180px; margin-left: 12px"/>
-      <el-button :disabled="!cleanup.cutoff || !cleanup.module" size="large" type="danger"
+      <div class="w-px h-4 bg-red-200 mx-2"></div>
+      <el-input v-model="cleanup.module" class="!w-40" placeholder="指定模块" size="default"/>
+      <el-button :disabled="!cleanup.cutoff || !cleanup.module" plain size="small" type="danger"
                  @click="onDeleteModuleBefore">按模块删除
       </el-button>
     </div>
-    <el-drawer v-model="ui.detailVisible" size="50%" title="日志详情">
-      <div v-if="ui.detail" style="padding: 20px">
-        <el-descriptions border column="1" size="large">
-          <el-descriptions-item label="时间">{{ formatTimestamp(ui.detail.timestamp) }}</el-descriptions-item>
-          <el-descriptions-item label="级别">
-            <span :class="['pill', levelBadgeClass(ui.detail.level)]">{{ ui.detail.level }}</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="服务">{{ ui.detail.service }} <span
-              style="color: var(--muted)">({{ ui.detail.module || '-' }})</span></el-descriptions-item>
-          <el-descriptions-item label="主机">{{ ui.detail.host || ui.detail.address || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="Trace / Span">{{ ui.detail.traceId || '-' }} / {{
-              ui.detail.spanId || '-'
-            }}
-          </el-descriptions-item>
-        </el-descriptions>
-        <div style="margin-top: 20px; font-weight: 600; font-size: 16px;">Message</div>
-        <div class="card">
-          <pre class="mono" style="margin: 0; white-space: pre-wrap">{{ ui.detail.message }}</pre>
+
+    <!-- Detail Drawer -->
+    <el-drawer v-model="ui.detailVisible" destroy-on-close size="50%" title="日志详情">
+      <div v-if="ui.detail" class="p-6 space-y-6">
+        <!-- Basic Info Grid -->
+        <div class="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
+          <div class="space-y-1">
+            <div class="text-xs text-slate-500 uppercase font-bold tracking-wider">Time</div>
+            <div class="font-mono text-sm">{{ formatTimestamp(ui.detail.timestamp) }}</div>
+          </div>
+          <div class="space-y-1">
+            <div class="text-xs text-slate-500 uppercase font-bold tracking-wider">Level</div>
+            <div>
+              <span :class="['px-2 py-0.5 rounded text-xs font-bold text-white', levelBadgeClass(ui.detail.level)]">
+                {{ ui.detail.level }}
+              </span>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <div class="text-xs text-slate-500 uppercase font-bold tracking-wider">Service</div>
+            <div class="font-medium text-slate-700">{{ ui.detail.service }}</div>
+          </div>
+          <div class="space-y-1">
+            <div class="text-xs text-slate-500 uppercase font-bold tracking-wider">Module</div>
+            <div class="text-slate-600">{{ ui.detail.module || '-' }}</div>
+          </div>
+          <div class="space-y-1">
+            <div class="text-xs text-slate-500 uppercase font-bold tracking-wider">Host / Address</div>
+            <div class="font-mono text-xs">{{ ui.detail.host || ui.detail.address || '-' }}</div>
+          </div>
+          <div class="space-y-1">
+            <div class="text-xs text-slate-500 uppercase font-bold tracking-wider">Trace / Span</div>
+            <div class="font-mono text-xs">{{ ui.detail.traceId || '-' }} / {{ ui.detail.spanId || '-' }}</div>
+          </div>
         </div>
-        <div v-if="ui.detail.exception" style="margin-top: 16px; font-weight: 600; color: #c62828; font-size: 16px;">
-          Exception
+
+        <!-- Message -->
+        <div>
+          <div class="text-sm font-bold text-slate-700 mb-2">Message</div>
+          <div class="bg-slate-900 rounded-lg p-4 overflow-auto max-h-60 border border-slate-700 shadow-inner">
+            <pre class="font-mono text-sm text-slate-300 whitespace-pre-wrap break-all">{{ ui.detail.message }}</pre>
+          </div>
         </div>
-        <div v-if="ui.detail.exception" class="exception">
-          <pre class="mono" style="margin: 0; white-space: pre-wrap">{{ ui.detail.exception }}</pre>
+
+        <!-- Exception -->
+        <div v-if="ui.detail.exception">
+          <div class="text-sm font-bold text-red-600 mb-2 flex items-center gap-2">
+            <el-icon>
+              <WarnTriangleFilled/>
+            </el-icon>
+            Exception
+          </div>
+          <div
+              class="bg-red-50 rounded-lg p-4 overflow-auto max-h-96 border border-red-100 text-red-800 font-mono text-xs whitespace-pre-wrap">
+            {{ ui.detail.exception }}
+          </div>
         </div>
-        <div style="margin-top: 16px; font-weight: 600; font-size: 16px;">Raw JSON</div>
-        <div class="card">
-          <pre class="json mono" v-html="prettyJson(ui.detail)"></pre>
+
+        <!-- Raw JSON -->
+        <div>
+          <div class="text-sm font-bold text-slate-700 mb-2">Raw JSON</div>
+          <div class="bg-slate-50 rounded-lg p-4 overflow-auto border border-slate-200">
+            <pre class="json font-mono text-xs leading-5" v-html="prettyJson(ui.detail)"></pre>
+          </div>
         </div>
       </div>
     </el-drawer>
@@ -113,10 +181,8 @@ export default {
     const ui = reactive({detailVisible: false, detail: null});
     const cleanup = reactive({cutoff: null, module: ''});
 
-    // 添加定时器变量
     let timer = null;
 
-    // 清除定时器的函数
     function clearTimer() {
       if (timer) {
         clearInterval(timer);
@@ -124,12 +190,11 @@ export default {
       }
     }
 
-    // 设置定时器的函数
     function setTimer() {
-      clearTimer(); // 先清除可能存在的定时器
+      clearTimer();
       timer = setInterval(() => {
         loadServices();
-      }, 10000); // 10秒 = 10000毫秒
+      }, 10000);
     }
 
     async function loadServices() {
@@ -233,10 +298,10 @@ export default {
         const s = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
         const esc = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         return esc.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(\.\d+)?)/g, match => {
-          let cls = 'json-number';
-          if (/^"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-string';
-          else if (/true|false/.test(match)) cls = 'json-boolean';
-          else if (/null/.test(match)) cls = 'json-null';
+          let cls = 'text-blue-600';
+          if (/^"/.test(match)) cls = /:$/.test(match) ? 'text-purple-600 font-semibold' : 'text-green-600';
+          else if (/true|false/.test(match)) cls = 'text-orange-600 font-bold';
+          else if (/null/.test(match)) cls = 'text-gray-500 italic';
           return `<span class="${cls}">${match}</span>`;
         });
       } catch (e) {
@@ -245,20 +310,20 @@ export default {
     }
 
     function levelBadgeClass(l) {
-      if (!l) return 'pill-info';
+      if (!l) return 'bg-slate-500';
       switch (l.toUpperCase()) {
         case 'TRACE':
-          return 'pill-trace';
+          return 'bg-slate-500';
         case 'DEBUG':
-          return 'pill-debug';
+          return 'bg-blue-600';
         case 'INFO':
-          return 'pill-info';
+          return 'bg-emerald-600';
         case 'WARN':
-          return 'pill-warn';
+          return 'bg-amber-500';
         case 'ERROR':
-          return 'pill-error';
+          return 'bg-red-600';
         default:
-          return 'pill-trace';
+          return 'bg-slate-500';
       }
     }
 
@@ -269,11 +334,9 @@ export default {
     onMounted(() => {
       loadServices();
       onSearch();
-      setTimer(); // 启动定时器
+      setTimer();
     });
 
-
-    // 组件卸载时清除定时器
     onUnmounted(() => {
       clearTimer();
     });
@@ -288,97 +351,3 @@ export default {
 }
 </script>
 
-<style scoped>
-.page {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.toolbar {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 12px 16px;
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border);
-}
-
-.content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.pager {
-  padding: 12px 16px;
-  background: var(--bg-card);
-  border-top: 1px solid var(--border);
-}
-
-.danger {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 12px 16px;
-  border-top: 1px dashed var(--border);
-  background: #fffdfd;
-}
-
-.pill {
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 13px;
-  color: #fff;
-  display: inline-block;
-}
-
-.pill-trace {
-  background: #374151;
-}
-
-.pill-debug {
-  background: #2563eb;
-}
-
-.pill-info {
-  background: #059669;
-}
-
-.pill-warn {
-  background: #d97706;
-}
-
-.pill-error {
-  background: #dc2626;
-}
-
-.mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 14px;
-}
-
-.card {
-  background: var(--bg-card);
-  padding: 16px;
-  border-radius: 8px;
-  margin-top: 8px;
-}
-
-.exception {
-  background: #fff5f5;
-  padding: 16px;
-  border-radius: 8px;
-  margin-top: 8px;
-  overflow: auto;
-  color: #6b1a1a;
-}
-
-pre.json {
-  white-space: pre-wrap;
-  word-break: break-word;
-  margin: 0;
-}
-</style>

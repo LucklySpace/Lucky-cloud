@@ -1,57 +1,96 @@
 <template>
-  <el-container style="height: 100vh">
-    <el-header class="header">
-      <div class="brand">
-        <!-- 菜单切换按钮 (Optional: Toggle Outer Sidebar) -->
-        <!-- <el-button circle icon="Menu" text @click="isCollapse = !isCollapse"></el-button> -->
-
-        <!-- LOGO/名称 -->
-        <div>
-          <!-- <el-avatar src="../img/icon.png"></el-avatar> -->
-          <div class="brand-title">Lucky IM 日志中心</div>
-          <div style="font-size: 12px; color: var(--muted)">
-
+  <el-container class="h-screen w-full bg-slate-50">
+    <!-- Sidebar -->
+    <el-aside class="bg-white border-r border-slate-200 flex flex-col transition-all duration-300" width="240px">
+      <!-- Brand -->
+      <div class="h-16 flex items-center px-6 border-b border-slate-100 bg-white">
+        <div class="flex items-center gap-3">
+          <div
+              class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md shadow-indigo-200">
+            L
+          </div>
+          <div>
+            <h1 class="font-bold text-slate-800 text-lg tracking-tight">Lucky IM</h1>
+            <p class="text-xs text-slate-400 font-medium -mt-1">日志中心</p>
           </div>
         </div>
       </div>
 
-      <!-- 右侧状态与操作 -->
-      <div style="display: flex; align-items: center; gap: 12px">
-        <div id="header-actions"></div>
+      <!-- Menu -->
+      <el-menu
+          :default-active="activePath"
+          active-text-color="#4f46e5"
+          background-color="#ffffff"
+          class="flex-1 border-none py-4"
+          router
+          text-color="#64748b"
+      >
+        <el-menu-item class="my-1 mx-3 rounded-lg hover:bg-slate-50" index="/logs">
+          <el-icon>
+            <Document/>
+          </el-icon>
+          <span class="font-medium">实时日志</span>
+        </el-menu-item>
+        <el-menu-item class="my-1 mx-3 rounded-lg hover:bg-slate-50" index="/analysis">
+          <el-icon>
+            <DataAnalysis/>
+          </el-icon>
+          <span class="font-medium">日志分析</span>
+        </el-menu-item>
+        <el-menu-item class="my-1 mx-3 rounded-lg hover:bg-slate-50" index="/manage">
+          <el-icon>
+            <Setting/>
+          </el-icon>
+          <span class="font-medium">系统管理</span>
+        </el-menu-item>
+      </el-menu>
+
+      <!-- Footer User Profile (Mock) -->
+      <div class="p-4 border-t border-slate-100">
+        <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+          <div class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500">
+            <el-icon>
+              <User/>
+            </el-icon>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-slate-700 truncate">Admin User</p>
+            <p class="text-xs text-slate-400 truncate">admin@lucky.com</p>
+          </div>
+        </div>
       </div>
-    </el-header>
+    </el-aside>
 
-    <el-container style="overflow: hidden">
-      <el-aside style="background: #fff; border-right: 1px solid #e6edf3" width="200px">
-        <el-menu :default-active="activePath" router style="border-right: none">
-          <el-menu-item index="/logs">
-            <el-icon>
-              <Document/>
+    <!-- Main Content -->
+    <el-container class="flex-1 flex flex-col overflow-hidden">
+      <!-- Header -->
+      <el-header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm z-10">
+        <div class="flex items-center text-slate-500 text-sm">
+          <span class="mr-2">当前环境:</span>
+          <span
+              class="px-2 py-1 bg-emerald-50 text-emerald-600 rounded text-xs font-semibold border border-emerald-100">DEV</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <el-button circle plain size="small">
+            <el-icon class="text-slate-500">
+              <Bell/>
             </el-icon>
-            <span>实时日志查看</span>
-          </el-menu-item>
-          <el-menu-item index="/manage">
-            <el-icon>
-              <Setting/>
+          </el-button>
+          <el-button circle plain size="small">
+            <el-icon class="text-slate-500">
+              <QuestionFilled/>
             </el-icon>
-            <span>日志管理</span>
-          </el-menu-item>
-          <el-menu-item index="/analysis">
-            <el-icon>
-              <DataAnalysis/>
-            </el-icon>
-            <span>日志分析</span>
-          </el-menu-item>
-        </el-menu>
-      </el-aside>
+          </el-button>
+        </div>
+      </el-header>
 
-      <el-main style="
-          padding: 0;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-        ">
-        <router-view></router-view>
+      <!-- Content -->
+      <el-main class="flex-1 p-0 overflow-hidden relative bg-slate-50">
+        <router-view v-slot="{ Component }">
+          <transition mode="out-in" name="fade">
+            <component :is="Component"/>
+          </transition>
+        </router-view>
       </el-main>
     </el-container>
   </el-container>
@@ -71,32 +110,21 @@ export default {
 };
 </script>
 
-<style lang="less" scoped>
-/* Header */
-.header {
-  height: 56px;
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  gap: 12px;
-  box-shadow: var(--shadow-sm);
-  z-index: 10;
+<style scoped>
+/* Transition for router view */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
-.brand-title {
-  font-weight: 700;
-  font-size: 18px;
-  background: linear-gradient(90deg, var(--primary), #8b5cf6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+/* Override Element Plus specific styles that can't be handled by Tailwind utilities easily */
+:deep(.el-menu-item.is-active) {
+  background-color: #eef2ff !important; /* indigo-50 */
+  color: #4f46e5 !important; /* indigo-600 */
 }
 </style>

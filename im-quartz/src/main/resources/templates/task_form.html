@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${isNew} ? '新建任务 - 任务调度中心' : '编辑任务 - 任务调度中心'">任务管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+<div th:replace="~{fragments/nav :: nav}"></div>
+
+<div class="flex-grow container mx-auto px-4 py-8 max-w-3xl">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-8">
+        <div class="flex items-center space-x-4">
+            <a class="p-2 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 shadow-sm transition-all duration-200 group"
+               href="/tasks">
+                <svg class="w-5 h-5 transform group-hover:-translate-x-0.5 transition-transform" fill="none"
+                     stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M10 19l-7-7m0 0l7-7m-7 7h18" stroke-linecap="round" stroke-linejoin="round"
+                          stroke-width="2"></path>
+                </svg>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900" th:text="${isNew} ? '创建新任务' : '编辑任务'">Task</h1>
+                <p class="text-sm text-slate-500 mt-1"
+                   th:text="${isNew} ? '配置新的定时任务调度规则' : '修改现有任务配置与调度策略'">Manage your task</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white shadow-xl rounded-xl border border-slate-100 overflow-hidden">
+        <form action="/tasks/save" method="post" onsubmit="return validateForm()" th:object="${task}">
+            <input th:field="*{id}" type="hidden"/>
+            <input th:field="*{status}" th:if="${!isNew}" type="hidden"/>
+
+            <!-- Global Error -->
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 m-6 mb-0 rounded-r-lg"
+                 th:if="${#fields.hasAnyErrors()}">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"
+                                  stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-red-800">请修正以下错误</h3>
+                        <ul class="mt-2 text-sm text-red-700 list-disc list-inside">
+                            <li th:each="err : ${#fields.allErrors()}" th:text="${err}"></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 md:p-8 space-y-8">
+                <!-- Basic Info Section -->
+                <div class="space-y-6">
+                    <div class="flex items-center space-x-2 border-b border-slate-100 pb-2">
+                        <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"
+                                  stroke-width="2"></path>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-slate-900">基本信息</h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">任务名称 <span
+                                    class="text-red-500">*</span></label>
+                            <input class="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm transition-all duration-200" placeholder="输入唯一任务名称" required
+                                   th:classappend="${#fields.hasErrors('jobName')} ? 'border-red-300 focus:border-red-500 focus:ring-red-500'"
+                                   th:field="*{jobName}"
+                                   th:readonly="${!isNew}" type="text">
+                            <p class="text-red-500 text-xs mt-1" th:errors="*{jobName}"
+                               th:if="${#fields.hasErrors('jobName')}"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">任务分组 <span
+                                    class="text-red-500">*</span></label>
+                            <input class="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm transition-all duration-200" placeholder="DEFAULT" required
+                                   th:classappend="${#fields.hasErrors('jobGroup')} ? 'border-red-300 focus:border-red-500 focus:ring-red-500'"
+                                   th:field="*{jobGroup}"
+                                   type="text">
+                            <p class="text-red-500 text-xs mt-1" th:errors="*{jobGroup}"
+                               th:if="${#fields.hasErrors('jobGroup')}"></p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">任务描述</label>
+                        <textarea class="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm transition-all duration-200" placeholder="简要描述该任务的功能和用途..."
+                                  rows="2"
+                                  th:field="*{description}"></textarea>
+                    </div>
+                </div>
+
+                <!-- Execution Section -->
+                <div class="space-y-6">
+                    <div class="flex items-center space-x-2 border-b border-slate-100 pb-2">
+                        <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" stroke-linecap="round" stroke-linejoin="round"
+                                  stroke-width="2"></path>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-slate-900">执行配置</h3>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">执行类 <span
+                                class="text-red-500">*</span></label>
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <span class="text-slate-400 sm:text-sm">class</span>
+                            </div>
+                            <input class="block w-full pl-12 rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-mono transition-all duration-200" placeholder="com.example.MyJob 或 beanName" required
+                                   th:classappend="${#fields.hasErrors('jobClass')} ? 'border-red-300 focus:border-red-500 focus:ring-red-500'"
+                                   th:field="*{jobClass}"
+                                   type="text">
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1 flex items-center">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"
+                                      stroke-width="2"></path>
+                            </svg>
+                            需实现 Quartz Job 接口或提供 execute 方法
+                        </p>
+                        <p class="text-red-500 text-xs mt-1" th:errors="*{jobClass}"
+                           th:if="${#fields.hasErrors('jobClass')}"></p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">任务参数 (JSON)</label>
+                        <textarea class="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-mono bg-slate-50 transition-all duration-200" placeholder='{"key": "value", "env": "prod"}'
+                                  rows="3"
+                                  th:field="*{jobData}"></textarea>
+                    </div>
+                </div>
+
+                <!-- Schedule Section -->
+                <div class="space-y-6">
+                    <div class="flex items-center space-x-2 border-b border-slate-100 pb-2">
+                        <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"
+                                  stroke-width="2"></path>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-slate-900">调度策略</h3>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">调度类型 <span
+                                class="text-red-500">*</span></label>
+                        <select class="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm transition-all duration-200" id="scheduleType" onchange="toggleScheduleFields()"
+                                th:field="*{scheduleType}">
+                            <option value="CRON">Cron 表达式 (最常用)</option>
+                            <option value="FIXED_RATE">固定频率 (Fixed Rate)</option>
+                            <option value="FIXED_DELAY">固定延迟 (Fixed Delay)</option>
+                        </select>
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                        <div id="cronField">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Cron 表达式 <span
+                                    class="text-red-500">*</span></label>
+                            <div class="flex space-x-2">
+                                <input class="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-mono" id="cronExpression" placeholder="0 0/5 * * * ?"
+                                       th:field="*{cronExpression}"
+                                       type="text">
+                                <a class="inline-flex items-center px-3 py-2 border border-slate-300 shadow-sm text-sm leading-4 font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="https://cron.qqe2.com/"
+                                   target="_blank">
+                                    生成器
+                                </a>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-2">例如：<code
+                                    class="bg-slate-200 px-1 py-0.5 rounded text-slate-800">0 0 12 * * ?</code>
+                                每天中午12点触发</p>
+                        </div>
+                        <div id="intervalField" style="display:none;">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">时间间隔 (毫秒) <span
+                                    class="text-red-500">*</span></label>
+                            <div class="relative rounded-md shadow-sm max-w-xs">
+                                <input class="block w-full pr-12 rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" id="repeatInterval" placeholder="5000"
+                                       th:field="*{repeatInterval}"
+                                       type="number">
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <span class="text-slate-500 sm:text-sm">ms</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Section -->
+                <div class="space-y-6">
+                    <div class="flex items-center space-x-2 border-b border-slate-100 pb-2">
+                        <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round"
+                                  stroke-width="2"></path>
+                            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round"
+                                  stroke-width="2"></path>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-slate-900">高级配置</h3>
+                    </div>
+
+                    <!-- Concurrency -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">并发策略</label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <label class="relative border rounded-lg p-4 flex cursor-pointer hover:bg-slate-50 transition-colors focus-within:ring-2 focus-within:ring-indigo-500">
+                                <input class="sr-only peer" th:field="*{concurrencyStrategy}" type="radio"
+                                       value="SERIAL">
+                                <div class="flex items-center">
+                                    <div class="h-4 w-4 border border-slate-300 rounded-full bg-white peer-checked:bg-indigo-600 peer-checked:border-indigo-600 transition-colors"></div>
+                                    <div class="ml-3">
+                                        <span class="block text-sm font-medium text-slate-900">串行执行</span>
+                                        <span class="block text-xs text-slate-500">等待上一次执行完成后再开始</span>
+                                    </div>
+                                </div>
+                                <div class="absolute inset-0 rounded-lg border-2 border-transparent peer-checked:border-indigo-500 pointer-events-none"></div>
+                            </label>
+
+                            <label class="relative border rounded-lg p-4 flex cursor-pointer hover:bg-slate-50 transition-colors focus-within:ring-2 focus-within:ring-indigo-500">
+                                <input class="sr-only peer" th:field="*{concurrencyStrategy}" type="radio"
+                                       value="PARALLEL">
+                                <div class="flex items-center">
+                                    <div class="h-4 w-4 border border-slate-300 rounded-full bg-white peer-checked:bg-indigo-600 peer-checked:border-indigo-600 transition-colors"></div>
+                                    <div class="ml-3">
+                                        <span class="block text-sm font-medium text-slate-900">并行执行</span>
+                                        <span class="block text-xs text-slate-500">允许同时执行多个实例</span>
+                                    </div>
+                                </div>
+                                <div class="absolute inset-0 rounded-lg border-2 border-transparent peer-checked:border-indigo-500 pointer-events-none"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Retry Policy -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">重试次数</label>
+                            <input class="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" min="0"
+                                   th:field="*{retryCount}"
+                                   type="number">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">重试间隔 (秒)</label>
+                            <input class="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" min="0"
+                                   th:field="*{retryInterval}"
+                                   type="number">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">超时时间 (秒)</label>
+                            <input class="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" min="0"
+                                   placeholder="0=不限"
+                                   th:field="*{timeout}" type="number">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="bg-slate-50 px-6 py-4 flex items-center justify-end border-t border-slate-100 space-x-3">
+                <a class="inline-flex items-center px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all"
+                   href="/tasks">
+                    取消
+                </a>
+                <button class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all"
+                        type="submit">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                    保存任务
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function toggleScheduleFields() {
+        const type = document.getElementById('scheduleType').value;
+        const cronField = document.getElementById('cronField');
+        const intervalField = document.getElementById('intervalField');
+
+        if (type === 'CRON') {
+            cronField.style.display = 'block';
+            intervalField.style.display = 'none';
+        } else {
+            cronField.style.display = 'none';
+            intervalField.style.display = 'block';
+        }
+    }
+
+    function validateForm() {
+        const type = document.getElementById('scheduleType').value;
+        const cron = document.getElementById('cronExpression').value;
+        const interval = document.getElementById('repeatInterval').value;
+
+        if (type === 'CRON' && !cron.trim()) {
+            alert('请输入 Cron 表达式');
+            return false;
+        }
+        if (type !== 'CRON' && (!interval || interval <= 0)) {
+            alert('请输入有效的时间间隔');
+            return false;
+        }
+        return true;
+    }
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', function () {
+        toggleScheduleFields();
+    });
+</script>
+
+</body>
+</html>

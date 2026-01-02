@@ -1,13 +1,14 @@
 :root {
-    --bg-page: #f5f7fb;
+    --bg-page: #f8fafc; /* slate-50 */
     --bg-card: #ffffff;
-    --border: #e6edf3;
-    --text: #0f1722;
-    --muted: #6b7280;
-    --primary: #3b82f6;
-    --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.04);
-    --shadow-md: 0 6px 18px rgba(16, 24, 40, 0.06);
-    --radius: 8px;
+    --border: #e2e8f0; /* slate-200 */
+    --text: #0f172a; /* slate-900 */
+    --text-secondary: #64748b; /* slate-500 */
+    --primary: #4f46e5; /* indigo-600 */
+    --primary-hover: #4338ca; /* indigo-700 */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --radius: 0.5rem;
 }
 
 /* Reset & 基础布局 */
@@ -21,221 +22,71 @@ html, body, #app {
 
 body {
     margin: 0;
-    font-family: Inter, "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft Yahei", sans-serif;
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     background: var(--bg-page);
     color: var(--text);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overflow: hidden; /* 页面内部滚动由各容器管理 */
-}
-
-/* 应用整体容器：顶部 header + 剩余主区域 */
-.app {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
-/* Header */
-.header {
-    height: 64px;
-    background: var(--bg-card);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
-    gap: 12px;
-    box-shadow: var(--shadow-sm);
-    z-index: 10;
-}
-
-.brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.brand-title {
-    font-weight: 700;
-    font-size: 18px;
-    background: linear-gradient(90deg, var(--primary), #8b5cf6);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-/* 主布局：侧栏 + 内容 */
-.layout {
-    display: flex;
-    flex: 1;
-    min-height: 0; /* 让内部滚动容器正确生效 */
     overflow: hidden;
 }
 
-/* 侧栏 */
-.sidebar {
-    width: 240px;
-    background: var(--bg-card);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    transition: width .18s ease;
-    padding: 12px;
-    gap: 12px;
-    box-shadow: var(--shadow-sm);
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
 }
 
-.sidebar.collapsed {
-    width: 0;
-    padding: 0;
-    overflow: hidden;
-    border: none;
-    box-shadow: none;
+::-webkit-scrollbar-track {
+    background: transparent;
 }
 
-/* 内容区 */
-.content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-width: 0; /* 允许子元素溢出滚动 */
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1; /* slate-300 */
+    border-radius: 4px;
 }
 
-/* 筛选条 */
-.filter-bar {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    padding: 10px 14px;
-    background: var(--bg-card);
-    border-bottom: 1px solid var(--border);
-    box-shadow: var(--shadow-sm);
-    flex-wrap: wrap;
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8; /* slate-400 */
 }
 
-/* 图表容器 */
-.chart-area {
-    height: 140px;
-    padding: 10px 14px;
-    background: var(--bg-card);
-    border-bottom: 1px solid var(--border);
-    transition: height .18s ease, padding .18s ease;
+/* Element Plus Overrides for "Simple & Generous" look */
+.el-button--primary {
+    --el-button-bg-color: var(--primary);
+    --el-button-border-color: var(--primary);
+    --el-button-hover-bg-color: var(--primary-hover);
+    --el-button-hover-border-color: var(--primary-hover);
 }
 
-.chart-area.collapsed {
-    height: 0;
-    padding: 0;
-    border: none;
-    overflow: hidden;
+.el-menu {
+    border-right: none !important;
 }
 
-/* 日志表格外壳：会撑开剩余高度并允许滚动 */
-.logs-shell {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    overflow: hidden;
-}
-
-/* 表格本体占据剩余空间并滚动 */
-.table-wrap {
-    flex: 1;
-    overflow: auto;
-    padding: 12px;
-    background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.02));
-}
-
-/* 页脚分页区域 */
-.footer-bar {
-    padding: 10px 14px;
-    background: var(--bg-card);
-    border-top: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-/* 视觉辅助小组件 */
-.pill {
-    padding: 4px 8px;
-    border-radius: 6px;
+.el-menu-item.is-active {
+    background-color: #eff6ff !important; /* blue-50 */
+    color: var(--primary) !important;
     font-weight: 600;
-    font-size: 12px;
-    color: #fff;
-    display: inline-block;
+    border-right: 3px solid var(--primary);
 }
 
-.pill-trace {
-    background: #374151;
+.el-table {
+    --el-table-header-bg-color: #f8fafc; /* slate-50 */
+    --el-table-header-text-color: #475569; /* slate-600 */
+    --el-table-row-hover-bg-color: #f1f5f9; /* slate-100 */
 }
 
-.pill-debug {
-    background: #2563eb;
+.el-input__wrapper, .el-select__wrapper {
+    box-shadow: 0 0 0 1px #e2e8f0 inset !important;
 }
 
-.pill-info {
-    background: #059669;
+.el-input__wrapper.is-focus, .el-select__wrapper.is-focus {
+    box-shadow: 0 0 0 1px var(--primary) inset !important;
 }
 
-.pill-warn {
-    background: #d97706;
+/* Utility Classes */
+.text-secondary {
+    color: var(--text-secondary);
 }
 
-.pill-error {
-    background: #dc2626;
-}
-
-/* 代码/JSON 高亮展示 */
 .mono {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Consolas", monospace;
-    font-size: 14px;
-}
-
-pre.json {
-    white-space: pre-wrap;
-    word-break: break-word;
-    margin: 0;
-}
-
-/* 响应式：窄屏时隐藏侧栏 */
-@media (max-width: 880px) {
-    .sidebar {
-        display: none;
-    }
-
-    .filter-bar {
-        padding: 8px;
-    }
-
-    .chart-area {
-        height: 120px;
-    }
-}
-
-/* 轻微增强：悬浮卡片阴影 */
-.card-elevated {
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-md);
-    background: var(--bg-card);
-}
-
-.json-key {
-    color: #a020f0;
-}
-
-.json-string {
-    color: #008000;
-}
-
-.json-number {
-    color: #ff0000;
-}
-
-.json-boolean {
-    color: #0000ff;
-}
-
-.json-null {
-    color: #808080;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }

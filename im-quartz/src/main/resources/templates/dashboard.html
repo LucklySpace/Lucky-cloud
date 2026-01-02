@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Lucky Scheduler Dashboard</title>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+<div th:replace="~{fragments/nav :: nav}"></div>
+
+<div class="container mx-auto mt-8 px-6 pb-12">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-800">仪表盘</h1>
+            <p class="text-slate-500 mt-1">欢迎回来，这里是您的任务调度中心概览。</p>
+        </div>
+        <div class="text-sm text-slate-500 bg-white px-4 py-2 rounded-lg shadow-sm border border-slate-200">
+            <span class="font-semibold text-indigo-600" id="current-time"></span>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Total Tasks -->
+        <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 p-6 border border-slate-100 relative overflow-hidden group">
+            <div class="absolute right-0 top-0 h-full w-1 bg-gradient-to-b from-indigo-500 to-indigo-600"></div>
+            <div class="flex items-start justify-between">
+                <div>
+                    <h3 class="text-slate-500 text-sm font-semibold uppercase tracking-wider">任务总数</h3>
+                    <div class="text-4xl font-bold text-slate-800 mt-2" th:text="${totalTasks}">0</div>
+                    <div class="text-sm text-slate-500 mt-4 flex items-center space-x-3">
+                        <span class="flex items-center text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 mr-1.5"></span>
+                            <span th:text="${runningTasks}">0</span> 运行中
+                        </span>
+                        <span class="flex items-center text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                            <span class="w-2 h-2 rounded-full bg-slate-400 mr-1.5"></span>
+                            <span th:text="${stoppedTasks}">0</span> 停止
+                        </span>
+                    </div>
+                </div>
+                <div class="p-3 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors text-indigo-600">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" stroke-linecap="round" stroke-linejoin="round"
+                              stroke-width="2"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Today's Schedule -->
+        <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 p-6 border border-slate-100 relative overflow-hidden group">
+            <div class="absolute right-0 top-0 h-full w-1 bg-gradient-to-b from-emerald-500 to-emerald-600"></div>
+            <div class="flex items-start justify-between">
+                <div>
+                    <h3 class="text-slate-500 text-sm font-semibold uppercase tracking-wider">今日调度</h3>
+                    <div class="text-4xl font-bold text-slate-800 mt-2" th:text="${todayLogs}">0</div>
+                    <div class="text-sm text-slate-500 mt-4">
+                        成功率: <span class="font-semibold text-emerald-600"
+                                      th:text="${todayLogs > 0 ? (todaySuccess * 100 / todayLogs) : 0}">0</span>%
+                    </div>
+                </div>
+                <div class="p-3 bg-emerald-50 rounded-lg group-hover:bg-emerald-100 transition-colors text-emerald-600">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"
+                              stroke-width="2"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Today's Failures -->
+        <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300 p-6 border border-slate-100 relative overflow-hidden group">
+            <div class="absolute right-0 top-0 h-full w-1 bg-gradient-to-b from-rose-500 to-rose-600"></div>
+            <div class="flex items-start justify-between">
+                <div>
+                    <h3 class="text-slate-500 text-sm font-semibold uppercase tracking-wider">今日失败</h3>
+                    <div class="text-4xl font-bold text-rose-600 mt-2" th:text="${todayFail}">0</div>
+                    <div class="text-sm text-slate-500 mt-4">
+                        <span class="text-rose-500 flex items-center" th:if="${todayFail > 0}">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" stroke-linecap="round" stroke-linejoin="round"
+                                    stroke-width="2"></path></svg>
+                            需要关注
+                        </span>
+                        <span class="text-emerald-500 flex items-center" th:unless="${todayFail > 0}">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path
+                                    d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"
+                                    stroke-width="2"></path></svg>
+                            系统运行正常
+                        </span>
+                    </div>
+                </div>
+                <div class="p-3 bg-rose-50 rounded-lg group-hover:bg-rose-100 transition-colors text-rose-600">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"
+                              stroke-width="2"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+            <h3 class="text-slate-700 font-bold mb-6 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" stroke-linecap="round" stroke-linejoin="round"
+                          stroke-width="2"></path>
+                    <path d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" stroke-linecap="round" stroke-linejoin="round"
+                          stroke-width="2"></path>
+                </svg>
+                执行结果分布
+            </h3>
+            <div class="h-64 flex justify-center items-center">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col">
+            <h3 class="text-slate-700 font-bold mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"
+                          stroke-width="2"></path>
+                </svg>
+                系统公告
+            </h3>
+            <div class="flex-1 overflow-y-auto">
+                <div class="p-4 bg-slate-50 rounded-lg border border-slate-100 mb-4">
+                    <p class="text-slate-600 font-medium">欢迎使用 Lucky Cloud 分布式调度中心</p>
+                    <p class="text-slate-400 text-sm mt-1">当前版本: v1.0.0</p>
+                </div>
+
+                <div class="p-4 bg-indigo-50 rounded-lg border border-indigo-100 text-sm text-indigo-700">
+                    <p class="font-semibold mb-1 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round"
+                                  stroke-width="2"></path>
+                        </svg>
+                        快速提示
+                    </p>
+                    建议配置报警邮件以接收任务失败通知，确保系统高可用性。
+                </div>
+            </div>
+            <div class="mt-4 pt-4 border-t border-slate-100">
+                <a class="block w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-center rounded-lg transition-colors shadow-sm"
+                   href="/tasks">
+                    管理任务
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    // Update Time
+    function updateTime() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString() + ' ' + now.toLocaleDateString();
+        document.getElementById('current-time').textContent = timeString;
+    }
+
+    setInterval(updateTime, 1000);
+    updateTime();
+
+    // Chart
+    const success = [[${todaySuccess}]];
+    const fail = [[${todayFail}]];
+    const other = [[${todayLogs -todaySuccess - todayFail}]];
+
+    const ctx = document.getElementById('statusChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['成功', '失败', '运行中/其他'],
+            datasets: [{
+                data: [success, fail, other],
+                backgroundColor: ['#10B981', '#F43F5E', '#3B82F6'],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: {
+                            family: "'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont'"
+                        }
+                    }
+                }
+            },
+            cutout: '70%'
+        }
+    });
+</script>
+
+</body>
+</html>

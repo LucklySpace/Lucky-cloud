@@ -1,0 +1,59 @@
+<nav class="bg-slate-900 text-white shadow-lg sticky top-0 z-50 backdrop-blur-md bg-opacity-90" th:fragment="nav">
+    <div class="container mx-auto px-6 h-16 flex justify-between items-center">
+        <!-- Logo Area -->
+        <a class="flex items-center space-x-3 group" href="/dashboard">
+            <div class="bg-indigo-600 p-1.5 rounded-lg group-hover:bg-indigo-500 transition-colors duration-300">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"
+                          stroke-width="2"></path>
+                </svg>
+            </div>
+            <span class="font-bold text-xl tracking-tight group-hover:text-indigo-200 transition-colors">Lucky Cloud</span>
+        </a>
+
+        <!-- Navigation Links -->
+        <div class="hidden md:flex space-x-1">
+            <a class="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200" href="/dashboard"
+               th:classappend="${currentUri == '/dashboard' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-300 hover:text-white hover:bg-slate-800'}">
+                仪表盘
+            </a>
+            <a class="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200" href="/tasks"
+               th:classappend="${currentUri != null && currentUri.startsWith('/tasks') ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-300 hover:text-white hover:bg-slate-800'}">
+                任务管理
+            </a>
+            <a class="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200" href="/logs"
+               th:classappend="${currentUri != null && currentUri.startsWith('/logs') ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-300 hover:text-white hover:bg-slate-800'}">
+                调度日志
+            </a>
+            <a class="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200" href="/monitor"
+               th:classappend="${currentUri == '/monitor' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-300 hover:text-white hover:bg-slate-800'}">
+                监控面板
+            </a>
+        </div>
+
+        <!-- User Profile / Logout -->
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2 text-sm text-slate-300">
+                <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center border border-slate-600">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-linecap="round" stroke-linejoin="round"
+                              stroke-width="2"></path>
+                    </svg>
+                </div>
+                <span class="hidden lg:inline">Admin</span>
+            </div>
+            <div class="h-4 w-px bg-slate-700"></div>
+            <form action="/logout" class="inline" method="post">
+                <button class="text-sm text-slate-400 hover:text-white transition flex items-center group"
+                        type="submit">
+                    <svg class="w-4 h-4 mr-1 group-hover:text-red-400 transition-colors" fill="none"
+                         stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke-linecap="round" stroke-linejoin="round"
+                              stroke-width="2"></path>
+                    </svg>
+                    退出
+                </button>
+            </form>
+        </div>
+    </div>
+</nav>

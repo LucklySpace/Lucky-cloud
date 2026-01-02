@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>任务详情 - 任务调度中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+<div th:replace="~{fragments/nav :: nav}"></div>
+
+<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-8">
+        <div class="flex items-center">
+            <a class="mr-4 p-2 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all duration-200"
+               href="/tasks">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M10 19l-7-7m0 0l7-7m-7 7h18" stroke-linecap="round" stroke-linejoin="round"
+                          stroke-width="2"></path>
+                </svg>
+            </a>
+            <div>
+                <div class="flex items-center">
+                    <h1 class="text-3xl font-bold text-slate-900 tracking-tight" th:text="${task.jobName}">Job Name</h1>
+                    <span th:class="${'ml-4 px-3 py-1 text-sm font-semibold rounded-full border ' + (task.status.name() == 'RUNNING' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : (task.status.name() == 'STOPPED' ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-amber-100 text-amber-800 border-amber-200'))}"
+                          th:text="${task.status}">Status</span>
+                </div>
+                <p class="text-slate-500 mt-1 text-sm" th:text="${task.description}">Task Description</p>
+            </div>
+        </div>
+        <div class="flex space-x-3">
+            <a class="inline-flex items-center px-4 py-2 bg-white border border-slate-300 rounded-lg shadow-sm text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all"
+               th:href="@{/tasks/{id}/edit(id=${task.id})}">
+                <svg class="w-4 h-4 mr-2 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-linecap="round" stroke-linejoin="round"
+                          stroke-width="2"></path>
+                </svg>
+                编辑任务
+            </a>
+            <form class="inline" method="post" th:action="@{/tasks/{id}/trigger(id=${task.id})}">
+                <button class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all"
+                        type="submit">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" stroke-linecap="round" stroke-linejoin="round"
+                              stroke-width="2"></path>
+                        <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"
+                              stroke-width="2"></path>
+                    </svg>
+                    立即执行
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Task Info -->
+        <div class="lg:col-span-1">
+            <div class="bg-white shadow-xl rounded-xl overflow-hidden border border-slate-100">
+                <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
+                    <h3 class="text-lg font-bold text-slate-800">配置信息</h3>
+                </div>
+                <div class="p-6 space-y-6">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mt-1">
+                            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" stroke-linecap="round" stroke-linejoin="round"
+                                      stroke-width="2"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-slate-500">任务分组</p>
+                            <p class="text-base font-semibold text-slate-800" th:text="${task.jobGroup}"></p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mt-1">
+                            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" stroke-linecap="round" stroke-linejoin="round"
+                                      stroke-width="2"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4 w-full overflow-hidden">
+                            <p class="text-sm font-medium text-slate-500">执行类</p>
+                            <p class="text-sm font-mono text-slate-800 break-all bg-slate-50 p-2 rounded border border-slate-100 mt-1"
+                               th:text="${task.jobClass}"></p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mt-1">
+                            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"
+                                      stroke-width="2"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-slate-500">调度规则</p>
+                            <div class="mt-1">
+                                <span class="text-sm font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded"
+                                      th:text="${task.scheduleType}"></span>
+                                <span class="text-sm font-mono ml-2 text-slate-700"
+                                      th:if="${task.scheduleType.name() == 'CRON'}"
+                                      th:text="${task.cronExpression}"></span>
+                                <span class="text-sm font-mono ml-2 text-slate-700"
+                                      th:if="${task.scheduleType.name() != 'CRON'}"
+                                      th:text="${task.repeatInterval} + ' ms'"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mt-1">
+                            <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round"
+                                      stroke-width="2"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-slate-500">并发策略</p>
+                            <p class="text-base font-semibold text-slate-800" th:text="${task.concurrencyStrategy}"></p>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-100">
+                        <p class="text-sm font-medium text-slate-500 mb-2">任务参数 (JSON)</p>
+                        <pre class="bg-slate-800 text-slate-200 p-3 rounded-lg text-xs overflow-x-auto font-mono"
+                             th:text="${task.jobData}"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="lg:col-span-2">
+            <div class="bg-white shadow-xl rounded-xl overflow-hidden border border-slate-100">
+                <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                    <h3 class="text-lg font-bold text-slate-800">近期执行历史</h3>
+                    <a class="text-sm font-medium text-indigo-600 hover:text-indigo-800 flex items-center transition-colors"
+                       th:href="@{/logs(jobName=${task.jobName})}">
+                        查看全部
+                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"
+                                  stroke-width="2"></path>
+                        </svg>
+                    </a>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                                scope="col">
+                                开始时间
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                                scope="col">
+                                耗时
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                                scope="col">
+                                结果
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                                scope="col">
+                                消息
+                            </th>
+                        </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-slate-200">
+                        <tr class="hover:bg-slate-50 transition-colors" th:each="log : ${logs.content}">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                <span th:text="${#temporals.format(log.startTime, 'yyyy-MM-dd HH:mm:ss')}"></span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                <span class="font-mono" th:text="${log.executionTime} + ' ms'"></span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span th:class="${'px-2 inline-flex text-xs leading-5 font-semibold rounded-full ' + 
+                                    (log.status == 1 ? 'bg-emerald-100 text-emerald-800' : 
+                                    (log.status == 0 ? 'bg-blue-100 text-blue-800' : 
+                                    'bg-rose-100 text-rose-800'))}"
+                                      th:text="${log.status == 1 ? '成功' : (log.status == 0 ? '运行中' : '失败')}"></span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 max-w-xs truncate"
+                                th:text="${log.status == 1 ? log.resultMsg : (log.status == 0 ? '任务执行中...' : log.exceptionInfo)}"
+                                th:title="${log.status == 1 ? log.resultMsg : log.exceptionInfo}"></td>
+                        </tr>
+                        <tr th:if="${logs.empty}">
+                            <td class="px-6 py-8 text-center text-slate-400 text-sm" colspan="4">暂无执行记录</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // No specific scripts needed for now
+</script>
+
+</body>
+</html>

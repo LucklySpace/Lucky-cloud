@@ -1,177 +1,258 @@
 <template>
-  <div class="app">
-    <!-- 主布局：侧栏 + 内容 -->
-    <div class="layout">
-      <!-- 侧栏：服务树与筛选 -->
-      <aside :class="['sidebar', ui.sidebarOpen ? '' : 'collapsed']" aria-label="侧栏" role="navigation">
-        <el-input v-model="uiServiceFilter" clearable placeholder="搜索服务..." prefix-icon="Search"
-                  size="large"></el-input>
-
-        <div style="flex: 1; overflow: auto; margin-top: 12px">
-          <el-tree :data="computedServiceTree" :highlight-current="true" :props="treeProps" default-expand-all
-                   @node-click="onServiceNodeClick"></el-tree>
+  <div class="h-full flex flex-col bg-slate-50">
+    <!-- Layout -->
+    <div class="flex-1 flex min-h-0 overflow-hidden">
+      <!-- Service Sidebar -->
+      <aside
+          :class="['w-64 bg-white border-r border-slate-200 flex flex-col transition-all duration-300 z-10', ui.sidebarOpen ? '' : '-ml-64']">
+        <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+          <el-input
+              v-model="uiServiceFilter"
+              class="w-full"
+              clearable
+              placeholder="搜索服务..."
+              prefix-icon="Search"
+          />
+        </div>
+        <div class="flex-1 overflow-y-auto p-2">
+          <el-tree
+              :data="computedServiceTree"
+              :highlight-current="true"
+              :props="treeProps"
+              class="filter-tree"
+              default-expand-all
+              @node-click="onServiceNodeClick"
+          >
+            <template #default="{ node, data }">
+              <div class="flex items-center text-sm py-1">
+                <span :class="{'font-semibold text-indigo-600': node.isCurrent}">{{ node.label }}</span>
+                <span v-if="!data.children"
+                      class="ml-auto text-xs text-slate-400 bg-slate-100 px-1.5 rounded-full">Svc</span>
+              </div>
+            </template>
+          </el-tree>
+        </div>
+        <div class="p-3 border-t border-slate-100 text-center">
+          <el-button class="text-slate-400 hover:text-indigo-600" link size="small" type="primary"
+                     @click="ui.sidebarOpen = false">
+            <el-icon class="mr-1">
+              <ArrowLeft/>
+            </el-icon>
+            收起侧栏
+          </el-button>
         </div>
       </aside>
 
-      <!-- 主内容 -->
-      <main class="content" role="main">
-        <!-- 筛选与操作栏 -->
-        <div class="filter-bar">
-          <!-- 环境选择 -->
-          <el-select v-model="filters.env" placeholder="环境" size="large" style="width: 120px" @change="onEnvChange">
-            <el-option label="DEV" value="dev"></el-option>
-            <el-option label="STAGE" value="test"></el-option>
-            <el-option label="PROD" value="prod"></el-option>
+      <!-- Toggle Button (Visible when sidebar closed) -->
+      <div v-if="!ui.sidebarOpen" class="absolute left-0 top-1/2 -translate-y-1/2 z-20">
+        <el-button circle class="shadow-md" size="small" @click="ui.sidebarOpen = true">
+          <el-icon>
+            <ArrowRight/>
+          </el-icon>
+        </el-button>
+      </div>
+
+      <!-- Main Content -->
+      <main class="flex-1 flex flex-col min-w-0 bg-white">
+        <!-- Filter Bar -->
+        <div class="p-4 border-b border-slate-100 bg-white shadow-sm flex flex-wrap gap-3 items-center z-10">
+          <!-- Environment -->
+          <el-select v-model="filters.env" class="w-28" placeholder="环境" @change="onEnvChange">
+            <el-option label="DEV" value="dev"/>
+            <el-option label="TEST" value="test"/>
+            <el-option label="PROD" value="prod"/>
           </el-select>
 
-          <!-- 服务 -->
-          <el-select v-model="filters.service" clearable filterable placeholder="服务" size="large"
-                     style="width: 160px">
-            <el-option v-for="s in services" :key="s" :label="s" :value="s"></el-option>
+          <!-- Service (Mobile/Fallback) -->
+          <el-select v-model="filters.service" class="w-40" clearable filterable placeholder="选择服务">
+            <el-option v-for="s in services" :key="s" :label="s" :value="s"/>
           </el-select>
 
-          <!-- 级别 -->
-          <el-select v-model="filters.level" clearable placeholder="级别" size="large" style="width: 120px">
-            <el-option v-for="l in levels" :key="l" :label="l" :value="l"></el-option>
+          <!-- Level -->
+          <el-select v-model="filters.level" class="w-32" clearable placeholder="日志级别">
+            <el-option v-for="l in levels" :key="l" :label="l" :value="l">
+                <span class="flex items-center">
+                    <span :class="['w-2 h-2 rounded-full mr-2', levelColorDot(l)]"></span>
+                    {{ l }}
+                </span>
+            </el-option>
           </el-select>
 
-          <!-- 关键字 -->
-          <el-input v-model="filters.keyword" clearable placeholder="关键字、正则或 JSON 字段" size="large"
-                    style="width: 300px"></el-input>
+          <!-- Keyword -->
+          <el-input v-model="filters.keyword" class="w-64" clearable placeholder="搜索关键字、TraceID..."
+                    prefix-icon="Search"/>
 
-          <div style="flex: 1"></div>
+          <div class="flex-1"></div>
 
-          <!-- 实时模式 -->
-          <span class="mono" style="color: var(--muted);">实时模式</span>
+          <!-- Realtime Status -->
+          <div class="flex items-center text-xs space-x-3 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                <span class="flex items-center text-slate-500">
+                    <span
+                        :class="['w-2 h-2 rounded-full mr-1.5', ui.wsConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500']"></span>
+                    {{ ui.wsConnected ? '实时连接中' : '连接断开' }}
+                </span>
+            <span class="w-px h-3 bg-slate-300"></span>
+            <span class="text-slate-500">
+                    缓冲: <span class="font-mono font-semibold text-slate-700">{{
+                realtimeLogs.length
+              }}</span> / {{ ui.realtimeLimit }}
+                </span>
+          </div>
         </div>
 
-        <!-- 日志表与详情 -->
-        <section class="logs-shell">
-          <div class="table-wrap">
-            <el-table :data="displayLogs" border height="100%" size="default" stripe style="width: 100%"
-                      @row-click="openDetail">
-              <!-- 可展开 raw JSON -->
-              <el-table-column type="expand" width="50">
-                <template #default="props">
-                  <div style="
-                        background: var(--bg-card);
-                        padding: 16px;
-                        border-radius: 8px;
-                        border: 1px solid var(--border);
-                      ">
-                    <pre class="json mono" v-html="prettyJson(props.row)"></pre>
+        <!-- Table Area -->
+        <div class="flex-1 overflow-hidden relative">
+          <el-table
+              :data="displayLogs"
+              :header-cell-style="{background:'#f8fafc', color:'#64748b', fontWeight:'600'}"
+              height="100%"
+              highlight-current-row
+              stripe
+              style="width: 100%"
+              @row-click="openDetail"
+          >
+            <!-- Expand JSON -->
+            <el-table-column type="expand" width="48">
+              <template #default="props">
+                <div class="p-4 bg-slate-50 border-y border-slate-100">
+                  <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Raw JSON Data</span>
+                    <el-button bg size="small" text @click.stop="copyJson(props.row)">复制 JSON</el-button>
                   </div>
-                </template>
-              </el-table-column>
+                  <pre class="text-xs font-mono bg-white p-3 rounded border border-slate-200 overflow-auto max-h-64"
+                       v-html="prettyJson(props.row)"></pre>
+                </div>
+              </template>
+            </el-table-column>
 
-              <!-- 时间 -->
-              <el-table-column label="时间" width="250">
-                <template #default="{ row }">
-                  <div class="mono">{{ formatTimestamp(row.timestamp) }}</div>
-                </template>
-              </el-table-column>
+            <!-- Timestamp -->
+            <el-table-column label="Time" width="180">
+              <template #default="{ row }">
+                <span class="text-xs font-mono text-slate-600">{{ formatTimestamp(row.timestamp) }}</span>
+              </template>
+            </el-table-column>
 
-              <!-- 等级 -->
-              <el-table-column align="center" label="级别" width="100">
-                <template #default="{ row }">
-                  <span :class="['pill', levelBadgeClass(row.level)]">{{ row.level || 'INFO' }}</span>
-                </template>
-              </el-table-column>
+            <!-- Level -->
+            <el-table-column align="center" label="Level" width="90">
+              <template #default="{ row }">
+                        <span :class="['px-2 py-0.5 text-xs font-bold rounded shadow-sm', levelBadgeClass(row.level)]">
+                            {{ row.level || 'INFO' }}
+                        </span>
+              </template>
+            </el-table-column>
 
-              <!-- 服务 -->
-              <el-table-column label="服务" prop="service" show-overflow-tooltip width="180"></el-table-column>
+            <!-- Service -->
+            <el-table-column label="Service" prop="service" show-overflow-tooltip width="160">
+              <template #default="{ row }">
+                <span class="text-sm text-slate-700 font-medium">{{ row.service }}</span>
+              </template>
+            </el-table-column>
 
-              <!-- message -->
-              <el-table-column label="消息" min-width="360" prop="message" show-overflow-tooltip>
-                <template #default="{ row }">
-                  <div class="mono" style="
-                        max-height: 56px;
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                      ">
-                    {{ row.message }}
-                  </div>
-                </template>
-              </el-table-column>
+            <!-- Message -->
+            <el-table-column label="Message" min-width="300" show-overflow-tooltip>
+              <template #default="{ row }">
+                <span class="text-sm text-slate-600 font-mono">{{ row.message }}</span>
+              </template>
+            </el-table-column>
 
-              <!-- trace id -->
-              <el-table-column label="TraceID" width="220">
-                <template #default="{ row }">
-                  <el-link v-if="row.traceId" :href="traceLink(row.traceId)" class="mono text-base" target="_blank"
-                           underline>{{ row.traceId }}
-                  </el-link>
-                </template>
-              </el-table-column>
+            <!-- TraceID -->
+            <el-table-column label="TraceID" width="180">
+              <template #default="{ row }">
+                        <span v-if="row.traceId"
+                              class="text-xs font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded cursor-pointer hover:bg-indigo-100 transition-colors">
+                            {{ row.traceId }}
+                        </span>
+              </template>
+            </el-table-column>
             </el-table>
-          </div>
-
-          <!-- 底部：实时计数 -->
-          <div class="footer-bar">
-            <div>
-              <div style="color: var(--muted); font-size: 14px;">
-                {{ ui.realtimeCount }} 条实时日志 · 显示最近 {{ ui.realtimeLimit }} 条
-              </div>
-            </div>
-
-            <div style="color: var(--muted); font-size: 14px">
-              Lucky IM · 日志服务面板
-            </div>
-          </div>
-        </section>
+        </div>
       </main>
     </div>
 
-    <!-- 日志详情抽屉 -->
-    <el-drawer v-model="ui.detailVisible" size="50%" title="日志详情">
-      <div v-if="ui.detail" style="padding: 20px">
-        <el-descriptions border column="1" size="large">
-          <el-descriptions-item label="时间">{{ formatTimestamp(ui.detail.timestamp) }}</el-descriptions-item>
-          <el-descriptions-item label="级别">
-            <span :class="['pill', levelBadgeClass(ui.detail.level)]">{{ ui.detail.level }}</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="服务">{{ ui.detail.service }}
-            <span style="color: var(--muted)">({{ ui.detail.module || '-' }})</span></el-descriptions-item>
-          <el-descriptions-item label="主机">{{ ui.detail.host || ui.detail.address || '-' }}
-          </el-descriptions-item>
-          <el-descriptions-item label="Trace / Span">{{ ui.detail.traceId || '-' }} / {{ ui.detail.spanId || '-' }}
-          </el-descriptions-item>
-        </el-descriptions>
-
-        <div style="margin-top: 20px; font-weight: 600; font-size: 16px;">Message</div>
-        <div style="
-              background: var(--bg-card);
-              padding: 16px;
-              border-radius: 8px;
-              margin-top: 8px;
-            ">
-          <pre class="mono" style="margin: 0; white-space: pre-wrap">
-        {{ ui.detail.message }}</pre>
+    <!-- Detail Drawer -->
+    <el-drawer
+        v-model="ui.detailVisible"
+        :with-header="false"
+        destroy-on-close
+        size="45%"
+        title="日志详情"
+    >
+      <div v-if="ui.detail" class="h-full flex flex-col">
+        <!-- Drawer Header -->
+        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-start bg-slate-50">
+            <div>
+              <h3 class="text-lg font-bold text-slate-800">Log Details</h3>
+              <p class="text-xs text-slate-500 mt-1 font-mono">{{ ui.detail.traceId || 'No Trace ID' }}</p>
+            </div>
+          <span :class="['px-3 py-1 text-sm font-bold rounded shadow-sm', levelBadgeClass(ui.detail.level)]">
+                {{ ui.detail.level || 'INFO' }}
+            </span>
         </div>
 
-        <div v-if="ui.detail.exception" style="margin-top: 16px; font-weight: 600; color: #c62828; font-size: 16px;">
-          Exception
-        </div>
-        <div v-if="ui.detail.exception" style="
-              background: #fff5f5;
-              padding: 16px;
-              border-radius: 8px;
-              margin-top: 8px;
-              overflow: auto;
-              color: #6b1a1a;
-            ">
-          <pre class="mono" style="margin: 0; white-space: pre-wrap">
-        {{ ui.detail.exception }}</pre>
-        </div>
+        <!-- Drawer Content -->
+        <div class="flex-1 overflow-y-auto p-6 space-y-6">
+          <!-- Basic Info Grid -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+              <span class="text-xs text-slate-400 block mb-1">Timestamp</span>
+              <span class="text-sm font-mono text-slate-700">{{ formatTimestamp(ui.detail.timestamp) }}</span>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+              <span class="text-xs text-slate-400 block mb-1">Service</span>
+              <span class="text-sm font-medium text-slate-700">{{ ui.detail.service }}</span>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+              <span class="text-xs text-slate-400 block mb-1">Host</span>
+              <span class="text-sm font-mono text-slate-700">{{ ui.detail.host || ui.detail.address || '-' }}</span>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
+              <span class="text-xs text-slate-400 block mb-1">Thread</span>
+              <span :title="ui.detail.thread"
+                    class="text-sm font-mono text-slate-700 truncate">{{ ui.detail.thread || '-' }}</span>
+            </div>
+          </div>
 
-        <div style="margin-top: 16px; font-weight: 600; font-size: 16px;">Raw JSON</div>
-        <div style="
-              background: var(--bg-card);
-              padding: 16px;
-              border-radius: 8px;
-              margin-top: 8px;
-              overflow: auto;
-            ">
-          <pre class="json mono" v-html="prettyJson(ui.detail)"></pre>
+          <!-- Message -->
+          <div>
+            <h4 class="text-sm font-bold text-slate-700 mb-2 flex items-center">
+              <el-icon class="mr-1 text-slate-400">
+                <Message/>
+              </el-icon>
+              Message
+            </h4>
+            <div
+                class="p-4 bg-slate-50 rounded-lg border border-slate-200 text-sm font-mono text-slate-800 whitespace-pre-wrap break-all">
+              {{ ui.detail.message }}
+            </div>
+          </div>
+
+          <!-- Exception -->
+          <div v-if="ui.detail.exception">
+            <h4 class="text-sm font-bold text-rose-600 mb-2 flex items-center">
+              <el-icon class="mr-1">
+                <Warning/>
+              </el-icon>
+              Exception Stack Trace
+            </h4>
+            <div
+                class="p-4 bg-rose-50 rounded-lg border border-rose-100 text-xs font-mono text-rose-800 whitespace-pre overflow-x-auto">
+              {{ ui.detail.exception }}
+            </div>
+          </div>
+
+          <!-- Context / MDC -->
+          <div v-if="ui.detail.mdc && Object.keys(ui.detail.mdc).length > 0">
+            <h4 class="text-sm font-bold text-slate-700 mb-2">MDC Context</h4>
+            <div class="bg-slate-50 rounded border border-slate-200 overflow-hidden">
+              <div v-for="(val, key) in ui.detail.mdc" :key="key" class="flex border-b border-slate-100 last:border-0">
+                <div
+                    :title="key"
+                    class="w-1/3 px-3 py-2 bg-slate-100 text-xs font-semibold text-slate-500 border-r border-slate-200 truncate">{{ key }}
+                </div>
+                <div :title="val" class="w-2/3 px-3 py-2 text-xs font-mono text-slate-700 truncate">{{ val }}</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </el-drawer>
@@ -183,24 +264,18 @@ import {getServices} from '../api/logs.js';
 
 export default {
   setup() {
-    const {ref, reactive, computed, onMounted, watch} = Vue;
+    const {ref, reactive, computed, onMounted} = Vue;
 
-    // -----------------------------
-    // UI 与状态
-    // -----------------------------
+    // UI State
     const ui = reactive({
-      sidebarOpen: true,      // 侧栏展开/折叠
-      wsConnected: false,     // websocket 连接状态
-      detailVisible: false,   // 详情抽屉是否展开
-      detail: null,           // 详情数据
-      showTestIngest: false,  // 测试采集抽屉
-      realtimeCount: 0,       // 实时接收到的日志计数
-      realtimeLimit: 500      // 实时列表最大条目数
+      sidebarOpen: true,
+      wsConnected: false,
+      detailVisible: false,
+      detail: null,
+      realtimeLimit: 1000,
     });
 
-    // 过滤条件与分页
     const filters = reactive({
-      module: '',
       service: '',
       env: 'dev',
       level: '',
@@ -208,123 +283,107 @@ export default {
     });
 
     const realtimeLogs = ref([]);
-
-    // 服务列表与筛选输入（侧栏）
     const services = ref([]);
     const uiServiceFilter = ref('');
-
     let ws = null;
-
-    // 可选的日志等级列表
     const levels = ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR'];
 
-    function matchesFilters(item) {
-      // 关键字匹配（整条 JSON）
+    // Filtering Logic
+    const matchesFilters = (item) => {
       if (filters.keyword) {
         const text = JSON.stringify(item).toLowerCase();
         if (!text.includes(filters.keyword.toLowerCase())) return false;
       }
-      // 环境匹配（若日志带 env）
       if (filters.env && item?.env && item.env.toLowerCase() !== filters.env.toLowerCase()) return false;
-      // 级别匹配
       if (filters.level && item?.level && item.level.toUpperCase() !== filters.level.toUpperCase()) return false;
-      // 服务匹配
       if (filters.service && item?.service && item.service !== filters.service) return false;
-
       return true;
-    }
+    };
 
     const displayLogs = computed(() => {
-      const list = realtimeLogs.value.filter(matchesFilters) ?? [];
-      return list.slice(0, ui.realtimeLimit);
+      return realtimeLogs.value.filter(matchesFilters).slice(0, ui.realtimeLimit);
     });
 
-    // 服务树数据（将 services 转成 tree）
+    // Service Tree
     const computedServiceTree = computed(() => {
       const filtered = services.value.filter(s => s.toLowerCase().includes(uiServiceFilter.value.toLowerCase()));
       return [{
-        label: filters.env.toUpperCase(),
+        label: filters.env.toUpperCase() + " Environment",
         children: filtered.map(s => ({label: s, value: s}))
       }];
     });
-
     const treeProps = {children: 'children', label: 'label'};
 
-    // -----------------------------
-    // 工具函数：格式化时间，JSON 高亮等
-    // -----------------------------
-    /** 格式化 ISO 时间 -> 本地短格式 */
-    function formatTimestamp(iso) {
+    // Formatters
+    const formatTimestamp = (iso) => {
       if (!iso) return '';
       const d = new Date(iso);
       const pad = n => String(n).padStart(2, '0');
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${String(d.getMilliseconds()).padStart(3, '0')}`;
-    }
+      return `${d.getHours()}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${String(d.getMilliseconds()).padStart(3, '0')}`;
+    };
 
-    /** JSON 美化并加 HTML 高亮（用于展示） */
-    function prettyJson(obj) {
+    const prettyJson = (obj) => {
       try {
         const s = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
-        // 安全转义
         const esc = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        // 简单高亮（key/string/number/boolean/null）
         return esc.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(\.\d+)?)/g, match => {
-          let cls = 'json-number';
-          if (/^"/.test(match)) cls = /:$/.test(match) ? 'json-key' : 'json-string';
-          else if (/true|false/.test(match)) cls = 'json-boolean';
-          else if (/null/.test(match)) cls = 'json-null';
+          let cls = 'text-rose-500'; // number
+          if (/^"/.test(match)) cls = /:$/.test(match) ? 'text-purple-600' : 'text-green-600'; // key : string
+          else if (/true|false/.test(match)) cls = 'text-blue-600'; // boolean
+          else if (/null/.test(match)) cls = 'text-slate-400'; // null
           return `<span class="${cls}">${match}</span>`;
         });
       } catch (e) {
         return String(obj);
       }
-    }
+    };
 
-    /** 根据 level 返回 badge class */
-    function levelBadgeClass(l) {
-      if (!l) return 'pill-info';
+    const levelBadgeClass = (l) => {
+      if (!l) return 'bg-slate-100 text-slate-600';
       switch (l.toUpperCase()) {
         case 'TRACE':
-          return 'pill-trace';
+          return 'bg-slate-100 text-slate-500';
         case 'DEBUG':
-          return 'pill-debug';
+          return 'bg-blue-100 text-blue-700';
         case 'INFO':
-          return 'pill-info';
+          return 'bg-emerald-100 text-emerald-700';
         case 'WARN':
-          return 'pill-warn';
+          return 'bg-amber-100 text-amber-700';
         case 'ERROR':
-          return 'pill-error';
+          return 'bg-rose-100 text-rose-700';
         default:
-          return 'pill-trace';
+          return 'bg-slate-100 text-slate-600';
+      }
+    };
+
+    const levelColorDot = (l) => {
+      switch (l.toUpperCase()) {
+        case 'TRACE':
+          return 'bg-slate-400';
+        case 'DEBUG':
+          return 'bg-blue-500';
+        case 'INFO':
+          return 'bg-emerald-500';
+        case 'WARN':
+          return 'bg-amber-500';
+        case 'ERROR':
+          return 'bg-rose-500';
+        default:
+          return 'bg-slate-400';
       }
     }
 
-    /** 根据 traceId 构造追踪系统链接（可改为实际地址） */
-    function traceLink(traceId) {
-      return `/trace/${encodeURIComponent(traceId)}`;
-    }
-
-    // -----------------------------
-    // 数据加载：服务列表、日志、直方图
-    // -----------------------------
-    /** 加载服务列表（支持 env 参数） */
-    async function loadServices() {
+    // Actions
+    const loadServices = async () => {
       try {
         const res = await getServices({env: filters.env});
-        // 兼容未严格返回 data.data 的情况
         services.value = res?.data || res || [];
       } catch (e) {
-        console.warn('loadServices error', e);
         services.value = [];
       }
-    }
+    };
 
-    // 已移除静态查询模式
-
-    // -----------------------------
-    // 实时 WebSocket 连接
-    // -----------------------------
-    function connectSocket() {
+    const connectSocket = () => {
       try {
         const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
         const url = `${scheme}://${location.host}/ws`;
@@ -349,235 +408,67 @@ export default {
       } catch (e) {
         ui.wsConnected = false;
       }
-    }
+    };
 
-    /** 处理单条实时日志（客户端过滤 + 限量） */
-    function handleRealtimeLog(logItem) {
-      // 客户端基础过滤：关键字匹配（可扩展）
-      if (filters.keyword && !JSON.stringify(logItem).toLowerCase().includes(filters.keyword.toLowerCase())) return;
+    const handleRealtimeLog = (logItem) => {
       realtimeLogs.value.unshift(logItem);
-      console.log('logItem', logItem);
-      ui.realtimeCount++;
       if (realtimeLogs.value.length > ui.realtimeLimit) realtimeLogs.value.length = ui.realtimeLimit;
-    }
+    };
 
-    // 已移除模式切换
-
-    // -----------------------------
-    // 交互事件
-    // -----------------------------
-    function onEnvChange() {
+    const onEnvChange = () => {
       loadServices();
-    }
+    };
 
-    function onServiceNodeClick(node) {
+    const onServiceNodeClick = (node) => {
       if (node && node.value) {
         filters.service = node.value;
       }
-    }
+    };
 
-    /** 行点击打开详情 */
-    function openDetail(row) {
+    const openDetail = (row) => {
       ui.detail = row;
       ui.detailVisible = true;
+    };
+
+    const copyJson = (row) => {
+      const text = JSON.stringify(row, null, 2);
+      navigator.clipboard.writeText(text).then(() => {
+        ElementPlus.ElMessage.success('JSON Copied');
+      });
     }
 
     onMounted(() => {
-      // 初始化数据
       loadServices();
-      // 建立 WS（如果后端未就绪，connectSocket 会自动重连）
       connectSocket();
-      // 初始化完成
     });
 
-    // 已移除静态查询刷新 watch
-
-    // 返回给模板使用的变量和方法
     return {
       ui, filters, realtimeLogs, services, levels,
-      displayLogs, computedServiceTree, treeProps,
-      formatTimestamp, prettyJson, levelBadgeClass, traceLink,
-      loadServices, connectSocket,
-      onEnvChange, onServiceNodeClick,
-      openDetail
+      displayLogs, computedServiceTree, treeProps, uiServiceFilter,
+      formatTimestamp, prettyJson, levelBadgeClass, levelColorDot,
+      loadServices, onEnvChange, onServiceNodeClick, openDetail, copyJson
     };
   }
-}
+};
 </script>
 
-<style lang="less" scoped>
-/**
-         * 全局视觉变量
-         * 可根据公司设计语言调整对应颜色值
-         */
-:root {
-  --bg-page: #f5f7fb;
-  --bg-card: #ffffff;
-  --border: #e6edf3;
-  --text: #0f1722;
-  --muted: #6b7280;
-  --primary: #3b82f6;
-  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.04);
-  --shadow-md: 0 6px 18px rgba(16, 24, 40, 0.06);
-  --radius: 8px;
+<style scoped>
+/* Element Plus Tree Customization */
+:deep(.el-tree) {
+  background: transparent;
 }
 
-/* Reset & 基础布局 */
-* {
-  box-sizing: border-box;
-}
-
-.app {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-/* 主布局：侧栏 + 内容 */
-.layout {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  /* 让内部滚动容器正确生效 */
-  overflow: hidden;
-}
-
-/* 侧栏 */
-.sidebar {
-  width: 260px;
-  background: var(--bg-card);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  transition: width 0.18s ease;
-  padding: 16px;
-  gap: 16px;
-  box-shadow: var(--shadow-sm);
-}
-
-.sidebar.collapsed {
-  width: 0;
-  padding: 0;
-  overflow: hidden;
-  border: none;
-  box-shadow: none;
-}
-
-/* 内容区 */
-.content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  /* 允许子元素溢出滚动 */
-}
-
-/* 筛选条 */
-.filter-bar {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 16px 20px;
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  flex-wrap: wrap;
-}
-
-/* 图表容器 */
-.chart-area {
-  height: 160px;
-  padding: 16px 20px;
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border);
-  transition: height 0.18s ease, padding 0.18s ease;
-}
-
-.chart-area.collapsed {
-  height: 0;
-  padding: 0;
-  border: none;
-  overflow: hidden;
-}
-
-/* 日志表格外壳：会撑开剩余高度并允许滚动 */
-.logs-shell {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-}
-
-/* 表格本体占据剩余空间并滚动 */
-.table-wrap {
-  flex: 1;
-  overflow: auto;
-  padding: 16px;
-  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.02));
-}
-
-/* 页脚分页区域 */
-.footer-bar {
-  padding: 16px 20px;
-  background: var(--bg-card);
-  border-top: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-/* 视觉辅助小组件 */
-.pill {
-  padding: 6px 10px;
+:deep(.el-tree-node__content) {
+  height: 32px;
   border-radius: 6px;
-  font-weight: 600;
-  font-size: 13px;
-  color: #fff;
-  display: inline-block;
 }
 
-.pill-trace {
-  background: #374151;
+:deep(.el-tree-node__content:hover) {
+  background-color: #f1f5f9; /* slate-100 */
 }
 
-.pill-debug {
-  background: #2563eb;
-}
-
-.pill-info {
-  background: #059669;
-}
-
-.pill-warn {
-  background: #d97706;
-}
-
-.pill-error {
-  background: #dc2626;
-}
-
-/* 代码/JSON 高亮展示 */
-.mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Consolas",
-  monospace;
-  font-size: 14px;
-}
-
-pre.json {
-  white-space: pre-wrap;
-  word-break: break-word;
-  margin: 0;
-}
-
-/* 响应式：窄屏时隐藏侧栏 */
-@media (max-width: 880px) {
-  .sidebar {
-    display: none;
-  }
-
-  .filter-bar {
-    padding: 12px;
-  }
+:deep(.el-tree-node.is-current > .el-tree-node__content) {
+  background-color: #eef2ff; /* indigo-50 */
+  color: #4f46e5;
 }
 </style>

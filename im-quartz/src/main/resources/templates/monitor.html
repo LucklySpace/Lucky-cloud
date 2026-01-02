@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>系统监控 - 任务调度中心</title>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+<div th:replace="~{fragments/nav :: nav}"></div>
+
+<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900 tracking-tight">系统监控</h1>
+            <p class="mt-2 text-sm text-slate-500">实时监控集群状态与任务分片情况。</p>
+        </div>
+        <div class="flex items-center space-x-2 text-sm text-slate-500 bg-white px-4 py-2 rounded-lg shadow-sm border border-slate-200">
+            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            <span>系统运行正常</span>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Card 1 -->
+        <div class="bg-white rounded-xl shadow-lg p-6 border border-slate-100 hover:shadow-xl transition-shadow duration-300 relative overflow-hidden group">
+            <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full bg-indigo-50 opacity-50 transition-transform group-hover:scale-110"></div>
+            <div class="relative z-10 flex justify-between items-start">
+                <div>
+                    <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">当前分片索引</h3>
+                    <div class="text-3xl font-bold text-indigo-600" id="shardingItem">-</div>
+                </div>
+                <div class="bg-indigo-100 p-2 rounded-lg">
+                    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" stroke-linecap="round" stroke-linejoin="round"
+                              stroke-width="2"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4 text-xs text-slate-400">当前节点分配的ID</div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="bg-white rounded-xl shadow-lg p-6 border border-slate-100 hover:shadow-xl transition-shadow duration-300 relative overflow-hidden group">
+            <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full bg-blue-50 opacity-50 transition-transform group-hover:scale-110"></div>
+            <div class="relative z-10 flex justify-between items-start">
+                <div>
+                    <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">分片总数</h3>
+                    <div class="text-3xl font-bold text-blue-600" id="shardingTotal">-</div>
+                </div>
+                <div class="bg-blue-100 p-2 rounded-lg">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" stroke-linecap="round" stroke-linejoin="round"
+                              stroke-width="2"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4 text-xs text-slate-400">集群总节点数</div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="bg-white rounded-xl shadow-lg p-6 border border-slate-100 hover:shadow-xl transition-shadow duration-300 relative overflow-hidden group">
+            <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full bg-emerald-50 opacity-50 transition-transform group-hover:scale-110"></div>
+            <div class="relative z-10 flex justify-between items-start">
+                <div>
+                    <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">系统状态</h3>
+                    <div class="text-3xl font-bold text-emerald-500">Running</div>
+                </div>
+                <div class="bg-emerald-100 p-2 rounded-lg">
+                    <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"
+                              stroke-width="2"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4 text-xs text-slate-400">所有服务运行正常</div>
+        </div>
+
+        <!-- Card 4 (Time) -->
+        <div class="bg-white rounded-xl shadow-lg p-6 border border-slate-100 hover:shadow-xl transition-shadow duration-300 relative overflow-hidden group">
+            <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 rounded-full bg-amber-50 opacity-50 transition-transform group-hover:scale-110"></div>
+            <div class="relative z-10 flex justify-between items-start">
+                <div>
+                    <h3 class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Server Time</h3>
+                    <div class="text-lg font-mono font-bold text-amber-600 truncate" id="server-time">Loading...</div>
+                </div>
+                <div class="bg-amber-100 p-2 rounded-lg">
+                    <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"
+                              stroke-width="2"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4 text-xs text-slate-400">集群统一时间</div>
+        </div>
+    </div>
+
+    <!-- Cluster Status -->
+    <div class="bg-white rounded-xl shadow-lg p-8 mb-8 border border-slate-100">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+            <h2 class="text-xl font-bold text-slate-800">集群分片状态</h2>
+            <div class="mt-2 md:mt-0 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-semibold">
+                当前节点负责 1/<span id="total-nodes">-</span> 分片
+            </div>
+        </div>
+
+        <div class="relative pt-1">
+            <div class="flex mb-2 items-center justify-between">
+                <div>
+                    <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-indigo-600 bg-indigo-200">
+                        Task Distribution
+                    </span>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs font-semibold inline-block text-indigo-600"
+                          id="shard-text">Waiting for data...</span>
+                </div>
+            </div>
+            <div class="overflow-hidden h-4 mb-4 text-xs flex rounded bg-indigo-100 shadow-inner relative">
+                <!-- Segments will be drawn here or just one bar for current node -->
+                <div class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-indigo-500 transition-all duration-500 ease-out relative" id="shard-bar"
+                     style="width:0%"></div>
+            </div>
+        </div>
+
+        <div class="mt-8">
+            <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4 border-l-4 border-indigo-500 pl-3">
+                在线节点列表</h3>
+            <div class="overflow-hidden rounded-lg border border-slate-200">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                            scope="col">
+                            Service ID
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                            scope="col">
+                            Host Address
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                            scope="col">
+                            Port
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                            scope="col">
+                            Status
+                        </th>
+                    </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-slate-200" id="instance-list">
+                    <!-- JS will populate -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mt-6 flex items-start space-x-2 text-sm text-slate-500 bg-slate-50 p-4 rounded-lg">
+            <svg class="w-5 h-5 text-indigo-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                 viewBox="0 0 24 24">
+                <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2"></path>
+            </svg>
+            <p>Lucky-Cloud Quartz
+                采用无中心化设计，任务会根据分片总数取模分配到不同节点执行。当集群节点数量发生变化（上线/下线）时，系统会自动触发重新分片，确保任务负载均衡。</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    function fetchClusterInfo() {
+        fetch('/monitor/cluster-info')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('shardingItem').innerText = data.shardingItem;
+                document.getElementById('shardingTotal').innerText = data.shardingTotal;
+                document.getElementById('total-nodes').innerText = data.shardingTotal;
+                document.getElementById('server-time').innerText = data.serverTime;
+
+                // Visual bar
+                if (data.shardingTotal > 0) {
+                    const width = (100 / data.shardingTotal);
+                    const left = (data.shardingItem * width);
+
+                    const bar = document.getElementById('shard-bar');
+                    bar.style.width = width + '%';
+                    bar.style.marginLeft = left + '%'; // Use margin for offset
+
+                    document.getElementById('shard-text').innerText = `Node ${data.shardingItem + 1} of ${data.shardingTotal}`;
+                }
+
+                // Instance List
+                const list = document.getElementById('instance-list');
+                list.innerHTML = '';
+                if (data.instances) {
+                    data.instances.forEach(ins => {
+                        const row = `
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">${ins.serviceId}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-mono">${ins.host}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-mono">${ins.port}</td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        Active
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+                        list.innerHTML += row;
+                    });
+                }
+            })
+            .catch(err => console.error(err));
+    }
+
+
+    fetchClusterInfo();
+    setInterval(fetchClusterInfo, 5000);
+</script>
+
+</body>
+</html>

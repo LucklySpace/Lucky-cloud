@@ -1,0 +1,73 @@
+server:
+  port: 9090
+
+spring:
+  application:
+    name: im-quartz
+  banner:
+    location: classpath:banner.txt
+  threads:
+    virtual:
+      enabled: true  # 开启虚拟线程
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+      config:
+        server-addr: 127.0.0.1:8848
+        file-extension: yaml
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://127.0.0.1:5432/im-core
+    username: postgres # 数据库账号
+    password: 123456 # 数据库密码
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: always
+    properties:
+      org:
+        quartz:
+          scheduler:
+            instanceName: LuckyQuartz
+            instanceId: AUTO
+          jobStore:
+            driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+            tablePrefix: QRTZ_
+            isClustered: true
+            clusterCheckinInterval: 10000
+            misfireThreshold: 60000
+          threadPool:
+            class: org.quartz.simpl.SimpleThreadPool
+            threadCount: 20
+            threadPriority: 5
+            threadsInheritContextClassLoaderOfInitializingThread: true
+
+# TODO: log settings
+# 日志与管道配置
+logging:
+  config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件
+  level:
+    com.xy.lucky.*: info
+    org.springframework.*: warn
+    org.quartz.*: info
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html

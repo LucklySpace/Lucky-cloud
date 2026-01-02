@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>登录 - 任务调度中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+</head>
+<body class="bg-gradient-to-br from-indigo-900 via-slate-800 to-slate-900 flex items-center justify-center h-screen">
+
+<div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-300 hover:scale-105">
+    <div class="flex justify-center mb-6">
+        <div class="bg-indigo-600 p-3 rounded-xl shadow-lg">
+            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"
+                      stroke-width="2"></path>
+            </svg>
+        </div>
+    </div>
+    <h1 class="text-3xl font-bold text-center mb-2 text-gray-800">Lucky Cloud</h1>
+    <p class="text-center text-gray-500 mb-8 text-sm">分布式任务调度中心</p>
+
+    <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded mb-6 text-sm flex items-center"
+         th:if="${param.error}">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"
+                  stroke-width="2"></path>
+        </svg>
+        <span>用户名或密码错误</span>
+    </div>
+    <div class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded mb-6 text-sm flex items-center"
+         th:if="${param.logout}">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+        </svg>
+        <span>您已安全退出登录</span>
+    </div>
+
+    <form action="/login" class="space-y-6" method="post">
+        <div>
+            <label class="block text-gray-700 text-sm font-semibold mb-2" for="username">用户名</label>
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-linecap="round" stroke-linejoin="round"
+                            stroke-width="2"></path></svg>
+                </span>
+                <input class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-colors"
+                       id="username" name="username" placeholder="输入用户名" type="text">
+            </div>
+        </div>
+        <div>
+            <label class="block text-gray-700 text-sm font-semibold mb-2" for="password">密码</label>
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round"
+                            stroke-width="2"></path></svg>
+                </span>
+                <input class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-colors"
+                       id="password" name="password" placeholder="输入密码" type="password">
+            </div>
+        </div>
+
+        <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 transform hover:-translate-y-0.5 shadow-lg"
+                type="submit">
+            登 录
+        </button>
+    </form>
+
+    <div class="mt-8 pt-6 border-t border-gray-100 text-center">
+        <p class="text-gray-400 text-xs">
+            &copy; 2024 Lucky Cloud. All rights reserved.
+        </p>
+    </div>
+</div>
+
+</body>
+</html>

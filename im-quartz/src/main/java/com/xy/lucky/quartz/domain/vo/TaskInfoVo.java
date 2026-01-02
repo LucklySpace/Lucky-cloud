@@ -3,6 +3,7 @@ package com.xy.lucky.quartz.domain.vo;
 import com.xy.lucky.quartz.domain.enums.ConcurrencyStrategy;
 import com.xy.lucky.quartz.domain.enums.ScheduleType;
 import com.xy.lucky.quartz.domain.enums.TaskStatus;
+import com.xy.lucky.quartz.domain.enums.TriggerType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -48,6 +49,16 @@ public class TaskInfoVo {
     @Schema(description = "并发策略")
     @NotNull(message = "并发策略不能为空")
     private ConcurrencyStrategy concurrencyStrategy;
+
+    @Schema(description = "触发类型")
+    @NotNull(message = "触发类型不能为空")
+    private TriggerType triggerType = TriggerType.LOCAL;
+
+    @Schema(description = "目标应用名称(Remote模式)")
+    private String appName;
+
+    @Schema(description = "任务处理器名称(Remote模式)")
+    private String jobHandler;
 
     @Schema(description = "重试次数")
     private Integer retryCount = 0;

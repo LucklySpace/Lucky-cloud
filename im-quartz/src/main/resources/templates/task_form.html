@@ -113,13 +113,25 @@
                     </div>
 
                     <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">触发类型 <span
+                                class="text-red-500">*</span></label>
+                        <select class="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm transition-all duration-200"
+                                id="triggerType" onchange="toggleTriggerFields()"
+                                th:field="*{triggerType}">
+                            <option value="LOCAL">本地任务 (Local)</option>
+                            <option value="REMOTE">远程任务 (Remote)</option>
+                        </select>
+                    </div>
+
+                    <div id="localFields">
                         <label class="block text-sm font-medium text-slate-700 mb-1">执行类 <span
                                 class="text-red-500">*</span></label>
                         <div class="relative rounded-md shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <span class="text-slate-400 sm:text-sm">class</span>
                             </div>
-                            <input class="block w-full pl-12 rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-mono transition-all duration-200" placeholder="com.example.MyJob 或 beanName" required
+                            <input class="block w-full pl-12 rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-mono transition-all duration-200"
+                                   placeholder="com.example.MyJob 或 beanName"
                                    th:classappend="${#fields.hasErrors('jobClass')} ? 'border-red-300 focus:border-red-500 focus:ring-red-500'"
                                    th:field="*{jobClass}"
                                    type="text">
@@ -133,6 +145,29 @@
                         </p>
                         <p class="text-red-500 text-xs mt-1" th:errors="*{jobClass}"
                            th:if="${#fields.hasErrors('jobClass')}"></p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="remoteFields" style="display:none;">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">目标应用 (AppName) <span
+                                    class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <input class="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                       list="appNameList"
+                                       placeholder="选择或输入应用名称 (e.g. order-service)"
+                                       th:field="*{appName}" type="text">
+                                <datalist id="appNameList">
+                                    <option th:each="app : ${appNames}" th:value="${app}"></option>
+                                </datalist>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">任务处理器 (@LuckyJob) <span
+                                    class="text-red-500">*</span></label>
+                            <input class="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                   placeholder="e.g. orderTimeoutJob"
+                                   th:field="*{jobHandler}" type="text">
+                        </div>
                     </div>
 
                     <div>
@@ -283,6 +318,38 @@
 </div>
 
 <script>
+    function toggleTriggerFields() {
+        const type = document.getElementById('triggerType').value;
+        const localFields = document.getElementById('localFields');
+        const remoteFields = document.getElementById('remoteFields');
+
+        const jobClass = document.getElementById('jobClass');
+        const appName = document.getElementById('appName');
+        const jobHandler = document.getElementById('jobHandler');
+
+        if (type === 'LOCAL') {
+            localFields.style.display = 'block';
+            remoteFields.style.display = 'none';
+
+            if (jobClass) jobClass.setAttribute('required', '');
+            if (appName) appName.removeAttribute('required');
+            if (jobHandler) jobHandler.removeAttribute('required');
+        } else {
+            localFields.style.display = 'none';
+            remoteFields.style.display = 'grid'; // grid for 2 columns
+
+            if (jobClass) jobClass.removeAttribute('required');
+            if (appName) appName.setAttribute('required', '');
+            if (jobHandler) jobHandler.setAttribute('required', '');
+        }
+    }
+
+    // Init on load
+    document.addEventListener('DOMContentLoaded', function () {
+        toggleScheduleFields();
+        toggleTriggerFields();
+    });
+
     function toggleScheduleFields() {
         const type = document.getElementById('scheduleType').value;
         const cronField = document.getElementById('cronField');

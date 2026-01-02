@@ -30,6 +30,7 @@
         <module>im-starter-mq</module>
         <module>im-starter-logging</module>
         <module>im-starter-security</module>
+        <module>im-starter-job</module>
     </modules>
 
     <properties>

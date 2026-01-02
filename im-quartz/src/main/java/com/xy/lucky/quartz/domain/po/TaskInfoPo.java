@@ -3,19 +3,16 @@ package com.xy.lucky.quartz.domain.po;
 import com.xy.lucky.quartz.domain.enums.ConcurrencyStrategy;
 import com.xy.lucky.quartz.domain.enums.ScheduleType;
 import com.xy.lucky.quartz.domain.enums.TaskStatus;
+import com.xy.lucky.quartz.domain.enums.TriggerType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.Data;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
 @Data
 @Entity
 @Table(name = "im_quartz_task_info")
-@EntityListeners(AuditingEntityListener.class)
 @Schema(description = "任务信息实体")
 public class TaskInfoPo {
 
@@ -35,9 +32,20 @@ public class TaskInfoPo {
     @Schema(description = "任务描述")
     private String description;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     @Schema(description = "任务执行类全限定名或Bean名称")
     private String jobClass;
+
+    @Column(nullable = false)
+    @Schema(description = "触发类型(LOCAL/REMOTE)")
+    private TriggerType triggerType = TriggerType.LOCAL;
+
+    @Schema(description = "目标应用名称(Remote模式)")
+    private String appName;
+
+    @Schema(description = "任务处理器名称(Remote模式)")
+    private String jobHandler;
+
 
     @Schema(description = "Cron表达式")
     private String cronExpression;
@@ -45,17 +53,14 @@ public class TaskInfoPo {
     @Schema(description = "执行间隔(毫秒)")
     private Long repeatInterval;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Schema(description = "调度类型(CRON/FIXED_RATE/FIXED_DELAY)")
     private ScheduleType scheduleType;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Schema(description = "任务状态(RUNNING/PAUSED/STOPPED)")
     private TaskStatus status;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Schema(description = "并发策略(SERIAL/PARALLEL)")
     private ConcurrencyStrategy concurrencyStrategy;
@@ -76,11 +81,10 @@ public class TaskInfoPo {
     @Schema(description = "任务参数(JSON)")
     private String jobData;
 
-    @CreatedDate
+
     @Schema(description = "创建时间")
     private LocalDateTime createdTime;
 
-    @LastModifiedDate
     @Schema(description = "更新时间")
     private LocalDateTime updatedTime;
 }

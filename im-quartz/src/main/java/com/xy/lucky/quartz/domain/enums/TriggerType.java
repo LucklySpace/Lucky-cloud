@@ -9,16 +9,16 @@ import java.util.Arrays;
 
 @Getter
 @AllArgsConstructor
-public enum ConcurrencyStrategy implements BaseEnum {
-    SERIAL(0, "串行"),
-    PARALLEL(1, "并行");
+public enum TriggerType implements BaseEnum {
+    LOCAL(0, "本地"),
+    REMOTE(1, "远程");
 
     @JsonValue
     private final Integer code;
     private final String desc;
 
     @JsonCreator
-    public static ConcurrencyStrategy of(Integer code) {
+    public static TriggerType of(Integer code) {
         return Arrays.stream(values())
                 .filter(e -> e.code.equals(code))
                 .findFirst()

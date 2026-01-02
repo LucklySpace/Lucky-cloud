@@ -109,9 +109,9 @@ CREATE TABLE QRTZ_BLOB_TRIGGERS
 
 CREATE TABLE QRTZ_CALENDARS
 (
-    SCHED_NAME     VARCHAR(120) NOT NULL,
-    CALENDAR_NAME  VARCHAR(200) NOT NULL,
-    CALENDAR_BYTEA BYTEA        NOT NULL,
+    SCHED_NAME    VARCHAR(120) NOT NULL,
+    CALENDAR_NAME VARCHAR(200) NOT NULL,
+    CALENDAR      BYTEA        NOT NULL,
     PRIMARY KEY (SCHED_NAME, CALENDAR_NAME)
 );
 
@@ -144,8 +144,8 @@ CREATE TABLE QRTZ_SCHEDULER_STATE
 (
     SCHED_NAME        VARCHAR(120) NOT NULL,
     INSTANCE_NAME     VARCHAR(200) NOT NULL,
-    LAST_CHECKIN_TIME BIGINT       NOT NULL,
-    CHECKIN_INTERVAL  BIGINT       NOT NULL,
+    LAST_CHECKIN_TIME BIGINT NOT NULL,
+    CHECKIN_INTERVAL  BIGINT NOT NULL,
     PRIMARY KEY (SCHED_NAME, INSTANCE_NAME)
 );
 
@@ -170,8 +170,8 @@ CREATE INDEX IDX_QRTZ_T_NEXT_FIRE_TIME ON QRTZ_TRIGGERS (SCHED_NAME, NEXT_FIRE_T
 CREATE INDEX IDX_QRTZ_T_NFT_ST ON QRTZ_TRIGGERS (SCHED_NAME, TRIGGER_STATE, NEXT_FIRE_TIME);
 CREATE INDEX IDX_QRTZ_T_NFT_MISFIRE ON QRTZ_TRIGGERS (SCHED_NAME, MISFIRE_INSTR, NEXT_FIRE_TIME);
 CREATE INDEX IDX_QRTZ_T_NFT_ST_MISFIRE ON QRTZ_TRIGGERS (SCHED_NAME, MISFIRE_INSTR, NEXT_FIRE_TIME, TRIGGER_STATE);
-CREATE INDEX IDX_QRTZ_T_NFT_ST_MISFIRE_GRP ON QRTZ_TRIGGERS (SCHED_NAME, MISFIRE_INSTR, NEXT_FIRE_TIME, TRIGGER_GROUP,
-                                                             TRIGGER_STATE);
+CREATE INDEX IDX_QRTZ_T_NFT_ST_MISFIRE_GRP ON QRTZ_TRIGGERS (SCHED_NAME, MISFIRE_INSTR, NEXT_FIRE_TIME, TRIGGER_STATE,
+                                                             TRIGGER_GROUP);
 
 CREATE INDEX IDX_QRTZ_FT_TRIG_INST_NAME ON QRTZ_FIRED_TRIGGERS (SCHED_NAME, INSTANCE_NAME);
 CREATE INDEX IDX_QRTZ_FT_INST_JOB_REQ_RCVRY ON QRTZ_FIRED_TRIGGERS (SCHED_NAME, INSTANCE_NAME, REQUESTS_RECOVERY);
@@ -180,7 +180,97 @@ CREATE INDEX IDX_QRTZ_FT_JG ON QRTZ_FIRED_TRIGGERS (SCHED_NAME, JOB_GROUP);
 CREATE INDEX IDX_QRTZ_FT_T_G ON QRTZ_FIRED_TRIGGERS (SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP);
 CREATE INDEX IDX_QRTZ_FT_TG ON QRTZ_FIRED_TRIGGERS (SCHED_NAME, TRIGGER_GROUP);
 
+-- App Tables
 
--- Application Tables (Optional if using JPA Auto DDL)
--- create table scheduler_task_info ...
--- create table scheduler_task_log ...
+CREATE TABLE IF NOT EXISTS im_quartz_job_registry
+(
+    id
+    BIGSERIAL
+    PRIMARY
+    KEY,
+    app_name
+    VARCHAR
+(
+    255
+) NOT NULL,
+    address VARCHAR
+(
+    255
+) NOT NULL,
+    status INTEGER NOT NULL,
+    update_time TIMESTAMP NULL
+    );
+
+COMMENT
+ON TABLE im_quartz_job_registry IS '执行器注册信息';
+COMMENT
+ON COLUMN im_quartz_job_registry.app_name IS '应用名称';
+COMMENT
+ON COLUMN im_quartz_job_registry.address IS '执行器地址';
+COMMENT
+ON COLUMN im_quartz_job_registry.status IS '状态：0-离线，1-在线';
+COMMENT
+ON COLUMN im_quartz_job_registry.update_time IS '更新时间';
+
+CREATE TABLE IF NOT EXISTS im_quartz_task_info
+(
+    id
+    BIGSERIAL
+    PRIMARY
+    KEY,
+    job_name
+    VARCHAR
+(
+    255
+) NOT NULL UNIQUE,
+    job_group VARCHAR
+(
+    255
+) NOT NULL,
+    description VARCHAR
+(
+    255
+),
+    job_class VARCHAR
+(
+    255
+),
+    trigger_type SMALLINT NOT NULL,
+    app_name VARCHAR
+(
+    255
+),
+    job_handler VARCHAR
+(
+    255
+),
+    cron_expression VARCHAR
+(
+    255
+),
+    repeat_interval BIGINT,
+    schedule_type SMALLINT NOT NULL,
+    status SMALLINT NOT NULL,
+    concurrency_strategy SMALLINT NOT NULL,
+    retry_count INT DEFAULT 0,
+    retry_interval INT DEFAULT 10,
+    timeout INT DEFAULT 0,
+    alarm_email VARCHAR
+(
+    255
+),
+    job_data TEXT,
+    created_time TIMESTAMP,
+    updated_time TIMESTAMP
+    );
+
+COMMENT
+ON TABLE im_quartz_task_info IS '任务信息表';
+COMMENT
+ON COLUMN im_quartz_task_info.trigger_type IS '0-LOCAL, 1-REMOTE';
+COMMENT
+ON COLUMN im_quartz_task_info.schedule_type IS '0-CRON, 1-FIXED_RATE, 2-FIXED_DELAY';
+COMMENT
+ON COLUMN im_quartz_task_info.status IS '0-STOPPED, 1-RUNNING, 2-PAUSED';
+COMMENT
+ON COLUMN im_quartz_task_info.concurrency_strategy IS '0-SERIAL, 1-PARALLEL';

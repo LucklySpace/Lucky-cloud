@@ -21,6 +21,7 @@ public class SecurityConfig {
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico").permitAll()
                         .requestMatchers("/actuator/**").permitAll() // For demo purposes
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/doc.html").permitAll()
+                        .requestMatchers("/api/registry/**").permitAll() // Allow client registry
                         .requestMatchers("/login").permitAll()
                         .requestMatchers("/api/**").hasAnyRole("ADMIN", "OPS")
                         .requestMatchers("/**").hasAnyRole("ADMIN", "OPS") // UI pages

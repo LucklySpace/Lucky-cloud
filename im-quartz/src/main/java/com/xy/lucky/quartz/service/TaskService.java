@@ -1,10 +1,12 @@
 package com.xy.lucky.quartz.service;
 
-import com.xy.lucky.quartz.domain.po.TaskInfoPo;
 import com.xy.lucky.quartz.domain.enums.ConcurrencyStrategy;
 import com.xy.lucky.quartz.domain.enums.ScheduleType;
 import com.xy.lucky.quartz.domain.enums.TaskStatus;
+import com.xy.lucky.quartz.domain.enums.TriggerType;
+import com.xy.lucky.quartz.domain.po.TaskInfoPo;
 import com.xy.lucky.quartz.job.ParallelJob;
+import com.xy.lucky.quartz.job.RemoteHttpJob;
 import com.xy.lucky.quartz.job.SerialJob;
 import com.xy.lucky.quartz.repository.TaskInfoRepository;
 import lombok.RequiredArgsConstructor;
@@ -176,8 +178,13 @@ public class TaskService {
      * 调度任务
      */
     private void scheduleJob(TaskInfoPo taskInfoPo) throws SchedulerException {
-        Class<? extends Job> jobClass = taskInfoPo.getConcurrencyStrategy() == ConcurrencyStrategy.SERIAL
-                ? SerialJob.class : ParallelJob.class;
+        Class<? extends Job> jobClass;
+        if (taskInfoPo.getTriggerType() == TriggerType.REMOTE) {
+            jobClass = RemoteHttpJob.class;
+        } else {
+            jobClass = taskInfoPo.getConcurrencyStrategy() == ConcurrencyStrategy.SERIAL
+                    ? SerialJob.class : ParallelJob.class;
+        }
 
         JobDetail jobDetail = JobBuilder.newJob(jobClass)
                 .withIdentity(taskInfoPo.getJobName(), taskInfoPo.getJobGroup())

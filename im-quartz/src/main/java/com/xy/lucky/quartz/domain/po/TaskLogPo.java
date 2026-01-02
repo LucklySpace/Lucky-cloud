@@ -3,14 +3,12 @@ package com.xy.lucky.quartz.domain.po;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.Data;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
 @Data
 @Entity
 @Table(name = "im_quartz_task_log")
-@EntityListeners(AuditingEntityListener.class)
 @Schema(description = "任务执行日志")
 public class TaskLogPo {
 

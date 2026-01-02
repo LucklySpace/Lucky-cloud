@@ -148,7 +148,7 @@
 <!-- Modal -->
 <div class="fixed inset-0 bg-slate-900 bg-opacity-75 overflow-y-auto h-full w-full hidden backdrop-blur-sm transition-opacity z-50"
      id="taskModal">
-    <div class="relative top-10 mx-auto p-0 border-0 w-full max-w-2xl shadow-2xl rounded-xl bg-white transform transition-all">
+    <div class="relative top-10 mx-auto p-0 border-0 w-full max-w-2xl shadow-2xl rounded-xl bg-white transform transition-all mb-10">
         <div class="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-slate-50 rounded-t-xl">
             <h3 class="text-lg font-bold text-slate-800" id="modalTitle">新建任务</h3>
             <button class="text-slate-400 hover:text-slate-600 transition-colors rounded-full p-1 hover:bg-slate-200"
@@ -160,135 +160,172 @@
             </button>
         </div>
 
-        <form class="p-6" id="taskForm">
+        <form class="p-6 space-y-6" id="taskForm" onsubmit="return false;">
             <input id="taskId" name="id" type="hidden">
+            <input id="taskStatus" name="status" type="hidden">
 
-            <div class="grid grid-cols-2 gap-6 mb-5">
-                <div>
-                    <label class="block text-slate-700 text-sm font-semibold mb-2">任务名称 <span
-                            class="text-red-500">*</span></label>
-                    <input class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow" id="jobName" name="jobName"
-                           placeholder="例如: OrderCancelJob"
-                           required type="text">
+            <!-- Basic Info -->
+            <div class="space-y-4">
+                <h4 class="text-sm font-semibold text-slate-500 uppercase tracking-wider border-b pb-1">基本信息</h4>
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-slate-700 text-sm font-medium mb-1">任务名称 <span
+                                class="text-red-500">*</span></label>
+                        <input class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+                               id="jobName" name="jobName" placeholder="例如: OrderCancelJob" required type="text">
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 text-sm font-medium mb-1">任务分组 <span
+                                class="text-red-500">*</span></label>
+                        <input class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+                               id="jobGroup" name="jobGroup" required type="text" value="DEFAULT">
+                    </div>
                 </div>
                 <div>
-                    <label class="block text-slate-700 text-sm font-semibold mb-2">任务分组 <span
+                    <label class="block text-slate-700 text-sm font-medium mb-1">任务描述</label>
+                    <textarea
+                            class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+                            id="description" name="description" placeholder="简要描述任务的功能" rows="2"></textarea>
+                </div>
+            </div>
+
+            <!-- Execution Config -->
+            <div class="space-y-4">
+                <h4 class="text-sm font-semibold text-slate-500 uppercase tracking-wider border-b pb-1">执行配置</h4>
+
+                <div>
+                    <label class="block text-slate-700 text-sm font-medium mb-1">触发类型 <span
                             class="text-red-500">*</span></label>
-                    <input class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow" id="jobGroup" name="jobGroup"
-                           required
-                           type="text" value="DEFAULT">
+                    <select class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow bg-white"
+                            id="triggerType" name="triggerType" onchange="toggleTriggerFields()">
+                        <option value="LOCAL">本地任务 (Local)</option>
+                        <option value="REMOTE">远程任务 (Remote)</option>
+                    </select>
                 </div>
-            </div>
 
-            <div class="mb-5">
-                <label class="block text-slate-700 text-sm font-semibold mb-2">任务描述</label>
-                <textarea class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow" id="description"
-                          name="description"
-                          placeholder="简要描述任务的功能" rows="2"></textarea>
-            </div>
-
-            <div class="mb-5">
-                <label class="block text-slate-700 text-sm font-semibold mb-2">执行类 (全类名/Bean名) <span
-                        class="text-red-500">*</span></label>
-                <input class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow font-mono text-sm" id="jobClass" name="jobClass"
-                       placeholder="com.example.job.MyJob"
-                       required type="text">
-            </div>
-
-            <div class="mb-5">
-                <label class="block text-slate-700 text-sm font-semibold mb-2">任务参数 (JSON)</label>
-                <textarea class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow font-mono text-sm" id="jobData"
-                          name="jobData"
-                          placeholder='{"key": "value"}' rows="2"></textarea>
-            </div>
-
-            <div class="mb-5 pt-4 border-t border-slate-100">
-                <label class="block text-slate-700 text-sm font-semibold mb-2">调度类型 <span
-                        class="text-red-500">*</span></label>
-                <select class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow bg-white" id="scheduleType" name="scheduleType"
-                        onchange="toggleScheduleFields()">
-                    <option value="CRON">Cron 表达式</option>
-                    <option value="FIXED_RATE">固定频率 (ms)</option>
-                    <option value="FIXED_DELAY">固定延迟 (ms)</option>
-                </select>
-            </div>
-
-            <div class="grid grid-cols-2 gap-6 mb-5">
-                <div id="cronField">
-                    <label class="block text-slate-700 text-sm font-semibold mb-2">Cron 表达式 <span
+                <div id="localFields">
+                    <label class="block text-slate-700 text-sm font-medium mb-1">执行类 (全类名/Bean名) <span
                             class="text-red-500">*</span></label>
-                    <input class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow font-mono text-sm" id="cronExpression" name="cronExpression"
-                           placeholder="0/5 * * * * ?"
-                           type="text">
+                    <div class="relative">
+                        <input class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow font-mono text-sm"
+                               id="jobClass" name="jobClass" placeholder="com.example.job.MyJob">
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 text-xs">
+                            Local
+                        </div>
+                    </div>
                 </div>
-                <div id="intervalField" style="display:none;">
-                    <label class="block text-slate-700 text-sm font-semibold mb-2">时间间隔 (ms) <span
+
+                <div class="grid grid-cols-2 gap-6" id="remoteFields" style="display:none;">
+                    <div>
+                        <label class="block text-slate-700 text-sm font-medium mb-1">目标应用 (AppName) <span
+                                class="text-red-500">*</span></label>
+                        <input class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+                               id="appName" list="appNameList" name="appName" placeholder="选择或输入应用名称">
+                        <datalist id="appNameList">
+                            <!-- Populated by JS -->
+                        </datalist>
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 text-sm font-medium mb-1">任务处理器 (@LuckyJob) <span
+                                class="text-red-500">*</span></label>
+                        <input class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+                               id="jobHandler" name="jobHandler" placeholder="e.g. orderTimeoutJob">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-700 text-sm font-medium mb-1">任务参数 (JSON)</label>
+                    <textarea
+                            class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow font-mono text-sm bg-slate-50"
+                            id="jobData" name="jobData" placeholder='{"key": "value"}' rows="2"></textarea>
+                </div>
+            </div>
+
+            <!-- Schedule Config -->
+            <div class="space-y-4">
+                <h4 class="text-sm font-semibold text-slate-500 uppercase tracking-wider border-b pb-1">调度策略</h4>
+
+                <div>
+                    <label class="block text-slate-700 text-sm font-medium mb-1">调度类型 <span
                             class="text-red-500">*</span></label>
-                    <input class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow" id="repeatInterval" name="repeatInterval"
-                           type="number">
+                    <select class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow bg-white"
+                            id="scheduleType" name="scheduleType" onchange="toggleScheduleFields()">
+                        <option value="CRON">Cron 表达式</option>
+                        <option value="FIXED_RATE">固定频率 (Fixed Rate)</option>
+                        <option value="FIXED_DELAY">固定延迟 (Fixed Delay)</option>
+                    </select>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <div id="cronField">
+                        <label class="block text-slate-700 text-sm font-medium mb-1">Cron 表达式 <span
+                                class="text-red-500">*</span></label>
+                        <div class="flex space-x-2">
+                            <input class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow font-mono text-sm"
+                                   id="cronExpression" name="cronExpression" placeholder="0/5 * * * * ?">
+                            <a class="inline-flex items-center px-3 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50"
+                               href="https://cron.qqe2.com/" target="_blank">生成</a>
+                        </div>
+                    </div>
+                    <div id="intervalField" style="display:none;">
+                        <label class="block text-slate-700 text-sm font-medium mb-1">时间间隔 (ms) <span
+                                class="text-red-500">*</span></label>
+                        <input class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow"
+                               id="repeatInterval" name="repeatInterval" placeholder="5000" type="number">
+                    </div>
                 </div>
             </div>
 
-            <div class="mb-5">
-                <label class="block text-slate-700 text-sm font-semibold mb-2">并发策略</label>
-                <div class="flex space-x-6 mt-2">
-                    <label class="inline-flex items-center cursor-pointer">
-                        <input checked class="form-radio text-indigo-600 focus:ring-indigo-500 h-4 w-4" name="concurrencyStrategy"
-                               type="radio" value="SERIAL">
-                        <span class="ml-2 text-slate-700">串行 (等待上一次完成)</span>
-                    </label>
-                    <label class="inline-flex items-center cursor-pointer">
-                        <input class="form-radio text-indigo-600 focus:ring-indigo-500 h-4 w-4" name="concurrencyStrategy" type="radio"
-                               value="PARALLEL">
-                        <span class="ml-2 text-slate-700">并行 (忽略上一次状态)</span>
-                    </label>
-                </div>
-            </div>
+            <!-- Advanced Config -->
+            <div class="space-y-4">
+                <h4 class="text-sm font-semibold text-slate-500 uppercase tracking-wider border-b pb-1">高级配置</h4>
 
-            <div class="mb-5 pt-4 border-t border-slate-100">
-                <h3 class="block text-slate-700 text-sm font-bold mb-4 flex items-center">
-                    <svg class="w-4 h-4 mr-1 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-linecap="round" stroke-linejoin="round"
-                              stroke-width="2"></path>
-                    </svg>
-                    容错与告警
-                </h3>
+                <div>
+                    <label class="block text-slate-700 text-sm font-medium mb-2">并发策略</label>
+                    <div class="flex space-x-6">
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input checked class="form-radio text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                                   name="concurrencyStrategy" type="radio" value="SERIAL">
+                            <span class="ml-2 text-slate-700">串行 (等待上一次完成)</span>
+                        </label>
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input class="form-radio text-indigo-600 focus:ring-indigo-500 h-4 w-4"
+                                   name="concurrencyStrategy" type="radio" value="PARALLEL">
+                            <span class="ml-2 text-slate-700">并行 (忽略上一次状态)</span>
+                        </label>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-3 gap-4">
                     <div>
                         <label class="block text-slate-600 text-xs font-semibold mb-1">重试次数</label>
-                        <input class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500 outline-none text-sm" id="retryCount" name="retryCount"
-                               type="number"
-                               value="0">
+                        <input class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500 outline-none text-sm"
+                               id="retryCount" name="retryCount" type="number" value="0">
                     </div>
                     <div>
                         <label class="block text-slate-600 text-xs font-semibold mb-1">重试间隔(s)</label>
-                        <input class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500 outline-none text-sm" id="retryInterval" name="retryInterval"
-                               type="number"
-                               value="10">
+                        <input class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500 outline-none text-sm"
+                               id="retryInterval" name="retryInterval" type="number" value="10">
                     </div>
                     <div>
                         <label class="block text-slate-600 text-xs font-semibold mb-1">超时时间(s)</label>
-                        <input class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500 outline-none text-sm" id="timeout" name="timeout"
-                               type="number"
-                               value="0">
+                        <input class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500 outline-none text-sm"
+                               id="timeout" name="timeout" type="number" value="0">
                     </div>
                 </div>
-                <div class="mt-3">
+                <div>
                     <label class="block text-slate-600 text-xs font-semibold mb-1">报警邮件</label>
-                    <input class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500 outline-none text-sm" id="alarmEmail" name="alarmEmail"
-                           placeholder="接收告警通知的邮箱地址"
-                           type="email">
+                    <input class="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-1 focus:ring-indigo-500 outline-none text-sm"
+                           id="alarmEmail" name="alarmEmail" placeholder="接收告警通知的邮箱地址" type="email">
                 </div>
             </div>
 
             <div class="flex justify-end pt-4 border-t border-slate-100 bg-slate-50 -mx-6 -mb-6 px-6 py-4 rounded-b-xl">
-                <button class="mr-3 px-5 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium shadow-sm" onclick="closeModal()"
-                        type="button">
-                    取消
+                <button class="mr-3 px-5 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium shadow-sm"
+                        onclick="closeModal()" type="button">取消
                 </button>
-                <button class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-md" onclick="saveTask()"
-                        type="button">
-                    保存配置
+                <button class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-md"
+                        onclick="submitTask()" type="button">保存配置
                 </button>
             </div>
         </form>
@@ -296,6 +333,22 @@
 </div>
 
 <script>
+    // Load app names on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        fetch('/api/tasks/apps')
+            .then(response => response.json())
+            .then(apps => {
+                const datalist = document.getElementById('appNameList');
+                datalist.innerHTML = '';
+                apps.forEach(app => {
+                    const option = document.createElement('option');
+                    option.value = app;
+                    datalist.appendChild(option);
+                });
+            })
+            .catch(err => console.error('Failed to load app names:', err));
+    });
+
     function toggleScheduleFields() {
         const type = document.getElementById('scheduleType').value;
         const cronField = document.getElementById('cronField');
@@ -310,15 +363,49 @@
         }
     }
 
+    function toggleTriggerFields() {
+        const type = document.getElementById('triggerType').value;
+        const localFields = document.getElementById('localFields');
+        const remoteFields = document.getElementById('remoteFields');
+
+        const jobClass = document.getElementById('jobClass');
+        const appName = document.getElementById('appName');
+        const jobHandler = document.getElementById('jobHandler');
+
+        if (type === 'LOCAL') {
+            localFields.style.display = 'block';
+            remoteFields.style.display = 'none';
+            jobClass.setAttribute('required', '');
+            appName.removeAttribute('required');
+            jobHandler.removeAttribute('required');
+        } else {
+            localFields.style.display = 'none';
+            remoteFields.style.display = 'grid';
+            jobClass.removeAttribute('required');
+            appName.setAttribute('required', '');
+            jobHandler.setAttribute('required', '');
+        }
+    }
+
     function openModal(mode, id) {
-        document.getElementById('taskModal').classList.remove('hidden');
+        const modal = document.getElementById('taskModal');
         const form = document.getElementById('taskForm');
 
+        modal.classList.remove('hidden');
+        
         if (mode === 'new') {
             document.getElementById('modalTitle').innerText = '新建任务';
             form.reset();
             document.getElementById('taskId').value = '';
+            document.getElementById('taskStatus').value = 'STOPPED';
+            // Set defaults
+            document.getElementById('scheduleType').value = 'CRON';
+            document.getElementById('triggerType').value = 'LOCAL';
+            document.getElementById('concurrencyStrategy').value = 'SERIAL'; // This might need radio logic fix
+            document.querySelector('input[name="concurrencyStrategy"][value="SERIAL"]').checked = true;
+            
             toggleScheduleFields();
+            toggleTriggerFields();
         } else {
             document.getElementById('modalTitle').innerText = '编辑任务';
             // Fetch task details
@@ -326,25 +413,34 @@
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('taskId').value = data.id;
+                    document.getElementById('taskStatus').value = data.status;
                     document.getElementById('jobName').value = data.jobName;
                     document.getElementById('jobGroup').value = data.jobGroup;
                     document.getElementById('description').value = data.description || '';
-                    document.getElementById('jobClass').value = data.jobClass;
+                    document.getElementById('jobClass').value = data.jobClass || '';
                     document.getElementById('jobData').value = data.jobData || '';
                     document.getElementById('scheduleType').value = data.scheduleType;
                     document.getElementById('cronExpression').value = data.cronExpression || '';
                     document.getElementById('repeatInterval').value = data.repeatInterval || '';
+                    document.getElementById('triggerType').value = data.triggerType || 'LOCAL';
+                    document.getElementById('appName').value = data.appName || '';
+                    document.getElementById('jobHandler').value = data.jobHandler || '';
                     document.getElementById('retryCount').value = data.retryCount || 0;
                     document.getElementById('retryInterval').value = data.retryInterval || 10;
                     document.getElementById('timeout').value = data.timeout || 0;
                     document.getElementById('alarmEmail').value = data.alarmEmail || '';
 
-                    const radios = document.getElementsByName('concurrencyStrategy');
-                    for (let r of radios) {
-                        if (r.value === data.concurrencyStrategy) r.checked = true;
-                    }
+                    // Radio button for concurrencyStrategy
+                    const cs = data.concurrencyStrategy || 'SERIAL';
+                    document.querySelector(`input[name="concurrencyStrategy"][value="${cs}"]`).checked = true;
 
                     toggleScheduleFields();
+                    toggleTriggerFields();
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('加载任务详情失败');
+                    closeModal();
                 });
         }
     }
@@ -353,18 +449,26 @@
         document.getElementById('taskModal').classList.add('hidden');
     }
 
-    function saveTask() {
+    function submitTask() {
         const form = document.getElementById('taskForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
-
-        const id = document.getElementById('taskId').value;
+        const id = data.id;
         const method = id ? 'PUT' : 'POST';
         const url = id ? '/api/tasks/' + id : '/api/tasks';
 
-        // Validation
-        if (!data.jobName || !data.jobGroup || !data.jobClass) {
-            alert('请填写必填字段');
+        // Validate
+        if (data.scheduleType === 'CRON' && !data.cronExpression) {
+            alert('请输入 Cron 表达式');
+            return;
+        }
+        if (data.scheduleType !== 'CRON' && (!data.repeatInterval || data.repeatInterval <= 0)) {
+            alert('请输入有效的时间间隔');
             return;
         }
 
@@ -379,10 +483,21 @@
                 if (response.ok) {
                     window.location.reload();
                 } else {
-                    alert('保存失败');
+                    response.text().then(text => alert('保存失败: ' + text));
                 }
             })
-            .catch(error => console.error('Error:', error));
+            .catch(err => {
+                console.error(err);
+                alert('保存失败: 网络错误');
+            });
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function (event) {
+        const modal = document.getElementById('taskModal');
+        if (event.target == modal) {
+            closeModal();
+        }
     }
 </script>
 

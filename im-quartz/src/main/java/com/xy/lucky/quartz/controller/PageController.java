@@ -3,15 +3,18 @@ package com.xy.lucky.quartz.controller;
 import com.xy.lucky.quartz.domain.po.TaskInfoPo;
 import com.xy.lucky.quartz.domain.vo.TaskInfoVo;
 import com.xy.lucky.quartz.mapper.TaskMapper;
-import com.xy.lucky.quartz.service.TaskService;
 import com.xy.lucky.quartz.repository.TaskLogRepository;
+import com.xy.lucky.quartz.service.JobRegistryService;
+import com.xy.lucky.quartz.service.TaskService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.quartz.SchedulerException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
 
 @Controller
 @RequiredArgsConstructor
@@ -20,6 +23,7 @@ public class PageController {
     private final TaskService taskService;
     private final TaskLogRepository taskLogRepository;
     private final TaskMapper taskMapper;
+    private final JobRegistryService jobRegistryService;
 
     @GetMapping("/")
     public String index() {
@@ -64,8 +68,8 @@ public class PageController {
     }
 
     @GetMapping("/logs")
-    public String logs(@org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
-                       @org.springframework.web.bind.annotation.RequestParam(defaultValue = "20") int size,
+    public String logs(@RequestParam(defaultValue = "0") int page,
+                       @RequestParam(defaultValue = "20") int size,
                        Model model) {
         model.addAttribute("logs", taskLogRepository.findAll(
                         PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startTime")))
@@ -80,12 +84,13 @@ public class PageController {
 
     // Form Actions
 
-    @org.springframework.web.bind.annotation.PostMapping("/tasks/save")
-    public String saveTask(@jakarta.validation.Valid @org.springframework.web.bind.annotation.ModelAttribute("task") TaskInfoVo taskInfoVo,
-                           org.springframework.validation.BindingResult bindingResult,
-                           Model model) throws org.quartz.SchedulerException {
+    @PostMapping("/tasks/save")
+    public String saveTask(@Valid @ModelAttribute("task") TaskInfoVo taskInfoVo,
+                           BindingResult bindingResult,
+                           Model model) throws SchedulerException {
         if (bindingResult.hasErrors()) {
             model.addAttribute("isNew", taskInfoVo.getId() == null);
+            model.addAttribute("appNames", jobRegistryService.getAllServices());
             return "task_form";
         }
 
@@ -98,26 +103,26 @@ public class PageController {
         return "redirect:/tasks";
     }
 
-    @org.springframework.web.bind.annotation.PostMapping("/tasks/{id}/delete")
-    public String deleteTaskAction(@PathVariable Long id) throws org.quartz.SchedulerException {
+    @PostMapping("/tasks/{id}/delete")
+    public String deleteTaskAction(@PathVariable Long id) throws SchedulerException {
         taskService.deleteTask(id);
         return "redirect:/tasks";
     }
 
-    @org.springframework.web.bind.annotation.PostMapping("/tasks/{id}/start")
-    public String startTaskAction(@PathVariable Long id) throws org.quartz.SchedulerException {
+    @PostMapping("/tasks/{id}/start")
+    public String startTaskAction(@PathVariable Long id) throws SchedulerException {
         taskService.startTask(id);
         return "redirect:/tasks";
     }
 
-    @org.springframework.web.bind.annotation.PostMapping("/tasks/{id}/stop")
-    public String stopTaskAction(@PathVariable Long id) throws org.quartz.SchedulerException {
+    @PostMapping("/tasks/{id}/stop")
+    public String stopTaskAction(@PathVariable Long id) throws SchedulerException {
         taskService.stopTask(id);
         return "redirect:/tasks";
     }
 
-    @org.springframework.web.bind.annotation.PostMapping("/tasks/{id}/trigger")
-    public String triggerTaskAction(@PathVariable Long id) throws org.quartz.SchedulerException {
+    @PostMapping("/tasks/{id}/trigger")
+    public String triggerTaskAction(@PathVariable Long id) throws SchedulerException {
         taskService.triggerTask(id);
         return "redirect:/tasks";
     }

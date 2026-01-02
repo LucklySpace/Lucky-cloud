@@ -1,81 +1,43 @@
 package com.xy.lucky.connect.utils;
 
 import cn.hutool.crypto.digest.DigestUtil;
-import lombok.extern.slf4j.Slf4j;
-import oshi.SystemInfo;
-import oshi.hardware.CentralProcessor;
-import oshi.hardware.ComputerSystem;
-import oshi.hardware.HWDiskStore;
-import oshi.hardware.HardwareAbstractionLayer;
 
+import java.io.File;
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
+import java.lang.management.RuntimeMXBean;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
-/**
- * Machine code utility class for generating unique machine identifiers.
- * Uses OSHI library for cross-platform hardware information retrieval.
- */
-@Slf4j
 public class MachineCodeUtils {
     public static final String WINDOWS = "Windows";
     public static final String LINUX = "Linux";
     public static final String MAC_OS = "Mac OS";
-    public static final String SOLARIS = "Solaris";
-    public static final String UNKNOWN = "Unknown";
 
-    // 缓存操作系统信息
+    // Cache OS info
     private static final String OS = System.getProperty("os.name").toLowerCase();
 
-    // 缓存硬件信息（使用 volatile 保证可见性）
-    private static volatile String cachedMachineCode = null;
+    // Cache hardware info
+    private static String cachedMachineCode = null;
 
-    // 用于双重检查锁定的锁对象
-    private static final Object LOCK = new Object();
-
-    // 延迟初始化 OSHI 对象（避免类加载时失败）
-    private static volatile HardwareAbstractionLayer hardware = null;
-
-    /**
-     * Get or initialize the hardware abstraction layer
-     */
-    private static HardwareAbstractionLayer getHardware() {
-        if (hardware == null) {
-            synchronized (LOCK) {
-                if (hardware == null) {
-                    try {
-                        SystemInfo systemInfo = new SystemInfo();
-                        hardware = systemInfo.getHardware();
-                    } catch (Exception e) {
-                        log.error("Failed to initialize OSHI SystemInfo", e);
-                        // Return null, let caller handle it
-                    }
-                }
-            }
-        }
-        return hardware;
-    }
-
-    /**
-     * Get the cached machine code or generate a new one
-     */
     public static String getMachineCode() {
         if (cachedMachineCode == null) {
-            synchronized (LOCK) {
-                if (cachedMachineCode == null) {
-                    cachedMachineCode = generateMachineCode(getOS());
-                }
-            }
+            cachedMachineCode = getMachineCode(getOS());
         }
         return cachedMachineCode;
     }
 
-    /**
-     * Detect the current operating system type
-     */
     public static String getOS() {
         if (OS.contains("win")) {
             return WINDOWS;
@@ -83,105 +45,75 @@ public class MachineCodeUtils {
             return LINUX;
         } else if (OS.contains("mac")) {
             return MAC_OS;
-        } else if (OS.contains("sunos")) {
-            return SOLARIS;
         } else {
-            return UNKNOWN;
+            return "Unknown";
         }
     }
 
-    /**
-     * Generate machine code for a specific OS type
-     *
-     * @param type the operating system type
-     * @return the generated machine code
-     */
     public static String getMachineCode(String type) {
-        return generateMachineCode(type);
-    }
-
-    /**
-     * Internal method to generate machine code
-     */
-    private static String generateMachineCode(String type) {
         if (Objects.isNull(type)) {
             return "";
         }
-
         Map<String, Object> codeMap = new HashMap<>();
 
         switch (type) {
             case LINUX:
-                // 异步获取 BIOS 版本号和 UUID
-                CompletableFuture<String> linuxBiosFuture = CompletableFuture.supplyAsync(MachineCodeUtils::getBiosVersion);
-                CompletableFuture<String> linuxUuidFuture = CompletableFuture.supplyAsync(MachineCodeUtils::getUUID);
-
-                codeMap.put("biosVersion", safeGet(linuxBiosFuture, "linux-bios"));
-                codeMap.put("uuid", safeGet(linuxUuidFuture, "linux-uuid"));
+                // Async get BIOS version and UUID
+                CompletableFuture<String> biosVersionFuture = CompletableFuture.supplyAsync(MachineCodeUtils::getLinuxBiosVersion);
+                CompletableFuture<String> uuidFuture = CompletableFuture.supplyAsync(MachineCodeUtils::getLinuxUUID);
+                try {
+                    codeMap.put("biosVersion", biosVersionFuture.get());
+                    codeMap.put("uuid", uuidFuture.get());
+                } catch (InterruptedException | ExecutionException e) {
+                    // Fallback to general hardware info
+                    codeMap.putAll(getFallbackHardwareInfo());
+                }
                 break;
 
             case WINDOWS:
-                // 异步获取 CPU 序列号和硬盘序列号
-                CompletableFuture<String> winCpuFuture = CompletableFuture.supplyAsync(MachineCodeUtils::getCPUSerialNumber);
-                CompletableFuture<String> winDiskFuture = CompletableFuture.supplyAsync(MachineCodeUtils::getHardDiskSerialNumber);
+                // Async get CPU info and disk info
+                CompletableFuture<String> cpuInfoFuture = CompletableFuture.supplyAsync(MachineCodeUtils::getWindowsCPUInfo);
+                CompletableFuture<String> diskInfoFuture = CompletableFuture.supplyAsync(MachineCodeUtils::getWindowsDiskInfo);
 
-                codeMap.put("ProcessorId", safeGet(winCpuFuture, "windows-cpu"));
-                codeMap.put("SerialNumber", safeGet(winDiskFuture, "windows-disk"));
+                try {
+                    codeMap.put("ProcessorId", cpuInfoFuture.get());
+                    codeMap.put("SerialNumber", diskInfoFuture.get());
+                } catch (InterruptedException | ExecutionException e) {
+                    // Fallback to general hardware info
+                    codeMap.putAll(getFallbackHardwareInfo());
+                }
                 break;
 
             case MAC_OS:
-                // 异步获取 Mac OS 硬件信息
-                CompletableFuture<String> macCpuFuture = CompletableFuture.supplyAsync(MachineCodeUtils::getCPUSerialNumber);
-                CompletableFuture<String> macUuidFuture = CompletableFuture.supplyAsync(MachineCodeUtils::getUUID);
+                // Async get Mac hardware UUID and serial number
+                CompletableFuture<String> hardwareUUIDFuture = CompletableFuture.supplyAsync(MachineCodeUtils::getMacHardwareUUID);
+                CompletableFuture<String> serialNumberFuture = CompletableFuture.supplyAsync(MachineCodeUtils::getMacSerialNumber);
 
-                codeMap.put("ProcessorId", safeGet(macCpuFuture, "macos-cpu"));
-                codeMap.put("uuid", safeGet(macUuidFuture, "macos-uuid"));
+                try {
+                    codeMap.put("hardwareUUID", hardwareUUIDFuture.get());
+                    codeMap.put("serialNumber", serialNumberFuture.get());
+                } catch (InterruptedException | ExecutionException e) {
+                    // Fallback to general hardware info
+                    codeMap.putAll(getFallbackHardwareInfo());
+                }
                 break;
 
-            case SOLARIS:
-            case UNKNOWN:
             default:
-                // 对于未知或其他系统，使用通用方式获取信息
-                CompletableFuture<String> cpuFuture = CompletableFuture.supplyAsync(MachineCodeUtils::getCPUSerialNumber);
-                CompletableFuture<String> uuidFuture = CompletableFuture.supplyAsync(MachineCodeUtils::getUUID);
-
-                codeMap.put("ProcessorId", safeGet(cpuFuture, "generic-cpu"));
-                codeMap.put("uuid", safeGet(uuidFuture, "generic-uuid"));
-                codeMap.put("osType", type);
+                // Unknown OS, use fallback
+                codeMap.putAll(getFallbackHardwareInfo());
                 break;
+
         }
 
-        // 添加稳定的UUID（基于时间戳，每次机器码生成后固定）
-        codeMap.put("instanceId", UUID.randomUUID().toString());
+        // Add random UUID generator for uniqueness
+        codeMap.put("randomUUID", UUID.randomUUID().toString());
 
         String codeMapStr = JacksonUtil.toJSONString(codeMap);
         String serials = DigestUtil.md5Hex(codeMapStr);
         return getSplitString(serials, "-", 4).toUpperCase();
     }
 
-    /**
-     * Safely get the result from a CompletableFuture with fallback
-     */
-    private static String safeGet(CompletableFuture<String> future, String fallbackPrefix) {
-        try {
-            return future.get();
-        } catch (InterruptedException e) {
-            log.error("Interrupted while getting hardware info", e);
-            Thread.currentThread().interrupt();
-            return getFallbackValue(fallbackPrefix);
-        } catch (Exception e) {
-            log.error("Failed to get hardware info", e);
-            return getFallbackValue(fallbackPrefix);
-        }
-    }
-
-    /**
-     * Split a string into chunks with a joiner
-     */
     public static String getSplitString(String str, String joiner, int number) {
-        if (str == null || str.isEmpty()) {
-            return "";
-        }
         StringBuilder sb = new StringBuilder();
         int len = str.length();
         for (int i = 0; i < len; i += number) {
@@ -197,131 +129,374 @@ public class MachineCodeUtils {
         return sb.toString();
     }
 
-    /**
-     * Get CPU serial number / processor ID
-     */
-    public static String getCPUSerialNumber() {
-        try {
-            HardwareAbstractionLayer hal = getHardware();
-            if (hal == null) {
-                log.warn("Hardware layer not available, using fallback for CPU serial");
-                return getFallbackValue("cpu-serial");
-            }
+    // ==================== Fallback Hardware Info ====================
 
-            CentralProcessor processor = hal.getProcessor();
-            String processorId = processor.getProcessorIdentifier().getProcessorID();
-            if (processorId != null && !processorId.isEmpty()) {
-                return processorId;
-            }
-            log.warn("CPU SerialNumber is empty, using fallback");
-            return getFallbackValue("cpu-serial");
-        } catch (Exception e) {
-            log.error("Failed to get CPU serial number", e);
-            return getFallbackValue("cpu-serial");
+    /**
+     * Get fallback hardware info using MAC address and system properties
+     * This is used when platform-specific methods fail
+     *
+     * @return Map of hardware identifiers
+     */
+    private static Map<String, String> getFallbackHardwareInfo() {
+        Map<String, String> info = new HashMap<>();
+
+        // Get MAC address
+        String macAddress = getMacAddress();
+        if (macAddress != null && !macAddress.isEmpty()) {
+            info.put("macAddress", macAddress);
         }
+
+        // Get system properties
+        info.put("osArch", System.getProperty("os.arch", ""));
+        info.put("osVersion", System.getProperty("os.version", ""));
+        info.put("userName", System.getProperty("user.name", ""));
+        info.put("userHome", System.getProperty("user.home", ""));
+        info.put("javaIoTmpdir", System.getProperty("java.io.tmpdir", ""));
+
+        // Get runtime info
+        info.put("availableProcessors", String.valueOf(Runtime.getRuntime().availableProcessors()));
+
+        // Get file system root info
+        File[] roots = File.listRoots();
+        if (roots != null && roots.length > 0) {
+            StringBuilder rootsInfo = new StringBuilder();
+            for (File root : roots) {
+                rootsInfo.append(root.getAbsolutePath())
+                        .append(":")
+                        .append(root.getTotalSpace())
+                        .append(";");
+            }
+            info.put("fileSystemRoots", rootsInfo.toString());
+        }
+
+        // Get JVM runtime info
+        RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
+        info.put("vmName", runtimeMXBean.getVmName());
+        info.put("vmVendor", runtimeMXBean.getVmVendor());
+
+        return info;
     }
 
     /**
-     * Get hard disk serial number (tries all disks if first one fails)
+     * Get the first available MAC address from network interfaces
+     *
+     * @return MAC address as hex string, or empty string if not available
      */
-    public static String getHardDiskSerialNumber() {
+    private static String getMacAddress() {
         try {
-            HardwareAbstractionLayer hal = getHardware();
-            if (hal == null) {
-                log.warn("Hardware layer not available, using fallback for disk serial");
-                return getFallbackValue("disk-serial");
+            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+            if (networkInterfaces == null) {
+                return "";
             }
 
-            List<HWDiskStore> diskStores = hal.getDiskStores();
-            if (diskStores != null && !diskStores.isEmpty()) {
-                // 尝试遍历所有硬盘，找到第一个有效的序列号
-                for (HWDiskStore disk : diskStores) {
-                    String serial = disk.getSerial();
-                    if (serial != null && !serial.isEmpty() && !"unknown".equalsIgnoreCase(serial)) {
-                        return serial;
+            while (networkInterfaces.hasMoreElements()) {
+                NetworkInterface ni = networkInterfaces.nextElement();
+                // Skip loopback and inactive interfaces
+                if (ni.isLoopback() || !ni.isUp()) {
+                    continue;
+                }
+
+                byte[] mac = ni.getHardwareAddress();
+                if (mac != null && mac.length == 6) {
+                    StringBuilder sb = new StringBuilder();
+                    for (int i = 0; i < mac.length; i++) {
+                        sb.append(String.format("%02X", mac[i]));
+                        if (i < mac.length - 1) {
+                            sb.append(":");
+                        }
+                    }
+                    return sb.toString();
+                }
+            }
+        } catch (SocketException e) {
+            // Ignore and return empty
+        }
+        return "";
+    }
+
+    // ==================== Linux Hardware Info ====================
+
+    /**
+     * Get Linux BIOS version by reading /sys/class/dmi/id/bios_version
+     *
+     * @return BIOS version string
+     */
+    private static String getLinuxBiosVersion() {
+        Path biosPath = Paths.get("/sys/class/dmi/id/bios_version");
+        try {
+            if (Files.exists(biosPath) && Files.isReadable(biosPath)) {
+                return Files.readString(biosPath).trim();
+            }
+        } catch (Exception e) {
+            // Fall through to fallback
+        }
+
+        // Fallback: try reading /proc/cpuinfo for hardware info
+        Path cpuInfoPath = Paths.get("/proc/cpuinfo");
+        try {
+            if (Files.exists(cpuInfoPath) && Files.isReadable(cpuInfoPath)) {
+                String cpuInfo = Files.readString(cpuInfoPath);
+                // Extract model name or hardware info
+                for (String line : cpuInfo.split("\n")) {
+                    if (line.startsWith("model name") || line.startsWith("Hardware")) {
+                        return line.split(":")[1].trim();
                     }
                 }
             }
-            log.warn("Hard disk serial number is empty or all unknown, using fallback");
-            return getFallbackValue("disk-serial");
         } catch (Exception e) {
-            log.error("Failed to get hard disk serial number", e);
-            return getFallbackValue("disk-serial");
+            // Ignore
         }
+
+        // Final fallback: use system properties
+        return System.getProperty("os.arch", "") + "-" + System.getProperty("os.version", "");
     }
 
     /**
-     * Get system hardware UUID
-     */
-    public static String getUUID() {
-        try {
-            HardwareAbstractionLayer hal = getHardware();
-            if (hal == null) {
-                log.warn("Hardware layer not available, using fallback for UUID");
-                return getFallbackValue("system-uuid");
-            }
-
-            ComputerSystem computerSystem = hal.getComputerSystem();
-            String uuid = computerSystem.getHardwareUUID();
-            if (uuid != null && !uuid.isEmpty() && !"unknown".equalsIgnoreCase(uuid)) {
-                return uuid;
-            }
-            log.warn("Hardware UUID is empty, using fallback");
-            return getFallbackValue("system-uuid");
-        } catch (Exception e) {
-            log.error("Failed to get system UUID", e);
-            return getFallbackValue("system-uuid");
-        }
-    }
-
-    /**
-     * Get BIOS/Firmware version
-     */
-    public static String getBiosVersion() {
-        try {
-            HardwareAbstractionLayer hal = getHardware();
-            if (hal == null) {
-                log.warn("Hardware layer not available, using fallback for BIOS version");
-                return getFallbackValue("bios-version");
-            }
-
-            ComputerSystem computerSystem = hal.getComputerSystem();
-            String biosVersion = computerSystem.getFirmware().getVersion();
-            if (biosVersion != null && !biosVersion.isEmpty() && !"unknown".equalsIgnoreCase(biosVersion)) {
-                return biosVersion;
-            }
-            log.warn("BIOS version is empty, using fallback");
-            return getFallbackValue("bios-version");
-        } catch (Exception e) {
-            log.error("Failed to get BIOS version", e);
-            return getFallbackValue("bios-version");
-        }
-    }
-
-    /**
-     * Fallback value generator for hardware information.
-     * Generates a stable value based on system properties.
+     * Get Linux system UUID by reading /sys/class/dmi/id/product_uuid
      *
-     * @param prefix prefix for the fallback value
-     * @return a stable fallback value based on system properties
+     * @return System UUID string
      */
-    private static String getFallbackValue(String prefix) {
+    private static String getLinuxUUID() {
+        Path uuidPath = Paths.get("/sys/class/dmi/id/product_uuid");
         try {
-            // 使用系统属性组合生成降级值
-            String osName = System.getProperty("os.name", "unknown");
-            String osVersion = System.getProperty("os.version", "unknown");
-            String osArch = System.getProperty("os.arch", "unknown");
-            String userName = System.getProperty("user.name", "unknown");
-            String javaHome = System.getProperty("java.home", "unknown");
-            String userHome = System.getProperty("user.home", "unknown");
-
-            // 组合信息生成一个相对稳定的标识
-            String combined = prefix + "-" + osName + "-" + osVersion + "-" + osArch
-                    + "-" + userName + "-" + javaHome.hashCode() + "-" + userHome.hashCode();
-            return DigestUtil.md5Hex(combined).substring(0, 16);
+            if (Files.exists(uuidPath) && Files.isReadable(uuidPath)) {
+                return Files.readString(uuidPath).trim();
+            }
         } catch (Exception e) {
-            log.error("Failed to generate fallback value", e);
-            return prefix + "-" + UUID.randomUUID().toString().substring(0, 8);
+            // Fall through to fallback
         }
+
+        // Fallback: try reading /etc/machine-id
+        Path machineIdPath = Paths.get("/etc/machine-id");
+        try {
+            if (Files.exists(machineIdPath) && Files.isReadable(machineIdPath)) {
+                return Files.readString(machineIdPath).trim();
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+
+        // Fallback: try reading /var/lib/dbus/machine-id
+        Path dbusIdPath = Paths.get("/var/lib/dbus/machine-id");
+        try {
+            if (Files.exists(dbusIdPath) && Files.isReadable(dbusIdPath)) {
+                return Files.readString(dbusIdPath).trim();
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+
+        // Final fallback: use MAC address
+        return getMacAddress();
+    }
+
+    // ==================== Windows Hardware Info ====================
+
+    /**
+     * Get Windows CPU info using Java native APIs
+     * Since we cannot directly access ProcessorId without WMI,
+     * we use a combination of system properties and runtime info
+     *
+     * @return CPU identifier string
+     */
+    private static String getWindowsCPUInfo() {
+        StringBuilder cpuInfo = new StringBuilder();
+
+        // Get OS architecture
+        cpuInfo.append(System.getProperty("os.arch", ""));
+        cpuInfo.append("-");
+
+        // Get number of processors
+        cpuInfo.append(Runtime.getRuntime().availableProcessors());
+        cpuInfo.append("-");
+
+        // Get processor identifier from environment (Windows specific)
+        String processorId = System.getenv("PROCESSOR_IDENTIFIER");
+        if (processorId != null && !processorId.isEmpty()) {
+            cpuInfo.append(processorId);
+        } else {
+            // Fallback to OS name and version
+            cpuInfo.append(System.getProperty("os.name", ""));
+            cpuInfo.append("-");
+            cpuInfo.append(System.getProperty("os.version", ""));
+        }
+
+        // Add processor architecture from environment
+        String processorArch = System.getenv("PROCESSOR_ARCHITECTURE");
+        if (processorArch != null && !processorArch.isEmpty()) {
+            cpuInfo.append("-").append(processorArch);
+        }
+
+        // Add processor level
+        String processorLevel = System.getenv("PROCESSOR_LEVEL");
+        if (processorLevel != null && !processorLevel.isEmpty()) {
+            cpuInfo.append("-L").append(processorLevel);
+        }
+
+        // Add processor revision
+        String processorRevision = System.getenv("PROCESSOR_REVISION");
+        if (processorRevision != null && !processorRevision.isEmpty()) {
+            cpuInfo.append("-R").append(processorRevision);
+        }
+
+        return cpuInfo.toString();
+    }
+
+    /**
+     * Get Windows disk info using Java native APIs
+     * Since we cannot directly access disk serial number without WMI,
+     * we use file system information as an alternative
+     *
+     * @return Disk identifier string
+     */
+    private static String getWindowsDiskInfo() {
+        StringBuilder diskInfo = new StringBuilder();
+
+        // Get file system roots information
+        File[] roots = File.listRoots();
+        if (roots != null) {
+            for (File root : roots) {
+                diskInfo.append(root.getAbsolutePath());
+                diskInfo.append(":");
+                diskInfo.append(root.getTotalSpace());
+                diskInfo.append(";");
+            }
+        }
+
+        // Add computer name from environment
+        String computerName = System.getenv("COMPUTERNAME");
+        if (computerName != null && !computerName.isEmpty()) {
+            diskInfo.append("-").append(computerName);
+        }
+
+        // Add user domain
+        String userDomain = System.getenv("USERDOMAIN");
+        if (userDomain != null && !userDomain.isEmpty()) {
+            diskInfo.append("-").append(userDomain);
+        }
+
+        // Add user home directory (unique per installation)
+        diskInfo.append("-").append(System.getProperty("user.home", ""));
+
+        // If empty, use MAC address as fallback
+        if (diskInfo.length() == 0) {
+            return getMacAddress();
+        }
+
+        return diskInfo.toString();
+    }
+
+    // ==================== Mac Hardware Info ====================
+
+    /**
+     * Get Mac hardware UUID
+     * Try to read from system files or use alternatives
+     *
+     * @return Hardware UUID string
+     */
+    private static String getMacHardwareUUID() {
+        // Try to read IOPlatformUUID from IORegistry (via file if accessible)
+        // Note: Direct access requires root, so we use alternatives
+
+        // Try reading /var/db/.AppleSetupDone file attributes
+        Path appleSetupPath = Paths.get("/var/db/.AppleSetupDone");
+        try {
+            if (Files.exists(appleSetupPath)) {
+                BasicFileAttributes attrs = Files.readAttributes(appleSetupPath, BasicFileAttributes.class);
+                // Use file creation time as part of identifier
+                return "MAC-" + attrs.creationTime().toMillis();
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+
+        // Try reading /Library/Preferences/SystemConfiguration files
+        Path[] configPaths = {
+                Paths.get("/Library/Preferences/SystemConfiguration/NetworkInterfaces.plist"),
+                Paths.get("/Library/Preferences/SystemConfiguration/preferences.plist")
+        };
+
+        for (Path configPath : configPaths) {
+            try {
+                if (Files.exists(configPath)) {
+                    BasicFileAttributes attrs = Files.readAttributes(configPath, BasicFileAttributes.class);
+                    // Use file info as identifier
+                    return "MAC-" + configPath.getFileName() + "-" + attrs.size() + "-" + attrs.creationTime().toMillis();
+                }
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
+
+        // Try reading /private/var/db/dslocal/nodes/Default/users/root.plist
+        Path rootUserPath = Paths.get("/private/var/db/dslocal/nodes/Default/users/root.plist");
+        try {
+            if (Files.exists(rootUserPath)) {
+                BasicFileAttributes attrs = Files.readAttributes(rootUserPath, BasicFileAttributes.class);
+                return "MAC-ROOT-" + attrs.creationTime().toMillis();
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+
+        // Fallback: use MAC address combined with system info
+        String macAddress = getMacAddress();
+        if (!macAddress.isEmpty()) {
+            return "MAC-NET-" + macAddress;
+        }
+
+        // Final fallback: use home directory and system properties
+        return "MAC-" + System.getProperty("user.home", "") + "-" + System.getProperty("os.version", "");
+    }
+
+    /**
+     * Get Mac serial number
+     * Try to read from accessible system files or use alternatives
+     *
+     * @return Serial number or alternative identifier
+     */
+    private static String getMacSerialNumber() {
+        // Try to read from various system paths
+        Path[] serialPaths = {
+                Paths.get("/System/Library/CoreServices/SystemVersion.plist"),
+                Paths.get("/System/Library/CoreServices/CoreServices/CoreServices.bundle"),
+        };
+
+        for (Path path : serialPaths) {
+            try {
+                if (Files.exists(path)) {
+                    BasicFileAttributes attrs = Files.readAttributes(path, BasicFileAttributes.class);
+                    return "SERIAL-" + path.getFileName() + "-" + attrs.lastModifiedTime().toMillis();
+                }
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
+
+        // Try to read SystemVersion.plist content
+        Path sysVersionPath = Paths.get("/System/Library/CoreServices/SystemVersion.plist");
+        try {
+            if (Files.exists(sysVersionPath) && Files.isReadable(sysVersionPath)) {
+                String content = Files.readString(sysVersionPath);
+                // Extract ProductBuildVersion or ProductVersion
+                if (content.contains("ProductBuildVersion")) {
+                    int startIdx = content.indexOf("ProductBuildVersion");
+                    if (startIdx > 0) {
+                        int valueStart = content.indexOf("<string>", startIdx);
+                        int valueEnd = content.indexOf("</string>", valueStart);
+                        if (valueStart > 0 && valueEnd > valueStart) {
+                            String buildVersion = content.substring(valueStart + 8, valueEnd);
+                            return "BUILD-" + buildVersion;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+
+        // Fallback: use system properties
+        OperatingSystemMXBean osMXBean = ManagementFactory.getOperatingSystemMXBean();
+        return "MACOS-" + osMXBean.getName() + "-" + osMXBean.getVersion() + "-" + osMXBean.getArch();
     }
 }

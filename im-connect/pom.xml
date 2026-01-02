@@ -144,13 +144,6 @@
             <artifactId>protobuf-java-util</artifactId>
             <version>${google.protobuf.version}</version>
         </dependency>
-
-        <!-- OSHI for hardware information -->
-        <dependency>
-            <groupId>com.github.oshi</groupId>
-            <artifactId>oshi-core</artifactId>
-            <version>6.9.2</version>
-        </dependency>
     </dependencies>
 
 

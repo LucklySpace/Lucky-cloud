@@ -3,20 +3,25 @@ package com.xy.lucky.database.webflux.service;
 import com.xy.lucky.database.webflux.entity.ImChatEntity;
 import com.xy.lucky.database.webflux.repository.ImChatRepository;
 import com.xy.lucky.domain.po.ImChatPo;
+import com.xy.lucky.dubbo.webflux.api.database.chat.ImChatDubboService;
 import lombok.RequiredArgsConstructor;
+import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Service
+@DubboService
 @RequiredArgsConstructor
-public class ImChatReactiveService {
+public class ImChatReactiveService implements ImChatDubboService {
     private final ImChatRepository repository;
 
+    @Override
     public Flux<ImChatPo> queryList(String ownerId, Long sequence) {
         return repository.findByOwnerIdAndSequenceGreaterThan(ownerId, sequence).map(this::toPo);
     }
 
+    @Override
     public Mono<ImChatPo> queryOne(String ownerId, String toId, Integer chatType) {
         Mono<ImChatEntity> mono = chatType == null
                 ? repository.findFirstByOwnerIdAndToId(ownerId, toId)
@@ -24,18 +29,22 @@ public class ImChatReactiveService {
         return mono.map(this::toPo);
     }
 
-    public Mono<Boolean> creat(ImChatPo chatPo) {
+    @Override
+    public Mono<Boolean> create(ImChatPo chatPo) {
         return repository.save(fromPo(chatPo)).map(e -> true);
     }
 
+    @Override
     public Mono<Boolean> modify(ImChatPo chatPo) {
         return repository.save(fromPo(chatPo)).map(e -> true);
     }
 
+    @Override
     public Mono<Boolean> saveOrUpdate(ImChatPo chatPo) {
         return repository.save(fromPo(chatPo)).map(e -> true);
     }
 
+    @Override
     public Mono<Boolean> removeOne(String id) {
         return repository.deleteById(id).thenReturn(true);
     }

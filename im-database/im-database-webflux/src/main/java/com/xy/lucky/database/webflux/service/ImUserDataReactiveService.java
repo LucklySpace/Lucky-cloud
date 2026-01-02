@@ -3,7 +3,9 @@ package com.xy.lucky.database.webflux.service;
 import com.xy.lucky.database.webflux.entity.ImUserDataEntity;
 import com.xy.lucky.database.webflux.repository.ImUserDataRepository;
 import com.xy.lucky.domain.po.ImUserDataPo;
+import com.xy.lucky.dubbo.webflux.api.database.user.ImUserDataDubboService;
 import lombok.RequiredArgsConstructor;
+import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -11,23 +13,28 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 @Service
+@DubboService
 @RequiredArgsConstructor
-public class ImUserDataReactiveService {
+public class ImUserDataReactiveService implements ImUserDataDubboService {
 
     private final ImUserDataRepository repository;
 
+    @Override
     public Flux<ImUserDataPo> queryByKeyword(String keyword) {
         return repository.searchByKeyword(keyword).map(this::toPo);
     }
 
+    @Override
     public Mono<ImUserDataPo> queryOne(String userId) {
         return repository.findById(userId).map(this::toPo);
     }
 
+    @Override
     public Mono<Boolean> modify(ImUserDataPo po) {
         return repository.save(fromPo(po)).map(e -> true);
     }
 
+    @Override
     public Flux<ImUserDataPo> queryListByIds(List<String> userIdList) {
         return repository.findByUserIdIn(userIdList).map(this::toPo);
     }

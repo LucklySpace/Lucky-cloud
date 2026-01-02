@@ -58,7 +58,7 @@ public class ImChatReactiveController {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
     public Mono<Boolean> createChat(@RequestBody @Valid ImChatPo chatPo) {
-        return imChatService.creat(chatPo);
+        return imChatService.create(chatPo);
     }
 
     @PutMapping("/update")

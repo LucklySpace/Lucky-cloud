@@ -56,7 +56,7 @@ public class ImGroupMessageReactiveController {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
     public Mono<Boolean> createGroupMessage(@RequestBody @Valid ImGroupMessagePo messagePo) {
-        return imGroupMessageService.creat(messagePo);
+        return imGroupMessageService.create(messagePo);
     }
 
     @PostMapping("/batchInsert")
@@ -65,7 +65,7 @@ public class ImGroupMessageReactiveController {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
     public Mono<Boolean> createGroupMessageStatusBatch(@RequestBody @NotEmpty List<@Valid ImGroupMessageStatusPo> messagePoList) {
-        return imGroupMessageService.creatBatch(messagePoList);
+        return imGroupMessageService.createBatch(messagePoList);
     }
 
     @PutMapping("/update")

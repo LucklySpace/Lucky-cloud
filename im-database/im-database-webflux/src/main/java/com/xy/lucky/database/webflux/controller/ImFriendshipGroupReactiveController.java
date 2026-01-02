@@ -57,7 +57,7 @@ public class ImFriendshipGroupReactiveController {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
     public Mono<Boolean> createFriendshipGroup(@RequestBody @Valid ImFriendshipGroupPo friendshipGroupPo) {
-        return imFriendshipGroupService.creat(friendshipGroupPo);
+        return imFriendshipGroupService.create(friendshipGroupPo);
     }
 
     @PostMapping("/batchInsert")
@@ -66,7 +66,7 @@ public class ImFriendshipGroupReactiveController {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
     public Mono<Boolean> createFriendshipGroupsBatch(@RequestBody @NotEmpty List<@Valid ImFriendshipGroupPo> friendshipGroupPoList) {
-        return imFriendshipGroupService.creatBatch(friendshipGroupPoList);
+        return imFriendshipGroupService.createBatch(friendshipGroupPoList);
     }
 
     @PutMapping("/update")

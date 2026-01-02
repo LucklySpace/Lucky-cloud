@@ -4,7 +4,7 @@ import com.xy.lucky.core.model.IMetaId;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public interface ImIdDubboWebfluxService {
+public interface ImIdDubboService {
 
     Mono<IMetaId> generateId(String type, String key);
 

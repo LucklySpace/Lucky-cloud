@@ -38,8 +38,8 @@ public class RouteCacheConfig {
     public RouteDefinitionRepository routeDefinitionRepository(
             Cache<Object, Object> routeCache,
             NacosConfigManager nacosConfigManager,
-            @Value("${spring.gateway.nacos.data-id:gateway-routes.yml}") String dataId,
-            @Value("${spring.gateway.nacos.group:DEFAULT_GROUP}") String group,
+            @Value("${spring.gateway.nacos.data-id:${spring.cloud.nacos.config.name:gateway-routes.yml}}") String dataId,
+            @Value("${spring.gateway.nacos.group:${spring.cloud.nacos.config.group:DEFAULT_GROUP}}") String group,
             @Value("${spring.gateway.nacos.timeout-ms:5000}") long timeoutMs) {
 
         return new CachedRouteDefinitionRepository(routeCache, nacosConfigManager, dataId, group, timeoutMs);

@@ -49,3 +49,11 @@ spring:
           filters:
             # 去除一个前缀
             - StripPrefix=1
+
+        - id: im-wallet  # 钱包服务
+          uri: lb://im-wallet
+          predicates:
+            - Path=/wallet/**
+          filters:
+            # 去除一个前缀
+            - StripPrefix=1

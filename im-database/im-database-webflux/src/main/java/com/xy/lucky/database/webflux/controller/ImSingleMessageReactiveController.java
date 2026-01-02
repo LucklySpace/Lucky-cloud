@@ -75,7 +75,7 @@ public class ImSingleMessageReactiveController {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
     public Mono<Boolean> createSingleMessage(@RequestBody @Valid ImSingleMessagePo messagePo) {
-        return imSingleMessageService.creat(messagePo);
+        return imSingleMessageService.create(messagePo);
     }
 
     @DeleteMapping("/deleteById")
@@ -94,7 +94,7 @@ public class ImSingleMessageReactiveController {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
     public Mono<Boolean> createSingleMessagesBatch(@RequestBody @NotEmpty List<@Valid ImSingleMessagePo> messagePoList) {
-        return imSingleMessageService.creatBatch(messagePoList);
+        return imSingleMessageService.createBatch(messagePoList);
     }
 
     @PostMapping("/saveOrUpdate")

@@ -59,6 +59,11 @@
             <artifactId>im-starter-common</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
+
         <!-- 短信服务依赖 -->
 
         <!-- JWT 加密相关依赖 -->

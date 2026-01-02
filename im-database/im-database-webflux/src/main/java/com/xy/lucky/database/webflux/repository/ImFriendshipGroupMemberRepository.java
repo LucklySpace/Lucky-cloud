@@ -9,5 +9,8 @@ public interface ImFriendshipGroupMemberRepository extends ReactiveCrudRepositor
     Flux<ImFriendshipGroupMemberEntity> findByGroupId(String groupId);
 
     Mono<ImFriendshipGroupMemberEntity> findFirstByGroupIdAndToId(String groupId, String toId);
+
+    Mono<ImFriendshipGroupMemberEntity> findByGroupIdAndToId(Long aLong, String toId);
+
 }
 

@@ -27,7 +27,7 @@
     <!-- white:白色 -->
     <!-- magenta:洋红 -->
     <!-- 控制台输出格式 -->
-    <conversionRule conversionWord="traceId" converterClass="com.xy.lucky.logging.pattern.TraceIdConverter"/>
+    <!--    <conversionRule conversionWord="traceId" converterClass="com.xy.lucky.logging.pattern.TraceIdConverter"/>-->
 
     <property name="CONSOLE_LOG_PATTERN"
               value="%red(%date{yy-MM-dd HH:mm:ss}) %green(%thread) %highlight(%-5level) %blue(%file:%line) %boldMagenta(%logger{36}) - %msg%n"/>
@@ -56,7 +56,7 @@
         <file>${log.path}/${datetime}/info.log</file>
         <!--日志文件输出格式-->
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %property{APP_NAME} %logger{50} - %msg %traceId%n
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %property{APP_NAME} %logger{50} - %msg%n
             </pattern>
             <charset>UTF-8</charset>
         </encoder>
@@ -84,7 +84,7 @@
         <file>${log.path}/${datetime}/warn.log</file>
         <!--日志文件输出格式-->
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %property{APP_NAME} %logger{50} - %msg %traceId%n
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %property{APP_NAME} %logger{50} - %msg%n
             </pattern>
             <charset>UTF-8</charset> <!-- 此处设置字符集 -->
         </encoder>
@@ -112,7 +112,7 @@
         <file>${log.path}/${datetime}/error.log</file>
         <!--日志文件输出格式-->
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %property{APP_NAME} %logger{50} - %msg %traceId%n
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %property{APP_NAME} %logger{50} - %msg%n
             </pattern>
             <charset>UTF-8</charset> <!-- 此处设置字符集 -->
         </encoder>

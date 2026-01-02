@@ -8,7 +8,9 @@ import com.xy.lucky.database.webflux.repository.ImGroupMessageRepository;
 import com.xy.lucky.database.webflux.repository.ImGroupMessageStatusRepository;
 import com.xy.lucky.domain.po.ImGroupMessagePo;
 import com.xy.lucky.domain.po.ImGroupMessageStatusPo;
+import com.xy.lucky.dubbo.webflux.api.database.message.ImGroupMessageDubboService;
 import lombok.RequiredArgsConstructor;
+import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -16,41 +18,50 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 @Service
+@DubboService
 @RequiredArgsConstructor
-public class ImGroupMessageReactiveService {
+public class ImGroupMessageReactiveService implements ImGroupMessageDubboService {
     private final ImGroupMessageRepository repository;
     private final ImGroupMessageStatusRepository statusRepository;
     private final ObjectMapper objectMapper;
 
+    @Override
     public Flux<ImGroupMessagePo> queryList(String userId, Long sequence) {
         return repository.findListByUserIdAndSequence(userId, userId, sequence).map(this::toPo);
     }
 
+    @Override
     public Mono<ImGroupMessagePo> queryOne(String messageId) {
         return repository.findById(messageId).map(this::toPo);
     }
 
-    public Mono<Boolean> creat(ImGroupMessagePo groupMessagePo) {
+    @Override
+    public Mono<Boolean> create(ImGroupMessagePo groupMessagePo) {
         return repository.save(fromPo(groupMessagePo)).map(e -> true);
     }
 
-    public Mono<Boolean> creatBatch(List<ImGroupMessageStatusPo> groupMessagePoList) {
+    @Override
+    public Mono<Boolean> createBatch(List<ImGroupMessageStatusPo> groupMessagePoList) {
         return statusRepository.saveAll(groupMessagePoList.stream().map(this::fromStatusPo).toList())
                 .count().map(count -> count == groupMessagePoList.size());
     }
 
+    @Override
     public Mono<Boolean> modify(ImGroupMessagePo groupMessagePo) {
         return repository.save(fromPo(groupMessagePo)).map(e -> true);
     }
 
+    @Override
     public Mono<Boolean> removeOne(String messageId) {
         return repository.deleteById(messageId).thenReturn(true);
     }
 
+    @Override
     public Mono<ImGroupMessagePo> queryLast(String groupId, String userId) {
         return repository.findLastByGroupIdAndUserId(groupId, userId).map(this::toPo);
     }
 
+    @Override
     public Mono<Integer> queryReadStatus(String groupId, String toId, Integer code) {
         return statusRepository.countReadStatus(groupId, toId, code);
     }

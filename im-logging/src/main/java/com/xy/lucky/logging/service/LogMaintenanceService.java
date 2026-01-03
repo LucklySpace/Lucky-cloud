@@ -1,6 +1,7 @@
 package com.xy.lucky.logging.service;
 
 import com.xy.lucky.logging.repository.LogRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,7 +9,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 
 @Slf4j
 @Service
@@ -23,9 +23,10 @@ public class LogMaintenanceService {
     /**
      * 定时清理过期的日志
      */
+    @Transactional
     @Scheduled(fixedDelayString = "${logging.retention.cleanup-interval-ms:300000}")
     public void cleanupExpired() {
-        LocalDateTime cutoff = LocalDateTime.now().minus(retentionDays, ChronoUnit.DAYS);
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(retentionDays);
         repository.deleteByTsBefore(cutoff);
         log.info("log cleanup finished cutoff={} retentionDays={}", cutoff, retentionDays);
     }

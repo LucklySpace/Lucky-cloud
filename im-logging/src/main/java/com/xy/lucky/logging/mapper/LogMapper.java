@@ -17,8 +17,4 @@ public interface LogMapper {
     @Mapping(source = "ts", target = "timestamp")
     LogRecordVo toVo(LogPo po);
 
-//     @Mapping(target = "tags", ignore = true)
-//     @Mapping(target = "context", ignore = true)
-//     Page<LogRecordVo> toVoPage(Page<LogPo> page);
-
 }

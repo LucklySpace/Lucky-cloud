@@ -1,9 +1,7 @@
 package com.xy.lucky.logging.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xy.lucky.logging.domain.LogLevel;
 import com.xy.lucky.logging.domain.vo.LogRecordVo;
-import com.xy.lucky.logging.mapper.LogMapper;
 import com.xy.lucky.logging.service.LogAnalysisService;
 import com.xy.lucky.logging.service.LogIngestService;
 import com.xy.lucky.logging.service.LogQueryService;
@@ -44,8 +42,6 @@ public class LogController {
     private final LogIngestService ingestService;
     private final LogQueryService queryService;
     private final LogAnalysisService analysisService;
-    private final ObjectMapper objectMapper;
-    private final LogMapper converter;
 
     /**
      * 采集单条日志
@@ -175,6 +171,14 @@ public class LogController {
                 .subscribeOn(Schedulers.boundedElastic());
     }
 
+    @Operation(summary = "按时间间隔统计", description = "获取指定级别日志在指定时间间隔内的数量趋势")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = Map.class)
+                    )
+            )
+    })
     @GetMapping("/stats/histogram")
     public Mono<Map<String, Long>> histogram(
             @RequestParam(name = "module", required = false) String module,
@@ -191,11 +195,26 @@ public class LogController {
 
 
     @Operation(summary = "元数据", description = "获取元数据，包括模块、服务、环境、地址")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = List.class)
+                    )
+            )
+    })
     @GetMapping("/meta/services")
     public Mono<List<String>> metaServices(@RequestParam(name = "env", required = false) String env) {
         return Mono.fromCallable(() -> queryService.listServices(env)).subscribeOn(Schedulers.boundedElastic());
     }
 
+    @Operation(summary = "服务统计", description = "获取服务统计数据，包括服务、地址、错误类型")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = List.class)
+                    )
+            )
+    })
     @GetMapping("/aggs/top/services")
     public Mono<List<Map<String, Object>>> aggsTopServices(
             @RequestParam(name = "start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
@@ -204,6 +223,14 @@ public class LogController {
         return Mono.fromCallable(() -> queryService.topServices(start, end, limit)).subscribeOn(Schedulers.boundedElastic());
     }
 
+    @Operation(summary = "地址统计", description = "获取地址统计数据，包括服务、地址、错误类型")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "获取成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = List.class)
+                    )
+            )
+    })
     @GetMapping("/aggs/top/addresses")
     public Mono<List<Map<String, Object>>> aggsTopAddresses(
             @RequestParam(name = "start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
@@ -212,12 +239,7 @@ public class LogController {
         return Mono.fromCallable(() -> queryService.topAddresses(start, end, limit)).subscribeOn(Schedulers.boundedElastic());
     }
 
-    /**
-     * 删除指定时间之前的日志
-     *
-     * @param cutoff 截止时间
-     * @return 操作结果
-     */
+
     @Operation(summary = "清理日志", description = "删除指定时间之前的所有日志")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "清理成功",
@@ -232,13 +254,6 @@ public class LogController {
                 .thenReturn("ok");
     }
 
-    /**
-     * 删除指定模块在指定时间之前的日志
-     *
-     * @param module 模块名
-     * @param cutoff 截止时间
-     * @return 操作结果
-     */
     @Operation(summary = "清理模块日志", description = "删除指定模块在指定时间之前的所有日志")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "清理成功",

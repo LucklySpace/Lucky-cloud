@@ -23,6 +23,11 @@ public class LogIngestService {
     private final LogAnalysisService analysisService;
     private final Sinks.Many<LogRecordVo> logSink;
 
+    /**
+     * 单条日志入库
+     *
+     * @param record 日志记录
+     */
     public void ingest(LogRecordVo record) {
         if (record.getId() == null) {
             record.setId(UUID.randomUUID().toString());
@@ -50,6 +55,11 @@ public class LogIngestService {
         }
     }
 
+    /**
+     * 批量日志入库
+     *
+     * @param records 日志记录
+     */
     public void ingestBatch(List<LogRecordVo> records) {
         if (records == null || records.isEmpty()) {
             return;

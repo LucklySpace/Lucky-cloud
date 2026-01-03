@@ -1,0 +1,50 @@
+server:
+  undertow:
+    # 以下的配置会影响buffer,这些buffer会用于服务器连接的IO操作
+    # 如果每次需要 ByteBuffer 的时候都去申请，对于堆内存的 ByteBuffer 需要走 JVM 内存分配流程（TLAB -> 堆），对于直接内存则需要走系统调用，这样效率是很低下的。
+    # 所以，一般都会引入内存池。在这里就是 `BufferPool`。
+    # 目前，UnderTow 中只有一种 `DefaultByteBufferPool`，其他的实现目前没有用。
+    # 这个 DefaultByteBufferPool 相对于 netty 的 ByteBufArena 来说，非常简单，类似于 JVM TLAB 的机制
+    # 对于 bufferSize，最好和你系统的 TCP Socket Buffer 配置一样
+    # /proc/sys/net/ipv4/tcp_rmem` (对于读取)
+    # /proc/sys/net/ipv4/tcp_wmem` (对于写入)
+    # 在内存大于 128 MB 时，bufferSize 为 16 KB 减去 20 字节，这 20 字节用于协议头
+    buffer-size: 1024
+    # 是否分配的直接内存(NIO直接分配的堆外内存)，这里开启，所以java启动参数需要配置下直接内存大小，减少不必要的GC
+    # 在内存大于 128 MB 时，默认就是使用直接内存的
+    directBuffers: true
+    threads:
+      # 设置IO线程数, 它主要执行非阻塞的任务,它们会负责多个连接, 默认设置每个CPU核心一个读线程和一个写线程
+      io: 10
+      # 阻塞任务线程池, 当执行类似servlet请求阻塞IO操作, undertow会从这个线程池中取得线程
+      # 它的值设置取决于系统线程执行任务的阻塞系数，默认值是IO线程数*8
+      worker: 256
+    # http post body 大小，默认为 -1B ，即不限制
+    max-http-post-size: -1B
+    # 是否在启动时创建 filter，默认为 true，不用修改
+    eager-filter-init: true
+    # 限制路径参数数量，默认为 1000
+    max-parameters: 1000
+    # 限制 http header 数量，默认为 200
+    max-headers: 200
+    # 限制 http header 中 cookies 的键值对数量，默认为 200
+    max-cookies: 200
+    # 是否允许 / 与 %2F 转义。/ 是 URL 保留字,除非你的应用明确需要，否则不要开启这个转义，默认为 false
+    allow-encoded-slash: false
+    # 是否允许 URL 解码，默认为 true，除了 %2F 其他的都会处理
+    decode-url: true
+    # url 字符编码集，默认是 utf-8
+    url-charset: utf-8
+    # 响应的 http header 是否会加上 'Connection: keep-alive'，默认为 true
+    always-set-keep-alive: true
+    # 请求超时，默认是不超时，我们的微服务因为可能有长时间的定时任务，所以不做服务端超时，都用客户端超时，所以我们保持这个默认配置
+    no-request-timeout: -1
+    # 是否在跳转的时候保持 path，默认是关闭的，一般不用配置
+    preserve-path-on-forward: false
+    options:
+      # spring boot 没有抽象的 xnio 相关配置在这里配置，对应 org.xnio.Options 类
+      socket:
+        SSL_ENABLED: false
+      # spring boot 没有抽象的 undertow 相关配置在这里配置，对应 io.undertow.UndertowOptions 类
+      server:
+        ALLOW_UNKNOWN_PROTOCOLS: false

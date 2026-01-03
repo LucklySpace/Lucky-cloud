@@ -1,0 +1,5 @@
+spring:
+  profiles:
+    active: ${APP_PROFILES_ACTIVE:dev}
+  application:
+    name: im-lbs

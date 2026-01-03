@@ -25,6 +25,7 @@
         <module>im-ai</module>
         <module>im-connect</module>
         <module>im-quartz</module>
+        <module>im-lbs</module>
     </modules>
 
     <properties>
@@ -615,6 +616,7 @@
                 <im-analytics.server.port>8089</im-analytics.server.port>
                 <im-platform.server.port>8090</im-platform.server.port>
                 <im-logging.server.port>8200</im-logging.server.port>
+                <im-lbs.server.port>8201</im-lbs.server.port>
 
                 <im-database.server.port>8100</im-database.server.port>
                 <im-gateway.server.port>9191</im-gateway.server.port>
@@ -660,6 +662,7 @@
                 <im-analytics.server.port>8089</im-analytics.server.port>
                 <im-platform.server.port>8090</im-platform.server.port>
                 <im-logging.server.port>8200</im-logging.server.port>
+                <im-lbs.server.port>8201</im-lbs.server.port>
 
                 <im-database.server.port>8100</im-database.server.port>
                 <im-gateway.server.port>9191</im-gateway.server.port>
@@ -706,6 +709,7 @@
                 <im-analytics.server.port>8089</im-analytics.server.port>
                 <im-platform.server.port>8090</im-platform.server.port>
                 <im-logging.server.port>8200</im-logging.server.port>
+                <im-lbs.server.port>8201</im-lbs.server.port>
 
                 <im-database.server.port>8100</im-database.server.port>
                 <im-gateway.server.port>9191</im-gateway.server.port>

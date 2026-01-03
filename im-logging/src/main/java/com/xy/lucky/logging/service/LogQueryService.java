@@ -76,6 +76,14 @@ public class LogQueryService {
         }
     }
 
+    /**
+     * 获取查询条件
+     *
+     * @param from    开始时间
+     * @param to      结束时间
+     * @param example 查询条件
+     * @return 查询条件
+     */
     public Specification<LogPo> getSpecFromDatesAndExample(
             LocalDateTime from, LocalDateTime to, Example<LogPo> example) {
 
@@ -94,8 +102,19 @@ public class LogQueryService {
         };
     }
 
-    ;
-
+    /**
+     * 查询时间间隔内日志数量
+     *
+     * @param module   模块名
+     * @param start    开始时间
+     * @param end      结束时间
+     * @param level    日志级别
+     * @param service  服务名
+     * @param env      环境
+     * @param keyword  关键字
+     * @param interval 时间间隔
+     * @return 时间间隔内日志数量
+     */
     public Map<String, Long> histogram(String module, LocalDateTime start, LocalDateTime end, LogLevel level, String service, String env, String keyword, String interval) {
         LocalDateTime actualStart = start != null ? start : LocalDateTime.of(1970, 1, 1, 0, 0);
         LocalDateTime actualEnd = end != null ? end : LocalDateTime.now();
@@ -124,6 +143,12 @@ public class LogQueryService {
         }
     }
 
+    /**
+     * 获取服务列表
+     *
+     * @param env 环境
+     * @return 服务列表
+     */
     public List<String> listServices(String env) {
         try {
             return discoveryClient.getServices();
@@ -132,6 +157,14 @@ public class LogQueryService {
         }
     }
 
+    /**
+     * 获取服务列表
+     *
+     * @param start 开始时间
+     * @param end   结束时间
+     * @param limit 限制数量
+     * @return 服务列表
+     */
     public List<Map<String, Object>> topServices(LocalDateTime start, LocalDateTime end, int limit) {
         try {
             LocalDateTime actualStart = start != null ? start : LocalDateTime.of(1970, 1, 1, 0, 0);
@@ -150,6 +183,13 @@ public class LogQueryService {
         }
     }
 
+    /**
+     * 获取地址
+     * @param start 开始时间
+     * @param end 结束时间
+     * @param limit 限制数量
+     * @return 地址列表
+     */
     public List<Map<String, Object>> topAddresses(LocalDateTime start, LocalDateTime end, int limit) {
         try {
             LocalDateTime actualStart = start != null ? start : LocalDateTime.of(1970, 1, 1, 0, 0);
@@ -168,6 +208,9 @@ public class LogQueryService {
         }
     }
 
+    /**
+     * 获取错误类型
+     */
     public List<Map<String, Object>> topErrorTypes(LocalDateTime start, LocalDateTime end, int limit) {
         try {
             LocalDateTime actualStart = start != null ? start : LocalDateTime.of(1970, 1, 1, 0, 0);
@@ -186,6 +229,9 @@ public class LogQueryService {
         }
     }
 
+    /**
+     * 删除日志
+     */
     public void deleteBefore(LocalDateTime cutoff) {
         log.warn("删除日志: cutoff={}", cutoff);
         try {
@@ -195,6 +241,9 @@ public class LogQueryService {
         }
     }
 
+    /**
+     * 删除模块日志
+     */
     public void deleteModuleBefore(String module, LocalDateTime cutoff) {
         log.warn("删除模块日志: module={}, cutoff={}", module, cutoff);
         try {
@@ -204,6 +253,9 @@ public class LogQueryService {
         }
     }
 
+    /**
+     * 去除空格
+     */
     private String normalize(String s) {
         if (s == null) return null;
         String t = s.trim();

@@ -22,9 +22,4 @@ public class PageController {
         return "error";
     }
 
-//    @GetMapping("/{filename}")
-//    public ResponseEntity<Resource> getResource(@PathVariable String filename){
-//        Resource resource = new ClassPathResource("static/" + filename);
-//        return ResponseEntity.ok(resource);
-//    }
 }

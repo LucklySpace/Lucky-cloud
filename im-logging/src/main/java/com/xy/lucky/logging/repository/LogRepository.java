@@ -59,21 +59,9 @@ public interface LogRepository extends JpaRepository<LogPo, String>, JpaSpecific
             @Param("format") String format
     );
 
-    Long deleteByTsBefore(LocalDateTime cutoff);
+    Boolean deleteByTsBefore(LocalDateTime cutoff);
 
-    Long deleteByModuleAndTsBefore(String module, LocalDateTime cutoff);
-
-    @Query(value = "SELECT DISTINCT service FROM im_logs ORDER BY service", nativeQuery = true)
-    List<String> listServices();
-
-    @Query(value = "SELECT DISTINCT service FROM im_logs WHERE (:env IS NULL OR env = :env) ORDER BY service", nativeQuery = true)
-    List<String> listServicesByEnv(@Param("env") String env);
-
-    @Query(value = "SELECT DISTINCT module FROM im_logs ORDER BY module", nativeQuery = true)
-    List<String> listModules();
-
-    @Query(value = "SELECT DISTINCT address FROM im_logs WHERE (:service IS NULL OR service = :service) ORDER BY address", nativeQuery = true)
-    List<String> listAddresses(@Param("service") String service);
+    Boolean deleteByModuleAndTsBefore(String module, LocalDateTime cutoff);
 
     @Query(value = """
             SELECT service, COUNT(*) AS cnt

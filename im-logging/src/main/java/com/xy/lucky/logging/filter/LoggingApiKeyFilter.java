@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 
 @Component
 public class LoggingApiKeyFilter implements WebFilter {
+
     @Value("${logging.api-key:}")
     private String apiKey;
 

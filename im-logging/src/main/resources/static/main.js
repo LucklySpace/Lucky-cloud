@@ -2,7 +2,9 @@ const {createApp, defineAsyncComponent} = Vue;
 import {load} from './lib/loader.js';
 import router from './router/index.js';
 
-const App = defineAsyncComponent(() => load('/App.vue'));
+const pathname = window.location.pathname || '/';
+const basePath = pathname.replace(/\/logs\/ui\/?$/, '');
+const App = defineAsyncComponent(() => load(`${basePath}/App.vue`));
 
 const app = createApp(App);
 

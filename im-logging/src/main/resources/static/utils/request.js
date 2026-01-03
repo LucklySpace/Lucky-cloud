@@ -1,7 +1,10 @@
 // 创建 axios 实例
+const pathname = window.location.pathname || '/';
+const basePath = pathname.replace(/\/logs\/ui\/?$/, '');
 const service = axios.create({
     // 如果需要统一前缀，可以在这里设置，例如 '/api'
     // baseURL: process.env.VUE_APP_BASE_API,
+    baseURL: basePath || undefined,
     timeout: 15000 // 请求超时时间
 });
 

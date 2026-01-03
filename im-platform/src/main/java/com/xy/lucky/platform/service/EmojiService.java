@@ -99,15 +99,16 @@ public class EmojiService {
         });
 
         String bucket = minioProperties.getBucketName();
-        String filename = Optional.ofNullable(file.filename())
+        String filename = Optional.of(file.filename())
                 .filter(StringUtils::hasText).orElse(name);
 
         // 获取对象名称
         String objectName = minioUtils.getObjectName(filename);
 
         String objectKey = String.format("emoji/%s/%s", pack.getId(), objectName);
-        String contentType = file.headers() != null && file.headers().getContentType() != null
-                ? file.headers().getContentType().toString() : null;
+        file.headers();
+        String contentType = file.headers().getContentType() != null
+                ? String.valueOf(file.headers().getContentType()) : null;
         Path temp;
         long size;
         try {
@@ -118,19 +119,23 @@ public class EmojiService {
             throw new EmojiException("文件接收失败: " + e.getMessage());
         }
 
+        // 上传文件 并删除临时文件
         try {
             try (InputStream in = Files.newInputStream(temp)) {
                 minioUtils.uploadObject(bucket, objectKey, in, size, contentType);
             }
         } catch (Exception e) {
             throw new EmojiException("文件上传失败: " + e.getMessage());
-        }
-        try {
-            Files.deleteIfExists(temp);
-        } catch (Exception ignore) {
+        } finally {
+            try {
+                Files.deleteIfExists(temp);
+            } catch (Exception ignore) {
+                log.warn("删除临时文件失败: {}", temp);
+            }
         }
 
-        String url = minioUtils.presignedGetUrl(bucket, objectKey, 60 * 60 * 24);
+
+        String url = minioUtils.presignedGetUrl(bucket, objectKey);
 
         int sort = Optional.ofNullable(meta.getSort()).orElseGet(() -> emojiRepository.findMaxSortByPackId(packId) + 1);
 
@@ -200,19 +205,22 @@ public class EmojiService {
                 Path temp = Files.createTempFile("emoji-batch-", "-" + filename);
                 file.transferTo(temp.toFile()).block();
                 long size = Files.size(temp);
-                String ct = file.headers() != null && file.headers().getContentType() != null
-                        ? file.headers().getContentType().toString() : null;
+                file.headers();
+                String ct = file.headers().getContentType() != null
+                        ? String.valueOf(file.headers().getContentType()) : null;
                 try (InputStream in = Files.newInputStream(temp)) {
                     minioUtils.uploadObject(bucket, objectKey, in, size, ct);
                 }
                 try {
                     Files.deleteIfExists(temp);
                 } catch (Exception ignore) {
+                    log.warn("删除临时文件失败: {}", temp);
                 }
 
                 String url = minioUtils.presignedGetUrl(bucket, objectKey);
 
                 baseSort += 1;
+
                 EmojiPo emo = EmojiPo.builder()
                         .pack(pack)
                         .name(filename)

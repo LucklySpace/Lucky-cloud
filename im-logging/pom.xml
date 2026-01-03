@@ -21,6 +21,11 @@
 
     <dependencies>
 
+        <dependency>
+            <groupId>com.xy.lucky</groupId>
+            <artifactId>im-starter-general-webflux</artifactId>
+        </dependency>
+
         <!-- MapStruct -->
         <dependency>
             <groupId>org.mapstruct</groupId>
@@ -44,7 +49,7 @@
         <!-- 引入Knife4j，提供Swagger UI与OpenAPI文档 -->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
+            <artifactId>knife4j-openapi3-webflux-jakarta-spring-boot-starter</artifactId>
             <version>${knife4j.version}</version>
         </dependency>
 
@@ -101,17 +106,9 @@
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-websocket</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.xy.lucky</groupId>
-            <artifactId>im-starter-general</artifactId>
-        </dependency>
+
     </dependencies>
 
     <build>

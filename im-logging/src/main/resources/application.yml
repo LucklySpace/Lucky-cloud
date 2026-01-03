@@ -1,4 +1,6 @@
 spring: #springboot的配置
+  main:
+    web-application-type: reactive
   profiles:
     active: ${APP_PROFILES_ACTIVE:dev}
   jackson:

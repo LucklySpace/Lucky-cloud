@@ -1,6 +1,6 @@
 package com.xy.lucky.logging.controller;
 
-import com.xy.lucky.logging.exception.ResponseNotIntercept;
+import com.xy.lucky.general.response.ResponseNotIntercept;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;

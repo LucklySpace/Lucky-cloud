@@ -48,6 +48,6 @@ public class WebSocketConfig {
 
     @Bean
     public Sinks.Many<LogRecordVo> logSink() {
-        return Sinks.many().multicast().onBackpressureBuffer();
+        return Sinks.many().multicast().onBackpressureBuffer(8192, false);
     }
 }

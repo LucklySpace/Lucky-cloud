@@ -6,26 +6,14 @@
       <aside
           :class="['w-64 bg-white border-r border-slate-200 flex flex-col transition-all duration-300 z-10', ui.sidebarOpen ? '' : '-ml-64']">
         <div class="p-4 border-b border-slate-100 bg-slate-50/50">
-          <el-input
-              v-model="uiServiceFilter"
-              class="w-full"
-              clearable
-              placeholder="搜索服务..."
-              prefix-icon="Search"
-          />
+          <el-input v-model="uiServiceFilter" class="w-full" clearable placeholder="搜索服务..." prefix-icon="Search"/>
         </div>
         <div class="flex-1 overflow-y-auto p-2">
-          <el-tree
-              :data="computedServiceTree"
-              :highlight-current="true"
-              :props="treeProps"
-              class="filter-tree"
-              default-expand-all
-              @node-click="onServiceNodeClick"
-          >
+          <el-tree :data="computedServiceTree" :highlight-current="true" :props="treeProps" class="filter-tree"
+                   default-expand-all @node-click="onServiceNodeClick">
             <template #default="{ node, data }">
               <div class="flex items-center text-sm py-1">
-                <span :class="{'font-semibold text-indigo-600': node.isCurrent}">{{ node.label }}</span>
+                <span :class="{ 'font-semibold text-indigo-600': node.isCurrent }">{{ node.label }}</span>
                 <span v-if="!data.children"
                       class="ml-auto text-xs text-slate-400 bg-slate-100 px-1.5 rounded-full">Svc</span>
               </div>
@@ -71,10 +59,10 @@
           <!-- Level -->
           <el-select v-model="filters.level" class="w-32" clearable placeholder="日志级别">
             <el-option v-for="l in levels" :key="l" :label="l" :value="l">
-                <span class="flex items-center">
-                    <span :class="['w-2 h-2 rounded-full mr-2', levelColorDot(l)]"></span>
-                    {{ l }}
-                </span>
+              <span class="flex items-center">
+                <span :class="['w-2 h-2 rounded-full mr-2', levelColorDot(l)]"></span>
+                {{ l }}
+              </span>
             </el-option>
           </el-select>
 
@@ -86,31 +74,25 @@
 
           <!-- Realtime Status -->
           <div class="flex items-center text-xs space-x-3 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
-                <span class="flex items-center text-slate-500">
-                    <span
-                        :class="['w-2 h-2 rounded-full mr-1.5', ui.wsConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500']"></span>
-                    {{ ui.wsConnected ? '实时连接中' : '连接断开' }}
-                </span>
+            <span class="flex items-center text-slate-500">
+              <span
+                  :class="['w-2 h-2 rounded-full mr-1.5', ui.wsConnected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500']"></span>
+              {{ ui.wsConnected ? '实时连接中' : '连接断开' }}
+            </span>
             <span class="w-px h-3 bg-slate-300"></span>
             <span class="text-slate-500">
-                    缓冲: <span class="font-mono font-semibold text-slate-700">{{
+              缓冲: <span class="font-mono font-semibold text-slate-700">{{
                 realtimeLogs.length
               }}</span> / {{ ui.realtimeLimit }}
-                </span>
+            </span>
           </div>
         </div>
 
         <!-- Table Area -->
         <div class="flex-1 overflow-hidden relative">
-          <el-table
-              :data="displayLogs"
-              :header-cell-style="{background:'#f8fafc', color:'#64748b', fontWeight:'600'}"
-              height="100%"
-              highlight-current-row
-              stripe
-              style="width: 100%"
-              @row-click="openDetail"
-          >
+          <el-table :data="displayLogs"
+                    :header-cell-style="{ background: '#f8fafc', color: '#64748b', fontWeight: '600' }"
+                    height="100%" highlight-current-row stripe style="width: 100%" @row-click="openDetail">
             <!-- Expand JSON -->
             <el-table-column type="expand" width="48">
               <template #default="props">
@@ -135,9 +117,9 @@
             <!-- Level -->
             <el-table-column align="center" label="Level" width="90">
               <template #default="{ row }">
-                        <span :class="['px-2 py-0.5 text-xs font-bold rounded shadow-sm', levelBadgeClass(row.level)]">
-                            {{ row.level || 'INFO' }}
-                        </span>
+                <span :class="['px-2 py-0.5 text-xs font-bold rounded shadow-sm', levelBadgeClass(row.level)]">
+                  {{ row.level || 'INFO' }}
+                </span>
               </template>
             </el-table-column>
 
@@ -158,35 +140,29 @@
             <!-- TraceID -->
             <el-table-column label="TraceID" width="180">
               <template #default="{ row }">
-                        <span v-if="row.traceId"
-                              class="text-xs font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded cursor-pointer hover:bg-indigo-100 transition-colors">
-                            {{ row.traceId }}
-                        </span>
+                <span v-if="row.traceId"
+                      class="text-xs font-mono text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded cursor-pointer hover:bg-indigo-100 transition-colors">
+                  {{ row.traceId }}
+                </span>
               </template>
             </el-table-column>
-            </el-table>
+          </el-table>
         </div>
       </main>
     </div>
 
     <!-- Detail Drawer -->
-    <el-drawer
-        v-model="ui.detailVisible"
-        :with-header="false"
-        destroy-on-close
-        size="45%"
-        title="日志详情"
-    >
+    <el-drawer v-model="ui.detailVisible" :with-header="false" destroy-on-close size="45%" title="日志详情">
       <div v-if="ui.detail" class="h-full flex flex-col">
         <!-- Drawer Header -->
         <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-start bg-slate-50">
-            <div>
-              <h3 class="text-lg font-bold text-slate-800">Log Details</h3>
-              <p class="text-xs text-slate-500 mt-1 font-mono">{{ ui.detail.traceId || 'No Trace ID' }}</p>
-            </div>
+          <div>
+            <h3 class="text-lg font-bold text-slate-800">Log Details</h3>
+            <p class="text-xs text-slate-500 mt-1 font-mono">{{ ui.detail.traceId || 'No Trace ID' }}</p>
+          </div>
           <span :class="['px-3 py-1 text-sm font-bold rounded shadow-sm', levelBadgeClass(ui.detail.level)]">
-                {{ ui.detail.level || 'INFO' }}
-            </span>
+            {{ ui.detail.level || 'INFO' }}
+          </span>
         </div>
 
         <!-- Drawer Content -->
@@ -207,8 +183,10 @@
             </div>
             <div class="p-3 bg-slate-50 rounded-lg border border-slate-100">
               <span class="text-xs text-slate-400 block mb-1">Thread</span>
-              <span :title="ui.detail.thread"
-                    class="text-sm font-mono text-slate-700 truncate">{{ ui.detail.thread || '-' }}</span>
+              <span :title="ui.detail.thread" class="text-sm font-mono text-slate-700 truncate">{{
+                  ui.detail.thread ||
+                  '-'
+                }}</span>
             </div>
           </div>
 
@@ -245,9 +223,9 @@
             <h4 class="text-sm font-bold text-slate-700 mb-2">MDC Context</h4>
             <div class="bg-slate-50 rounded border border-slate-200 overflow-hidden">
               <div v-for="(val, key) in ui.detail.mdc" :key="key" class="flex border-b border-slate-100 last:border-0">
-                <div
-                    :title="key"
-                    class="w-1/3 px-3 py-2 bg-slate-100 text-xs font-semibold text-slate-500 border-r border-slate-200 truncate">{{ key }}
+                <div :title="key"
+                     class="w-1/3 px-3 py-2 bg-slate-100 text-xs font-semibold text-slate-500 border-r border-slate-200 truncate">
+                  {{ key }}
                 </div>
                 <div :title="val" class="w-2/3 px-3 py-2 text-xs font-mono text-slate-700 truncate">{{ val }}</div>
               </div>
@@ -264,7 +242,7 @@ import {getServices} from '../api/logs.js';
 
 export default {
   setup() {
-    const {ref, reactive, computed, onMounted} = Vue;
+    const {ref, reactive, computed, onMounted, onUnmounted} = Vue;
 
     // UI State
     const ui = reactive({
@@ -286,6 +264,8 @@ export default {
     const services = ref([]);
     const uiServiceFilter = ref('');
     let ws = null;
+    let retryTimer = null;
+    let destroyed = false;
     const levels = ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR'];
 
     // Filtering Logic
@@ -385,8 +365,19 @@ export default {
 
     const connectSocket = () => {
       try {
+        if (retryTimer) {
+          clearTimeout(retryTimer);
+          retryTimer = null;
+        }
+        if (ws) {
+          ws.onclose = null;
+          ws.close();
+          ws = null;
+        }
         const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
-        const url = `${scheme}://${location.host}/ws`;
+        const pathname = location.pathname || '/';
+        const basePath = pathname.replace(/\/logs\/ui\/?$/, '');
+        const url = `${scheme}://${location.host}${basePath}/ws`;
         ws = new WebSocket(url);
         ws.onopen = () => {
           ui.wsConnected = true;
@@ -403,7 +394,8 @@ export default {
         };
         ws.onclose = () => {
           ui.wsConnected = false;
-          setTimeout(connectSocket, 3000);
+          if (destroyed) return;
+          retryTimer = setTimeout(connectSocket, 3000);
         };
       } catch (e) {
         ui.wsConnected = false;
@@ -442,6 +434,18 @@ export default {
       connectSocket();
     });
 
+    onUnmounted(() => {
+      destroyed = true;
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+        retryTimer = null;
+      }
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
+    });
+
     return {
       ui, filters, realtimeLogs, services, levels,
       displayLogs, computedServiceTree, treeProps, uiServiceFilter,
@@ -464,11 +468,13 @@ export default {
 }
 
 :deep(.el-tree-node__content:hover) {
-  background-color: #f1f5f9; /* slate-100 */
+  background-color: #f1f5f9;
+  /* slate-100 */
 }
 
 :deep(.el-tree-node.is-current > .el-tree-node__content) {
-  background-color: #eef2ff; /* indigo-50 */
+  background-color: #eef2ff;
+  /* indigo-50 */
   color: #4f46e5;
 }
 </style>

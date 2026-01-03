@@ -1,5 +1,6 @@
 package com.xy.lucky.general.response.handler;
 
+import com.xy.lucky.general.response.ResponseNotIntercept;
 import com.xy.lucky.general.response.domain.Result;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -7,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.ReactiveAdapterRegistry;
 import org.springframework.core.ResolvableType;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.HttpMessageWriter;
 import org.springframework.http.server.reactive.ServerHttpResponse;
@@ -45,10 +47,16 @@ public class ResponseHandler extends ResponseBodyResultHandler {
         if (returnType == null || returnType == Void.TYPE || returnType == Void.class) {
             return false;
         }
-        if (Result.class.isAssignableFrom(returnType) || org.springframework.http.ResponseEntity.class.isAssignableFrom(returnType)) {
+
+        // 检查 @ResponseNotIntercept 注解，如果存在则不进行包装处理
+        MethodParameter methodParameter = result.getReturnTypeSource();
+        if (methodParameter.hasMethodAnnotation(ResponseNotIntercept.class)) {
             return false;
         }
-        return true;
+        if (AnnotationUtils.findAnnotation(methodParameter.getExecutable().getDeclaringClass(), ResponseNotIntercept.class) != null) {
+            return false;
+        }
+        return !Result.class.isAssignableFrom(returnType) && !org.springframework.http.ResponseEntity.class.isAssignableFrom(returnType);
     }
 
     @Override

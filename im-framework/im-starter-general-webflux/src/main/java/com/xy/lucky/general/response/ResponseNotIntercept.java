@@ -1,4 +1,4 @@
-package com.xy.lucky.logging.exception;
+package com.xy.lucky.general.response;
 
 import java.lang.annotation.*;
 

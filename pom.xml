@@ -25,7 +25,10 @@
         <module>im-ai</module>
         <module>im-connect</module>
         <module>im-quartz</module>
+        <module>im-wallet</module>
         <module>im-lbs</module>
+        <module>im-knowledge</module>
+        <module>im-live</module>
     </modules>
 
     <properties>
@@ -87,6 +90,7 @@
         <postgresql.version>42.7.5</postgresql.version>
         <clickhouse.version>0.5.0</clickhouse.version>
         <r2dbc-postgresql.version>0.8.13.RELEASE</r2dbc-postgresql.version>
+        <easy-es.version>2.0.0</easy-es.version>
 
         <!-- 分布式 / 缓存 -->
         <redis.version>4.2.3</redis.version>
@@ -617,6 +621,7 @@
                 <im-platform.server.port>8090</im-platform.server.port>
                 <im-logging.server.port>8200</im-logging.server.port>
                 <im-lbs.server.port>8201</im-lbs.server.port>
+                <im-wallet.server.port>9600</im-wallet.server.port>
 
                 <im-database.server.port>8100</im-database.server.port>
                 <im-gateway.server.port>9191</im-gateway.server.port>
@@ -663,6 +668,7 @@
                 <im-platform.server.port>8090</im-platform.server.port>
                 <im-logging.server.port>8200</im-logging.server.port>
                 <im-lbs.server.port>8201</im-lbs.server.port>
+                <im-wallet.server.port>9600</im-wallet.server.port>
 
                 <im-database.server.port>8100</im-database.server.port>
                 <im-gateway.server.port>9191</im-gateway.server.port>
@@ -710,6 +716,7 @@
                 <im-platform.server.port>8090</im-platform.server.port>
                 <im-logging.server.port>8200</im-logging.server.port>
                 <im-lbs.server.port>8201</im-lbs.server.port>
+                <im-wallet.server.port>9600</im-wallet.server.port>
 
                 <im-database.server.port>8100</im-database.server.port>
                 <im-gateway.server.port>9191</im-gateway.server.port>

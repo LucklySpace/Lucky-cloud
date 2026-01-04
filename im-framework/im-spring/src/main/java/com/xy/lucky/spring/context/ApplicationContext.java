@@ -634,7 +634,7 @@ public class ApplicationContext<T> implements BeanFactory<T>, AutoCloseable {
             if (matches.isEmpty()) throw new NoSuchBeanException();
             if (matches.size() > 1)
                 throw new TooMuchBeanException("匹配到多个 Bean，类型: " + type.getName() + ", 数量: " + matches.size());
-            return getBean(matches.get(0).getKey());
+            return getBean(matches.getFirst().getKey());
         }
         if (names.size() > 1) {
             throw new TooMuchBeanException("匹配到多个 Bean，类型: " + type.getName() + ", beanNames: " + names);

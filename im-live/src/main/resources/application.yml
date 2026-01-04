@@ -1,0 +1,11 @@
+streaming:
+  signaling:
+    port: 8082
+  rtmp:
+    port: 1935
+  admin:
+    port: 8081
+
+logging:
+  level:
+    root: INFO

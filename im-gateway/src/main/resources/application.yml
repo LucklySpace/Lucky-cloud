@@ -1,52 +1,35 @@
+server:
+  http2:
+    enabled: true
+  port: ${SERVER_PORT:@im-gateway.server.port@}
+
 spring:
-  banner:
-    location: classpath:banner.txt
-  threads:
-    virtual:
-      enabled: true  # 开启虚拟线程
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      #      password:
-      #      username:
-      database: 0      # 数据库索引（默认为0）
-      timeout: 1800000 # 连接超时时间（毫秒）
-
-  cloud:
-    # gateway 配置
-    gateway:
-      server:
-        webflux:
-          httpclient:
-            response-timeout: 5s
-            compression: true
-          #跨域设置
-          globalcors:
-            cors-configurations:
-              '[/**]':
-                allowed-origin-patterns: "*"
-                allowed-methods: "*"
-                allowed-headers: "*"
-                allow-credentials: true
-                exposed-headers: "Content-Disposition,Content-Type,Cache-Control"
-          #开启服务注册和发现
-          discovery:
-            locator:
-              enabled: true
-              lower-case-service-id: true
-
-  gateway:
+  application:
+    name: im-gateway
+  profiles:
+    active: @app.profiles.active@
+    include: undertow  # 引用其他的yml文件
+  jackson:
+    default-property-inclusion: non_null
+  config:
+    import: nacos:${spring.application.name}-${spring.profiles.active}.yml
+    location: gateway-routes.yml
+  cloud: # nacos
+    sentinel:
+      eager: true
+      transport:
+        dashboard: @sentinel.dashboard.url@
     nacos:
-      data-id: gateway-routes.yml
-      group: DEFAULT_GROUP
-      timeout-ms: 5000
-
-
-
-# TODO: log settings
-logging:
-  config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件
-  level:
-    com.xy.lucky.*: info
-    org.springframework: warn
+      discovery: # 服务注册发现
+        server-addr: @nacos.config.server-addr@
+        username: @nacos.discovery.username@
+        password: @nacos.discovery.password@
+        namespace: @nacos.discovery.namespace@
+        group: @nacos.discovery.group@
+      config: # 配置中心
+        enabled: true
+        server-addr: @nacos.config.server-addr@
+        namespace: @nacos.config.namespace@
+        group: @nacos.config.group@
+        file-extension: yaml
+        preference: remote

@@ -3,10 +3,8 @@ package com.xy.lucky.security;
 import com.xy.lucky.core.constants.IMConstant;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.cloud.context.config.annotation.RefreshScope;
 
 @Data
-@RefreshScope
 @ConfigurationProperties(prefix = "security.auth")
 public class SecurityAuthProperties {
 

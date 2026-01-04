@@ -16,6 +16,8 @@ server:
       - application/json
 
 spring:
+  main:
+    web-application-type: reactive
   thymeleaf:
     cache: false
     prefix: classpath:/templates/

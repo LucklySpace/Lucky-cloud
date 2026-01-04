@@ -1,0 +1,56 @@
+spring:
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    generate-ddl: true
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  #向量库
+  datasource:
+    url: jdbc:postgresql://localhost:35432/postgres
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  ai:
+    #调用ai大模型（可使用本地化部署模型，也可以使用线上的）
+    openai:
+      embedding:
+        base-url: http://localhost:6008
+        api-key: "sk-aaabbbcccdddeeefffggghhhiiijjjkkk"
+        options:
+          model: m3e
+      api-key: "sk-0b48339cb3bd49f58bab98d972e180ee" # 安全起见，从系统环境变量读取
+      base-url: https://api.deepseek.com
+      chat:
+        options:
+          model: deepseek-chat
+          temperature: 0.5
+    #    #调用矢量化模型
+    #    embedding:
+    #      transformer:
+    #        onnx:
+    #          modelUri: classpath:/text2vec-base-chinese/onnx/model.onnx
+    #        tokenizer:
+    #          uri: classpath:/text2vec-base-chinese/onnx/tokenizer.json
+    #矢量化配置
+    vectorstore:
+      pgvector:
+        initialize-schema: true
+        index-type: HNSW
+        distance-type: COSINE_DISTANCE
+        dimensions: 1024
+        max-document-batch-size: 10000
+        schema-name: public
+        table-name: vector_store
+
+
+# TODO: log settings
+logging:
+  config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件
+  level:
+    com.xy.lucky.*: info
+    org.springframework: warn

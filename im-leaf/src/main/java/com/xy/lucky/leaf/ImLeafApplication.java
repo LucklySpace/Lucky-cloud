@@ -1,6 +1,5 @@
 package com.xy.lucky.leaf;
 
-import com.github.xiaoymin.knife4j.spring.annotations.EnableKnife4j;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.info.Info;
 import org.apache.dubbo.config.spring.context.annotation.EnableDubbo;
@@ -13,7 +12,6 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableDiscoveryClient
 @EnableDubbo(scanBasePackages = "com.xy.lucky.leaf.service")
 @EnableTransactionManagement
-@EnableKnife4j
 @SpringBootApplication(exclude = {SecurityAutoConfiguration.class})
 @OpenAPIDefinition(
         info = @Info(

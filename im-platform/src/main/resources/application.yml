@@ -1,26 +1,53 @@
-spring: #springboot的配置
+server:
+  http2:
+    enabled: true
+  port: ${SERVER_PORT:@im-platform.server.port@}
+
+spring:
+  application:
+    name: im-platform
   profiles:
-    active: ${APP_PROFILES_ACTIVE:dev}
+    active: @app.profiles.active@
     include: undertow  # 引用其他的yml文件
   jackson:
     default-property-inclusion: non_null
+  config:
+    import: nacos:${spring.application.name}-${spring.profiles.active}.yml
+  cloud: # nacos
+    sentinel:
+      eager: true
+      transport:
+        dashboard: @sentinel.dashboard.url@
+    nacos:
+      discovery: # 服务注册发现
+        server-addr: @nacos.config.server-addr@
+        username: @nacos.discovery.username@
+        password: @nacos.discovery.password@
+        namespace: @nacos.discovery.namespace@
+        group: @nacos.discovery.group@
+      config: # 配置中心
+        enabled: true
+        server-addr: @nacos.config.server-addr@
+        namespace: @nacos.config.namespace@
+        group: @nacos.config.group@
+        file-extension: yaml
+        preference: remote
 
-email:
-  enabled: false
-  default-provider: smtp
-  smtp:
-    host: ${EMAIL_SMTP_HOST:}
-    port: ${EMAIL_SMTP_PORT:587}
-    username: ${EMAIL_SMTP_USERNAME:}
-    password: ${EMAIL_SMTP_PASSWORD:}
-    from: ${EMAIL_SMTP_FROM:}
-    ssl: ${EMAIL_SMTP_SSL:false}
-
-sms:
-  enabled: false
-  default-provider: zhenzi
-  zhenzi:
-    api-url: ${SMS_ZHENZI_API_URL:https://sms_developer.zhenzikj.com}
-    app-id: ${SMS_ZHENZI_APP_ID:}
-    app-secret: ${SMS_ZHENZI_APP_SECRET:}
-    default-template-id: ${SMS_ZHENZI_TEMPLATE_ID:10120}
+dubbo: # dubbo
+  application:
+    name: ${spring.application.name}-${spring.profiles.active}-dubbo
+    serialize-check-status: WARN
+  protocol: # dubbo协议
+    name: dubbo
+    port: -1
+  consumer:
+    check: false
+    timeout: 5000
+  provider:
+    delay: -1
+  registry: # 注册到nacos
+    address: nacos://@nacos.config.server-addr@
+    register-mode: instance
+    group: @nacos.discovery.group@
+    username: @nacos.discovery.username@
+    password: @nacos.discovery.password@

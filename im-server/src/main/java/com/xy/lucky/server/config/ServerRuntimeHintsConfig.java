@@ -9,8 +9,7 @@ public class ServerRuntimeHintsConfig implements RuntimeHintsRegistrar {
     public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
         hints.resources().registerPattern("logback-plus.xml")
                 .registerPattern("redisson-cluster.yml")
-                .registerPattern("redisson-single.yml")
-                .registerPattern("bootstrap.yml");
+                .registerPattern("redisson-single.yml");
 
     }
 }

@@ -1,29 +1,34 @@
 server:
-  compression:
-    enabled: true #  开启gzip压缩
-    mime-types: application/json,application/xml,text/html,text/xml,text/plain
-    min-response-size: 1024
+  http2:
+    enabled: true
+  port: ${SERVER_PORT:@im-analysis.server.port@}
 
-# TODO: log settings
-logging:
-  config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件
-  level:
-    com.xy.lucky.*: info
-    org.springframework: warn
-
-spring: #springboot的配置
-  banner:
-    location: classpath:banner.txt
+spring:
+  application:
+    name: im-analysis
   profiles:
+    active: @app.profiles.active@
     include: undertow  # 引用其他的yml文件
-  threads:
-    virtual:
-      enabled: true  # 开启虚拟线程
-
-# TODO: knife4j相关配置 可以不用改
-knife4j:
-  enable: true        # 开启增强配置
-  production: false   # 开启生产环境屏蔽
-  setting:
-    language: zh_cn   # 默认中文
-    swagger-model-name: 实体类
+  jackson:
+    default-property-inclusion: non_null
+  config:
+    import: nacos:${spring.application.name}-${spring.profiles.active}.yml
+  cloud: # nacos
+    sentinel:
+      eager: true
+      transport:
+        dashboard: @sentinel.dashboard.url@
+    nacos:
+      discovery: # 服务注册发现
+        server-addr: @nacos.config.server-addr@
+        username: @nacos.discovery.username@
+        password: @nacos.discovery.password@
+        namespace: @nacos.discovery.namespace@
+        group: @nacos.discovery.group@
+      config: # 配置中心
+        enabled: true
+        server-addr: @nacos.config.server-addr@
+        namespace: @nacos.config.namespace@
+        group: @nacos.config.group@
+        file-extension: yaml
+        preference: remote

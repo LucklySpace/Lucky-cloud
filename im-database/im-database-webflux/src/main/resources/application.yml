@@ -1,46 +1,84 @@
+server:
+  http2:
+    enabled: true
+  port: ${SERVER_PORT:@im-database-webflux.server.port@}
+
 spring:
   application:
     name: im-database-webflux
+  profiles:
+    active: @app.profiles.active@
   jackson:
-    time-zone: UTC
-    serialization:
-      WRITE_DATES_AS_TIMESTAMPS: false
-  banner:
-    location: classpath:banner.txt
-  threads:
-    virtual:
-      enabled: true  # 开启虚拟线程
-  r2dbc:
-    url: ${R2DBC_URL:r2dbc:postgresql://localhost:5432/imdb}
-    username: ${PGUSER:postgres}
-    password: ${PGPASSWORD:postgres}
+    default-property-inclusion: non_null
+  config:
+    import: nacos:${spring.application.name}-${spring.profiles.active}.yml
+  cloud: # nacos
+    sentinel:
+      eager: true
+      transport:
+        dashboard: @sentinel.dashboard.url@
+    nacos:
+      discovery: # 服务注册发现
+        server-addr: @nacos.config.server-addr@
+        username: @nacos.discovery.username@
+        password: @nacos.discovery.password@
+        namespace: @nacos.discovery.namespace@
+        group: @nacos.discovery.group@
+      config: # 配置中心
+        enabled: true
+        server-addr: @nacos.config.server-addr@
+        namespace: @nacos.config.namespace@
+        group: @nacos.config.group@
+        file-extension: yaml
+        preference: remote
 
-#springdoc相关配置
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-    tags-sorter: alpha
-    operations-sorter: alpha
-  api-docs:
-    enabled: true
-    path: /v3/api-docs
-  group-configs:
-    - group: 'server'
-      paths-to-match: '/**'
-      packages-to-scan: com.xy.server  #改成你自己的包名，一般到启动类的包名
+dubbo: # dubbo
+  application:
+    name: ${spring.application.name}-${spring.profiles.active}-dubbo
+    serialize-check-status: WARN
+  protocol: # dubbo协议
+    name: dubbo
+    port: -1
+  consumer:
+    check: false
+    timeout: 5000
+  provider:
+    delay: -1
+  registry: # 注册到nacos
+    address: nacos://@nacos.config.server-addr@
+    register-mode: instance
+    group: @nacos.discovery.group@
+    username: @nacos.discovery.username@
+    password: @nacos.discovery.password@
 
-# TODO: knife4j相关配置 可以不用改
-knife4j:
-  enable: true        # 开启增强配置
-  production: false   # 开启生产环境屏蔽
-  setting:
-    language: zh_cn   # 默认中文
-    swagger-model-name: 实体类
-
-# TODO: log settings
-# TODO: log settings
-logging:
-  config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件
-  level:
-    com.xy.lucky.*: info
-    org.springframework: warn
+# seata 配置
+seata:
+  enabled: false
+  # 数据源代理模式
+  data-source-proxy-mode: AT
+  application-id: ${spring.application.name}
+  config:
+    type: nacos
+    nacos:
+      server-addr: @nacos.config.server-addr@
+      namespace: @seata.config.namespace@
+      group: @seata.config.group@
+      username: @nacos.discovery.username@
+      password: @nacos.discovery.password@
+      data-id: @seata.config.data.id@
+  # 事务组名称
+  tx-service-group: default_tx_group
+  # 注册seata
+  registry:
+    type: nacos
+    nacos:
+      server-addr: @nacos.discovery.server-addr@
+      application: seata-server
+      group: @seata.config.group@
+      namespace: @seata.config.namespace@
+      username: @nacos.discovery.username@
+      password: @nacos.discovery.password@
+  client:
+    rm:
+      # 是否上报成功状态
+      report-success-enable: true

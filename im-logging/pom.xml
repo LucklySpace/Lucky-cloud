@@ -82,6 +82,12 @@
             <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
         </dependency>
 
+        <!-- Sentinel -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+        </dependency>
+
         <!--使用nacos + ribbon做负载均衡时添加的loadbalancer依赖-->
         <dependency>
             <groupId>org.springframework.cloud</groupId>

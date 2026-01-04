@@ -16,6 +16,8 @@ server:
       - application/json
 
 spring:
+  main:
+    web-application-type: reactive
   jackson:
     time-zone: UTC
   banner:
@@ -70,26 +72,36 @@ springdoc:
     enabled: true
     path: /v3/api-docs
   group-configs:
-    - group: 'server'
+    - group: 'platform'
       paths-to-match: '/**'
       packages-to-scan: com.xy.lucky.platform  # 改为平台服务包名，确保文档扫描到控制器
 
-# TODO: knife4j相关配置 可以不用改
-knife4j:
-  enable: true        # 开启增强配置
-  production: false   # 开启生产环境屏蔽
-  setting:
-    language: zh_cn   # 默认中文
-    swagger-model-name: 实体类
-
-
-minio:
+minio: # minio
   endpoint: http://127.0.0.1:9000
   extranet: http://127.0.0.1:9000
   accessKey: admin
   secretKey: admin123
   bucketName: box-im
 
-
-shortlink:
+shortlink: # 短链接
   domain: http://127.0.0.1:8090
+
+email: # 邮件
+  enabled: false
+  default-provider: smtp
+  smtp:
+    host: ${EMAIL_SMTP_HOST:}
+    port: ${EMAIL_SMTP_PORT:587}
+    username: ${EMAIL_SMTP_USERNAME:}
+    password: ${EMAIL_SMTP_PASSWORD:}
+    from: ${EMAIL_SMTP_FROM:}
+    ssl: ${EMAIL_SMTP_SSL:false}
+
+sms: # 短信
+  enabled: false
+  default-provider: zhenzi
+  zhenzi:
+    api-url: ${SMS_ZHENZI_API_URL:https://sms_developer.zhenzikj.com}
+    app-id: ${SMS_ZHENZI_APP_ID:}
+    app-secret: ${SMS_ZHENZI_APP_SECRET:}
+    default-template-id: ${SMS_ZHENZI_TEMPLATE_ID:10120}

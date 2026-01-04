@@ -1,0 +1,31 @@
+application:
+  yml:
+server:
+  compression:
+    enabled: true #  开启gzip压缩
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+    min-response-size: 1024
+
+# TODO: log settings
+logging:
+  config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件
+  level:
+    com.xy.lucky.*: info
+    org.springframework: warn
+
+spring: #springboot的配置
+  banner:
+    location: classpath:banner.txt
+  profiles:
+    include: undertow  # 引用其他的yml文件
+  threads:
+    virtual:
+      enabled: true  # 开启虚拟线程
+
+# TODO: knife4j相关配置 可以不用改
+knife4j:
+  enable: true        # 开启增强配置
+  production: false   # 开启生产环境屏蔽
+  setting:
+    language: zh_cn   # 默认中文
+    swagger-model-name: 实体类

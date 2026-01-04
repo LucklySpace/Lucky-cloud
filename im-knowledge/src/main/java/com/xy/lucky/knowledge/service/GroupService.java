@@ -9,7 +9,7 @@ public interface GroupService {
     /**
      * 创建分组
      */
-    Mono<GroupPo> createGroup(String owner, String name, String description);
+    Mono<?> createGroup(String owner, String name, String description);
 
     /**
      * 查询用户的分组列表

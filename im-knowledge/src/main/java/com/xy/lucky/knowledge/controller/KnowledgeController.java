@@ -141,7 +141,7 @@ public class KnowledgeController {
 
     @PostMapping("/group/create")
     @Operation(summary = "创建分组", description = "创建文档分组")
-    public Mono<GroupPo> createGroup(@RequestParam("owner") String owner,
+    public Mono<?> createGroup(@RequestParam("owner") String owner,
                                      @RequestParam("name") String name,
                                      @RequestParam(value = "description", required = false) String description) {
         return groupService.createGroup(owner, name, description);

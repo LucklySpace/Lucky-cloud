@@ -30,7 +30,7 @@ public class GroupServiceImpl implements GroupService {
      * 创建分组
      */
     @Override
-    public Mono<GroupPo> createGroup(String owner, String name, String description) {
+    public Mono<?> createGroup(String owner, String name, String description) {
         return groupRepository.findByOwnerAndName(owner, name)
                 .flatMap(existing -> Mono.error(new RuntimeException("分组已存在")))
                 .switchIfEmpty(Mono.defer(() -> {

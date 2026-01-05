@@ -1,11 +1,11 @@
 server:
   http2:
     enabled: true
-  port: ${SERVER_PORT:@im-server.server.port@}
+  port: ${SERVER_PORT:@im-service.server.port@}
 
 spring:
   application:
-    name: im-server
+    name: im-service
   profiles:
     active: @app.profiles.active@
   jackson:

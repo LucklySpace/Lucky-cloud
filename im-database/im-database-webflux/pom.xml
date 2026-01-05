@@ -25,7 +25,6 @@
         <dependency>
             <groupId>com.xy.lucky</groupId>
             <artifactId>im-starter-dubbo-webflux</artifactId>
-            <version>${revision}</version>
         </dependency>
 
         <!-- R2DBC -->
@@ -38,16 +37,18 @@
         <dependency>
             <groupId>io.r2dbc</groupId>
             <artifactId>r2dbc-postgresql</artifactId>
-            <version>${r2dbc-postgresql.version}</version>
         </dependency>
 
         <!-- Swagger 文档 -->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
             <artifactId>knife4j-openapi3-webflux-jakarta-spring-boot-starter</artifactId>
-            <version>${knife4j.version}</version>
         </dependency>
 
-
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 </project>

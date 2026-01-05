@@ -248,7 +248,7 @@ public class CollectionUtils {
     }
 
     public static boolean containsAny(Collection<?> source, Collection<?> candidates) {
-        return org.springframework.util.CollectionUtils.containsAny(source, candidates);
+        return !Collections.disjoint(source, candidates);
     }
 
     public static <T> T getFirst(List<T> from) {

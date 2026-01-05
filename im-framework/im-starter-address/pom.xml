@@ -14,19 +14,23 @@
     <description>im-starter-address</description>
 
     <dependencies>
-
         <!-- 通用工具类 -->
         <dependency>
             <groupId>com.xy.lucky</groupId>
             <artifactId>im-starter-common</artifactId>
-            <version>${revision}</version>
         </dependency>
 
         <!-- IP地址检索 -->
         <dependency>
             <groupId>org.lionsoul</groupId>
             <artifactId>ip2region</artifactId>
-            <version>${ip2region.version}</version>
+        </dependency>
+
+        <!--lombok-->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

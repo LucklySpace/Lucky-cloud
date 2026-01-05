@@ -31,7 +31,6 @@
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
-            <version>${mapstruct.version}</version>
         </dependency>
         <!-- Lombok，用于简化代码，如生成 getter/setter 等  lombok 失效参考 https://blog.csdn.net/qq_36670734/article/details/144609279 -->
         <dependency>
@@ -52,7 +51,6 @@
         <dependency>
             <groupId>com.esotericsoftware</groupId>
             <artifactId>kryo</artifactId>
-            <version>${kryo.version}</version>
             <scope>compile</scope>
         </dependency>
 

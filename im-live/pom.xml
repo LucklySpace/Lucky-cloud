@@ -15,31 +15,23 @@
     <name>im-live</name>
     <description>基于 Netty 与自研 im-spring 的高并发流媒体服务器（WebRTC 信令 + RTMP 推拉）</description>
 
-    <properties>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
-    </properties>
-
     <dependencies>
         <!-- 自研轻量容器 -->
         <dependency>
             <groupId>com.xy.lucky</groupId>
             <artifactId>im-spring</artifactId>
-            <version>${revision}</version>
         </dependency>
 
         <!-- Netty 高性能网络框架 -->
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
-            <version>${netty.version}</version>
         </dependency>
 
         <!-- JSON 解析 -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
 
     </dependencies>

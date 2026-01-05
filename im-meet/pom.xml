@@ -30,7 +30,7 @@
         <jackson.version>2.15.2</jackson.version>
 
         <!-- 代码生成工具版本 -->
-        <lombok.version>1.18.30</lombok.version>
+        <lombok.version>1.18.42</lombok.version>
 
         <!-- YAML解析库版本 -->
         <snakeyaml.version>2.2</snakeyaml.version>

@@ -14,13 +14,7 @@
     <name>im-logging</name>
     <description>im-logging</description>
 
-    <properties>
-        <!-- Java版本 -->
-        <java.version>21</java.version>
-    </properties>
-
     <dependencies>
-
         <dependency>
             <groupId>com.xy.lucky</groupId>
             <artifactId>im-starter-general-webflux</artifactId>

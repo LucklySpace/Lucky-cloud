@@ -26,14 +26,12 @@
         <dependency>
             <groupId>com.hankcs</groupId>
             <artifactId>hanlp</artifactId>
-            <version>${hanlp.version}</version>
         </dependency>
 
         <!--引入Knife4j的官方start包,Spring Boot版本 > 3.0,开发者需要注意-->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
             <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
-            <version>${knife4j.version}</version>
         </dependency>
 
         <dependency>
@@ -57,7 +55,6 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 
     <build>

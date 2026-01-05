@@ -46,10 +46,10 @@
         <maven.compiler.plugin.version>3.8.1</maven.compiler.plugin.version>
 
         <!-- Spring Boot / Cloud 版本 -->
-        <spring-boot.version>3.5.4</spring-boot.version>
+        <spring-boot.version>3.5.9</spring-boot.version>
         <spring-cloud.version>2025.0.0</spring-cloud.version>
         <spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>
-        <spring-boot-starter-dubbo.version>3.3.5</spring-boot-starter-dubbo.version>
+        <spring-boot-starter-dubbo.version>3.3.6</spring-boot-starter-dubbo.version>
 
         <!-- Spring AI版本 -->
         <spring-ai.version>1.0.0-M6</spring-ai.version>
@@ -83,7 +83,7 @@
         <caffeine.version>3.1.8</caffeine.version>
 
         <!-- 网络 / 底层 -->
-        <netty.version>4.1.108.final</netty.version>
+        <netty.version>4.2.9.Final</netty.version>
 
         <!-- 数据库驱动 -->
         <mysql.version>8.2.0</mysql.version>
@@ -613,7 +613,7 @@
 
                 <!-- 服务端口配置 -->
                 <im-auth.server.port>8084</im-auth.server.port>
-                <im-server.server.port>8085</im-server.server.port>
+                <im-service.server.port>8085</im-service.server.port>
                 <im-leaf.server.port>8086</im-leaf.server.port>
                 <im-file.server.port>8087</im-file.server.port>
                 <im-ai.server.port>8088</im-ai.server.port>
@@ -660,7 +660,7 @@
 
                 <!-- 服务端口配置 -->
                 <im-auth.server.port>8084</im-auth.server.port>
-                <im-server.server.port>8085</im-server.server.port>
+                <im-service.server.port>8085</im-service.server.port>
                 <im-leaf.server.port>8086</im-leaf.server.port>
                 <im-file.server.port>8087</im-file.server.port>
                 <im-ai.server.port>8088</im-ai.server.port>
@@ -708,7 +708,7 @@
 
                 <!-- 服务端口配置 -->
                 <im-auth.server.port>8084</im-auth.server.port>
-                <im-server.server.port>8085</im-server.server.port>
+                <im-service.server.port>8085</im-service.server.port>
                 <im-leaf.server.port>8086</im-leaf.server.port>
                 <im-file.server.port>8087</im-file.server.port>
                 <im-ai.server.port>8088</im-ai.server.port>

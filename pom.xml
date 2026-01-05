@@ -47,7 +47,8 @@
 
         <!-- Maven插件版本 -->
         <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
-        <maven-compiler.plugin.version>3.8.1</maven-compiler.plugin.version>
+        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+        <flatten-maven-plugin.version>1.5.0</flatten-maven-plugin.version>
 
         <!-- Spring Boot / Cloud / Ai  版本 -->
         <spring-boot.version>3.5.9</spring-boot.version>
@@ -279,6 +280,12 @@
             <dependency>
                 <groupId>com.xy.lucky</groupId>
                 <artifactId>im-starter-domain</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-starter-logging</artifactId>
                 <version>${revision}</version>
             </dependency>
 
@@ -546,7 +553,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>${maven-compiler.plugin.version}</version>
+                <version>${maven-compiler-plugin.version}</version>
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
@@ -562,6 +569,32 @@
                     <execution>
                         <goals>
                             <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>${flatten-maven-plugin.version}</version>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
                         </goals>
                     </execution>
                 </executions>

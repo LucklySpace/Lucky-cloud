@@ -14,6 +14,7 @@ import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -25,6 +26,12 @@ public class ChatConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(ChatConfig.class);
 
+    @Value("${im.ai.prompt.system:你是一个智能机器人, 你的名字叫 Spring AI智能机器人}")
+    private String systemPrompt;
+
+    private String systemPrompt() {
+        return systemPrompt;
+    }
 
     /**
      * 内存型 ChatMemory Bean
@@ -42,10 +49,10 @@ public class ChatConfig {
     public ChatClient chatClient(
             ChatClient.Builder builder,
             PgVectorStore vectorStore,
-            ToolCallbackProvider toolCallbackProvider,
+            List<ToolCallbackProvider> toolCallbackProviders,
             @Qualifier("chatPostgresMemory") ChatMemory chatMemory
     ) {
-        String systemPrompt = "你是一个智能机器人, 你的名字叫 Spring AI智能机器人";
+        String systemPrompt = systemPrompt();
         logger.info("Setting up ChatClient with system prompt: {}", systemPrompt);
 
         List<Advisor> advisors = List.of(
@@ -55,7 +62,7 @@ public class ChatConfig {
                 new MessageChatMemoryAdvisor(chatMemory),
                 // 敏感词拦截
                 SafeGuardAdvisor.builder()
-                        .sensitiveWords(List.of("色情", "暴力"))
+                        .sensitiveWords(List.of("色情", "暴力", "政治", "恐怖"))
                         .order(2)
                         .failureResponse("抱歉，我无法回答这个问题。")
                         .build(),
@@ -67,8 +74,7 @@ public class ChatConfig {
         ChatClient client = builder
                 .defaultSystem(systemPrompt)
                 .defaultAdvisors(advisors)
-                // 注册所有通过 ToolCallbackProvider 提供的工具
-                .defaultTools(toolCallbackProvider.getToolCallbacks())
+                .defaultTools(toolCallbackProviders)
                 .defaultOptions(ChatOptions.builder()
                         .topP(0.7)
                         .build())

@@ -199,6 +199,14 @@
                 <scope>import</scope>
             </dependency>
 
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
             <!--    SpringAI Alibaba 模型服务    -->
             <dependency>
                 <groupId>com.alibaba.cloud.ai</groupId>

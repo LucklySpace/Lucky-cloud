@@ -8,11 +8,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+
+import java.util.Map;
 
 import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
 import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_RETRIEVE_SIZE_KEY;
@@ -34,6 +39,9 @@ public class ChatController {
 
     private final ChatClient chatClient;
 
+    @Value("${im.ai.prompt.chat-template:请用简洁中文回答：{text}}")
+    private String chatTemplate;
+
     @Resource
     @Qualifier("chatPostgresMemory")
     private ChatMemory chatPostgresMemory;
@@ -49,7 +57,9 @@ public class ChatController {
     @Operation(summary = "单轮问答")
     public String ask(@RequestParam("text") String text) {
         log.info("[chat] 用户提问：{}", text);
-        return chatClient.prompt().user(text).call().content().trim();
+        PromptTemplate template = new PromptTemplate(chatTemplate);
+        Prompt prompt = template.create(Map.of("text", text));
+        return chatClient.prompt(prompt).call().content().trim();
     }
 
     /**
@@ -63,11 +73,12 @@ public class ChatController {
     @Operation(summary = "多轮对话SSE流")
     public Flux<ServerSentEvent<String>> chat(@RequestParam("sessionId") String sessionId, @RequestParam(value = "text", defaultValue = "Hello!") String text) {
         log.info("[chat] 会话 {} 用户输入：{}", sessionId, text);
-        return chatClient.prompt(text)
+        PromptTemplate template = new PromptTemplate(chatTemplate);
+        Prompt prompt = template.create(Map.of("text", text));
+        return chatClient.prompt(prompt)
                 .advisors(advisorSpec -> advisorSpec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, sessionId).param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 100))
                 .stream().content()
                 .map(content -> ServerSentEvent.builder(content).event("message").build())
-
                 .concatWithValues(
                         ServerSentEvent.builder("[DONE]")
                                 .event("end")

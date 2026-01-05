@@ -16,27 +16,12 @@ spring:
     password: postgres
     driver-class-name: org.postgresql.Driver
   ai:
-    #调用ai大模型（可使用本地化部署模型，也可以使用线上的）
-    openai:
-      embedding:
-        base-url: http://localhost:6008
-        api-key: "sk-aaabbbcccdddeeefffggghhhiiijjjkkk"
-        options:
-          model: m3e
-      api-key: "sk-0b48339cb3bd49f58bab98d972e180ee" # 安全起见，从系统环境变量读取
-      base-url: https://api.deepseek.com
+    dashscope:
+      api-key: ${AI_DASHSCOPE_API_KEY}
       chat:
         options:
-          model: deepseek-chat
+          model: qwen-plus
           temperature: 0.5
-    #    #调用矢量化模型
-    #    embedding:
-    #      transformer:
-    #        onnx:
-    #          modelUri: classpath:/text2vec-base-chinese/onnx/model.onnx
-    #        tokenizer:
-    #          uri: classpath:/text2vec-base-chinese/onnx/tokenizer.json
-    #矢量化配置
     vectorstore:
       pgvector:
         initialize-schema: true
@@ -46,6 +31,11 @@ spring:
         max-document-batch-size: 10000
         schema-name: public
         table-name: vector_store
+im:
+  ai:
+    prompt:
+      system: 你是一个智能机器人, 你的名字叫 Spring AI智能机器人
+      chat-template: 请用简洁中文回答：{text}
 
 
 # TODO: log settings

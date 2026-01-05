@@ -30,8 +30,8 @@ spring:
         server-addr: @nacos.config.server-addr@
         namespace: @nacos.config.namespace@
         group: @nacos.config.group@
-        file-extension: yaml
-        preference: remote
+        file-extension: @nacos.config.file-extension@
+        preference: @nacos.config.preference@
 
 dubbo: # dubbo
   application:

@@ -25,7 +25,6 @@
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
-            <version>${caffeine.version}</version>
         </dependency>
 
         <!-- Spring Data Redis -->
@@ -38,7 +37,6 @@
         <dependency>
             <groupId>org.redisson</groupId>
             <artifactId>redisson-spring-boot-starter</artifactId>
-            <version>${redission.version}</version>
         </dependency>
 
         <!--        <dependency>-->

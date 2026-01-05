@@ -36,13 +36,17 @@ spring:
               enabled: true
               lower-case-service-id: true
 
+lucky:
   gateway:
-    nacos:
-      data-id: gateway-routes.yml
-      group: DEFAULT_GROUP
-      timeout-ms: 5000
-
-
+    ip-guard:
+      enabled: true
+      window-seconds: 5
+      max-requests: 12
+      ban-seconds: 600
+      key-prefix: `gw:ipguard:`
+      bloom:
+        enabled: true
+        ttl-hours: 6
 
 # TODO: log settings
 logging:

@@ -2,7 +2,7 @@ package com.xy.lucky.gateway.filter;
 
 import com.alibaba.nacos.common.utils.JacksonUtils;
 import com.xy.lucky.gateway.utils.IPAddressUtil;
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RAtomicLong;
 import org.redisson.api.RBloomFilter;
@@ -26,23 +26,17 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * IP 黑名单过滤器
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class BlackListFilter implements GlobalFilter, Ordered {
 
     private static final DateTimeFormatter DAY_FORMATTER = DateTimeFormatter.BASIC_ISO_DATE;
 
     private static final String keyPrefix = "gw:ipguard:";
-
-    private final RedissonClient redissonClient;
-
-    private final ConcurrentHashMap<String, Boolean> bloomInited = new ConcurrentHashMap<>();
 
     @Value("${lucky.gateway.ip-guard.enabled:true}")
     private boolean enabled;
@@ -67,6 +61,9 @@ public class BlackListFilter implements GlobalFilter, Ordered {
 
     @Value("${lucky.gateway.ip-guard.bloom.ttl-hours:3}")
     private long bloomTtlHours;
+
+    @Resource
+    private RedissonClient redissonClient;
 
     /**
      * 规范路径
@@ -140,7 +137,7 @@ public class BlackListFilter implements GlobalFilter, Ordered {
         String counterKey = keyPrefix + "cnt:" + safeWindowSeconds + ":" + ip + ":" + safePath;
         String bloomKey = bloomKeyForToday(keyPrefix);
 
-        log.warn("处理访问请求 ip：{} 地址：{} 窗口：{} 封禁：{}", ip, safePath, safeWindowSeconds, safeBanSeconds);
+        log.warn("处理访问请求 ip：{} 地址：{}", ip, safePath);
         return isBanned(ip, banKey, bloomKey)
                 .flatMap(banned -> {
                     if (Boolean.TRUE.equals(banned)) {
@@ -168,7 +165,7 @@ public class BlackListFilter implements GlobalFilter, Ordered {
      *
      * @param counterKey  计数器 key
      * @param windowSeconds 窗口时长
-     * @return long
+     * @return long 递增后的计数器值
      */
     private Mono<Long> incrementCounter(String counterKey, long windowSeconds) {
         return Mono.fromCallable(() -> {
@@ -237,13 +234,7 @@ public class BlackListFilter implements GlobalFilter, Ordered {
      * @return Bloom Filter
      */
     private RBloomFilter<String> ensureBloomFilter(String bloomKey) {
-        RBloomFilter<String> bloomFilter = redissonClient.getBloomFilter(bloomKey);
-        bloomInited.computeIfAbsent(bloomKey, k -> {
-            bloomFilter.tryInit(bloomCapacity, bloomErrorRate);
-            bloomFilter.expire(Duration.ofHours(Math.max(1, bloomTtlHours)));
-            return true;
-        });
-        return bloomFilter;
+        return redissonClient.getBloomFilter(bloomKey);
     }
 
     @Override

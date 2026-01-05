@@ -19,6 +19,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.util.StringUtils;
 
 @EnableCaching  //开启缓存注解功能
 @Configuration
@@ -67,14 +68,18 @@ public class RedisConfig {
     @Bean(destroyMethod = "shutdown")
     public RedissonClient redissonClient(
             @Value("${spring.data.redis.redisson.address:}") String address,
+            @Value("${spring.data.redis.username:}") String username,
             @Value("${spring.data.redis.password:}") String password) {
-        if (!org.springframework.util.StringUtils.hasText(address)) {
+        if (!StringUtils.hasText(address)) {
             return Redisson.create();
         }
 
         Config config = new Config();
         config.useSingleServer().setAddress(address);
-        if (org.springframework.util.StringUtils.hasText(password)) {
+        if (StringUtils.hasText(username)) {
+            config.useSingleServer().setUsername(username);
+        }
+        if (StringUtils.hasText(password)) {
             config.useSingleServer().setPassword(password);
         }
         return Redisson.create(config);

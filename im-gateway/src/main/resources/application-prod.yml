@@ -40,6 +40,14 @@ spring:
 
 lucky:
   gateway:
+    sign:
+      enabled: true
+      expire-time: 3000
+    route-cache:
+      cache-key: routes
+      data-id: ${spring.config.location}
+      group: ${spring.cloud.nacos.config.group}
+      timeout-ms: 5000
     ip-guard:
       enabled: true
       window-seconds: 5

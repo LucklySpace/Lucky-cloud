@@ -19,7 +19,7 @@ import java.util.UUID;
 @Component
 public class TraceFilter implements GlobalFilter, Ordered {
 
-    private static final String TRACEID = "traceid";
+    private static final String TRACEID = "traceId";
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {

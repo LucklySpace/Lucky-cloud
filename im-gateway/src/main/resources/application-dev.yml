@@ -6,6 +6,8 @@ spring:
       enabled: true  # 开启虚拟线程
   data:
     redis:
+      redisson:
+        address: redis://${spring.data.redis.host}:${spring.data.redis.port}
       host: localhost
       port: 6379
       #      password:
@@ -43,10 +45,11 @@ lucky:
       window-seconds: 5
       max-requests: 12
       ban-seconds: 600
-      key-prefix: `gw:ipguard:`
       bloom:
         enabled: true
-        ttl-hours: 6
+        error-rate: 0.0001
+        capacity: 1000000
+        ttl-hours: 2
 
 # TODO: log settings
 logging:

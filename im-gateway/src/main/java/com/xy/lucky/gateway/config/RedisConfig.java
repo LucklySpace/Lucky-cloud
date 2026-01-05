@@ -5,6 +5,10 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.redisson.Redisson;
+import org.redisson.api.RedissonClient;
+import org.redisson.config.Config;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -58,6 +62,22 @@ public class RedisConfig {
 
         template.afterPropertiesSet();
         return template;
+    }
+
+    @Bean(destroyMethod = "shutdown")
+    public RedissonClient redissonClient(
+            @Value("${spring.data.redis.redisson.address:}") String address,
+            @Value("${spring.data.redis.password:}") String password) {
+        if (!org.springframework.util.StringUtils.hasText(address)) {
+            return Redisson.create();
+        }
+
+        Config config = new Config();
+        config.useSingleServer().setAddress(address);
+        if (org.springframework.util.StringUtils.hasText(password)) {
+            config.useSingleServer().setPassword(password);
+        }
+        return Redisson.create(config);
     }
 
     public Jackson2JsonRedisSerializer<Object> getSerializer() {

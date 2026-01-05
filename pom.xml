@@ -787,6 +787,8 @@
                 <nacos.config.server-addr>localhost:8848</nacos.config.server-addr>
                 <nacos.config.namespace>public</nacos.config.namespace>
                 <nacos.config.group>DEFAULT_GROUP</nacos.config.group>
+                <nacos.config.file-extension>yaml</nacos.config.file-extension>
+                <nacos.config.preference>remote</nacos.config.preference>
 
                 <!-- Nacos 服务发现配置 -->
                 <nacos.discovery.server-addr>localhost:8848</nacos.discovery.server-addr>
@@ -835,6 +837,8 @@
                 <nacos.config.server-addr>test.nacos.server:8848</nacos.config.server-addr>
                 <nacos.config.namespace>test</nacos.config.namespace>
                 <nacos.config.group>TEST_GROUP</nacos.config.group>
+                <nacos.config.file-extension>yaml</nacos.config.file-extension>
+                <nacos.config.preference>remote</nacos.config.preference>
 
                 <!-- Nacos 服务发现配置 -->
                 <nacos.discovery.server-addr>test.nacos.server:8848</nacos.discovery.server-addr>
@@ -882,6 +886,8 @@
                 <nacos.config.server-addr>prod.nacos.server:8848</nacos.config.server-addr>
                 <nacos.config.namespace>prod</nacos.config.namespace>
                 <nacos.config.group>PROD_GROUP</nacos.config.group>
+                <nacos.config.file-extension>yaml</nacos.config.file-extension>
+                <nacos.config.preference>remote</nacos.config.preference>
 
                 <!-- Nacos 服务发现配置 -->
                 <nacos.discovery.server-addr>prod.nacos.server:8848</nacos.discovery.server-addr>

@@ -88,6 +88,15 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 处理语言包异常
+     */
+    @ExceptionHandler(LanguagePackException.class)
+    public Result<?> handle(LanguagePackException ex) {
+        log.error("LanguagePackException: {}", ex.getMessage(), ex);
+        return Result.failed(ex.getCode(), ex.getMessage());
+    }
+
+    /**
      * 处理 PathVariable / RequestParam 校验失败
      */
     @ExceptionHandler(ConstraintViolationException.class)

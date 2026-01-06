@@ -109,8 +109,8 @@ public class ChatServiceImpl implements ChatService {
             long start = System.currentTimeMillis();
             return Mono.fromCallable(() -> imChatDubboService.queryOne(chatDto.getFromId(), chatDto.getToId(), chatDto.getChatType()))
                     .subscribeOn(Schedulers.boundedElastic())
-                    .flatMap(imChatPO -> {
-                        if (Objects.isNull(imChatPO)) {
+                    .flatMap(imChatPo -> {
+                        if (Objects.isNull(imChatPo)) {
                             ImChatPo newChatPO = new ImChatPo();
                             String chatId = UUID.randomUUID().toString();
                             newChatPO.setChatId(chatId)
@@ -133,11 +133,11 @@ public class ChatServiceImpl implements ChatService {
                                         }
                                     });
                         } else {
-                            return Mono.just(imChatPO);
+                            return Mono.just(buildChatVo(imChatPo, chatDto.getChatType()));
                         }
                     })
-                    .flatMap(chatPo -> buildChatVo(chatPo, chatDto.getChatType()))
-                    .doOnSuccess(v -> log.debug("create会话完成 from={} to={} type={} 耗时:{}ms", chatDto.getFromId(), chatDto.getToId(), chatDto.getChatType(), System.currentTimeMillis() - start));
+                    .flatMap(chatPo -> buildChatVo((ImChatPo) chatPo, chatDto.getChatType()))
+                    .doOnSuccess(v -> log.debug("create会话完成 from={} to={} type={} 耗时:{}ms", v.getOwnerId(), v.getToId(), v.getChatType(), System.currentTimeMillis() - start));
         }), "创建会话 " + chatDto.getFromId() + "->" + chatDto.getToId());
     }
 

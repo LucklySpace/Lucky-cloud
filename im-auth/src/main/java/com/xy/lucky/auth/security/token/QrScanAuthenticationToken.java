@@ -3,25 +3,25 @@ package com.xy.lucky.auth.security.token;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 
+import java.io.Serial;
 import java.util.Collection;
 
 /**
- * qr扫码登录
- *
- * @author dense
+ * 二维码扫码认证令牌
  */
 public class QrScanAuthenticationToken extends AbstractAuthenticationToken {
 
-    // qr码
+    @Serial
+    private static final long serialVersionUID = 1L;
+
     private final Object principal;
-    // 临时密码
     private Object credentials;
 
     public QrScanAuthenticationToken(Object principal, Object credentials) {
         super(null);
         this.principal = principal;
         this.credentials = credentials;
-        this.setAuthenticated(false);
+        setAuthenticated(false);
     }
 
     public QrScanAuthenticationToken(Object principal, Object credentials, Collection<? extends GrantedAuthority> authorities) {
@@ -33,27 +33,26 @@ public class QrScanAuthenticationToken extends AbstractAuthenticationToken {
 
     @Override
     public Object getCredentials() {
-        return this.credentials;
+        return credentials;
     }
 
     @Override
     public Object getPrincipal() {
-        return this.principal;
+        return principal;
     }
 
     @Override
-    public void setAuthenticated(boolean isAuthenticated) throws IllegalArgumentException {
-        if (isAuthenticated) {
-            throw new IllegalArgumentException("Cannot set this token to trusted - use constructor which takes a GrantedAuthority list instead");
-        } else {
-            super.setAuthenticated(false);
+    public void setAuthenticated(boolean authenticated) {
+        if (authenticated) {
+            throw new IllegalArgumentException("使用包含权限的构造函数创建已认证的令牌");
         }
+        super.setAuthenticated(false);
     }
 
     @Override
     public void eraseCredentials() {
         super.eraseCredentials();
-        this.credentials = null;
+        credentials = null;
     }
 }
 

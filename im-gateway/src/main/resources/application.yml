@@ -3,5 +3,4 @@ spring:
     active: @app.profiles.active@
     # TODO 后面需做好  http网关 和 websocket网关隔离
     #  切换 web 为 http 网关配置  ws 为 websocket 网关配置
-    include: ws
-    # include: ws
+    include: web

@@ -1,18 +1,16 @@
 server:
   http2:
     enabled: true
-  port: ${SERVER_PORT:@im-leaf.server.port@}
+  port: ${SERVER_PORT:@im-gateway.server.port@}
 
 spring:
   application:
-    name: im-leaf
-  profiles:
-    active: @app.profiles.active@
-    include: undertow  # 引用其他的yml文件
+    name: im-gateway
   jackson:
     default-property-inclusion: non_null
   config:
     import: nacos:${spring.application.name}-${spring.profiles.active}.yml
+    location: gateway-routes.yml
   cloud: # nacos
     sentinel:
       eager: true
@@ -32,21 +30,3 @@ spring:
         group: @nacos.config.group@
         file-extension: @nacos.config.file-extension@
         preference: @nacos.config.preference@
-
-dubbo: # dubbo
-  application:
-    serialize-check-status: WARN
-  protocol: # dubbo协议
-    name: dubbo
-    port: -1
-  consumer:
-    check: false
-    timeout: 5000
-  provider:
-    delay: -1
-  registry: # 注册到nacos
-    address: nacos://@nacos.config.server-addr@
-    register-mode: instance
-    group: @nacos.discovery.group@
-    username: @nacos.discovery.username@
-    password: @nacos.discovery.password@

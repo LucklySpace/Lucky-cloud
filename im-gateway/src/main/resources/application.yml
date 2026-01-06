@@ -1,35 +1,7 @@
-server:
-  http2:
-    enabled: true
-  port: ${SERVER_PORT:@im-gateway.server.port@}
-
 spring:
-  application:
-    name: im-gateway
   profiles:
     active: @app.profiles.active@
-    include: undertow  # 引用其他的yml文件
-  jackson:
-    default-property-inclusion: non_null
-  config:
-    import: nacos:${spring.application.name}-${spring.profiles.active}.yml
-    location: gateway-routes.yml
-  cloud: # nacos
-    sentinel:
-      eager: true
-      transport:
-        dashboard: @sentinel.dashboard.url@
-    nacos:
-      discovery: # 服务注册发现
-        server-addr: @nacos.config.server-addr@
-        username: @nacos.discovery.username@
-        password: @nacos.discovery.password@
-        namespace: @nacos.discovery.namespace@
-        group: @nacos.discovery.group@
-      config: # 配置中心
-        enabled: true
-        server-addr: @nacos.config.server-addr@
-        namespace: @nacos.config.namespace@
-        group: @nacos.config.group@
-        file-extension: @nacos.config.file-extension@
-        preference: @nacos.config.preference@
+    # TODO 后面需做好  http网关 和 websocket网关隔离
+    #  切换 web 为 http 网关配置  ws 为 websocket 网关配置
+    include: ws
+    # include: ws

@@ -36,7 +36,7 @@ public class StartupMetricsConfig {
         MemoryUsage heapUsage = memoryBean.getHeapMemoryUsage();
         
         log.info("========================================");
-        log.info("Application Startup Performance Baseline:");
+        log.info("IM Auth Startup Performance:");
         log.info("  Startup Time: {} ms", startupTime);
         log.info("  Heap Memory Used: {} MB", heapUsage.getUsed() / 1024 / 1024);
         log.info("  Heap Memory Committed: {} MB", heapUsage.getCommitted() / 1024 / 1024);

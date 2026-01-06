@@ -1,4 +1,4 @@
-package com.xy.lucky.server.config;
+package com.xy.lucky.leaf.config;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +36,7 @@ public class StartupMetricsConfig {
         MemoryUsage heapUsage = memoryBean.getHeapMemoryUsage();
         
         log.info("========================================");
-        log.info("IM Server Startup Performance:");
+        log.info("IM Leaf Startup Performance:");
         log.info("  Startup Time: {} ms", startupTime);
         log.info("  Heap Memory Used: {} MB", heapUsage.getUsed() / 1024 / 1024);
         log.info("  Heap Memory Committed: {} MB", heapUsage.getCommitted() / 1024 / 1024);

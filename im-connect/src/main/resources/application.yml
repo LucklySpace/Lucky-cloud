@@ -1,6 +1,9 @@
+# ==================== 应用配置 ====================
 app:
-  name: MiniSpring
+  name: IM-Connect
+  version: 1.0.0
 
+# ==================== RabbitMQ 配置 ====================
 rabbitmq:
   address: localhost
   port: 5672
@@ -11,9 +14,12 @@ rabbitmq:
   routingKeyPrefix: IM-
   errorQueue: im.error
 
+# ==================== Nacos 配置 ====================
 nacos:
-  enable: true
+  # 是否启用 Nacos
+  enable: ${NACOS_ENABLE:true}
   config:
+    # 服务名称
     name: im-connect
     address: localhost
     port: 8848
@@ -22,19 +28,29 @@ nacos:
     password: nacos
     version: 1.0.0
 
+# ==================== Netty 配置 ====================
 netty:
   config:
+    # 协议类型：proto（protobuf）/ json
     protocol: proto
+    # 心跳超时时间（毫秒）
     heartBeatTime: 30000
+    # Boss 线程数（接受连接）
     bossThreadSize: 4
+    # Worker 线程数（处理 IO）
     workThreadSize: 16
+
+    # TCP 配置
     tcp:
       enable: false
       port:
         - 9000
         - 9001
         - 9002
+
+    # WebSocket 配置
     websocket:
+      # WebSocket 路径
       path: /im
       enable: true
       port:
@@ -42,13 +58,25 @@ netty:
         - 19001
         - 19002
 
-
+# ==================== Redis 配置 ====================
 redis:
   host: localhost
   port: 6379
   password:
   timeout: 10000
 
+# ==================== 限流配置 ====================
+rate-limit:
+  # 连接限流
+  connection:
+    # 单用户最大连接数
+    maxPerUser: 5
+    # 全局最大连接数
+    maxGlobal: 10000
 
-auth:
-  tokenExpired: 3
+  # 消息限流
+  message:
+    # 窗口大小（毫秒）
+    windowSize: 1000
+    # 窗口内最大消息数
+    maxPerWindow: 20

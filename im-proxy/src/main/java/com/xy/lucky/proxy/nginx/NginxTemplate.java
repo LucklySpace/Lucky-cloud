@@ -3,7 +3,7 @@ package com.xy.lucky.proxy.nginx;
 import com.xy.lucky.spring.annotations.core.Autowired;
 import com.xy.lucky.spring.annotations.core.Component;
 import com.xy.lucky.spring.annotations.core.PostConstruct;
-import com.xy.proxy.nacos.NacosTemplate;
+//import com.xy.proxy.nacos.NacosTemplate;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;
@@ -53,8 +53,8 @@ public class NginxTemplate {
     private final Path upstreamConf = nginxHome.resolve("conf/conf.d/netty_upstream.conf");
     // 定时任务
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-    @Autowired
-    private NacosTemplate nacosTemplate;
+//    @Autowired
+//    private NacosTemplate nacosTemplate;
     // 上次记录节点列表
     private List<String> lastNodeConfig = new ArrayList<>();
 
@@ -68,7 +68,7 @@ public class NginxTemplate {
 
             verifyHealth();
 
-            updateUpstream();
+//            updateUpstream();
 
             scheduler.scheduleAtFixedRate(this::task, CHECK_INTERVAL_SEC, CHECK_INTERVAL_SEC, TimeUnit.SECONDS);
 
@@ -83,7 +83,7 @@ public class NginxTemplate {
     private void task() {
         try {
             verifyHealth();
-            updateUpstream();
+//            updateUpstream();
         } catch (Exception e) {
             log.error("NginxTemplate 定时任务失败", e);
         }
@@ -129,43 +129,43 @@ public class NginxTemplate {
     /**
      * 更新 upstream 配置并 reload
      */
-    private void updateUpstream() throws IOException, InterruptedException {
-        if (nacosTemplate.getNamingService() == null) {
-            nacosTemplate.registerNacos();
-        }
-        List<String> nodes = nacosTemplate.getAllInstances(SERVICE_NAME).stream()
-                .map(i -> i.getIp() + ":" + i.getPort())
-                .collect(Collectors.toList());
-        if (nodes.isEmpty()) {
-            log.warn("无可用实例，跳过 upstream 更新");
-            return;
-        }
-
-        if (!lastNodeConfig.isEmpty() && lastNodeConfig.equals(nodes)) {
-            log.warn("节点无变化，无需更新配置");
-            return;
-        } else {
-            log.info("节点列表：{}", nodes);
-        }
-
-        // 记录当前节点列表  用于下次比对
-        lastNodeConfig = nodes;
-
-        // 生成配置文件内容
-        StringBuilder sb = new StringBuilder("# auto-generated\nupstream ").append(UPSTREAM_NAME).append(" {\n").append("hash $arg_uid consistent;\n");
-        nodes.forEach(n -> sb.append("    server ").append(n).append(" max_fails=3 fail_timeout=30s;\n"));
-        sb.append('}');
-
-        // 创建或刷新配置文件
-        Files.createDirectories(upstreamConf.getParent());
-        Files.write(upstreamConf, sb.toString().getBytes(StandardCharsets.UTF_8));
-        log.info("upstream 生成完成: {}", upstreamConf);
-
-        // 重载
-        reload();
-
-        log.info("Nginx reload 完成");
-    }
+//    private void updateUpstream() throws IOException, InterruptedException {
+//        if (nacosTemplate.getNamingService() == null) {
+//            nacosTemplate.registerNacos();
+//        }
+//        List<String> nodes = nacosTemplate.getAllInstances(SERVICE_NAME).stream()
+//                .map(i -> i.getIp() + ":" + i.getPort())
+//                .collect(Collectors.toList());
+//        if (nodes.isEmpty()) {
+//            log.warn("无可用实例，跳过 upstream 更新");
+//            return;
+//        }
+//
+//        if (!lastNodeConfig.isEmpty() && lastNodeConfig.equals(nodes)) {
+//            log.warn("节点无变化，无需更新配置");
+//            return;
+//        } else {
+//            log.info("节点列表：{}", nodes);
+//        }
+//
+//        // 记录当前节点列表  用于下次比对
+//        lastNodeConfig = nodes;
+//
+//        // 生成配置文件内容
+//        StringBuilder sb = new StringBuilder("# auto-generated\nupstream ").append(UPSTREAM_NAME).append(" {\n").append("hash $arg_uid consistent;\n");
+//        nodes.forEach(n -> sb.append("    server ").append(n).append(" max_fails=3 fail_timeout=30s;\n"));
+//        sb.append('}');
+//
+//        // 创建或刷新配置文件
+//        Files.createDirectories(upstreamConf.getParent());
+//        Files.write(upstreamConf, sb.toString().getBytes(StandardCharsets.UTF_8));
+//        log.info("upstream 生成完成: {}", upstreamConf);
+//
+//        // 重载
+//        reload();
+//
+//        log.info("Nginx reload 完成");
+//    }
 
     /**
      * nginx 健康检查 stub_status

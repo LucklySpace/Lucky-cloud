@@ -30,6 +30,8 @@ public final class JacksonUtil {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
+    private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
+
     static {
         // 配置序列化选项
         MAPPER.setSerializationInclusion(JsonInclude.Include.ALWAYS);
@@ -48,7 +50,6 @@ public final class JacksonUtil {
 
         log.debug("JacksonUtil 初始化完成，日期格式: {}", DATE_FORMAT);
     }
-    private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     private JacksonUtil() {
         throw new UnsupportedOperationException("工具类不允许实例化");

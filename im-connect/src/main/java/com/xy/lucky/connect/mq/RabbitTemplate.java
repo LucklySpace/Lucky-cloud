@@ -1,11 +1,12 @@
 package com.xy.lucky.connect.mq;
 
-import cn.hutool.core.util.StrUtil;
 import com.rabbitmq.client.*;
 import com.rabbitmq.client.impl.DefaultExceptionHandler;
 import com.xy.lucky.connect.config.LogConstant;
+import com.xy.lucky.connect.config.properties.RabbitMQProperties;
 import com.xy.lucky.connect.constant.ConnectConstants;
 import com.xy.lucky.connect.domain.MessageEvent;
+import com.xy.lucky.core.utils.StringUtils;
 import com.xy.lucky.spring.annotations.core.*;
 import com.xy.lucky.spring.event.ApplicationEventBus;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +18,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * RabbitMQ连接客户端工具类
- * https://blog.csdn.net/u010989191/article/details/112220574#:~:text=1.%E5%BC%95%E8%A8%80%20R
+ * <p>
+ * 使用 @ConfigurationProperties 配置类注入配置
  *
  * @author Lucky
  */
@@ -35,36 +37,12 @@ public class RabbitTemplate {
      */
     private final AtomicBoolean reconnecting = new AtomicBoolean(false);
 
-    // ==================== 配置注入 ====================
-    @Value("${rabbitmq.address}")
-    private String host;
-
-    @Value("${rabbitmq.port}")
-    private int port;
-
-    @Value("${rabbitmq.username:guest}")
-    private String userName;
-
-    @Value("${rabbitmq.password:guest}")
-    private String password;
-
-    @Value("${rabbitmq.virtual:" + ConnectConstants.RabbitMQ.DEFAULT_VIRTUAL_HOST + "}")
-    private String virtualHost;
+    // ==================== 配置注入（使用配置类） ====================
+    @Autowired
+    private RabbitMQProperties rabbitProperties;
 
     @Value("${brokerId}")
     private String queueName;
-
-    @Value("${rabbitmq.exchange:" + ConnectConstants.RabbitMQ.DEFAULT_EXCHANGE + "}")
-    private String exchangeName;
-
-    @Value("${rabbitmq.routingKeyPrefix:" + ConnectConstants.RabbitMQ.DEFAULT_ROUTING_KEY_PREFIX + "}")
-    private String routingKeyPrefix;
-
-    @Value("${rabbitmq.errorQueue:" + ConnectConstants.RabbitMQ.DEFAULT_ERROR_QUEUE + "}")
-    private String errorQueue;
-
-    @Value("${rabbitmq.prefetch:" + ConnectConstants.RabbitMQ.DEFAULT_PREFETCH + "}")
-    private Integer prefetch;
 
     // ==================== 连接和通道 ====================
     private ConnectionFactory factory;
@@ -93,34 +71,38 @@ public class RabbitTemplate {
         log.info("开始构建 RabbitMQ ConnectionFactory");
 
         factory = new ConnectionFactory();
-        factory.setHost(host);
-        factory.setPort(port);
+        factory.setHost(rabbitProperties.getAddress());
+        factory.setPort(rabbitProperties.getPort());
 
         // 设置认证信息
-        if (StrUtil.isNotBlank(userName)) {
+        String userName = rabbitProperties.getUsername();
+        String password = rabbitProperties.getPassword();
+        String virtualHost = rabbitProperties.getVirtual();
+
+        if (StringUtils.hasText(userName)) {
             factory.setUsername(userName);
         }
-        if (StrUtil.isNotBlank(password)) {
+        if (StringUtils.hasText(password)) {
             factory.setPassword(password);
         }
-        if (StrUtil.isNotBlank(virtualHost)) {
+        if (StringUtils.hasText(virtualHost)) {
             factory.setVirtualHost(virtualHost);
         }
 
         // 启用自动重连机制
-        factory.setAutomaticRecoveryEnabled(true);
+        factory.setAutomaticRecoveryEnabled(rabbitProperties.isAutomaticRecovery());
         factory.setTopologyRecoveryEnabled(true);
         factory.setNetworkRecoveryInterval(ConnectConstants.RabbitMQ.DEFAULT_RECOVERY_INTERVAL);
 
         // 设置连接超时
-        factory.setConnectionTimeout(10000);
+        factory.setConnectionTimeout(rabbitProperties.getConnectionTimeout());
         factory.setHandshakeTimeout(10000);
 
         // 设置自定义异常处理器
         factory.setExceptionHandler(createExceptionHandler());
 
         log.info("RabbitMQ ConnectionFactory 构建完成: {}:{}, virtual-host: {}",
-                host, port, virtualHost);
+                rabbitProperties.getAddress(), rabbitProperties.getPort(), virtualHost);
     }
 
     /**
@@ -173,6 +155,11 @@ public class RabbitTemplate {
             log.debug("RabbitMQ 已在运行，跳过启动");
             return;
         }
+
+        String exchangeName = rabbitProperties.getExchange();
+        String errorQueue = rabbitProperties.getErrorQueue();
+        int prefetch = ConnectConstants.RabbitMQ.DEFAULT_PREFETCH;
+
         try {
             // 创建连接与通道
             connection = factory.newConnection();
@@ -330,6 +317,10 @@ public class RabbitTemplate {
             log.warn("publishChannel is null, cannot send error message");
             return;
         }
+
+        String exchangeName = rabbitProperties.getExchange();
+        String errorQueue = rabbitProperties.getErrorQueue();
+
         String fullMsg = String.format("msgId=%d, error=%s, payload=%s",
                 env.getDeliveryTag(), errorMsg, new String(body, StandardCharsets.UTF_8));
         byte[] bytes = fullMsg.getBytes(StandardCharsets.UTF_8);

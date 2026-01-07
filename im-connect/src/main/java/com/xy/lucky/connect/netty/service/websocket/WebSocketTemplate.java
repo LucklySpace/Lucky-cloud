@@ -1,6 +1,7 @@
 package com.xy.lucky.connect.netty.service.websocket;
 
 import com.xy.lucky.connect.config.LogConstant;
+import com.xy.lucky.connect.config.properties.NettyProperties;
 import com.xy.lucky.connect.nacos.NacosTemplate;
 import com.xy.lucky.connect.netty.AuthHandler;
 import com.xy.lucky.connect.netty.factory.NettyEventLoopFactory;
@@ -21,17 +22,15 @@ import lombok.extern.slf4j.Slf4j;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * WebSocket 服务（基于 Netty）
  * - 支持多端口绑定
  * - 支持协议切换（json / proto）
  * - 异步启动，不阻塞主线程
- * - 更稳健的启动/关闭与配置校验
- * <p>
- * 建议：把大量 @Value 配置替换为 @ConfigurationProperties 更清晰。
+ * - 使用 @ConfigurationProperties 配置类注入配置
  */
 @Slf4j(topic = LogConstant.Netty)
 @Component
@@ -48,23 +47,17 @@ public class WebSocketTemplate extends AbstractRemoteServer {
 
     // 并发 Map：端口 -> ChannelFuture，便于运行时管理单端口的关闭/重绑定
     private final ConcurrentHashMap<Integer, ChannelFuture> channelFutures = new ConcurrentHashMap<>();
-    @Value("${netty.config.websocket.enable:true}")
-    protected Boolean websocketEnable;
-    @Value("${netty.config.websocket.port}")
-    protected List<Integer> webSocketPort;
-    @Value("${netty.config.bossThreadSize:1}")
-    protected Integer bossThreadSize;
-    @Value("${netty.config.workThreadSize:0}")
-    protected Integer workThreadSize;
-    // 协议类型配置: json 或 proto
-    @Value("${netty.config.protocol:proto}")
-    protected String protocolType;
-    @Value("${netty.config.path:/im}")
-    protected String wsPath;
+
+    // 使用配置类注入配置
+    @Autowired
+    private NettyProperties nettyProperties;
+
     @Value("${brokerId:}")
     private String brokerId;
+
     @Autowired
     private AuthHandler authHandler;
+
     @Autowired
     private NacosTemplate nacosTemplate;
 
@@ -85,11 +78,15 @@ public class WebSocketTemplate extends AbstractRemoteServer {
             return;
         }
 
+        // 从配置类获取配置
+        NettyProperties.WebSocketConfig wsConfig = nettyProperties.getWebsocket();
+
         // 基本配置校验
-        if (websocketEnable == null || !websocketEnable) {
+        if (!wsConfig.isEnable()) {
             log.info("WebSocket 未启用（配置 netty.config.websocket.enable=false ）");
             return;
         }
+        List<Integer> webSocketPort = wsConfig.getPort();
         if (webSocketPort == null || webSocketPort.isEmpty()) {
             log.warn("未配置任何 WebSocket 端口，启动终止");
             return;
@@ -98,9 +95,9 @@ public class WebSocketTemplate extends AbstractRemoteServer {
         // 初始化 Netty
         bootstrap = new ServerBootstrap();
 
-        bossGroup = NettyEventLoopFactory.eventLoopGroup(bossThreadSize);
+        bossGroup = NettyEventLoopFactory.eventLoopGroup(nettyProperties.getBossThreadSize());
 
-        workerGroup = NettyEventLoopFactory.eventLoopGroup(workThreadSize);
+        workerGroup = NettyEventLoopFactory.eventLoopGroup(nettyProperties.getWorkThreadSize());
 
         // 对象池优化（PooledByteBufAllocator）
         bootstrap.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
@@ -124,6 +121,9 @@ public class WebSocketTemplate extends AbstractRemoteServer {
                     protected void initChannel(Channel ch) {
                         ChannelPipeline pipeline = ch.pipeline();
 
+                        String wsPath = nettyProperties.getWebsocket().getPath();
+                        String protocolType = nettyProperties.getProtocol();
+
                         // HTTP 编解码及聚合
                         pipeline.addLast("http-codec", new HttpServerCodec());
                         pipeline.addLast("aggregator", new HttpObjectAggregator(1024 * 128));
@@ -132,7 +132,7 @@ public class WebSocketTemplate extends AbstractRemoteServer {
                         // 权限/鉴权（自定义 handler）
                         pipeline.addLast("auth", authHandler);
 
-                        // WebSocket 协议处理（path /im）
+                        // WebSocket 协议处理
                         pipeline.addLast("ws-protocol", new WebSocketServerProtocolHandler(wsPath, protocolType, true,
                                 65536 * 10));
 
@@ -163,11 +163,19 @@ public class WebSocketTemplate extends AbstractRemoteServer {
     }
 
     /**
+     * 获取 WebSocket 端口列表
+     */
+    private List<Integer> getWebSocketPorts() {
+        return nettyProperties.getWebsocket().getPort();
+    }
+
+    /**
      * 验证单个端口是否可用（使用 IPAddressUtil 提前探测），但不在此强制退出。
      * 建议：真实绑定成功才代表端口可用，这里主要做提示与早期校验。
      */
     private void validatePortListOrThrow() {
-        for (Integer port : webSocketPort) {
+        List<Integer> ports = getWebSocketPorts();
+        for (Integer port : ports) {
             if (port == null) {
                 throw new IllegalArgumentException("webSocketPort 包含 null 值");
             }
@@ -188,6 +196,7 @@ public class WebSocketTemplate extends AbstractRemoteServer {
         // 先做基础校验（抛出异常由上层统一处理）
         validatePortListOrThrow();
 
+        List<Integer> webSocketPort = getWebSocketPorts();
         for (Integer port : webSocketPort) {
             if (channelFutures.containsKey(port)) {
                 log.info("端口 {} 已存在绑定记录，跳过", port);

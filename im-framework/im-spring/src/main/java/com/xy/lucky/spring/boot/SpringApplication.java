@@ -27,6 +27,16 @@ import java.util.concurrent.atomic.AtomicReference;
  *     }
  * }
  * </pre>
+ * <p>
+ * Banner 配置:
+ * <pre>
+ * spring:
+ *   banner:
+ *     location: classpath:banner.txt
+ *     charset: UTF-8
+ *   main:
+ *     banner-mode: console  # off, console, log
+ * </pre>
  */
 public class SpringApplication {
 
@@ -138,19 +148,22 @@ public class SpringApplication {
             // 1. 准备环境
             ConfigurableEnvironment env = prepareEnvironment(args);
 
-            // 2. 打印 Banner
+            // 2. 配置 Banner
+            configureBanner(env);
+
+            // 3. 打印 Banner
             printBanner(env);
 
-            // 3. 创建 ApplicationContext
+            // 4. 创建 ApplicationContext
             context = createApplicationContext();
 
-            // 4. 准备 Context
+            // 5. 准备 Context
             prepareContext(context, env, args);
 
-            // 5. 刷新 Context（核心初始化）
+            // 6. 刷新 Context（核心初始化）
             refreshContext(context);
 
-            // 6. 设置全局引用
+            // 7. 设置全局引用
             if (!CONTEXT.compareAndSet(null, context)) {
                 // 并发情况下其他线程已设置，关闭当前创建的实例
                 log.warn("并发检测到已有 ApplicationContext，释放当前实例");
@@ -158,14 +171,14 @@ public class SpringApplication {
                 return CONTEXT.get();
             }
 
-            // 7. 注册 ShutdownHook
+            // 8. 注册 ShutdownHook
             registerShutdownHook(context);
 
-            // 8. 打印启动完成信息
+            // 9. 打印启动完成信息
             Duration timeTaken = Duration.between(startTime, Instant.now());
             logStarted(timeTaken);
 
-            // 9. 执行 Runners
+            // 10. 执行 Runners
             callRunners(context, args);
 
             return context;
@@ -192,6 +205,28 @@ public class SpringApplication {
         // 解析命令行参数
         this.environment.parseCommandLineArgs(args);
         return this.environment;
+    }
+
+    /**
+     * 配置 Banner（从环境配置中读取）
+     */
+    private void configureBanner(ConfigurableEnvironment env) {
+        // 配置 Banner 模式
+        String bannerModeStr = env.getProperty("spring.main.banner-mode");
+        if (bannerModeStr != null && !bannerModeStr.isEmpty()) {
+            try {
+                this.bannerMode = Banner.Mode.valueOf(bannerModeStr.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid banner mode: {}, using default CONSOLE", bannerModeStr);
+            }
+        }
+
+        // 如果配置了 banner location，使用 ResourceBanner
+        ResourceBanner resourceBanner = ResourceBanner.fromEnvironment(env);
+        if (resourceBanner != null) {
+            this.banner = resourceBanner;
+            log.debug("Using custom banner from: {}", env.getProperty("spring.banner.location"));
+        }
     }
 
     /**
@@ -345,4 +380,3 @@ public class SpringApplication {
         }
     }
 }
-

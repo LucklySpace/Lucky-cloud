@@ -1,6 +1,5 @@
 package com.xy.lucky.connect.utils;
 
-import cn.hutool.crypto.digest.DigestUtil;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
@@ -8,17 +7,17 @@ import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.security.NoSuchAlgorithmException;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+
+import static com.alibaba.nacos.common.utils.MD5Utils.md5Hex;
 
 public class MachineCodeUtils {
     public static final String WINDOWS = "Windows";
@@ -31,7 +30,7 @@ public class MachineCodeUtils {
     // Cache hardware info
     private static String cachedMachineCode = null;
 
-    public static String getMachineCode() {
+    public static String getMachineCode() throws NoSuchAlgorithmException {
         if (cachedMachineCode == null) {
             cachedMachineCode = getMachineCode(getOS());
         }
@@ -50,7 +49,7 @@ public class MachineCodeUtils {
         }
     }
 
-    public static String getMachineCode(String type) {
+    public static String getMachineCode(String type) throws NoSuchAlgorithmException {
         if (Objects.isNull(type)) {
             return "";
         }
@@ -109,7 +108,7 @@ public class MachineCodeUtils {
         codeMap.put("randomUUID", UUID.randomUUID().toString());
 
         String codeMapStr = JacksonUtil.toJSONString(codeMap);
-        String serials = DigestUtil.md5Hex(codeMapStr);
+        String serials = md5Hex(codeMapStr.getBytes(StandardCharsets.UTF_8));
         return getSplitString(serials, "-", 4).toUpperCase();
     }
 

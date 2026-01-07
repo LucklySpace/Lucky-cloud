@@ -1,13 +1,13 @@
 package com.xy.lucky.connect.redis;
 
 import com.xy.lucky.connect.config.LogConstant;
+import com.xy.lucky.connect.config.properties.RedisProperties;
 import com.xy.lucky.connect.constant.ConnectConstants;
 import com.xy.lucky.connect.utils.JacksonUtil;
 import com.xy.lucky.core.utils.StringUtils;
+import com.xy.lucky.spring.annotations.core.Autowired;
 import com.xy.lucky.spring.annotations.core.Component;
 import com.xy.lucky.spring.annotations.core.PostConstruct;
-import com.xy.lucky.spring.annotations.core.Value;
-import com.xy.lucky.spring.core.ProxyType;
 import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -23,26 +23,19 @@ import java.util.function.Function;
 /**
  * Redis 操作模板类
  * 提供统一的 Redis 操作接口，自动管理连接池和异常处理
+ * <p>
+ * 使用 @ConfigurationProperties 配置类注入配置
  *
  * @author Lucky
  */
 @Slf4j(topic = LogConstant.Redis)
-@Component(proxy = ProxyType.NONE)
+@Component
 public class RedisTemplate {
 
     private JedisPool jedisPool;
 
-    @Value("${redis.host}")
-    private String host;
-
-    @Value("${redis.port}")
-    private Integer port;
-
-    @Value("${redis.password}")
-    private String password;
-
-    @Value("${redis.timeout}")
-    private Integer timeout = 10000; // 默认超时为10秒
+    @Autowired
+    private RedisProperties redisProperties;
 
     /**
      * 初始化 Redis 连接池
@@ -50,6 +43,11 @@ public class RedisTemplate {
      */
     @PostConstruct
     public void init() {
+        String host = redisProperties.getHost();
+        int port = redisProperties.getPort();
+        String password = redisProperties.getPassword();
+        int timeout = redisProperties.getTimeout();
+
         log.info("开始初始化 RedisTemplate，连接地址: {}:{}", host, port);
 
         JedisPoolConfig config = buildPoolConfig();
@@ -70,9 +68,9 @@ public class RedisTemplate {
      */
     private JedisPoolConfig buildPoolConfig() {
         JedisPoolConfig config = new JedisPoolConfig();
-        config.setMaxTotal(ConnectConstants.Redis.DEFAULT_MAX_TOTAL);
-        config.setMaxIdle(ConnectConstants.Redis.DEFAULT_MAX_IDLE);
-        config.setMaxWaitMillis(timeout);
+        config.setMaxTotal(redisProperties.getMaxTotal() > 0 ? redisProperties.getMaxTotal() : ConnectConstants.Redis.DEFAULT_MAX_TOTAL);
+        config.setMaxIdle(redisProperties.getMaxIdle() > 0 ? redisProperties.getMaxIdle() : ConnectConstants.Redis.DEFAULT_MAX_IDLE);
+        config.setMaxWaitMillis(redisProperties.getTimeout());
         config.setTestOnBorrow(true);
         config.setTestWhileIdle(true);
         config.setMinEvictableIdleTimeMillis(60000);

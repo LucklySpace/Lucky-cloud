@@ -15,7 +15,9 @@ import java.util.regex.Pattern;
  * - 多配置文件（application.yml, application-{profile}.yml）
  * - 命令行参数覆盖
  * - 系统属性和环境变量
- * - 占位符解析
+ * - 占位符解析：
+ *   - ${key} 或 ${key:default} - 标准 Spring 风格
+ *   - @key@ 或 @key:default@ - 环境变量风格（优先从环境变量读取）
  */
 public class StandardEnvironment implements ConfigurableEnvironment {
 
@@ -23,7 +25,10 @@ public class StandardEnvironment implements ConfigurableEnvironment {
     public static final String DEFAULT_PROFILES_PROPERTY = "spring.profiles.default";
     public static final String DEFAULT_PROFILE = "default";
 
+    // ${key} 或 ${key:default} 占位符
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\$\\{([^}]+)}");
+    // @key@ 或 @key:default@ 占位符（用于环境变量）
+    private static final Pattern ENV_PLACEHOLDER_PATTERN = Pattern.compile("@([^@]+)@");
 
     private final MutablePropertySources propertySources = new MutablePropertySources();
     private final Set<String> activeProfiles = new LinkedHashSet<>();
@@ -70,6 +75,10 @@ public class StandardEnvironment implements ConfigurableEnvironment {
             if (yamlData != null) {
                 Map<String, Object> flattenedMap = new LinkedHashMap<>();
                 flatten("", yamlData, flattenedMap);
+
+                // 解析 @@ 环境变量占位符
+                resolveEnvPlaceholdersInMap(flattenedMap);
+                
                 // Profile 配置优先级更高，添加到前面
                 if (sourceName.contains("-")) {
                     this.propertySources.addFirst(new MapPropertySource(sourceName, flattenedMap));
@@ -81,6 +90,80 @@ public class StandardEnvironment implements ConfigurableEnvironment {
             // 配置文件加载失败，记录警告但不中断启动
             System.err.println("Warning: Failed to load " + fileName + ": " + e.getMessage());
         }
+    }
+
+    /**
+     * 解析 Map 中的 @@ 环境变量占位符
+     */
+    private void resolveEnvPlaceholdersInMap(Map<String, Object> map) {
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            Object value = entry.getValue();
+            if (value instanceof String) {
+                String strValue = (String) value;
+                if (strValue.contains("@")) {
+                    String resolved = resolveEnvPlaceholders(strValue);
+                    map.put(entry.getKey(), resolved);
+                }
+            }
+        }
+    }
+
+    /**
+     * 解析 @key@ 环境变量占位符
+     *
+     * @param text 包含占位符的文本
+     * @return 解析后的文本
+     */
+    private String resolveEnvPlaceholders(String text) {
+        if (text == null || !text.contains("@")) {
+            return text;
+        }
+
+        Matcher matcher = ENV_PLACEHOLDER_PATTERN.matcher(text);
+        StringBuilder result = new StringBuilder();
+
+        while (matcher.find()) {
+            String placeholder = matcher.group(1);
+            String key;
+            String defaultValue = null;
+
+            // 支持 @key:default@ 格式
+            int colonIndex = placeholder.indexOf(':');
+            if (colonIndex > 0) {
+                key = placeholder.substring(0, colonIndex);
+                defaultValue = placeholder.substring(colonIndex + 1);
+            } else {
+                key = placeholder;
+            }
+
+            // 优先从环境变量获取
+            String value = System.getenv(key);
+
+            // 尝试转换 key 格式：my.property -> MY_PROPERTY
+            if (value == null) {
+                String envKey = key.toUpperCase().replace('.', '_').replace('-', '_');
+                value = System.getenv(envKey);
+            }
+
+            // 再尝试系统属性
+            if (value == null) {
+                value = System.getProperty(key);
+            }
+
+            // 使用默认值
+            if (value == null) {
+                value = defaultValue;
+            }
+
+            // 如果还是没有值，保留原占位符
+            if (value == null) {
+                value = matcher.group(0);
+            }
+
+            matcher.appendReplacement(result, Matcher.quoteReplacement(value));
+        }
+        matcher.appendTail(result);
+        return result.toString();
     }
 
     /**
@@ -329,18 +412,28 @@ public class StandardEnvironment implements ConfigurableEnvironment {
     }
 
     /**
-     * 解析占位符
+     * 解析占位符（支持 ${} 和 @@ 两种格式）
      */
     private String doResolvePlaceholders(String text, boolean required) {
         if (text == null || text.isEmpty()) {
             return text;
         }
-        if (!text.contains("${")) {
-            String value = getProperty(text);
-            return value != null ? value : text;
+
+        String result = text;
+
+        // 1. 先解析 @@ 环境变量占位符
+        if (result.contains("@")) {
+            result = resolveEnvPlaceholders(result);
         }
-        Matcher matcher = PLACEHOLDER_PATTERN.matcher(text);
-        StringBuilder result = new StringBuilder();
+
+        // 2. 再解析 ${} 占位符
+        if (!result.contains("${")) {
+            String value = getProperty(result);
+            return value != null ? value : result;
+        }
+
+        Matcher matcher = PLACEHOLDER_PATTERN.matcher(result);
+        StringBuilder sb = new StringBuilder();
         while (matcher.find()) {
             String placeholder = matcher.group(1);
             String key;
@@ -362,10 +455,10 @@ public class StandardEnvironment implements ConfigurableEnvironment {
                 }
                 value = matcher.group(0); // 保留原占位符
             }
-            matcher.appendReplacement(result, Matcher.quoteReplacement(value));
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(value));
         }
-        matcher.appendTail(result);
-        return result.toString();
+        matcher.appendTail(sb);
+        return sb.toString();
     }
 
     /**
@@ -399,4 +492,3 @@ public class StandardEnvironment implements ConfigurableEnvironment {
         return value;
     }
 }
-

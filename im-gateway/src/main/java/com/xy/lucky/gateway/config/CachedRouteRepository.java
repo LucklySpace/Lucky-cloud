@@ -5,12 +5,13 @@ import com.alibaba.nacos.api.config.ConfigService;
 import com.alibaba.nacos.api.config.listener.Listener;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import jakarta.annotation.Resource;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.FilterDefinition;
 import org.springframework.cloud.gateway.handler.predicate.PredicateDefinition;
 import org.springframework.cloud.gateway.route.RouteDefinition;
+import org.springframework.cloud.gateway.route.RouteDefinitionRepository;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.CollectionUtils;
@@ -42,7 +43,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Configuration
-public class CachedRouteRepository implements org.springframework.cloud.gateway.route.RouteDefinitionRepository {
+public class CachedRouteRepository implements RouteDefinitionRepository {
 
     private final Yaml yaml = new Yaml();
 
@@ -68,20 +69,22 @@ public class CachedRouteRepository implements org.springframework.cloud.gateway.
             .expireAfterWrite(5, TimeUnit.MINUTES)
             .build();
 
+    private final NacosConfigManager nacosConfigManager;
+    @Value("${lucky.gateway.route-cache.data-id}")
+    private String dataId;
+
     @Value("${lucky.gateway.route-cache.cache-key:routes}")
     private String CACHE_KEY = "routes";
 
-    @Value("${lucky.gateway.route-cache.data-id:gateway-routes.yml}")
-    private String dataId;
+    public CachedRouteRepository(NacosConfigManager nacosConfigManager) {
+        this.nacosConfigManager = nacosConfigManager;
+    }
 
     @Value("${lucky.gateway.route-cache.group:DEFAULT_GROUP}")
     private String group;
 
     @Value("${lucky.gateway.route-cache.timeout-ms:5000}")
     private long timeoutMillis;
-
-    @Resource
-    private NacosConfigManager nacosConfigManager;
 
     // 安全转换辅助
     @SuppressWarnings("unchecked")
@@ -292,33 +295,19 @@ public class CachedRouteRepository implements org.springframework.cloud.gateway.
         return fd;
     }
 
-    // 把单个值（String 或 List）解析成 args Map
-    private Map<String, String> parseArgs(Object val) {
-        if (val == null) return Collections.emptyMap();
-        if (val instanceof String s) {
-            return singleArgMap(s);
-        } else if (val instanceof List<?> list) {
-            Map<String, String> map = new LinkedHashMap<>();
-            for (int i = 0; i < list.size(); i++) {
-                map.put("_genkey_" + i, String.valueOf(list.get(i)));
-            }
-            return map;
-        } else {
-            return Collections.singletonMap("_genkey_0", String.valueOf(val));
-        }
-    }
-
     private Map<String, String> singleArgMap(String v) {
         return Collections.singletonMap("_genkey_0", v);
     }
 
     // 注册 Nacos 配置变更监听器（只注册一次）
+    @PostConstruct
     private void registerNacosListener() {
         if (!listenerRegistered.compareAndSet(false, true)) {
             return;
         }
         try {
             ConfigService configService = nacosConfigManager.getConfigService();
+
             if (configService == null) {
                 log.warn("未能获取 Nacos ConfigService，跳过 listener 注册");
                 return;
@@ -349,13 +338,35 @@ public class CachedRouteRepository implements org.springframework.cloud.gateway.
         }
     }
 
+    // 把单个值（String 或 List）解析成 args Map
+    private Map<String, String> parseArgs(Object val) {
+        switch (val) {
+            case null -> {
+                return Collections.emptyMap();
+            }
+            case String s -> {
+                return singleArgMap(s);
+            }
+            case List<?> list -> {
+                Map<String, String> map = new LinkedHashMap<>();
+                for (int i = 0; i < list.size(); i++) {
+                    map.put("_genkey_" + i, String.valueOf(list.get(i)));
+                }
+                return map;
+            }
+            default -> {
+                return Collections.singletonMap("_genkey_0", String.valueOf(val));
+            }
+        }
+    }
+
     // 从 classpath 加载默认路由文件（dataId 或 gateway-routes.yml）
     private List<RouteDefinition> loadFromClasspath(String resourceName) {
         List<RouteDefinition> empty = Collections.emptyList();
         try {
             ClassPathResource resource = new ClassPathResource(resourceName);
             if (!resource.exists()) {
-                resource = new ClassPathResource("gateway-routes.yml");
+                resource = new ClassPathResource(dataId);
                 if (!resource.exists()) return empty;
             }
             try (InputStream in = resource.getInputStream()) {

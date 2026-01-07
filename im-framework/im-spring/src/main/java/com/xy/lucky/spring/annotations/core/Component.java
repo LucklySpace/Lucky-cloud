@@ -1,23 +1,22 @@
 package com.xy.lucky.spring.annotations.core;
 
-import com.xy.lucky.spring.core.ProxyType;
-
 import java.lang.annotation.*;
 
+/**
+ * Component - 组件注解
+ * <p>
+ * 标记一个类为 Spring 管理的组件，会被自动扫描并注册到容器中
+ */
 @Documented
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Component {
     /**
-     * 对组件命名
+     * Bean 名称
+     * <p>
+     * 如果不指定，默认使用类名首字母小写
      *
-     * @return 存进容器时的名称
+     * @return Bean 名称
      */
     String value() default "";
-
-    /**
-     * 代理模式：NONE = 不代理，JDK = JDK 动态代理，BYTEBUDDY = ByteBuddy 代理，AUTO = 自动选择
-     */
-    ProxyType proxy() default ProxyType.NONE;
-
 }

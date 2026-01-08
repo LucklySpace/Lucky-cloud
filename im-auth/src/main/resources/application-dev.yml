@@ -113,6 +113,15 @@ sms:
   apiUrl: https://sms_developer.zhenzikj.com
   appId: 112181
   appSecret: 86813b86-b431-46ea-bd55-fcf63c2990a3
+  code:
+    ttl: 5m
+    maxRetry: 3
+    rateLimit:
+      window: 1m
+      phoneLimit: 3
+      ipLimit: 20
+      deviceLimit: 10
+      blockDuration: 10m
 
 qrcode:
   width: 300

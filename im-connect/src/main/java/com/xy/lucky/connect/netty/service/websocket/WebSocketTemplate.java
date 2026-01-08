@@ -9,7 +9,12 @@ import com.xy.lucky.connect.netty.service.AbstractRemoteServer;
 import com.xy.lucky.connect.netty.service.websocket.codec.json.JsonMessageHandler;
 import com.xy.lucky.connect.netty.service.websocket.codec.proto.ProtobufMessageHandler;
 import com.xy.lucky.connect.utils.IPAddressUtil;
-import com.xy.lucky.spring.annotations.core.*;
+import com.xy.lucky.spring.annotations.core.Autowired;
+import com.xy.lucky.spring.annotations.core.Component;
+import com.xy.lucky.spring.annotations.core.PreDestroy;
+import com.xy.lucky.spring.annotations.core.Value;
+import com.xy.lucky.spring.boot.context.ApplicationArguments;
+import com.xy.lucky.spring.boot.context.ApplicationRunner;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.*;
@@ -34,7 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j(topic = LogConstant.Netty)
 @Component
-public class WebSocketTemplate extends AbstractRemoteServer {
+public class WebSocketTemplate extends AbstractRemoteServer implements ApplicationRunner {
 
     // 静态初始化（类加载时执行，一次性）
     private static final Map<String, ChannelOutboundHandler> PROTOCOL_MAP;
@@ -61,8 +66,8 @@ public class WebSocketTemplate extends AbstractRemoteServer {
     @Autowired
     private NacosTemplate nacosTemplate;
 
-    @PostConstruct
-    public void start() {
+    @Override
+    public void run(ApplicationArguments args) throws Exception {
         // 异步启动，不阻塞主线程
         CompletableFuture.runAsync(this::startAsync)
                 .exceptionally(throwable -> {
@@ -318,4 +323,6 @@ public class WebSocketTemplate extends AbstractRemoteServer {
     public List<Integer> getBoundPorts() {
         return List.copyOf(channelFutures.keySet());
     }
+
+
 }

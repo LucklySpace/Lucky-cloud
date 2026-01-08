@@ -5,6 +5,7 @@ import com.xy.lucky.auth.domain.IMLoginRequest;
 import com.xy.lucky.auth.domain.IMLoginResult;
 import com.xy.lucky.auth.domain.IMQRCodeResult;
 import com.xy.lucky.auth.service.AuthService;
+import com.xy.lucky.auth.utils.RequestContextUtil;
 import com.xy.lucky.domain.vo.UserVo;
 import com.xy.lucky.security.RSAKeyProperties;
 import com.xy.lucky.security.util.RSAUtil;
@@ -45,8 +46,8 @@ public class AuthController {
     @Parameters({
             @Parameter(name = "loginRequest", description = "用户登录信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public IMLoginResult login(@RequestBody IMLoginRequest imLoginRequest) {
-        return authService.login(imLoginRequest);
+    public IMLoginResult login(@RequestBody IMLoginRequest imLoginRequest, HttpServletRequest request) {
+        return authService.login(imLoginRequest, request);
     }
 
     @GetMapping("/qrcode")
@@ -97,8 +98,10 @@ public class AuthController {
     @Parameters({
             @Parameter(name = "phone", description = "用户手机号码", required = true, in = ParameterIn.DEFAULT)
     })
-    public String sms(@RequestParam("phone") String phone) {
-        return authService.sendSms(phone);
+    public String sms(@RequestParam("phone") String phone, HttpServletRequest request) {
+        String clientIp = RequestContextUtil.resolveClientIp(request);
+        String deviceId = RequestContextUtil.resolveDeviceId(request, clientIp);
+        return authService.sendSms(phone, clientIp, deviceId);
     }
 
     /**

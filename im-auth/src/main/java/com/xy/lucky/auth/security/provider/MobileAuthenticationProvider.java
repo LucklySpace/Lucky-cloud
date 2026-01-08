@@ -1,9 +1,9 @@
 package com.xy.lucky.auth.security.provider;
 
+import com.xy.lucky.auth.security.domain.AuthRequestContext;
 import com.xy.lucky.auth.security.helper.CryptoHelper;
 import com.xy.lucky.auth.security.token.MobileAuthenticationToken;
-import com.xy.lucky.auth.utils.RedisCache;
-import com.xy.lucky.core.constants.IMConstant;
+import com.xy.lucky.auth.service.SmsCodeService;
 import com.xy.lucky.domain.po.ImUserPo;
 import com.xy.lucky.dubbo.web.api.database.user.ImUserDubboService;
 import com.xy.lucky.general.response.domain.ResultCode;
@@ -31,7 +31,7 @@ public class MobileAuthenticationProvider implements AuthenticationProvider {
     private ImUserDubboService imUserDubboService;
 
     private final CryptoHelper cryptoHelper;
-    private final RedisCache redisCache;
+    private final SmsCodeService smsCodeService;
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
@@ -43,7 +43,7 @@ public class MobileAuthenticationProvider implements AuthenticationProvider {
         String encryptedSmsCode = (String) authentication.getCredentials();
 
         validateInput(phoneNumber, encryptedSmsCode);
-        validateSmsCode(phoneNumber, encryptedSmsCode);
+        validateSmsCode(phoneNumber, encryptedSmsCode, authentication.getDetails());
 
         ImUserPo user = getUserByPhoneNumber(phoneNumber);
         if (Objects.isNull(user)) {
@@ -66,22 +66,20 @@ public class MobileAuthenticationProvider implements AuthenticationProvider {
         }
     }
 
-    private void validateSmsCode(String phoneNumber, String encryptedSmsCode) {
-        String cacheKey = IMConstant.SMS_KEY_PREFIX + phoneNumber;
-        String cachedCode = redisCache.get(cacheKey);
-
-        if (cachedCode == null) {
-            log.warn("验证码不存在或已过期: phone={}", phoneNumber);
-            throw new AuthenticationFailException(ResultCode.CAPTCHA_ERROR);
-        }
-
+    private void validateSmsCode(String phoneNumber, String encryptedSmsCode, Object details) {
         String decryptedCode = cryptoHelper.decrypt(encryptedSmsCode);
-        if (!decryptedCode.equals(cachedCode)) {
-            log.warn("验证码错误: phone={}", phoneNumber);
-            throw new AuthenticationFailException(ResultCode.CAPTCHA_ERROR);
-        }
+        AuthRequestContext ctx = details instanceof AuthRequestContext c ? c : null;
+        String clientIp = ctx != null ? ctx.getClientIp() : null;
+        String deviceId = ctx != null ? ctx.getDeviceId() : null;
 
-        redisCache.del(cacheKey);
+        SmsCodeService.VerifyResult result = smsCodeService.verifyAndConsume(phoneNumber, decryptedCode, deviceId, clientIp);
+        if (result == SmsCodeService.VerifyResult.OK) {
+            return;
+        }
+        if (result == SmsCodeService.VerifyResult.LOCKED) {
+            throw new AuthenticationFailException(ResultCode.TOO_MANY_REQUESTS);
+        }
+        throw new AuthenticationFailException(ResultCode.CAPTCHA_ERROR);
     }
 
     private ImUserPo getUserByPhoneNumber(String phoneNumber) {

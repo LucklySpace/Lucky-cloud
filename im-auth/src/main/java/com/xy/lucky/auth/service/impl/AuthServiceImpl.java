@@ -4,6 +4,7 @@ package com.xy.lucky.auth.service.impl;
 import com.alibaba.nacos.common.utils.JacksonUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.xy.lucky.auth.domain.*;
+import com.xy.lucky.auth.security.domain.AuthRequestContext;
 import com.xy.lucky.auth.security.token.MobileAuthenticationToken;
 import com.xy.lucky.auth.security.token.QrScanAuthenticationToken;
 import com.xy.lucky.auth.security.token.UserAuthenticationToken;
@@ -11,6 +12,7 @@ import com.xy.lucky.auth.service.AuthService;
 import com.xy.lucky.auth.service.SmsService;
 import com.xy.lucky.auth.utils.QRCodeUtil;
 import com.xy.lucky.auth.utils.RedisCache;
+import com.xy.lucky.auth.utils.RequestContextUtil;
 import com.xy.lucky.core.constants.IMConstant;
 import com.xy.lucky.core.constants.NacosMetadataConstants;
 import com.xy.lucky.core.constants.ServiceNameConstants;
@@ -83,7 +85,7 @@ public class AuthServiceImpl implements AuthService {
      * @return 包含 token、userId、过期时间的 Result
      */
     @Override
-    public IMLoginResult login(IMLoginRequest req) {
+    public IMLoginResult login(IMLoginRequest req, jakarta.servlet.http.HttpServletRequest request) {
         log.info("开始登录：authType={}, principal={}", req.getAuthType(), req.getPrincipal());
         Authentication auth;
         try {
@@ -92,10 +94,13 @@ public class AuthServiceImpl implements AuthService {
                     // 表单登录
                         authenticationManager.authenticate(
                                 new UserAuthenticationToken(req.getPrincipal(), req.getCredentials()));
-                case IMConstant.AUTH_TYPE_SMS ->
-                    // 手机验证码登录
-                        authenticationManager.authenticate(
-                                new MobileAuthenticationToken(req.getPrincipal(), req.getCredentials()));
+                case IMConstant.AUTH_TYPE_SMS -> {
+                    String clientIp = request != null ? RequestContextUtil.resolveClientIp(request) : null;
+                    String deviceId = request != null ? RequestContextUtil.resolveDeviceId(request, clientIp) : null;
+                    MobileAuthenticationToken token = new MobileAuthenticationToken(req.getPrincipal(), req.getCredentials());
+                    token.setDetails(new AuthRequestContext(clientIp, deviceId));
+                    yield authenticationManager.authenticate(token);
+                }
                 case IMConstant.AUTH_TYPE_QR ->
                     // 扫码登录
                         authenticationManager.authenticate(
@@ -453,9 +458,9 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public String sendSms(String phone) {
+    public String sendSms(String phone, String clientIp, String deviceId) {
         try {
-            return smsService.sendMessage(phone);
+            return smsService.sendMessage(phone, clientIp, deviceId);
         } catch (Exception e) {
             throw new AuthenticationFailException(ResultCode.SMS_ERROR);
         }

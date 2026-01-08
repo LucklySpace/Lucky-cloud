@@ -1,9 +1,8 @@
 package com.xy.lucky.server.utils;
 
 import jakarta.annotation.Resource;
-import org.springframework.data.redis.core.ReactiveRedisTemplate;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -11,7 +10,7 @@ import java.util.List;
 public class RedisUtil {
 
     @Resource
-    private ReactiveRedisTemplate<String, Object> reactiveRedisTemplate;
+    private RedisTemplate<String, Object> redisTemplate;
 
     /**
      * Get value by key
@@ -19,8 +18,8 @@ public class RedisUtil {
      * @return Mono of value
      */
     @SuppressWarnings("unchecked")
-    public <T> Mono<T> get(String key) {
-        return (Mono<T>) reactiveRedisTemplate.opsForValue().get(key);
+    public Object get(String key) {
+        return redisTemplate.opsForValue().get(key);
     }
 
     /**
@@ -28,7 +27,7 @@ public class RedisUtil {
      * @param keys list of keys
      * @return Mono of list of values
      */
-    public Mono<List<Object>> batchGet(List<String> keys) {
-        return reactiveRedisTemplate.opsForValue().multiGet(keys);
+    public List<Object> batchGet(List<String> keys) {
+        return redisTemplate.opsForValue().multiGet(keys);
     }
 }

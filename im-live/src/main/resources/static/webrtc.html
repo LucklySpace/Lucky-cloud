@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>WebRTC 推拉流测试 (SRS 兼容)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #4CAF50;
+        }
+
+        .section {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .section h2 {
+            margin-bottom: 15px;
+            color: #4CAF50;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ccc;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        button.stop {
+            background: #f44336;
+        }
+
+        button.stop:hover {
+            background: #da190b;
+        }
+
+        video {
+            width: 100%;
+            max-width: 640px;
+            background: #000;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            background: #333;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .status.success {
+            color: #4CAF50;
+        }
+
+        .status.error {
+            color: #f44336;
+        }
+
+        .info {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 12px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>WebRTC 推拉流测试 (SRS 兼容接口)</h1>
+
+    <!-- 推流区域 -->
+    <div class="section">
+        <h2>📹 推流</h2>
+        <div class="input-group">
+            <label>流 URL (格式: webrtc://localhost/app/stream)</label>
+            <input id="publishUrl" placeholder="webrtc://localhost/live/stream1" type="text"
+                   value="webrtc://localhost/live/stream1">
+        </div>
+        <div class="input-group">
+            <label>API 地址</label>
+            <input id="apiUrl" placeholder="http://localhost:1985" type="text" value="http://localhost:1985">
+        </div>
+        <button id="startPublish">开始推流</button>
+        <button class="stop" disabled id="stopPublish">停止推流</button>
+        <video autoplay id="localVideo" muted playsinline></video>
+        <div class="status" id="publishStatus"></div>
+    </div>
+
+    <!-- 拉流区域 -->
+    <div class="section">
+        <h2>📺 拉流</h2>
+        <div class="input-group">
+            <label>流 URL (格式: webrtc://localhost/app/stream)</label>
+            <input id="playUrl" placeholder="webrtc://localhost/live/stream1" type="text"
+                   value="webrtc://localhost/live/stream1">
+        </div>
+        <div class="input-group">
+            <label>API 地址</label>
+            <input id="playApiUrl" placeholder="http://localhost:1985" type="text" value="http://localhost:1985">
+        </div>
+        <button id="startPlay">开始拉流</button>
+        <button class="stop" disabled id="stopPlay">停止拉流</button>
+        <video autoplay id="remoteVideo" playsinline></video>
+        <div class="status" id="playStatus"></div>
+    </div>
+
+    <!-- 使用说明 -->
+    <div class="section">
+        <h2>📖 使用说明</h2>
+        <div class="info">
+            <p><strong>流 URL 格式：</strong> webrtc://domain/app/stream</p>
+            <p>- domain: 服务器地址（如 localhost）</p>
+            <p>- app: 应用名称（映射为 roomId，如 live）</p>
+            <p>- stream: 流名称（映射为 streamId，如 stream1）</p>
+            <br>
+            <p><strong>推流步骤：</strong></p>
+            <p>1. 输入流 URL 和 API 地址</p>
+            <p>2. 点击"开始推流"按钮</p>
+            <p>3. 允许浏览器访问摄像头和麦克风</p>
+            <p>4. 等待连接建立，视频显示在本地视频窗口</p>
+            <br>
+            <p><strong>拉流步骤：</strong></p>
+            <p>1. 输入要拉取的流 URL（必须与推流的 URL 一致）</p>
+            <p>2. 点击"开始拉流"按钮</p>
+            <p>3. 等待连接建立，视频显示在远程视频窗口</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 配置
+    const config = {
+        iceServers: [
+            {urls: 'stun:stun.l.google.com:19302'}
+        ]
+    };
+
+    let publishPc = null;
+    let playPc = null;
+    let localStream = null;
+
+    // ==================== 推流功能 ====================
+
+    document.getElementById('startPublish').addEventListener('click', async () => {
+        const apiUrl = document.getElementById('apiUrl').value.trim();
+        const streamUrl = document.getElementById('publishUrl').value.trim();
+        const statusEl = document.getElementById('publishStatus');
+
+        if (!apiUrl || !streamUrl) {
+            statusEl.textContent = '错误: 请填写 API 地址和流 URL';
+            statusEl.className = 'status error';
+            return;
+        }
+
+        try {
+            statusEl.textContent = '正在获取本地媒体...';
+            statusEl.className = 'status';
+
+            // 获取本地媒体流
+            localStream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: true
+            });
+
+            document.getElementById('localVideo').srcObject = localStream;
+
+            // 创建 PeerConnection
+            publishPc = new RTCPeerConnection(config);
+
+            // 添加媒体轨道
+            localStream.getTracks().forEach(track => {
+                publishPc.addTrack(track, localStream);
+            });
+
+            // 创建 Offer
+            statusEl.textContent = '正在创建 SDP Offer...';
+            const offer = await publishPc.createOffer();
+            await publishPc.setLocalDescription(offer);
+
+            // 发送到服务器
+            statusEl.textContent = '正在连接服务器...';
+            const response = await fetch(`${apiUrl}/rtc/v1/publish/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    api: streamUrl,
+                    sdp: offer.sdp
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.code !== 0) {
+                throw new Error(data.data?.error || '服务器返回错误');
+            }
+
+            // 设置 Answer
+            await publishPc.setRemoteDescription({
+                type: 'answer',
+                sdp: data.sdp
+            });
+
+            // 处理 ICE 候选
+            publishPc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    // 可以发送到服务器，但通常不需要（Trickle ICE）
+                }
+            };
+
+            publishPc.onconnectionstatechange = () => {
+                const state = publishPc.connectionState;
+                if (state === 'connected') {
+                    statusEl.textContent = '推流成功！连接已建立';
+                    statusEl.className = 'status success';
+                    document.getElementById('startPublish').disabled = true;
+                    document.getElementById('stopPublish').disabled = false;
+                } else if (state === 'failed' || state === 'disconnected') {
+                    statusEl.textContent = `连接状态: ${state}`;
+                    statusEl.className = 'status error';
+                }
+            };
+
+        } catch (error) {
+            statusEl.textContent = `错误: ${error.message}`;
+            statusEl.className = 'status error';
+            console.error('推流错误:', error);
+        }
+    });
+
+    document.getElementById('stopPublish').addEventListener('click', () => {
+        if (publishPc) {
+            publishPc.close();
+            publishPc = null;
+        }
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+            localStream = null;
+        }
+        document.getElementById('localVideo').srcObject = null;
+        document.getElementById('publishStatus').textContent = '推流已停止';
+        document.getElementById('publishStatus').className = 'status';
+        document.getElementById('startPublish').disabled = false;
+        document.getElementById('stopPublish').disabled = true;
+    });
+
+    // ==================== 拉流功能 ====================
+
+    document.getElementById('startPlay').addEventListener('click', async () => {
+        const apiUrl = document.getElementById('playApiUrl').value.trim();
+        const streamUrl = document.getElementById('playUrl').value.trim();
+        const statusEl = document.getElementById('playStatus');
+
+        if (!apiUrl || !streamUrl) {
+            statusEl.textContent = '错误: 请填写 API 地址和流 URL';
+            statusEl.className = 'status error';
+            return;
+        }
+
+        try {
+            statusEl.textContent = '正在创建连接...';
+            statusEl.className = 'status';
+
+            // 创建 PeerConnection
+            playPc = new RTCPeerConnection(config);
+
+            // 处理远程流
+            playPc.ontrack = (event) => {
+                document.getElementById('remoteVideo').srcObject = event.streams[0];
+                statusEl.textContent = '拉流成功！正在接收视频...';
+                statusEl.className = 'status success';
+            };
+
+            // 创建 Offer
+            statusEl.textContent = '正在创建 SDP Offer...';
+            const offer = await playPc.createOffer();
+            await playPc.setLocalDescription(offer);
+
+            // 发送到服务器
+            statusEl.textContent = '正在连接服务器...';
+            const response = await fetch(`${apiUrl}/rtc/v1/play/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    api: streamUrl,
+                    sdp: offer.sdp
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.code !== 0) {
+                throw new Error(data.data?.error || '服务器返回错误');
+            }
+
+            // 设置 Answer
+            await playPc.setRemoteDescription({
+                type: 'answer',
+                sdp: data.sdp
+            });
+
+            // 处理 ICE 候选
+            playPc.onicecandidate = (event) => {
+                if (event.candidate) {
+                    // 可以发送到服务器，但通常不需要（Trickle ICE）
+                }
+            };
+
+            playPc.onconnectionstatechange = () => {
+                const state = playPc.connectionState;
+                if (state === 'connected') {
+                    statusEl.textContent = '拉流成功！连接已建立';
+                    statusEl.className = 'status success';
+                    document.getElementById('startPlay').disabled = true;
+                    document.getElementById('stopPlay').disabled = false;
+                } else if (state === 'failed' || state === 'disconnected') {
+                    statusEl.textContent = `连接状态: ${state}`;
+                    statusEl.className = 'status error';
+                }
+            };
+
+        } catch (error) {
+            statusEl.textContent = `错误: ${error.message}`;
+            statusEl.className = 'status error';
+            console.error('拉流错误:', error);
+        }
+    });
+
+    document.getElementById('stopPlay').addEventListener('click', () => {
+        if (playPc) {
+            playPc.close();
+            playPc = null;
+        }
+        document.getElementById('remoteVideo').srcObject = null;
+        document.getElementById('playStatus').textContent = '拉流已停止';
+        document.getElementById('playStatus').className = 'status';
+        document.getElementById('startPlay').disabled = false;
+        document.getElementById('stopPlay').disabled = true;
+    });
+</script>
+</body>
+</html>
+

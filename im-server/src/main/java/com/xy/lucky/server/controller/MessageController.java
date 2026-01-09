@@ -29,7 +29,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/{version}/message")
+@RequestMapping({"/api/message", "/api/{version}/message"})
 @Tag(name = "message", description = "消息")
 public class MessageController {
 

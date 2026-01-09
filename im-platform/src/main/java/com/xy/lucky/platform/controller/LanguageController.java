@@ -49,17 +49,6 @@ public class LanguageController {
         return Mono.fromCallable(() -> languageService.upsert(request)).subscribeOn(Schedulers.boundedElastic());
     }
 
-    @Operation(summary = "列出所有语言包", description = "返回所有语言包列表")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "成功",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = LanguagePackVo.class)))
-    })
-    @GetMapping("/pack/list")
-    public Mono<List<LanguagePackVo>> list() {
-        return Mono.fromCallable(languageService::listAll).subscribeOn(Schedulers.boundedElastic());
-    }
-
     @Operation(summary = "上传语言包文件", description = "上传语言包JSON或压缩包并更新元信息")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "上传成功",
@@ -73,6 +62,17 @@ public class LanguageController {
     ) {
         log.info("收到语言包上传请求，locale={} version={} file={}", meta.getLocale(), meta.getVersion(), file.filename());
         return Mono.fromCallable(() -> languageService.upload(meta, file)).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @Operation(summary = "列出所有语言包", description = "返回所有语言包列表")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "成功",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = LanguagePackVo.class)))
+    })
+    @GetMapping("/pack/list")
+    public Mono<List<LanguagePackVo>> list() {
+        return Mono.fromCallable(languageService::listAll).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Operation(summary = "按 locale 下载语言包", description = "流式传输语言包文件")

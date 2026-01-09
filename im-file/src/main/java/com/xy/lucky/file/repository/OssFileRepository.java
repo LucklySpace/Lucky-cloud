@@ -5,6 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-public interface OssFileRepository extends JpaRepository<OssFilePo, Long> {
+public interface OssFileRepository extends JpaRepository<OssFilePo, String> {
     Optional<OssFilePo> findByIdentifier(String identifier);
 }

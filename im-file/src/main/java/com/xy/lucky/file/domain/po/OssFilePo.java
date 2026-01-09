@@ -27,8 +27,8 @@ public class OssFilePo {
 
     @Schema(description = "id")
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
 
     @Schema(description = "分片上传的uploadId")
     @Column(name = "upload_id", length = 128)

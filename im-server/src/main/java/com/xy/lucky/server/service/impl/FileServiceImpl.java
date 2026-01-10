@@ -80,11 +80,11 @@ public class FileServiceImpl implements FileService {
 
     @PostConstruct
     public void init() {
-        Boolean exists = minioUtil.bucketExists(bucketName).block();
+        Boolean exists = minioUtil.bucketExists(bucketName);
         if (Boolean.FALSE.equals(exists)) {
-            Boolean created = minioUtil.makeBucket(bucketName).block();
+            Boolean created = minioUtil.makeBucket(bucketName);
             if (Boolean.TRUE.equals(created)) {
-                minioUtil.setBucketPublic(bucketName).block();
+                minioUtil.setBucketPublic(bucketName);
             }
         }
     }
@@ -112,7 +112,7 @@ public class FileServiceImpl implements FileService {
                     String contentTypeStr = contentType != null ? contentType.toString() : "application/octet-stream";
 
                     try (InputStream inputStream = new java.io.ByteArrayInputStream(bytes)) {
-                        String fileName = minioUtil.upload(bucketName, filePath, originalFilename, inputStream, size, contentTypeStr).block();
+                        String fileName = minioUtil.upload(bucketName, filePath, originalFilename, inputStream, size, contentTypeStr);
                         if (StringUtils.isEmpty(fileName)) {
                             throw new BusinessException(ResultCode.FAIL);
                         }
@@ -136,7 +136,7 @@ public class FileServiceImpl implements FileService {
                     String contentType = "application/octet-stream";
 
                     try (InputStream inputStream = new FileInputStream(file)) {
-                        String fileName = minioUtil.upload(bucketName, filePath, originalFilename, inputStream, file.length(), contentType).block();
+                        String fileName = minioUtil.upload(bucketName, filePath, originalFilename, inputStream, file.length(), contentType);
                         if (StringUtils.isEmpty(fileName)) {
                             throw new BusinessException(ResultCode.FAIL);
                         }

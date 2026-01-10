@@ -4,10 +4,10 @@ package com.xy.lucky.auth.controller;
 import com.xy.lucky.auth.domain.IMLoginRequest;
 import com.xy.lucky.auth.domain.IMLoginResult;
 import com.xy.lucky.auth.domain.IMQRCodeResult;
+import com.xy.lucky.auth.security.config.RSAKeyProperties;
 import com.xy.lucky.auth.service.AuthService;
 import com.xy.lucky.auth.utils.RequestContextUtil;
 import com.xy.lucky.domain.vo.UserVo;
-import com.xy.lucky.security.RSAKeyProperties;
 import com.xy.lucky.security.util.RSAUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -39,7 +39,7 @@ public class AuthController {
 
     private final AuthService authService;
 
-    private final RSAKeyProperties RSAKeyProperties;
+    private final RSAKeyProperties rsaKeyProperties;
 
     @PostMapping("/login")
     @Operation(summary = "用户登录", tags = {"auth"}, description = "请使用此接口进行用户登录")
@@ -170,7 +170,7 @@ public class AuthController {
             @Parameter(name = "password", description = "密码原文", required = true, in = ParameterIn.DEFAULT)
     })
     public String passwordEncode(@RequestParam("password") String password) throws Exception {
-        return RSAUtil.encrypt(password, RSAKeyProperties.getPublicKeyStr());
+        return RSAUtil.encrypt(password, rsaKeyProperties.getPublicKeyStr());
     }
 //    /**
 //     * 密码加密

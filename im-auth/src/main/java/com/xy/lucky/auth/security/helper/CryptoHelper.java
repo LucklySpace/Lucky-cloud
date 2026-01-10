@@ -1,15 +1,17 @@
 package com.xy.lucky.auth.security.helper;
 
+import com.xy.lucky.auth.security.config.RSAKeyProperties;
 import com.xy.lucky.general.response.domain.ResultCode;
-import com.xy.lucky.security.RSAKeyProperties;
 import com.xy.lucky.security.exception.AuthenticationFailException;
 import com.xy.lucky.security.util.RSAUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.security.PrivateKey;
+
 /**
- * 加密解密助手类
+ * 加密解密助手类 - 支持密钥平滑过渡
  */
 @Slf4j
 @Component
@@ -19,29 +21,33 @@ public class CryptoHelper {
     private final RSAKeyProperties rsaKeyProperties;
 
     /**
-     * 解密密文（RSA私钥解密）
-     *
-     * @param encryptedText 加密的文本
-     * @return 解密后的明文
-     * @throws AuthenticationFailException 解密失败时抛出
+     * 解密密文（支持新旧密钥平滑过渡）
      */
     public String decrypt(String encryptedText) {
+        String normalized = encryptedText.replaceAll(" ", "+");
+
+        // 优先使用当前密钥解密
         try {
-            // 处理 URL 传输中 '+' 被转义为空格的问题
-            String normalized = encryptedText.replaceAll(" ", "+");
             return RSAUtil.decrypt(normalized, rsaKeyProperties.getPrivateKeyStr());
         } catch (Exception e) {
-            log.error("RSA 解密失败", e);
-            throw new AuthenticationFailException(ResultCode.INVALID_CREDENTIALS);
+            log.debug("当前密钥解密失败，尝试前一版本密钥");
         }
+
+        // 尝试前一版本密钥（平滑过渡）
+        PrivateKey previousKey = rsaKeyProperties.getPreviousPrivateKey();
+        if (previousKey != null) {
+            try {
+                return RSAUtil.decryptWithKey(normalized, previousKey);
+            } catch (Exception e) {
+                log.warn("前一版本密钥解密也失败");
+            }
+        }
+
+        throw new AuthenticationFailException(ResultCode.INVALID_CREDENTIALS);
     }
 
     /**
-     * 加密明文（RSA公钥加密）
-     *
-     * @param plainText 明文
-     * @return 加密后的密文
-     * @throws AuthenticationFailException 加密失败时抛出
+     * 加密明文
      */
     public String encrypt(String plainText) {
         try {
@@ -52,4 +58,3 @@ public class CryptoHelper {
         }
     }
 }
-

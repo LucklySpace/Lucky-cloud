@@ -18,16 +18,6 @@ public class CryptoProperties {
 
     private Sign sign;
 
-    /**
-     * RSA 公钥（Base64 或 PEM 格式）
-     */
-    private String rsaPublicKey;
-
-    /**
-     * RSA 私钥（Base64 或 PEM 格式）
-     */
-    private String rsaPrivateKey;
-
     @Data
     public static class Crypto {
         /**

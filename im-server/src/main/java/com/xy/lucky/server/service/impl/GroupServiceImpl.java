@@ -134,6 +134,12 @@ public class GroupServiceImpl implements GroupService {
                 ImUserDataPo user = userMap.get(member.getMemberId());
                 if (user != null) {
                     GroupMemberVo vo = GroupMemberBeanMapper.INSTANCE.toGroupMemberVo(member);
+                    vo.setName(user.getName());
+                    vo.setAvatar(user.getAvatar());
+                    vo.setGender(user.getGender());
+                    vo.setLocation(user.getLocation());
+                    vo.setSelfSignature(user.getSelfSignature());
+                    vo.setBirthDay(user.getBirthday());
                     vo.setRole(member.getRole());
                     vo.setMute(member.getMute());
                     vo.setAlias(member.getAlias());

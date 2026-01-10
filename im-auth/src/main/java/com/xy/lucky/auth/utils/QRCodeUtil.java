@@ -4,7 +4,7 @@ import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
 import com.google.zxing.MultiFormatWriter;
 import com.google.zxing.common.BitMatrix;
-import com.xy.lucky.auth.config.QRCodeConfig;
+import com.xy.lucky.auth.security.config.QRCodeProperties;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -24,15 +24,15 @@ import java.util.Map;
  */
 public class QRCodeUtil {
 
-    private static QRCodeConfig qrCodeConfig = new QRCodeConfig();
+    private static QRCodeProperties qrCodeProperties = new QRCodeProperties();
 
     /**
      * 设置二维码配置
      *
      * @param config 配置对象
      */
-    public static void setQRCodeConfig(QRCodeConfig config) {
-        qrCodeConfig = config;
+    public static void setQRCodeConfig(QRCodeProperties config) {
+        qrCodeProperties = config;
     }
 
     /**
@@ -65,10 +65,10 @@ public class QRCodeUtil {
             
             // 如果提供了Logo路径，则在二维码中央添加Logo
             if (logoPath != null && !logoPath.isEmpty()) {
-                image = addLogoToQRCode(image, logoPath, 
-                    qrCodeConfig.getLogo().getWidth(), 
-                    qrCodeConfig.getLogo().getHeight(), 
-                    qrCodeConfig.getLogo().getOpacity());
+                image = addLogoToQRCode(image, logoPath,
+                        qrCodeProperties.getLogo().getWidth(),
+                        qrCodeProperties.getLogo().getHeight(),
+                        qrCodeProperties.getLogo().getOpacity());
             }
             
             // 将二维码保存成文件
@@ -89,8 +89,8 @@ public class QRCodeUtil {
      * @param filePath 文件存储路径
      */
     public static void generateQRCode(String text, String filePath) {
-        generateQRCode(text, qrCodeConfig.getDefaultWidth(), qrCodeConfig.getDefaultHeight(), filePath, 
-            qrCodeConfig.getLogo().getPath());
+        generateQRCode(text, qrCodeProperties.getDefaultWidth(), qrCodeProperties.getDefaultHeight(), filePath,
+                qrCodeProperties.getLogo().getPath());
     }
 
     /**
@@ -121,10 +121,10 @@ public class QRCodeUtil {
             
             // 如果提供了Logo路径，则在二维码中央添加Logo
             if (logoPath != null && !logoPath.isEmpty()) {
-                image = addLogoToQRCode(image, logoPath, 
-                    qrCodeConfig.getLogo().getWidth(), 
-                    qrCodeConfig.getLogo().getHeight(), 
-                    qrCodeConfig.getLogo().getOpacity());
+                image = addLogoToQRCode(image, logoPath,
+                        qrCodeProperties.getLogo().getWidth(),
+                        qrCodeProperties.getLogo().getHeight(),
+                        qrCodeProperties.getLogo().getOpacity());
             }
             
             return image;
@@ -141,8 +141,8 @@ public class QRCodeUtil {
      * @return BufferedImage 对象
      */
     public static BufferedImage generateQRCodeImage(String text) {
-        return generateQRCodeImage(text, qrCodeConfig.getDefaultWidth(), qrCodeConfig.getDefaultHeight(), 
-            qrCodeConfig.getLogo().getPath());
+        return generateQRCodeImage(text, qrCodeProperties.getDefaultWidth(), qrCodeProperties.getDefaultHeight(),
+                qrCodeProperties.getLogo().getPath());
     }
 
     /**
@@ -154,7 +154,7 @@ public class QRCodeUtil {
      * @return 生成的二维码图像的字节数组
      */
     public static byte[] generateQRCodeBytes(String text, int width, int height) {
-        return generateQRCodeBytes(text, width, height, qrCodeConfig.getFormat(), null);
+        return generateQRCodeBytes(text, width, height, qrCodeProperties.getFormat(), null);
     }
     
     /**
@@ -174,10 +174,10 @@ public class QRCodeUtil {
             
             // 如果提供了Logo路径，则在二维码中央添加Logo
             if (logoPath != null && !logoPath.isEmpty()) {
-                image = addLogoToQRCode(image, logoPath, 
-                    qrCodeConfig.getLogo().getWidth(), 
-                    qrCodeConfig.getLogo().getHeight(), 
-                    qrCodeConfig.getLogo().getOpacity());
+                image = addLogoToQRCode(image, logoPath,
+                        qrCodeProperties.getLogo().getWidth(),
+                        qrCodeProperties.getLogo().getHeight(),
+                        qrCodeProperties.getLogo().getOpacity());
             }
             
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -196,7 +196,7 @@ public class QRCodeUtil {
      * @return 生成的二维码图像的字节数组
      */
     public static byte[] generateQRCodeBytes(String text) {
-        return generateQRCodeBytes(text, qrCodeConfig.getDefaultWidth(), qrCodeConfig.getDefaultHeight());
+        return generateQRCodeBytes(text, qrCodeProperties.getDefaultWidth(), qrCodeProperties.getDefaultHeight());
     }
     
     /**
@@ -207,8 +207,8 @@ public class QRCodeUtil {
      * @return 生成的二维码图像的字节数组
      */
     public static byte[] generateQRCodeBytes(String text, String format) {
-        return generateQRCodeBytes(text, qrCodeConfig.getDefaultWidth(), qrCodeConfig.getDefaultHeight(), format, 
-            qrCodeConfig.getLogo().getPath());
+        return generateQRCodeBytes(text, qrCodeProperties.getDefaultWidth(), qrCodeProperties.getDefaultHeight(), format,
+                qrCodeProperties.getLogo().getPath());
     }
 
     /**
@@ -220,7 +220,7 @@ public class QRCodeUtil {
      * @return Base64 编码的图像字符串
      */
     public static String generateQRCodeBase64(String text, int width, int height) {
-        return generateQRCodeBase64(text, width, height, qrCodeConfig.getFormat(), null);
+        return generateQRCodeBase64(text, width, height, qrCodeProperties.getFormat(), null);
     }
     
     /**
@@ -252,7 +252,7 @@ public class QRCodeUtil {
      * @return Base64 编码的图像字符串
      */
     public static String generateQRCodeBase64(String text) {
-        return generateQRCodeBase64(text, qrCodeConfig.getDefaultWidth(), qrCodeConfig.getDefaultHeight());
+        return generateQRCodeBase64(text, qrCodeProperties.getDefaultWidth(), qrCodeProperties.getDefaultHeight());
     }
     
     /**
@@ -263,8 +263,8 @@ public class QRCodeUtil {
      * @return Base64 编码的图像字符串
      */
     public static String generateQRCodeBase64(String text, String format) {
-        return generateQRCodeBase64(text, qrCodeConfig.getDefaultWidth(), qrCodeConfig.getDefaultHeight(), format, 
-            qrCodeConfig.getLogo().getPath());
+        return generateQRCodeBase64(text, qrCodeProperties.getDefaultWidth(), qrCodeProperties.getDefaultHeight(), format,
+                qrCodeProperties.getLogo().getPath());
     }
 
     /**
@@ -280,11 +280,11 @@ public class QRCodeUtil {
         // 定义二维码参数
         Map<EncodeHintType, Object> hints = new HashMap<>();
         // 设置字符编码
-        hints.put(EncodeHintType.CHARACTER_SET, qrCodeConfig.getCharset());
+        hints.put(EncodeHintType.CHARACTER_SET, qrCodeProperties.getCharset());
         // 错误纠正级别
-        hints.put(EncodeHintType.ERROR_CORRECTION, getErrorCorrectionLevel(qrCodeConfig.getErrorCorrectionLevel()));
+        hints.put(EncodeHintType.ERROR_CORRECTION, getErrorCorrectionLevel(qrCodeProperties.getErrorCorrectionLevel()));
         // 二维码边距
-        hints.put(EncodeHintType.MARGIN, qrCodeConfig.getMargin());
+        hints.put(EncodeHintType.MARGIN, qrCodeProperties.getMargin());
 
         // 使用QRCodeWriter生成二维码矩阵信息
         MultiFormatWriter writer = new MultiFormatWriter();
@@ -336,7 +336,7 @@ public class QRCodeUtil {
      * @return 文件扩展名
      */
     private static String getFileExtension(String filePath) {
-        String format = qrCodeConfig.getFormat();
+        String format = qrCodeProperties.getFormat();
         if (filePath != null && filePath.lastIndexOf(".") != -1) {
             format = filePath.substring(filePath.lastIndexOf(".") + 1);
         }

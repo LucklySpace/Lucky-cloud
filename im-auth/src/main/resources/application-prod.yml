@@ -51,13 +51,18 @@ security:
     aes-key: g64fi7uihebib6d34njcbybfiuyiusyhdf98q38i7unqi7ew
   sign:
     secret: g876q3f4fiddybc7684cq87b634fg87
-  rsa-public-key:
-    3f3b7uyttuify7634fgb8y87tgbery7475t9h4f5487ygb8y8eyr93uqhuo972o8yubrf9672t45f
-  rsa-private-key:
-    hd9834678yc98go34i7iifyh96784hfub78438bf7g8457yth79gychu857uy85gtfr883
   rsa:
-    key:
-      secret: '1234567890' #RSA加密盐值
+    secret: g876q3f4fiddybc7684cq87b634fg87  # 可选，用于确定性生成
+    data-id: im-rsa-keys.yml
+    refresh-enabled: true
+    check-interval: 1800000 # 单位：毫秒
+    key-ttl: 720  # 单位：小时
+    key-type: yaml
+  qrcode:
+    default-width: 300
+    default-height: 300
+    format: PNG
+    error-correction-level: L
   auth:
     expiration: 30                                                      #JWT过期时间 单位：min
     secret: 'dasfdffdsfgfadgfshfghfgdsfgxcxfdghhfh'                     #JWT盐值
@@ -81,9 +86,3 @@ sms:
   apiUrl: https://sms_developer.zhenzikj.com
   appId: 112181
   appSecret: 86813b86-b431-46ea-bd55-fcf63c2990a3
-
-qrcode:
-  width: 300
-  height: 300
-  format: PNG
-  error-correction-level: L

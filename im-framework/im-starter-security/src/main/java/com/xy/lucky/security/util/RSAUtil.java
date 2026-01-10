@@ -106,6 +106,28 @@ public final class RSAUtil {
         Files.write(path, bytes);
     }
 
+    /**
+     * 生成 RSA 密钥对
+     */
+    public static KeyPair generateKeyPair(int keySize, String secret) throws Exception {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(KEY_ALGORITHM);
+        SecureRandom secureRandom = secret != null && !secret.isEmpty()
+                ? new SecureRandom(secret.getBytes(StandardCharsets.UTF_8))
+                : new SecureRandom();
+        keyPairGenerator.initialize(Math.max(keySize, RSA_KEY_SIZE), secureRandom);
+        return keyPairGenerator.genKeyPair();
+    }
+
+    /**
+     * 使用 PrivateKey 对象解密
+     */
+    public static String decryptWithKey(String encryptText, PrivateKey privateKey) throws Exception {
+        Cipher cipher = Cipher.getInstance(KEY_ALGORITHM_PADDING);
+        cipher.init(Cipher.DECRYPT_MODE, privateKey);
+        byte[] decrypted = cipher.doFinal(Base64.getDecoder().decode(encryptText));
+        return new String(decrypted, StandardCharsets.UTF_8);
+    }
+
     public static String bytesToHexString(byte[] bytes) {
         return HexFormat.of().formatHex(bytes);
     }

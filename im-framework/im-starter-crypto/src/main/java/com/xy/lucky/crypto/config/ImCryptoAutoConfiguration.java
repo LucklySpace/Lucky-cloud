@@ -32,9 +32,5 @@ public class ImCryptoAutoConfiguration {
         } else {
             log.warn("未配置 AES 密钥 security.crypto.aesKey，将使用默认值，建议在生产环境显式配置");
         }
-
-        if (properties.getRsaPublicKey() == null || properties.getRsaPrivateKey() == null) {
-            log.info("未检测到完整的 RSA 公私钥配置，如使用 RSA 加解密请配置 security.rsaPublicKey 与 security.rsaPrivateKey");
-        }
     }
 }

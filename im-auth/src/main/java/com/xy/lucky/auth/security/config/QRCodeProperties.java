@@ -1,4 +1,4 @@
-package com.xy.lucky.auth.config;
+package com.xy.lucky.auth.security.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -9,8 +9,8 @@ import org.springframework.context.annotation.Configuration;
  */
 @Data
 @Configuration
-@ConfigurationProperties(prefix = "qrcode")
-public class QRCodeConfig {
+@ConfigurationProperties(prefix = "security.qrcode")
+public class QRCodeProperties {
 
     /**
      * 字符编码，默认为 UTF-8

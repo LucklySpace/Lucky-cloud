@@ -4,6 +4,7 @@ package com.xy.lucky.auth.service.impl;
 import com.alibaba.nacos.common.utils.JacksonUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.xy.lucky.auth.domain.*;
+import com.xy.lucky.auth.security.config.RSAKeyProperties;
 import com.xy.lucky.auth.security.domain.AuthRequestContext;
 import com.xy.lucky.auth.security.token.MobileAuthenticationToken;
 import com.xy.lucky.auth.security.token.QrScanAuthenticationToken;
@@ -16,14 +17,12 @@ import com.xy.lucky.auth.utils.RequestContextUtil;
 import com.xy.lucky.core.constants.IMConstant;
 import com.xy.lucky.core.constants.NacosMetadataConstants;
 import com.xy.lucky.core.constants.ServiceNameConstants;
-import com.xy.lucky.core.model.IMRegisterUser;
 import com.xy.lucky.core.utils.JwtUtil;
 import com.xy.lucky.domain.po.ImUserDataPo;
 import com.xy.lucky.domain.vo.UserVo;
 import com.xy.lucky.dubbo.web.api.database.user.ImUserDataDubboService;
 import com.xy.lucky.dubbo.web.api.database.user.ImUserDubboService;
 import com.xy.lucky.general.response.domain.ResultCode;
-import com.xy.lucky.security.RSAKeyProperties;
 import com.xy.lucky.security.SecurityAuthProperties;
 import com.xy.lucky.security.exception.AuthenticationFailException;
 import jakarta.annotation.Resource;
@@ -40,11 +39,13 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import static com.xy.lucky.core.constants.IMConstant.USER_CACHE_PREFIX;
 
 /**
  * AuthServiceImpl 实现类，负责处理用户认证、二维码登录等逻辑。
@@ -85,7 +86,7 @@ public class AuthServiceImpl implements AuthService {
      * @return 包含 token、userId、过期时间的 Result
      */
     @Override
-    public IMLoginResult login(IMLoginRequest req, jakarta.servlet.http.HttpServletRequest request) {
+    public IMLoginResult login(IMLoginRequest req, HttpServletRequest request) {
         log.info("开始登录：authType={}, principal={}", req.getAuthType(), req.getPrincipal());
         Authentication auth;
         try {
@@ -117,9 +118,11 @@ public class AuthServiceImpl implements AuthService {
         // 生成用户认证信息
         IMLoginResult loginResult = generateAuthInfo(auth);
 
-        IMRegisterUser imRegisterUser = redisCache.get(USER_CACHE_PREFIX + loginResult.getUserId());
-
-        loginResult.setConnectEndpoints(fetchConnectServerEndpoints(imRegisterUser));
+        try {
+            loginResult.setConnectEndpoints(fetchConnectServerEndpoints());
+        } catch (Exception ex) {
+            throw new AuthenticationFailException(ResultCode.AUTHENTICATION_FAILED);
+        }
 
         log.info("登录成功：userId={}", loginResult.getUserId());
 
@@ -128,45 +131,37 @@ public class AuthServiceImpl implements AuthService {
 
     /**
      * 获取用户连接服务端信息
+     * <p>
+     * 策略：从不同的 broker 分组中各选择一个实例，打乱顺序后返回最多3个端点，
+     * 确保负载均衡且不返回重复端点。
      *
-     * @param imRegisterUser
-     * @return
+     * @return 连接端点元数据列表（最多3个，不重复）
      */
-    private List<IMConnectEndpointMetadata> fetchConnectServerEndpoints(IMRegisterUser imRegisterUser) {
-        boolean isConnectedServer = imRegisterUser != null && StringUtils.hasLength(imRegisterUser.getBrokerId());
+    private List<IMConnectEndpointMetadata> fetchConnectServerEndpoints() {
         List<ServiceInstance> instances = discoveryClient.getInstances(ServiceNameConstants.SVC_IM_CONNECT);
         if (CollectionUtils.isEmpty(instances)) {
             return Collections.emptyList();
         }
 
+        // 按 broker 分组，同一 broker 下可能有多个实例
         Map<String, List<ServiceInstance>> brokerGroups = instances.stream()
                 .collect(Collectors.groupingBy(instance ->
                         instance.getMetadata().getOrDefault(NacosMetadataConstants.BROKER_ID, instance.getHost())));
 
-        if (isConnectedServer) {
-            return brokerGroups
-                    .get(imRegisterUser.getBrokerId())
-                    .stream()
-                    .map(this::buildIMConnectEndpointMetadata)
-                    .collect(Collectors.toList());
-        }
+        // 从每个 broker 分组中随机选择一个实例，确保端点不重复
+        List<ServiceInstance> selectedInstances = brokerGroups.values().stream()
+                .map(brokerInstances -> brokerInstances.get(
+                        ThreadLocalRandom.current().nextInt(brokerInstances.size())))
+                .toList();
 
-        List<IMConnectEndpointMetadata> result = new ArrayList<>();
-        List<String> brokerKeys = new ArrayList<>(brokerGroups.keySet());
-        Random random = new Random();
+        // 打乱顺序以实现负载均衡
+        Collections.shuffle(selectedInstances, ThreadLocalRandom.current());
 
-        for (int i = 0; i < 3; i++) {
-            String brokerKey = brokerKeys.get(i % brokerKeys.size());
-            List<ServiceInstance> brokerInstances = brokerGroups.get(brokerKey);
-
-            ServiceInstance selectedInstance = brokerInstances.get(
-                    random.nextInt(brokerInstances.size()));
-
-            IMConnectEndpointMetadata endpointMetadata = buildIMConnectEndpointMetadata(selectedInstance);
-            result.add(endpointMetadata);
-        }
-
-        return result;
+        // 最多返回3个端点
+        return selectedInstances.stream()
+                .limit(3)
+                .map(this::buildIMConnectEndpointMetadata)
+                .toList();
     }
 
     /**
@@ -182,7 +177,7 @@ public class AuthServiceImpl implements AuthService {
                 .priority(Integer.parseInt(instanceMetadata.get(NacosMetadataConstants.PRIORITY)))
                 .wsPath(instanceMetadata.get(NacosMetadataConstants.WS_PATH))
                 .endpoint(instance.getHost() + ":" + instance.getPort())
-                .protocols(JacksonUtils.toObj(instanceMetadata.get(NacosMetadataConstants.PROTOCOLS), new TypeReference<List<String>>() {
+                .protocols(JacksonUtils.toObj(instanceMetadata.get(NacosMetadataConstants.PROTOCOLS), new TypeReference<>() {
                 }))
                 .createdAt(System.currentTimeMillis() / 1000L)
                 .build();

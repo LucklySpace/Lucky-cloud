@@ -18,7 +18,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.test.util.ReflectionTestUtils;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.io.InputStream;
@@ -27,7 +26,8 @@ import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * FileServiceImpl 单元测试类
@@ -158,7 +158,7 @@ class FileServiceImplTest {
             
             // 模拟 MinIO 上传
             given(minioUtil.upload(anyString(), anyString(), anyString(), any(InputStream.class), anyLong(), anyString()))
-                    .willReturn(Mono.just("uploaded_test.jpg"));
+                    .willReturn("uploaded_test.jpg");
             
             // 执行测试并验证
             StepVerifier.create(fileService.uploadFile(filePart))
@@ -188,7 +188,7 @@ class FileServiceImplTest {
             
             // 模拟 MinIO 上传返回空
             given(minioUtil.upload(anyString(), anyString(), anyString(), any(InputStream.class), anyLong(), anyString()))
-                    .willReturn(Mono.just(""));
+                    .willReturn("");
             
             // 执行测试并验证
             StepVerifier.create(fileService.uploadFile(filePart))

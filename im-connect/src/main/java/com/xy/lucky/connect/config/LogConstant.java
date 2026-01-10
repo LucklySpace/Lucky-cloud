@@ -1,40 +1,60 @@
 package com.xy.lucky.connect.config;
 
-
 /**
- * 业务名称 日志配置
- * 对应日志文件  logback.xml
+ * 日志主题常量定义
+ * 用于分类记录不同模块的日志
+ * 对应日志文件配置：logback.xml
+ *
+ * @author Lucky
  */
-public class LogConstant {
+public final class LogConstant {
 
-    public final static String Main = "IM-Connect";
+    /**
+     * 主应用日志
+     */
+    public static final String Main = "IM-Connect";
+    /**
+     * Netty 网络层日志
+     */
+    public static final String Netty = "netty";
+    /**
+     * RabbitMQ 消息队列日志
+     */
+    public static final String Rabbit = "rabbit";
+    /**
+     * Redis 缓存日志
+     */
+    public static final String Redis = "redis";
+    /**
+     * Spring 框架日志
+     */
+    public static final String Spring = "spring";
+    /** Nacos 服务发现日志 */
+    public static final String Nacos = "nacos";
+    /** 消息处理日志 */
+    public static final String Message = "message";
+    /** 心跳检测日志 */
+    public static final String HeartBeat = "heartBeat";
+    /** 认证授权日志 */
+    public static final String Auth = "auth";
+    /** 登录日志 */
+    public static final String Login = "login";
+    /** Channel 管理日志 */
+    public static final String Channel = "channel";
+    /** 登出日志 */
+    public static final String Logout = "logout";
+    /** 监控服务日志 */
+    public static final String Monitoring = "monitoring";
+    /** 异常处理日志 */
+    public static final String Exception = "exception";
+    /**
+     * 系统日志
+     */
+    public static final String System = "system";
+    /** 限流器日志 */
+    public static final String Limiter = "rateLimiter";
 
-    public final static String Netty = "netty";
-
-    public final static String Rabbit = "rabbit";
-
-    public final static String Spring = "spring";
-
-    public final static String Nacos = "nacos";
-
-    public final static String Message = "message";
-
-    public final static String HeartBeat = "heartBeat";
-
-    public final static String Auth = "auth";
-
-    public final static String Login = "login";
-
-    public final static String Channel = "channel";
-
-    public final static String Logout = "logout";
-
-    public final static String Monitoring = "monitoring";
-
-    public final static String Exception = "exception";
-
-    public final static String System = "system";
-
-    public final static String Limiter = "rateLimiter";
-
+    private LogConstant() {
+        throw new UnsupportedOperationException("常量类不允许实例化");
+    }
 }

@@ -30,7 +30,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/{version}/group")
+@RequestMapping({"/api/group", "/api/{version}/group"})
 @Tag(name = "group", description = "群聊")
 public class GroupController {
 

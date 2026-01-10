@@ -17,7 +17,7 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/{version}/file")
+@RequestMapping({"/api/file", "/api/{version}/file"})
 @Tag(name = "file", description = "文件")
 public class FileController {
 

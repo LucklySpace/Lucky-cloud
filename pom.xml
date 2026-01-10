@@ -796,6 +796,7 @@
 
                 <im-database.server.port>8100</im-database.server.port>
                 <im-gateway.server.port>9191</im-gateway.server.port>
+                <im-gateway-ws.server.port>9192</im-gateway-ws.server.port>
 
                 <!-- Nacos 配置中心配置 -->
                 <nacos.config.server-addr>localhost:8848</nacos.config.server-addr>
@@ -845,6 +846,7 @@
 
                 <im-database.server.port>8100</im-database.server.port>
                 <im-gateway.server.port>9191</im-gateway.server.port>
+                <im-gateway-ws.server.port>9192</im-gateway-ws.server.port>
 
 
                 <!-- Nacos 配置中心配置 -->
@@ -895,6 +897,7 @@
 
                 <im-database.server.port>8100</im-database.server.port>
                 <im-gateway.server.port>9191</im-gateway.server.port>
+                <im-gateway-ws.server.port>9192</im-gateway-ws.server.port>
 
                 <!-- Nacos 配置中心配置 -->
                 <nacos.config.server-addr>prod.nacos.server:8848</nacos.config.server-addr>

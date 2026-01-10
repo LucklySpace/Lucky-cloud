@@ -1,10 +1,12 @@
 package com.xy.lucky.connect.mq;
 
-import cn.hutool.core.util.StrUtil;
 import com.rabbitmq.client.*;
 import com.rabbitmq.client.impl.DefaultExceptionHandler;
 import com.xy.lucky.connect.config.LogConstant;
+import com.xy.lucky.connect.config.properties.RabbitMQProperties;
+import com.xy.lucky.connect.constant.ConnectConstants;
 import com.xy.lucky.connect.domain.MessageEvent;
+import com.xy.lucky.core.utils.StringUtils;
 import com.xy.lucky.spring.annotations.core.*;
 import com.xy.lucky.spring.event.ApplicationEventBus;
 import lombok.extern.slf4j.Slf4j;
@@ -16,43 +18,38 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * RabbitMQ连接客户端工具类
- * https://blog.csdn.net/u010989191/article/details/112220574#:~:text=1.%E5%BC%95%E8%A8%80%20R
+ * <p>
+ * 使用 @ConfigurationProperties 配置类注入配置
  *
- * @author dense
+ * @author Lucky
  */
 @Slf4j(topic = LogConstant.Rabbit)
 @Component
 public class RabbitTemplate {
 
-    // 状态
+    /**
+     * 运行状态标记
+     */
     private final AtomicBoolean running = new AtomicBoolean(false);
-    // -------------------- 配置注入 --------------------
-    @Value("${rabbitmq.address}")
-    private String host;
-    @Value("${rabbitmq.port}")
-    private int port;
-    @Value("${rabbitmq.username:}")
-    private String userName;
-    @Value("${rabbitmq.password:}")
-    private String password;
-    @Value("${rabbitmq.virtual:/}")
-    private String virtualHost;
+
+    /**
+     * 重连尝试次数
+     */
+    private final AtomicBoolean reconnecting = new AtomicBoolean(false);
+
+    // ==================== 配置注入（使用配置类） ====================
+    @Autowired
+    private RabbitMQProperties rabbitProperties;
+
     @Value("${brokerId}")
     private String queueName;
-    @Value("${rabbitmq.exchange:im.exchange}")
-    private String exchangeName;
-    @Value("${rabbitmq.routingKeyPrefix:im.router.}")
-    private String routingKeyPrefix;
-    @Value("${rabbitmq.errorQueue:error.queue}")
-    private String errorQueue;
-    @Value("${rabbitmq.prefetch:50}")
-    private Integer prefetch = 50;
+
+    // ==================== 连接和通道 ====================
     private ConnectionFactory factory;
-    private Connection connection;
-    // 用于消费（ack/nack）
+    private volatile Connection connection;
     private volatile Channel consumerChannel;
-    // 用于发送错误消息等
     private volatile Channel publishChannel;
+
     @Autowired
     private ApplicationEventBus applicationEventBus;
 
@@ -68,40 +65,86 @@ public class RabbitTemplate {
 
     /**
      * 构建 ConnectionFactory 并设置连接参数和异常处理器
+     * 配置自动重连机制
      */
     private void buildConnectionFactory() {
+        log.info("开始构建 RabbitMQ ConnectionFactory");
+
         factory = new ConnectionFactory();
-        factory.setHost(host);
-        factory.setPort(port);
+        factory.setHost(rabbitProperties.getAddress());
+        factory.setPort(rabbitProperties.getPort());
 
-        if (StrUtil.isNotBlank(userName)) factory.setUsername(userName);
-        if (StrUtil.isNotBlank(password)) factory.setPassword(password);
-        if (StrUtil.isNotBlank(virtualHost)) factory.setVirtualHost(virtualHost);
+        // 设置认证信息
+        String userName = rabbitProperties.getUsername();
+        String password = rabbitProperties.getPassword();
+        String virtualHost = rabbitProperties.getVirtual();
 
-        // 启用自动重连（client 端自动恢复连接与通道拓扑）
-        factory.setAutomaticRecoveryEnabled(true);
+        if (StringUtils.hasText(userName)) {
+            factory.setUsername(userName);
+        }
+        if (StringUtils.hasText(password)) {
+            factory.setPassword(password);
+        }
+        if (StringUtils.hasText(virtualHost)) {
+            factory.setVirtualHost(virtualHost);
+        }
+
+        // 启用自动重连机制
+        factory.setAutomaticRecoveryEnabled(rabbitProperties.isAutomaticRecovery());
         factory.setTopologyRecoveryEnabled(true);
-        // 客户端自动恢复间隔
-        factory.setNetworkRecoveryInterval(5000);
+        factory.setNetworkRecoveryInterval(ConnectConstants.RabbitMQ.DEFAULT_RECOVERY_INTERVAL);
 
-        // 设置连接异常处理器
-        factory.setExceptionHandler(new DefaultExceptionHandler() {
+        // 设置连接超时
+        factory.setConnectionTimeout(rabbitProperties.getConnectionTimeout());
+        factory.setHandshakeTimeout(10000);
+
+        // 设置自定义异常处理器
+        factory.setExceptionHandler(createExceptionHandler());
+
+        log.info("RabbitMQ ConnectionFactory 构建完成: {}:{}, virtual-host: {}",
+                rabbitProperties.getAddress(), rabbitProperties.getPort(), virtualHost);
+    }
+
+    /**
+     * 创建异常处理器
+     * 处理连接和通道的异常情况
+     */
+    private DefaultExceptionHandler createExceptionHandler() {
+        return new DefaultExceptionHandler() {
             @Override
             public void handleConnectionRecoveryException(Connection conn, Throwable exception) {
-                log.warn("RabbitMQ 连接丢失，准备重连...", exception);
-                running.set(false);
-                // 关闭资源
-                closeResourcesSafely();
-                // 尝试重连
-                startConsumer();
+                log.warn("RabbitMQ 连接恢复失败，准备重连", exception);
+                handleConnectionLoss();
             }
 
             @Override
             public void handleChannelRecoveryException(Channel ch, Throwable exception) {
-                log.warn("RabbitMQ channel 异常...", exception);
+                log.warn("RabbitMQ Channel 恢复失败: {}", exception.getMessage());
             }
-        });
-        log.info("RabbitMQ ConnectionFactory 构建完成 -> {}:{}", host, port);
+
+            @Override
+            public void handleUnexpectedConnectionDriverException(Connection conn, Throwable exception) {
+                log.error("RabbitMQ 连接驱动异常", exception);
+                handleConnectionLoss();
+            }
+        };
+    }
+
+    /**
+     * 处理连接丢失
+     * 关闭资源并尝试重连
+     */
+    private void handleConnectionLoss() {
+        if (reconnecting.compareAndSet(false, true)) {
+            try {
+                running.set(false);
+                closeResourcesSafely();
+                safeSleep(ConnectConstants.RabbitMQ.DEFAULT_RECOVERY_INTERVAL);
+                startConsumer();
+            } finally {
+                reconnecting.set(false);
+            }
+        }
     }
 
     /**
@@ -112,6 +155,11 @@ public class RabbitTemplate {
             log.debug("RabbitMQ 已在运行，跳过启动");
             return;
         }
+
+        String exchangeName = rabbitProperties.getExchange();
+        String errorQueue = rabbitProperties.getErrorQueue();
+        int prefetch = ConnectConstants.RabbitMQ.DEFAULT_PREFETCH;
+
         try {
             // 创建连接与通道
             connection = factory.newConnection();
@@ -269,6 +317,10 @@ public class RabbitTemplate {
             log.warn("publishChannel is null, cannot send error message");
             return;
         }
+
+        String exchangeName = rabbitProperties.getExchange();
+        String errorQueue = rabbitProperties.getErrorQueue();
+
         String fullMsg = String.format("msgId=%d, error=%s, payload=%s",
                 env.getDeliveryTag(), errorMsg, new String(body, StandardCharsets.UTF_8));
         byte[] bytes = fullMsg.getBytes(StandardCharsets.UTF_8);

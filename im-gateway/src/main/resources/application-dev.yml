@@ -6,8 +6,8 @@ spring:
       enabled: true  # 开启虚拟线程
   data:
     redis:
-      redisson:
-        address: redis://${spring.data.redis.host}:${spring.data.redis.port}
+      #      redisson:  使用服务器地址时这里会有 bug, nacos更新配置后 解析的还是本地地址
+      #        address: redis://${spring.data.redis.host}:${spring.data.redis.port}
       host: localhost
       port: 6379
       #      password:

@@ -17,7 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class HeartBeatProcess implements WebsocketProcess {
 
-    @Value("netty.config.heartBeatTime")
+    @Value("${netty.config.heartBeatTime}")
     private Integer heartBeatTime;
 
     @Value("auth.tokenExpired")

@@ -35,7 +35,6 @@ spring:
 
 dubbo: # dubbo
   application:
-    name: ${spring.application.name}-${spring.profiles.active}-dubbo
     serialize-check-status: WARN
   protocol: # dubbo协议
     name: dubbo

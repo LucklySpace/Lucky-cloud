@@ -4,17 +4,15 @@ package com.xy.lucky.connect;
 import com.xy.lucky.connect.config.LogConstant;
 import com.xy.lucky.connect.utils.IPAddressUtil;
 import com.xy.lucky.connect.utils.MachineCodeUtils;
-import com.xy.lucky.spring.XSpringApplication;
-import com.xy.lucky.spring.annotations.SpringApplication;
-import com.xy.lucky.spring.annotations.aop.EnableAop;
-import com.xy.lucky.spring.core.ApplicationConfigLoader;
+import com.xy.lucky.spring.boot.SpringApplication;
+import com.xy.lucky.spring.boot.annotation.SpringBootApplication;
+import com.xy.lucky.spring.boot.context.ConfigurableApplicationContext;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j(topic = LogConstant.Main)
-@EnableAop
-@SpringApplication
+@SpringBootApplication
 public class ImConnectApplication {
-
 
     public static void main(String[] args) throws Exception {
 
@@ -28,7 +26,10 @@ public class ImConnectApplication {
         initializeLogger();
 
         // 启动Spring
-        XSpringApplication.run(ImConnectApplication.class, args);
+        ConfigurableApplicationContext context = SpringApplication.run(ImConnectApplication.class, args);
+
+        // 设置 brokerId 到环境
+        context.getEnvironment();
 
         log.info("IM连接服务启动成功，监听地址：{}", IPAddressUtil.getLocalIp4Address());
 
@@ -52,13 +53,13 @@ public class ImConnectApplication {
     /**
      * 获取机器码，设置队列名称和路由键
      */
+    @SneakyThrows
     private static void loadMachineCode() {
         // 获取机器码
         String brokerId = MachineCodeUtils.getMachineCode();
-
         log.info("获取机器码 ：{}", brokerId);
-
-        ApplicationConfigLoader.put("brokerId", brokerId);
+        // brokerId 通过系统属性设置
+        System.setProperty("brokerId", brokerId);
     }
 
 }

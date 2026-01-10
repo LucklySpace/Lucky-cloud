@@ -1,12 +1,13 @@
 package com.xy.lucky.connect.redis;
 
-
+import com.xy.lucky.connect.config.LogConstant;
+import com.xy.lucky.connect.config.properties.RedisProperties;
+import com.xy.lucky.connect.constant.ConnectConstants;
 import com.xy.lucky.connect.utils.JacksonUtil;
 import com.xy.lucky.core.utils.StringUtils;
+import com.xy.lucky.spring.annotations.core.Autowired;
 import com.xy.lucky.spring.annotations.core.Component;
 import com.xy.lucky.spring.annotations.core.PostConstruct;
-import com.xy.lucky.spring.annotations.core.Value;
-import com.xy.lucky.spring.core.ProxyType;
 import lombok.extern.slf4j.Slf4j;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -20,48 +21,79 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * redis工具类
+ * Redis 操作模板类
+ * 提供统一的 Redis 操作接口，自动管理连接池和异常处理
+ * <p>
+ * 使用 @ConfigurationProperties 配置类注入配置
  *
- * @author lc
+ * @author Lucky
  */
-@Slf4j
-@Component(proxy = ProxyType.NONE)// 注册为自定义 Spring 框架的组件
+@Slf4j(topic = LogConstant.Redis)
+@Component
 public class RedisTemplate {
 
     private JedisPool jedisPool;
 
-    // 以下配置通过自定义 @Value 注解注入
-    @Value("${redis.host}")
-    private String host;
-
-    @Value("${redis.port}")
-    private Integer port;
-
-    @Value("${redis.password}")
-    private String password;
-
-    @Value("${redis.timeout}")
-    private Integer timeout = 10000; // 默认超时为10秒
+    @Autowired
+    private RedisProperties redisProperties;
 
     /**
-     * 初始化 Redis 连接池，使用自定义框架中的 @PostConstruct 注解标识初始化方法
+     * 初始化 Redis 连接池
+     * 配置连接池参数并建立连接
      */
     @PostConstruct
     public void init() {
+        String host = redisProperties.getHost();
+        int port = redisProperties.getPort();
+        String password = redisProperties.getPassword();
+        int timeout = redisProperties.getTimeout();
+
+        log.info("开始初始化 RedisTemplate，连接地址: {}:{}", host, port);
+
+        JedisPoolConfig config = buildPoolConfig();
+
+        // 根据是否有密码选择不同的构造方法
+        this.jedisPool = StringUtils.hasText(password)
+                ? new JedisPool(config, host, port, timeout, password)
+                : new JedisPool(config, host, port, timeout);
+
+        // 测试连接
+        testConnection();
+
+        log.info("RedisTemplate 初始化成功");
+    }
+
+    /**
+     * 构建连接池配置
+     */
+    private JedisPoolConfig buildPoolConfig() {
         JedisPoolConfig config = new JedisPoolConfig();
-        config.setMaxTotal(100);              // 最大连接数
-        config.setMaxIdle(10);                // 最大空闲连接
-        config.setMaxWaitMillis(timeout);     // 最大等待时间
-        config.setTestOnBorrow(true);         // 获取连接前是否测试有效性
+        config.setMaxTotal(redisProperties.getMaxTotal() > 0 ? redisProperties.getMaxTotal() : ConnectConstants.Redis.DEFAULT_MAX_TOTAL);
+        config.setMaxIdle(redisProperties.getMaxIdle() > 0 ? redisProperties.getMaxIdle() : ConnectConstants.Redis.DEFAULT_MAX_IDLE);
+        config.setMaxWaitMillis(redisProperties.getTimeout());
+        config.setTestOnBorrow(true);
+        config.setTestWhileIdle(true);
+        config.setMinEvictableIdleTimeMillis(60000);
+        config.setTimeBetweenEvictionRunsMillis(30000);
+        config.setNumTestsPerEvictionRun(-1);
 
-        // 创建连接池（是否使用密码）
-        if (StringUtils.hasText(password)) {
-            this.jedisPool = new JedisPool(config, host, port, timeout, password);
-        } else {
-            this.jedisPool = new JedisPool(config, host, port, timeout);
+        log.debug("连接池配置: maxTotal={}, maxIdle={}, maxWait={}ms",
+                config.getMaxTotal(), config.getMaxIdle(), config.getMaxWaitMillis());
+
+        return config;
+    }
+
+    /**
+     * 测试连接是否可用
+     */
+    private void testConnection() {
+        try (Jedis jedis = jedisPool.getResource()) {
+            String pong = jedis.ping();
+            log.info("Redis 连接测试成功: {}", pong);
+        } catch (Exception e) {
+            log.error("Redis 连接测试失败", e);
+            throw new RuntimeException("Redis 连接初始化失败", e);
         }
-
-        log.info("RedisTemplate 初始化成功，host={}, port={}", host, port);
     }
 
     // ======================== 公共模板方法 ========================

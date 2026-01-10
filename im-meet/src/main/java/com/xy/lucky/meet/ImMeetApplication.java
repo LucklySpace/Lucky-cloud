@@ -1,17 +1,13 @@
 package com.xy.lucky.meet;
 
-import com.xy.lucky.spring.XSpringApplication;
-import com.xy.lucky.spring.annotations.SpringApplication;
-import com.xy.lucky.spring.annotations.aop.EnableAop;
+import com.xy.lucky.spring.boot.SpringApplication;
+import com.xy.lucky.spring.boot.annotation.SpringBootApplication;
 
-@EnableAop
-@SpringApplication
+@SpringBootApplication
 public class ImMeetApplication {
 
     public static void main(String[] args) {
-
-        XSpringApplication.run(ImMeetApplication.class, args);
-
+        SpringApplication.run(ImMeetApplication.class, args);
     }
 
 }

@@ -52,7 +52,6 @@ import java.util.function.Supplier;
 @Service
 public class OssFileImageServiceImpl implements OssFileImageService {
 
-    public static final String AVATAR_BUCKET_NAME = "avatar";
     private static final String THUMBNAIL_KEY = "thumbnail";
     private static final String WATERMARK_KEY = "watermark";
     private static final String COMPRESS_KEY = "compress";
@@ -271,9 +270,9 @@ public class OssFileImageServiceImpl implements OssFileImageService {
             return fileVoMapper.toVo(ossFileByIdentifier);
         }
 
-        String bucket = minioUtils.getOrCreateBucketByFileName(file.getOriginalFilename());
-
         try {
+            String bucket = minioUtils.getOrCreateBucketByAvatar();
+
             // 尝试只做一次公开设置
             if (!avatarBucketIsPublic.get()) {
                 try {

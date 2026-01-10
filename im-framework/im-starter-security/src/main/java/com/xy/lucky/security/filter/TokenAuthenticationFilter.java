@@ -91,17 +91,23 @@ public final class TokenAuthenticationFilter extends OncePerRequestFilter {
         return StringUtils.hasText(param) ? stripBearer(param) : null;
     }
 
-    private String stripBearer(String raw) {
-        if (raw == null) return null;
-        return raw.startsWith(securityAuthProperties.getHeader()) ?
-                raw.substring(securityAuthProperties.getHeader().length()).trim() : raw.trim();
+    private String stripBearer(String token) {
+        if (token == null) {
+            return null;
+        }
+        String prefix = securityAuthProperties.getHeader();
+        return token.startsWith(prefix) ? token.substring(prefix.length()).trim() : token.trim();
     }
 
-    public boolean isIgnoredUrl(String requestUri) {
-        if (!StringUtils.hasText(requestUri)) return false;
+    private boolean isIgnoredUrl(String requestUri) {
+        if (!StringUtils.hasText(requestUri) || securityAuthProperties == null) {
+            return false;
+        }
 
-        String[] ignoreUrls = securityAuthProperties == null ? null : securityAuthProperties.getIgnore();
-        if (ignoreUrls == null || ignoreUrls.length == 0) return false;
+        String[] ignoreUrls = securityAuthProperties.getIgnore();
+        if (ignoreUrls == null || ignoreUrls.length == 0) {
+            return false;
+        }
 
         return Arrays.stream(ignoreUrls)
                 .filter(StringUtils::hasText)

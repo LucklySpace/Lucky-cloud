@@ -14,7 +14,7 @@ import java.util.Map;
  */
 public interface AuthService {
 
-    IMLoginResult login(IMLoginRequest imLoginRequest);
+    IMLoginResult login(IMLoginRequest imLoginRequest, HttpServletRequest request);
 
     UserVo info(String userId);
 
@@ -30,5 +30,5 @@ public interface AuthService {
 
     Map<String, String> getPublicKey();
 
-    String sendSms(String phone);
+    String sendSms(String phone, String clientIp, String deviceId);
 }

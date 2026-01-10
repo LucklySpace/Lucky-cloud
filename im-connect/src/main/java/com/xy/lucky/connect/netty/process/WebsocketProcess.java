@@ -1,10 +1,11 @@
 package com.xy.lucky.connect.netty.process;
 
-import cn.hutool.core.util.StrUtil;
+
 import com.xy.lucky.connect.utils.MessageUtils;
 import com.xy.lucky.core.enums.IMessageType;
 import com.xy.lucky.core.model.IMessageWrap;
 import com.xy.lucky.core.utils.JwtUtil;
+import com.xy.lucky.core.utils.StringUtils;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.util.concurrent.TimeUnit;
@@ -25,7 +26,7 @@ public interface WebsocketProcess {
     default String parseUsername(ChannelHandlerContext ctx, String token) {
 
         // 判断 token 是否为空
-        if (StrUtil.isEmpty(token)) {
+        if (!StringUtils.hasText(token)) {
             MessageUtils.sendError(ctx, IMessageType.ERROR.getCode(), "未登录");
             throw new IllegalArgumentException("未登录");
         }

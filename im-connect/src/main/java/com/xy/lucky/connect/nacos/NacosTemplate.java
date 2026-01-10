@@ -6,6 +6,7 @@ import com.alibaba.nacos.api.naming.NamingService;
 import com.alibaba.nacos.api.naming.pojo.Instance;
 import com.xy.lucky.connect.channel.UserChannelMap;
 import com.xy.lucky.connect.config.LogConstant;
+import com.xy.lucky.connect.config.properties.NacosProperties;
 import com.xy.lucky.connect.utils.IPAddressUtil;
 import com.xy.lucky.core.constants.NacosMetadataConstants;
 import com.xy.lucky.spring.annotations.core.Autowired;
@@ -43,21 +44,19 @@ public class NacosTemplate {
     private final AtomicReference<NamingService> namingServiceRef = new AtomicReference<>(null);
     // 管理已注册的实例：port -> Instance
     private final ConcurrentMap<Integer, Instance> instances = new ConcurrentHashMap<>();
-    // Nacos 服务地址配置（通过注入）
-    @Value("${nacos.config.address}")
-    private String serverAddr;
-    @Value("${nacos.config.name}")
-    private String serviceName;
-    @Value("${nacos.config.version:}")
-    private String version;
+
+    @Autowired
+    private NacosProperties nacosProperties;
+
     @Value("${brokerId:}")
     private String brokerId;
+
     @Value("${netty.config.protocol:proto}")
     protected String protocolType;
+
     @Value("${netty.config.path:/im}")
     protected String wsPath;
-    @Value("${nacos.config.group}")
-    private String groupName;
+
 
     // 上报任务句柄（用于停止）
     private volatile ScheduledFuture<?> reporterFuture;
@@ -98,14 +97,14 @@ public class NacosTemplate {
         Instance instance = new Instance();
         instance.setIp(ip);
         instance.setPort(port);
-        instance.setServiceName(serviceName);
+        instance.setServiceName(nacosProperties.getConfig().getName());
         instance.setEnabled(true);
         instance.setHealthy(true);
         instance.setWeight(1.0);
         // metadata
         Map<String, String> meta = instance.getMetadata();
         meta.put(NacosMetadataConstants.BROKER_ID, brokerId == null ? "" : brokerId);
-        meta.put(NacosMetadataConstants.VERSION, version == null ? "" : version);
+        meta.put(NacosMetadataConstants.VERSION, nacosProperties.getConfig().getVersion() == null ? "" : nacosProperties.getConfig().getVersion());
         meta.put(NacosMetadataConstants.WS_PATH, wsPath);
 
         // # TODO 待完善
@@ -147,14 +146,14 @@ public class NacosTemplate {
             Instance instance = new Instance();
             instance.setIp(ip);
             instance.setPort(port);
-            instance.setServiceName(serviceName);
+            instance.setServiceName(nacosProperties.getConfig().getName());
             instance.setEnabled(true);
             instance.setHealthy(true);
             instance.setWeight(1.0);
             // metadata
             Map<String, String> meta = instance.getMetadata();
             meta.put(NacosMetadataConstants.BROKER_ID, brokerId == null ? "" : brokerId);
-            meta.put(NacosMetadataConstants.VERSION, version == null ? "" : version);
+            meta.put(NacosMetadataConstants.VERSION, nacosProperties.getConfig().getVersion() == null ? "" : nacosProperties.getConfig().getVersion());
             meta.put(NacosMetadataConstants.WS_PATH, wsPath);
 
             // # TODO 待完善
@@ -175,7 +174,7 @@ public class NacosTemplate {
         }
 
         try {
-            ns.batchRegisterInstance(serviceName, groupName, instanceList);
+            ns.batchRegisterInstance(nacosProperties.getConfig().getName(), nacosProperties.getConfig().getGroup(), instanceList);
         } catch (NacosException e) {
             log.warn("批量注册Instance失败");
         }
@@ -202,8 +201,8 @@ public class NacosTemplate {
                     scheduleRetry(port, instance, RETRY_BASE_DELAY_MS);
                     return;
                 }
-                ns.registerInstance(serviceName, groupName, instance);
-                log.info("Service registered to Nacos successfully: {}:{} (port={})", instance.getIp(), serviceName, port);
+                ns.registerInstance(nacosProperties.getConfig().getName(), nacosProperties.getConfig().getGroup(), instance);
+                log.info("Service registered to Nacos successfully: {}:{} (port={})", instance.getIp(), nacosProperties.getConfig().getName(), port);
             } catch (NacosException e) {
                 log.warn("Nacos register failed (port={}), will retry: {}", port, e.getMessage());
                 scheduleRetry(port, instance, Math.min(RETRY_MAX_DELAY_MS, attemptDelayMs == 0 ? RETRY_BASE_DELAY_MS : Math.max(RETRY_BASE_DELAY_MS, attemptDelayMs * 2)));
@@ -246,7 +245,7 @@ public class NacosTemplate {
         try {
             NamingService ns = namingServiceRef.get();
             if (ns != null) {
-                ns.deregisterInstance(serviceName, inst.getIp(), inst.getPort());
+                ns.deregisterInstance(nacosProperties.getConfig().getName(), inst.getIp(), inst.getPort());
                 log.info("Deregistered instance from Nacos: {}:{}", inst.getIp(), inst.getPort());
             } else {
                 log.warn("NamingService not initialized when deregistering port={}", port);
@@ -274,7 +273,7 @@ public class NacosTemplate {
         try {
             NamingService ns = namingServiceRef.get();
             if (ns != null) {
-                ns.registerInstance(serviceName, inst); // registerInstance 会更新已有实例的 metadata
+                ns.registerInstance(nacosProperties.getConfig().getName(), inst); // registerInstance 会更新已有实例的 metadata
                 return true;
             } else {
                 log.debug("NamingService not ready, updateConnectionCount will be retried by reporter");
@@ -322,7 +321,7 @@ public class NacosTemplate {
                 if (inst == null) continue;
                 inst.getMetadata().put("connection", String.valueOf(total));
                 try {
-                    ns.registerInstance(serviceName, inst); // 注册会更新 metadata
+                    ns.registerInstance(nacosProperties.getConfig().getName(), inst); // 注册会更新 metadata
                 } catch (Exception regEx) {
                     log.debug("Failed to update connection metadata for port={} : {}", e.getKey(), regEx.getMessage());
                     // 不做立即重试，下一次 report 会再尝试
@@ -356,18 +355,18 @@ public class NacosTemplate {
         if (existing != null) return existing;
 
         // 校验 server 地址
-        if (serverAddr == null) {
-            log.error("Nacos server config is incomplete: serverAddr={}", serverAddr);
+        if (nacosProperties.getConfig().getAddress() == null) {
+            log.error("Nacos server config is incomplete: serverAddr={}", nacosProperties.getConfig().getAddress());
             return null;
         }
 
         try {
-            NamingService ns = NamingFactory.createNamingService(serverAddr);
+            NamingService ns = NamingFactory.createNamingService(nacosProperties.getConfig().getAddress());
             namingServiceRef.set(ns);
-            log.info("Initialized NamingService to Nacos at {}", serverAddr);
+            log.info("Initialized NamingService to Nacos at {}", nacosProperties.getConfig().getAddress());
             return ns;
         } catch (NacosException e) {
-            log.warn("Failed to create NamingService at {}: {}. Will retry later.", serverAddr, e.getMessage());
+            log.warn("Failed to create NamingService at {}: {}. Will retry later.", nacosProperties.getConfig().getAddress(), e.getMessage());
             // 在后台安排重试（避免阻塞调用线程）
             scheduler.schedule(() -> {
                 if (!shutdown) {
@@ -399,7 +398,7 @@ public class NacosTemplate {
                 NamingService ns = namingServiceRef.get();
                 if (ns != null) {
                     Instance inst = e.getValue();
-                    ns.deregisterInstance(serviceName, inst.getIp(), inst.getPort());
+                    ns.deregisterInstance(nacosProperties.getConfig().getName(), inst.getIp(), inst.getPort());
                     log.info("Deregistered instance on shutdown: {}:{}", inst.getIp(), inst.getPort());
                 }
             } catch (Exception ex) {
@@ -434,7 +433,7 @@ public class NacosTemplate {
     // ---------- 辅助方法 ----------
 
     private boolean validateConfig() {
-        if (serviceName == null || serviceName.isEmpty()) {
+        if (nacosProperties.getConfig().getName() == null || nacosProperties.getConfig().getName().isEmpty()) {
             log.error("nacos.config.name (serviceName) is not configured");
             return false;
         }

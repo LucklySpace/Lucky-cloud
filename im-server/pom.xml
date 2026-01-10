@@ -51,12 +51,6 @@
         <dependency>
             <groupId>com.xy.lucky</groupId>
             <artifactId>im-starter-common</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-web</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <dependency>
@@ -239,65 +233,33 @@
         </dependencies>
     </dependencyManagement>
 
+
+    <!-- pom.xml配置 -->
     <build>
         <plugins>
-            <!-- 原生编译支持 -->
             <plugin>
                 <groupId>org.graalvm.buildtools</groupId>
                 <artifactId>native-maven-plugin</artifactId>
-            </plugin>
-
-            <!-- Spring Boot Maven 插件 -->
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>0.9.19</version>
+                <extensions>true</extensions>
                 <configuration>
-                    <executable>true</executable>
-                    <layout>ZIP</layout>
-                    <!--这里是填写需要包含进去的jar，
-                         必须项目中的某些模块，会经常变动，那么就应该将其坐标写进来
-                         如果没有则nothing ，表示不打包依赖 -->
-                    <includes>
-                        <include>
-                            <groupId>nothing</groupId>
-                            <artifactId>nothing</artifactId>
-                        </include>
-                    </includes>
+                    <mainClass>com.xy.lucky.server.ImServerApplication</mainClass>
+                    <imageName>${project.artifactId}</imageName>
+                    <buildArgs>
+                        <buildArg>--verbose</buildArg>
+                        <buildArg>-H:+ReportExceptionStackTraces</buildArg>
+                    </buildArgs>
                 </configuration>
-            </plugin>
-
-            <!--拷贝依赖到jar外面的lib目录-->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>copy</id>
-                        <phase>package</phase>
                         <goals>
-                            <goal>copy-dependencies</goal>
+                            <goal>build</goal>
                         </goals>
-                        <configuration>
-                            <!--指定的依赖路径-->
-                            <outputDirectory>
-                                ${project.build.directory}/lib
-                            </outputDirectory>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
-
-            <!-- jar 索引  -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <configuration>
-                    <archive>
-                        <index>true</index>
-                    </archive>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
+
 
 </project>

@@ -7,8 +7,6 @@ server:
 spring: #springboot的配置
   banner:
     location: classpath:banner.txt
-  profiles:
-    include: undertow  # 引用其他的yml文件
   threads:
     virtual:
       enabled: true  # 开启虚拟线程

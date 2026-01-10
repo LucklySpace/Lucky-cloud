@@ -21,7 +21,7 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/knowledge")
+@RequestMapping({"/api/knowledge", "/api/{version}/knowledge"})
 @Tag(name = "knowledge", description = "知识库管理接口")
 public class KnowledgeController {
 

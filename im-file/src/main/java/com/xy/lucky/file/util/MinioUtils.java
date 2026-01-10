@@ -41,6 +41,7 @@ import java.util.stream.IntStream;
 @Component
 public class MinioUtils {
 
+    public static final String AVATAR_BUCKET_NAME = "avatar";
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd");
     private static final int PRESIGNED_EXPIRE_DAYS = 1;
     private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
@@ -327,7 +328,7 @@ public class MinioUtils {
         if (code == null) code = StorageBucketEnum.OTHER.getCode();
 
         // 特殊处理 avatar/thumbnail
-        if ("avatar".equals(code) || "thumbnail".equals(code)) {
+        if ("thumbnail".equals(code)) {
             String bucket = createBucket(year + "-" + code);
             setBucketPublic(bucket);
             return bucket;
@@ -342,6 +343,15 @@ public class MinioUtils {
         }
 
         return createBucket(year + "-" + code.toLowerCase());
+    }
+
+    /**
+     * 根据文件名选择或创建 bucket，名称规则：{year}-avatar
+     */
+    public String getOrCreateBucketByAvatar() {
+        String bucket = createBucket(LocalDate.now().format(DATE_FORMATTER) + "-" + AVATAR_BUCKET_NAME);
+        setBucketPublic(bucket);
+        return bucket;
     }
 
     public String getPresignedPartUploadUrl(String uploadId, String bucketName, String objectName, Integer partNumber) {

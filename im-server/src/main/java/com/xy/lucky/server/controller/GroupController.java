@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.Map;
 
@@ -47,7 +48,7 @@ public class GroupController {
     @Parameters({
             @Parameter(name = "groupInviteDto", description = "邀请信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public Mono<String> inviteGroup(@RequestBody GroupInviteDto groupInviteDto) {
+    public String inviteGroup(@RequestBody GroupInviteDto groupInviteDto) {
         return groupService.inviteGroup(groupInviteDto);
     }
 
@@ -61,8 +62,9 @@ public class GroupController {
     @Parameters({
             @Parameter(name = "groupDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public Mono<Map<?, ?>> getGroupMembers(@RequestBody GroupDto groupDto) {
-        return groupService.getGroupMembers(groupDto);
+    public Mono getGroupMembers(@RequestBody GroupDto groupDto) {
+        return Mono.fromCallable(() -> groupService.getGroupMembers(groupDto))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping("/approve")
@@ -76,7 +78,8 @@ public class GroupController {
             @Parameter(name = "groupInviteDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<String> approveGroupInvite(@RequestBody GroupInviteDto groupInviteDto) {
-        return groupService.approveGroupInvite(groupInviteDto);
+        return Mono.fromCallable(() -> groupService.approveGroupInvite(groupInviteDto))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping("/info")
@@ -90,7 +93,8 @@ public class GroupController {
             @Parameter(name = "groupDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<ImGroupPo> groupInfo(@RequestBody GroupDto groupDto) {
-        return groupService.groupInfo(groupDto);
+        return Mono.fromCallable(() -> groupService.groupInfo(groupDto))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping("/update")
@@ -104,7 +108,8 @@ public class GroupController {
             @Parameter(name = "groupDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<Boolean> updateGroupInfo(@RequestBody GroupDto groupDto) {
-        return groupService.updateGroupInfo(groupDto);
+        return Mono.fromCallable(() -> groupService.updateGroupInfo(groupDto))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping("/quit")
@@ -113,7 +118,9 @@ public class GroupController {
             @Parameter(name = "groupDto", description = "群信息", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<Void> quit(@RequestBody GroupDto groupDto) {
-        return groupService.quitGroup(groupDto);
+        return Mono.fromRunnable(() -> groupService.quitGroup(groupDto))
+                .subscribeOn(Schedulers.boundedElastic())
+                .then();
     }
 
     @PostMapping("/member/update")
@@ -122,6 +129,7 @@ public class GroupController {
             @Parameter(name = "groupMemberDto", description = "群成员信息", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<Boolean> updateGroupMember(@RequestBody GroupMemberDto groupMemberDto) {
-        return groupService.updateGroupMember(groupMemberDto);
+        return Mono.fromCallable(() -> groupService.updateGroupMember(groupMemberDto))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 }

@@ -17,6 +17,7 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -40,7 +41,8 @@ public class ChatController {
             @Parameter(name = "chatSetDto", description = "用户会话信息", required = true, in = ParameterIn.QUERY)
     })
     public Mono<List<ChatVo>> list(@RequestBody ChatDto chatDto) {
-        return chatService.list(chatDto);
+        return Mono.fromCallable(() -> chatService.list(chatDto))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
 
@@ -54,7 +56,9 @@ public class ChatController {
             @Parameter(name = "chatSetDto", description = "用户会话已读", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<Void> read(@RequestBody ChatDto chatDto) {
-        return chatService.read(chatDto);
+        return Mono.fromRunnable(() -> chatService.read(chatDto))
+                .subscribeOn(Schedulers.boundedElastic())
+                .then();
     }
 
     @GetMapping("/one")
@@ -69,7 +73,8 @@ public class ChatController {
             @Parameter(name = "toId", description = "对象", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<ChatVo> one(@RequestParam("ownerId") String ownerId, @RequestParam("toId") String toId) {
-        return chatService.one(ownerId, toId);
+        return Mono.fromCallable(() -> chatService.one(ownerId, toId))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping("/create")
@@ -83,7 +88,8 @@ public class ChatController {
             @Parameter(name = "ChatSetDto", description = "用户单向创建会话", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<ChatVo> create(@RequestBody ChatDto ChatDto) {
-        return chatService.create(ChatDto);
+        return Mono.fromCallable(() -> chatService.create(ChatDto))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
 }

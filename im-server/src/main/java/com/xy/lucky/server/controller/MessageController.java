@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.Map;
 
@@ -47,7 +48,8 @@ public class MessageController {
             @Parameter(name = "singleMessageDto", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<IMSingleMessage> sendSingleMessage(@Valid @RequestBody IMSingleMessage singleMessageDto) {
-        return messageService.sendSingleMessage(singleMessageDto);
+        return Mono.fromCallable(() -> messageService.sendSingleMessage(singleMessageDto))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping("/group")
@@ -61,7 +63,8 @@ public class MessageController {
             @Parameter(name = "groupMessageDto", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<IMGroupMessage> sendGroupMessage(@Valid @RequestBody IMGroupMessage groupMessageDto) {
-        return messageService.sendGroupMessage(groupMessageDto);
+        return Mono.fromCallable(() -> messageService.sendGroupMessage(groupMessageDto))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping("/media/video")
@@ -70,7 +73,9 @@ public class MessageController {
             @Parameter(name = "IMVideoMessageDto", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<Void> sendVideoMessage(@RequestBody IMVideoMessage videoMessageDto) {
-        return messageService.sendVideoMessage(videoMessageDto);
+        return Mono.fromRunnable(() -> messageService.sendVideoMessage(videoMessageDto))
+                .subscribeOn(Schedulers.boundedElastic())
+                .then();
     }
 
 
@@ -80,7 +85,9 @@ public class MessageController {
             @Parameter(name = "messageAction", description = "消息对象", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<Void> recallMessage(@RequestBody IMessageAction messageAction) {
-        return messageService.recallMessage(messageAction);
+        return Mono.fromRunnable(() -> messageService.recallMessage(messageAction))
+                .subscribeOn(Schedulers.boundedElastic())
+                .then();
     }
 
 
@@ -90,7 +97,8 @@ public class MessageController {
             @Parameter(name = "chatDto", description = "会话对象", required = true, in = ParameterIn.QUERY)
     })
     public Mono<Map<Integer, Object>> list(@RequestBody ChatDto chatDto) {
-        return messageService.list(chatDto);
+        return Mono.fromCallable(() -> messageService.list(chatDto))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 //
 //    @PostMapping("/singleCheck")

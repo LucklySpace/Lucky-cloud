@@ -14,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 @RestController
@@ -31,7 +32,8 @@ public class FileController {
             @Parameter(name = "file", description = "文件对象", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<FileVo> uploadFile(@RequestPart("file") FilePart file) {
-        return fileService.uploadFile(file);
+        return Mono.fromCallable(() -> fileService.uploadFile(file))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
 
@@ -39,6 +41,7 @@ public class FileController {
     @CrossOrigin(origins = "*") //重点
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Mono<FileVo> upload(@RequestPart("file") FilePart file) {
-        return fileService.uploadFile(file);
+        return Mono.fromCallable(() -> fileService.uploadFile(file))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 }

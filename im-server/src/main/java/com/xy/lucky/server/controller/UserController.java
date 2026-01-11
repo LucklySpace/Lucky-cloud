@@ -13,6 +13,7 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -35,7 +36,8 @@ public class UserController {
             @Parameter(name = "userDto", description = "用户信息", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<List<UserVo>> list(@RequestBody UserDto userDto) {
-        return userService.list(userDto);
+        return Mono.fromCallable(() -> userService.list(userDto))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @GetMapping("/one")
@@ -44,7 +46,8 @@ public class UserController {
             @Parameter(name = "userId", description = "用户ID", required = true, in = ParameterIn.QUERY)
     })
     public Mono<UserVo> one(@RequestParam("userId") String userId) {
-        return userService.one(userId);
+        return Mono.fromCallable(() -> userService.one(userId))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping("/create")
@@ -53,7 +56,8 @@ public class UserController {
             @Parameter(name = "userDto", description = "用户信息", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<UserVo> create(@RequestBody UserDto userDto) {
-        return userService.create(userDto);
+        return Mono.fromCallable(() -> userService.create(userDto))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping("/update")
@@ -62,7 +66,8 @@ public class UserController {
             @Parameter(name = "userDto", description = "用户信息", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<Boolean> update(@RequestBody UserDto userDto) {
-        return userService.update(userDto);
+        return Mono.fromCallable(() -> userService.update(userDto))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @DeleteMapping("/delete")
@@ -71,6 +76,7 @@ public class UserController {
             @Parameter(name = "userId", description = "用户ID", required = true, in = ParameterIn.QUERY)
     })
     public Mono<Boolean> delete(@RequestParam("userId") String userId) {
-        return userService.delete(userId);
+        return Mono.fromCallable(() -> userService.delete(userId))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 }

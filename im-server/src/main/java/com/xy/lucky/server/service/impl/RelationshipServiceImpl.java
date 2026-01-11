@@ -29,8 +29,6 @@ import org.apache.dubbo.config.annotation.DubboReference;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -98,132 +96,129 @@ public class RelationshipServiceImpl implements RelationshipService {
      * 获取联系人列表（加读锁防并发读写冲突）
      */
     @Override
-    public Mono<List<?>> contacts(String ownerId, Long sequence) {
-        return Mono.fromCallable(() -> withLockSync(LOCK_READ_CONTACTS_PREFIX + ownerId, "获取联系人 " + ownerId, () -> {
-                    long start = System.currentTimeMillis();
-                    log.debug("contacts() 开始 -> ownerId={}", ownerId);
+    public List<?> contacts(String ownerId, Long sequence) {
+        return withLockSync(LOCK_READ_CONTACTS_PREFIX + ownerId, "获取联系人 " + ownerId, () -> {
+            long start = System.currentTimeMillis();
+            log.debug("contacts() 开始 -> ownerId={}", ownerId);
 
-                    List<ImFriendshipPo> friendships = imFriendshipDubboService.queryList(ownerId, sequence);
-                    if (isEmpty(friendships)) {
-                        log.debug("没有好友关系 -> ownerId={}, 耗时 {} ms", ownerId, System.currentTimeMillis() - start);
-                        return Collections.emptyList();
-                    }
+            List<ImFriendshipPo> friendships = imFriendshipDubboService.queryList(ownerId, sequence);
+            if (isEmpty(friendships)) {
+                log.debug("没有好友关系 -> ownerId={}, 耗时 {} ms", ownerId, System.currentTimeMillis() - start);
+                return Collections.emptyList();
+            }
 
-                    log.info("查询到好友关系数量: {} -> ownerId={}", friendships.size(), ownerId);
+            log.info("查询到好友关系数量: {} -> ownerId={}", friendships.size(), ownerId);
 
-                    List<String> ids = friendships.stream()
-                            .map(ImFriendshipPo::getToId)
-                            .filter(Objects::nonNull)
-                            .distinct()
-                            .collect(Collectors.toList());
+            List<String> ids = friendships.stream()
+                    .map(ImFriendshipPo::getToId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.toList());
 
-                    if (ids.isEmpty()) {
-                        log.warn("所有 friendship 的 toId 都为 null -> ownerId={}, friendshipsCount={}", ownerId, friendships.size());
-                        return Collections.emptyList();
-                    }
+            if (ids.isEmpty()) {
+                log.warn("所有 friendship 的 toId 都为 null -> ownerId={}, friendshipsCount={}", ownerId, friendships.size());
+                return Collections.emptyList();
+            }
 
-                    log.debug("待查询用户 id 数量（去重后）: {}", ids.size());
+            log.debug("待查询用户 id 数量（去重后）: {}", ids.size());
 
-                    List<ImUserDataPo> userDataAll = batchQueryUsers(ids);
-                    if (userDataAll.isEmpty()) {
-                        log.warn("未从用户服务中查询到任何用户数据 -> ownerId={}, queriedIdsCount={}", ownerId, ids.size());
-                        return Collections.emptyList();
-                    }
-                    log.debug("从用户服务累计查询到用户数据条数: {}", userDataAll.size());
+            List<ImUserDataPo> userDataAll = batchQueryUsers(ids);
+            if (userDataAll.isEmpty()) {
+                log.warn("未从用户服务中查询到任何用户数据 -> ownerId={}, queriedIdsCount={}", ownerId, ids.size());
+                return Collections.emptyList();
+            }
+            log.debug("从用户服务累计查询到用户数据条数: {}", userDataAll.size());
 
-                    Map<String, ImUserDataPo> userMap = userDataAll.stream()
-                            .filter(Objects::nonNull)
-                            .collect(Collectors.toMap(
-                                    ImUserDataPo::getUserId,
-                                    Function.identity(),
-                                    (existing, replacement) -> existing
-                            ));
+            Map<String, ImUserDataPo> userMap = userDataAll.stream()
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toMap(
+                            ImUserDataPo::getUserId,
+                            Function.identity(),
+                            (existing, replacement) -> existing
+                    ));
 
-                    List<FriendVo> result = buildFriendVoList(friendships, userMap, ownerId);
+            List<FriendVo> result = buildFriendVoList(friendships, userMap, ownerId);
 
-                    log.info("contacts() 完成 -> ownerId={}, 返回 {} 条，耗时 {} ms",
-                            ownerId, result.size(), System.currentTimeMillis() - start);
-                    return result;
-                }))
-                .subscribeOn(Schedulers.boundedElastic());
+            log.info("contacts() 完成 -> ownerId={}, 返回 {} 条，耗时 {} ms",
+                    ownerId, result.size(), System.currentTimeMillis() - start);
+            return result;
+        });
     }
 
     /**
      * 获取群组列表（加读锁）
      */
     @Override
-    public Mono<List<?>> groups(String userId) {
-        return Mono.fromCallable(() -> withLockSync(LOCK_READ_GROUPS_PREFIX + userId, "获取群组列表 " + userId, () -> {
-                    long start = System.currentTimeMillis();
-                    log.debug("groups() 开始 -> userId={}", userId);
+    public List<?> groups(String userId) {
+        return withLockSync(LOCK_READ_GROUPS_PREFIX + userId, "获取群组列表 " + userId, () -> {
+            long start = System.currentTimeMillis();
+            log.debug("groups() 开始 -> userId={}", userId);
 
-                    List<ImGroupPo> groups = imGroupDubboService.queryList(userId);
-                    if (isEmpty(groups)) {
-                        log.debug("未查询到任何群组 -> userId={}, 耗时 {} ms", userId, System.currentTimeMillis() - start);
-                        return Collections.emptyList();
-                    }
-                    log.info("查询到群组数: {} -> userId={}", groups.size(), userId);
+            List<ImGroupPo> groups = imGroupDubboService.queryList(userId);
+            if (isEmpty(groups)) {
+                log.debug("未查询到任何群组 -> userId={}, 耗时 {} ms", userId, System.currentTimeMillis() - start);
+                return Collections.emptyList();
+            }
+            log.info("查询到群组数: {} -> userId={}", groups.size(), userId);
 
-                    List<GroupVo> result = groups.stream()
-                            .filter(Objects::nonNull)
-                            .map(GroupBeanMapper.INSTANCE::toGroupVo)
-                            .collect(Collectors.toList());
+            List<GroupVo> result = groups.stream()
+                    .filter(Objects::nonNull)
+                    .map(GroupBeanMapper.INSTANCE::toGroupVo)
+                    .collect(Collectors.toList());
 
-                    log.info("groups() 完成 -> userId={}, 返回 {} 条，耗时 {} ms",
-                            userId, result.size(), System.currentTimeMillis() - start);
-                    return result;
-                }))
-                .subscribeOn(Schedulers.boundedElastic());
+            log.info("groups() 完成 -> userId={}, 返回 {} 条，耗时 {} ms",
+                    userId, result.size(), System.currentTimeMillis() - start);
+            return result;
+        });
     }
 
     /**
      * 获取新好友请求（加读锁）
      */
     @Override
-    public Mono<List<?>> newFriends(String userId) {
-        return Mono.fromCallable(() -> withLockSync(LOCK_READ_NEW_FRIENDS_PREFIX + userId, "获取新好友请求 " + userId, () -> {
-                    long startMs = System.currentTimeMillis();
-                    log.debug("开始获取用户的新的好友请求 -> userId={}", userId);
+    public List<?> newFriends(String userId) {
+        return withLockSync(LOCK_READ_NEW_FRIENDS_PREFIX + userId, "获取新好友请求 " + userId, () -> {
+            long startMs = System.currentTimeMillis();
+            log.debug("开始获取用户的新的好友请求 -> userId={}", userId);
 
-                    List<ImFriendshipRequestPo> requests = imFriendshipRequestDubboService.queryList(userId);
-                    if (isEmpty(requests)) {
-                        log.debug("未查询到任何好友请求 -> userId={}，耗时 {} ms", userId, System.currentTimeMillis() - startMs);
-                        return Collections.emptyList();
-                    }
+            List<ImFriendshipRequestPo> requests = imFriendshipRequestDubboService.queryList(userId);
+            if (isEmpty(requests)) {
+                log.debug("未查询到任何好友请求 -> userId={}，耗时 {} ms", userId, System.currentTimeMillis() - startMs);
+                return Collections.emptyList();
+            }
 
-                    log.info("查询到 {} 条好友请求 -> userId={}", requests.size(), userId);
+            log.info("查询到 {} 条好友请求 -> userId={}", requests.size(), userId);
 
-                    Set<String> requesterIds = requests.stream()
-                            .map(ImFriendshipRequestPo::getFromId)
-                            .filter(Objects::nonNull)
-                            .collect(Collectors.toCollection(LinkedHashSet::new));
+            Set<String> requesterIds = requests.stream()
+                    .map(ImFriendshipRequestPo::getFromId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
 
-                    if (requesterIds.isEmpty()) {
-                        log.warn("所有好友请求的 fromId 都为空 -> userId={}, 请求数={}", userId, requests.size());
-                        return Collections.emptyList();
-                    }
+            if (requesterIds.isEmpty()) {
+                log.warn("所有好友请求的 fromId 都为空 -> userId={}, 请求数={}", userId, requests.size());
+                return Collections.emptyList();
+            }
 
-                    log.debug("待查询的唯一用户 ID 数量：{} -> ids={}", requesterIds.size(), requesterIds);
+            log.debug("待查询的唯一用户 ID 数量：{} -> ids={}", requesterIds.size(), requesterIds);
 
-                    List<ImUserDataPo> userDataList = imUserDataDubboService.queryListByIds(new ArrayList<>(requesterIds));
-                    if (userDataList == null) userDataList = Collections.emptyList();
-                    log.info("从用户服务查询到 {} 条用户数据", userDataList.size());
+            List<ImUserDataPo> userDataList = imUserDataDubboService.queryListByIds(new ArrayList<>(requesterIds));
+            if (userDataList == null) userDataList = Collections.emptyList();
+            log.info("从用户服务查询到 {} 条用户数据", userDataList.size());
 
-                    Map<String, ImUserDataPo> userDataMap = userDataList.stream()
-                            .filter(Objects::nonNull)
-                            .collect(Collectors.toMap(
-                                    ImUserDataPo::getUserId,
-                                    Function.identity(),
-                                    (existing, replacement) -> existing
-                            ));
+            Map<String, ImUserDataPo> userDataMap = userDataList.stream()
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toMap(
+                            ImUserDataPo::getUserId,
+                            Function.identity(),
+                            (existing, replacement) -> existing
+                    ));
 
-                    List<FriendshipRequestVo> result = buildFriendshipRequestVoList(requests, userDataMap);
+            List<FriendshipRequestVo> result = buildFriendshipRequestVoList(requests, userDataMap);
 
-                    log.info("newFriends 处理完成 -> userId={}, 返回 {} 条，耗时 {} ms",
-                            userId, result.size(), System.currentTimeMillis() - startMs);
-                    return result;
-                }))
-                .subscribeOn(Schedulers.boundedElastic());
+            log.info("newFriends 处理完成 -> userId={}, 返回 {} 条，耗时 {} ms",
+                    userId, result.size(), System.currentTimeMillis() - startMs);
+            return result;
+        });
     }
 
 
@@ -231,85 +226,81 @@ public class RelationshipServiceImpl implements RelationshipService {
      * 获取好友信息（读操作，无锁）
      */
     @Override
-    public Mono<FriendVo> getFriendInfo(FriendDto friendDto) {
-        return Mono.fromCallable(() -> {
-            long start = System.currentTimeMillis();
-            if (friendDto == null) {
-                throw new BusinessException("friendDto cannot be null");
-            }
+    public FriendVo getFriendInfo(FriendDto friendDto) {
+        long start = System.currentTimeMillis();
+        if (friendDto == null) {
+            throw new BusinessException("friendDto cannot be null");
+        }
 
-            String ownerId = friendDto.getFromId();
-            String toId = friendDto.getToId();
+        String ownerId = friendDto.getFromId();
+        String toId = friendDto.getToId();
 
-            FriendVo vo = new FriendVo();
+        FriendVo vo = new FriendVo();
 
-            ImUserDataPo userDataPo = imUserDataDubboService.queryOne(toId);
-            if (userDataPo == null) {
-                vo.setUserId(ownerId).setFriendId(toId).setFlag(IMStatus.NO.getCode());
-                log.warn("getFriendInfo: user not found for friendId={}", toId);
-                throw new BusinessException("user not found");
-            }
-            vo = UserDataBeanMapper.INSTANCE.toFriendVo(userDataPo);
-            vo.setUserId(ownerId)
-                    .setFriendId(userDataPo.getUserId());
+        ImUserDataPo userDataPo = imUserDataDubboService.queryOne(toId);
+        if (userDataPo == null) {
+            vo.setUserId(ownerId).setFriendId(toId).setFlag(IMStatus.NO.getCode());
+            log.warn("getFriendInfo: user not found for friendId={}", toId);
+            throw new BusinessException("user not found");
+        }
+        vo = UserDataBeanMapper.INSTANCE.toFriendVo(userDataPo);
+        vo.setUserId(ownerId)
+                .setFriendId(userDataPo.getUserId());
 
-            ImFriendshipPo friendshipPo = imFriendshipDubboService.queryOne(ownerId, toId);
-            if (Objects.nonNull(friendshipPo)) {
-                vo.setFlag(IMStatus.YES.getCode());
-                Optional.ofNullable(friendshipPo.getBlack()).ifPresent(vo::setBlack);
-                Optional.ofNullable(friendshipPo.getRemark()).ifPresent(vo::setAlias);
-                Optional.ofNullable(friendshipPo.getSequence()).ifPresent(vo::setSequence);
-            } else {
-                vo.setFlag(IMStatus.NO.getCode());
-            }
+        ImFriendshipPo friendshipPo = imFriendshipDubboService.queryOne(ownerId, toId);
+        if (Objects.nonNull(friendshipPo)) {
+            vo.setFlag(IMStatus.YES.getCode());
+            Optional.ofNullable(friendshipPo.getBlack()).ifPresent(vo::setBlack);
+            Optional.ofNullable(friendshipPo.getRemark()).ifPresent(vo::setAlias);
+            Optional.ofNullable(friendshipPo.getSequence()).ifPresent(vo::setSequence);
+        } else {
+            vo.setFlag(IMStatus.NO.getCode());
+        }
 
-            log.debug("getFriendInfo 完成 ownerId={} toId={} 耗时:{}ms", ownerId, toId, System.currentTimeMillis() - start);
-            return vo;
-        }).subscribeOn(Schedulers.boundedElastic());
+        log.debug("getFriendInfo 完成 ownerId={} toId={} 耗时:{}ms", ownerId, toId, System.currentTimeMillis() - start);
+        return vo;
     }
 
     /**
      * 获取好友信息列表（加读锁防并发）
      */
     @Override
-    public Mono<List<?>> getFriendInfoList(FriendDto friendDto) {
-        return Mono.fromCallable(() -> {
-            long start = System.currentTimeMillis();
-            if (friendDto == null) {
-                throw new IllegalArgumentException("friendDto cannot be null");
-            }
-            final String ownerId = friendDto.getFromId();
-            final String keyword = friendDto.getKeyword();
+    public List<?> getFriendInfoList(FriendDto friendDto) {
+        long start = System.currentTimeMillis();
+        if (friendDto == null) {
+            throw new IllegalArgumentException("friendDto cannot be null");
+        }
+        final String ownerId = friendDto.getFromId();
+        final String keyword = friendDto.getKeyword();
 
-            if (keyword == null || keyword.trim().isEmpty()) {
-                return Collections.emptyList();
-            }
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
 
-            List<ImUserDataPo> users = imUserDataDubboService.queryByKeyword(keyword.trim());
-            if (isEmpty(users)) {
-                return Collections.emptyList();
-            }
+        List<ImUserDataPo> users = imUserDataDubboService.queryByKeyword(keyword.trim());
+        if (isEmpty(users)) {
+            return Collections.emptyList();
+        }
 
-            List<ImUserDataPo> filteredUsers = users.stream()
-                    .filter(u -> u != null && !Objects.equals(u.getUserId(), ownerId))
-                    .toList();
-            if (filteredUsers.isEmpty()) {
-                return Collections.emptyList();
-            }
+        List<ImUserDataPo> filteredUsers = users.stream()
+                .filter(u -> u != null && !Objects.equals(u.getUserId(), ownerId))
+                .toList();
+        if (filteredUsers.isEmpty()) {
+            return Collections.emptyList();
+        }
 
-            List<String> userIds = filteredUsers.stream()
-                    .map(ImUserDataPo::getUserId)
-                    .filter(Objects::nonNull)
-                    .distinct()
-                    .collect(Collectors.toList());
+        List<String> userIds = filteredUsers.stream()
+                .map(ImUserDataPo::getUserId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
 
-            Map<String, ImFriendshipPo> relMap = getFriendshipMap(ownerId, userIds);
+        Map<String, ImFriendshipPo> relMap = getFriendshipMap(ownerId, userIds);
 
-            List<FriendVo> result = buildFriendVoLists(filteredUsers, relMap, ownerId);
+        List<FriendVo> result = buildFriendVoLists(filteredUsers, relMap, ownerId);
 
-            log.debug("getFriendInfoList 完成 ownerId={} keyword={} 返回{}条 耗时:{}ms", ownerId, keyword, result.size(), System.currentTimeMillis() - start);
-            return result;
-        }).subscribeOn(Schedulers.boundedElastic());
+        log.debug("getFriendInfoList 完成 ownerId={} keyword={} 返回{}条 耗时:{}ms", ownerId, keyword, result.size(), System.currentTimeMillis() - start);
+        return result;
     }
 
 
@@ -317,34 +308,31 @@ public class RelationshipServiceImpl implements RelationshipService {
      * 添加好友（加锁防重复）
      */
     @Override
-    public Mono<String> addFriend(FriendRequestDto friendRequestDto) {
-        return Mono.fromCallable(() -> {
-                    String lockKey = LOCK_ADD_FRIEND_LOCK_PREFIX + friendRequestDto.getFromId() + ":" + friendRequestDto.getToId();
-                    return withLockSync(lockKey, "添加好友 " + friendRequestDto.getFromId() + "->" + friendRequestDto.getToId(), () -> {
-                        long start = System.currentTimeMillis();
-                        log.debug("addFriend() 开始 -> fromId={}, toId={}", friendRequestDto.getFromId(), friendRequestDto.getToId());
+    public String addFriend(FriendRequestDto friendRequestDto) {
+        String lockKey = LOCK_ADD_FRIEND_LOCK_PREFIX + friendRequestDto.getFromId() + ":" + friendRequestDto.getToId();
+        return withLockSync(lockKey, "添加好友 " + friendRequestDto.getFromId() + "->" + friendRequestDto.getToId(), () -> {
+            long start = System.currentTimeMillis();
+            log.debug("addFriend() 开始 -> fromId={}, toId={}", friendRequestDto.getFromId(), friendRequestDto.getToId());
 
-                        ImFriendshipRequestPo existingRequests = imFriendshipRequestDubboService.queryOne(
-                                new ImFriendshipRequestPo()
-                                        .setFromId(friendRequestDto.getFromId())
-                                        .setToId(friendRequestDto.getToId()));
+            ImFriendshipRequestPo existingRequests = imFriendshipRequestDubboService.queryOne(
+                    new ImFriendshipRequestPo()
+                            .setFromId(friendRequestDto.getFromId())
+                            .setToId(friendRequestDto.getToId()));
 
-                        if (Objects.isNull(existingRequests)) {
-                            ImFriendshipRequestPo request = createFriendRequest(friendRequestDto);
-                            imFriendshipRequestDubboService.creat(request);
-                            log.info("好友请求已创建 -> id={}, fromId={}, toId={}", request.getId(), request.getFromId(), request.getToId());
-                        } else {
-                            updateExistingRequest(existingRequests, friendRequestDto);
-                            imFriendshipRequestDubboService.modify(existingRequests);
-                            log.debug("好友请求已存在，更新信息 -> fromId={}, toId={}", friendRequestDto.getFromId(), friendRequestDto.getToId());
-                        }
+            if (Objects.isNull(existingRequests)) {
+                ImFriendshipRequestPo request = createFriendRequest(friendRequestDto);
+                imFriendshipRequestDubboService.creat(request);
+                log.info("好友请求已创建 -> id={}, fromId={}, toId={}", request.getId(), request.getFromId(), request.getToId());
+            } else {
+                updateExistingRequest(existingRequests, friendRequestDto);
+                imFriendshipRequestDubboService.modify(existingRequests);
+                log.debug("好友请求已存在，更新信息 -> fromId={}, toId={}", friendRequestDto.getFromId(), friendRequestDto.getToId());
+            }
 
-                        log.info("addFriend() 完成 -> fromId={}, toId={}, 耗时 {} ms",
-                                friendRequestDto.getFromId(), friendRequestDto.getToId(), System.currentTimeMillis() - start);
-                        return "添加好友请求成功";
-                    });
-                })
-                .subscribeOn(Schedulers.boundedElastic());
+            log.info("addFriend() 完成 -> fromId={}, toId={}, 耗时 {} ms",
+                    friendRequestDto.getFromId(), friendRequestDto.getToId(), System.currentTimeMillis() - start);
+            return "添加好友请求成功";
+        });
     }
 
 
@@ -352,99 +340,86 @@ public class RelationshipServiceImpl implements RelationshipService {
      * 批准好友（加锁防并发审批）
      */
     @Override
-    public Mono<Void> approveFriend(FriendRequestDto friendshipRequestDto) {
-        return Mono.fromCallable(() -> {
-                    String lockKey = LOCK_APPROVE_FRIEND_LOCK_PREFIX + friendshipRequestDto.getId();
-                    withLockSync(lockKey, "审批好友请求 " + friendshipRequestDto.getId(), () -> {
-                        long start = System.currentTimeMillis();
-                        log.debug("approveFriend() 开始 -> requestId={}, approveStatus={}",
-                                friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus());
+    public void approveFriend(FriendRequestDto friendshipRequestDto) {
+        String lockKey = LOCK_APPROVE_FRIEND_LOCK_PREFIX + friendshipRequestDto.getId();
+        withLockSync(lockKey, "审批好友请求 " + friendshipRequestDto.getId(), () -> {
+            long start = System.currentTimeMillis();
+            log.debug("approveFriend() 开始 -> requestId={}, approveStatus={}",
+                    friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus());
 
-                        ImFriendshipRequestPo request = imFriendshipRequestDubboService.queryOne(
-                                new ImFriendshipRequestPo().setId(friendshipRequestDto.getId()));
+            ImFriendshipRequestPo request = imFriendshipRequestDubboService.queryOne(
+                    new ImFriendshipRequestPo().setId(friendshipRequestDto.getId()));
 
-                        if (request == null) {
-                            throw new GlobalException(ResultCode.NOT_FOUND, "好友请求不存在");
-                        }
+            if (request == null) {
+                throw new GlobalException(ResultCode.NOT_FOUND, "好友请求不存在");
+            }
 
-                        String fromId = request.getFromId();
-                        String toId = request.getToId();
+            String fromId = request.getFromId();
+            String toId = request.getToId();
 
-                        if (friendshipRequestDto.getApproveStatus() == 1) {
-                            createBidirectionalFriendship(fromId, toId, friendshipRequestDto.getRemark());
-                            log.info("已建立双向好友关系 -> {} <-> {}", fromId, toId);
-                        }
+            if (friendshipRequestDto.getApproveStatus() == 1) {
+                createBidirectionalFriendship(fromId, toId, friendshipRequestDto.getRemark());
+                log.info("已建立双向好友关系 -> {} <-> {}", fromId, toId);
+            }
 
-                        imFriendshipRequestDubboService.modifyStatus(friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus());
+            imFriendshipRequestDubboService.modifyStatus(friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus());
 
-                        log.info("approveFriend() 完成 -> requestId={}, approveStatus={}, 耗时 {} ms",
-                                friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus(), System.currentTimeMillis() - start);
-                        return null;
-                    });
-                    return 0;
-                })
-                .subscribeOn(Schedulers.boundedElastic())
-                .then();
+            log.info("approveFriend() 完成 -> requestId={}, approveStatus={}, 耗时 {} ms",
+                    friendshipRequestDto.getId(), friendshipRequestDto.getApproveStatus(), System.currentTimeMillis() - start);
+            return null;
+        });
     }
 
     /**
      * 删除好友（加锁防重复删除）
      */
     @Override
-    public Mono<Void> delFriend(FriendDto friendDto) {
-        return Mono.fromCallable(() -> {
-                    String lockKey = LOCK_DEL_FRIEND_LOCK_PREFIX + friendDto.getFromId() + ":" + friendDto.getToId();
-                    withLockSync(lockKey, "删除好友 " + friendDto.getFromId() + "->" + friendDto.getToId(), () -> {
-                        long start = System.currentTimeMillis();
-                        log.debug("delFriend() 开始 -> fromId={}, toId={}", friendDto.getFromId(), friendDto.getToId());
+    public void delFriend(FriendDto friendDto) {
+        String lockKey = LOCK_DEL_FRIEND_LOCK_PREFIX + friendDto.getFromId() + ":" + friendDto.getToId();
+        withLockSync(lockKey, "删除好友 " + friendDto.getFromId() + "->" + friendDto.getToId(), () -> {
+            long start = System.currentTimeMillis();
+            log.debug("delFriend() 开始 -> fromId={}, toId={}", friendDto.getFromId(), friendDto.getToId());
 
-                        String fromId = friendDto.getFromId();
-                        String toId = friendDto.getToId();
+            String fromId = friendDto.getFromId();
+            String toId = friendDto.getToId();
 
-                        imFriendshipDubboService.removeOne(fromId, toId);
-                        log.info("已删除好友关系 -> {} -> {}", fromId, toId);
+            imFriendshipDubboService.removeOne(fromId, toId);
+            log.info("已删除好友关系 -> {} -> {}", fromId, toId);
 
-                        log.info("delFriend() 完成 -> fromId={}, toId={}, 耗时 {} ms",
-                                friendDto.getFromId(), friendDto.getToId(), System.currentTimeMillis() - start);
-                        return null;
-                    });
-                    return 0;
-                })
-                .subscribeOn(Schedulers.boundedElastic())
-                .then();
+            log.info("delFriend() 完成 -> fromId={}, toId={}, 耗时 {} ms",
+                    friendDto.getFromId(), friendDto.getToId(), System.currentTimeMillis() - start);
+            return null;
+        });
     }
 
     /**
      * 修改好友备注（加锁防并发修改）
      */
     @Override
-    public Mono<Boolean> updateFriendRemark(FriendDto friendDto) {
-        return Mono.fromCallable(() -> {
-                    String lockKey = LOCK_UPDATE_FRIEND_REMARK_PREFIX + friendDto.getFromId() + ":" + friendDto.getToId();
-                    return withLockSync(lockKey, "更新好友备注 " + friendDto.getFromId() + "->" + friendDto.getToId(), () -> {
-                        long start = System.currentTimeMillis();
-                        log.debug("updateFriendRemark() 开始 -> ownerId={}, friendId={}", friendDto.getFromId(), friendDto.getToId());
+    public Boolean updateFriendRemark(FriendDto friendDto) {
+        String lockKey = LOCK_UPDATE_FRIEND_REMARK_PREFIX + friendDto.getFromId() + ":" + friendDto.getToId();
+        return withLockSync(lockKey, "更新好友备注 " + friendDto.getFromId() + "->" + friendDto.getToId(), () -> {
+            long start = System.currentTimeMillis();
+            log.debug("updateFriendRemark() 开始 -> ownerId={}, friendId={}", friendDto.getFromId(), friendDto.getToId());
 
-                        ImFriendshipPo friendshipPo = imFriendshipDubboService.queryOne(friendDto.getFromId(), friendDto.getToId());
-                        if (friendshipPo == null) {
-                            throw new GlobalException(ResultCode.NOT_FOUND, "好友关系不存在");
-                        }
+            ImFriendshipPo friendshipPo = imFriendshipDubboService.queryOne(friendDto.getFromId(), friendDto.getToId());
+            if (friendshipPo == null) {
+                throw new GlobalException(ResultCode.NOT_FOUND, "好友关系不存在");
+            }
 
-                        friendshipPo.setRemark(friendDto.getRemark());
-                        friendshipPo.setSequence(DateTimeUtils.getCurrentUTCTimestamp());
-                        boolean success = imFriendshipDubboService.modify(friendshipPo);
+            friendshipPo.setRemark(friendDto.getRemark());
+            friendshipPo.setSequence(DateTimeUtils.getCurrentUTCTimestamp());
+            boolean success = imFriendshipDubboService.modify(friendshipPo);
 
-                        if (success) {
-                            log.info("updateFriendRemark() 完成 -> ownerId={}, friendId={}, remark={}, 耗时 {} ms",
-                                    friendDto.getFromId(), friendDto.getToId(), friendDto.getRemark(), System.currentTimeMillis() - start);
-                            return true;
-                        }
-                        log.warn("updateFriendRemark() 失败 -> ownerId={}, friendId={}, remark={}, 耗时 {} ms",
-                                friendDto.getFromId(), friendDto.getToId(), friendDto.getRemark(), System.currentTimeMillis() - start);
-                        return false;
-                    });
-                })
-                .subscribeOn(Schedulers.boundedElastic());
+            if (success) {
+                log.info("updateFriendRemark() 完成 -> ownerId={}, friendId={}, remark={}, 耗时 {} ms",
+                        friendDto.getFromId(), friendDto.getToId(), friendDto.getRemark(), System.currentTimeMillis() - start);
+                return true;
+            }
+            log.warn("updateFriendRemark() 失败 -> ownerId={}, friendId={}, remark={}, 耗时 {} ms",
+                    friendDto.getFromId(), friendDto.getToId(), friendDto.getRemark(), System.currentTimeMillis() - start);
+            return false;
+        });
     }
 
     @FunctionalInterface

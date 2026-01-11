@@ -16,6 +16,8 @@ server:
       - application/json
 
 spring:
+  main:
+    lazy-initialization: false # database不能开启懒加载
   jackson:
     time-zone: UTC
   banner:

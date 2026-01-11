@@ -41,8 +41,6 @@ import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -116,79 +114,70 @@ public class GroupServiceImpl implements GroupService {
     }
 
     @Override
-    public Mono<Map<?, ?>> getGroupMembers(GroupDto groupDto) {
-        return Mono.fromCallable(() -> {
-            String groupId = groupDto.getGroupId();
-            List<ImGroupMemberPo> members = imGroupMemberDubboService.queryList(groupId);
-            if (CollectionUtils.isEmpty(members)) {
-                return Collections.emptyMap();
+    public Map<?, ?> getGroupMembers(GroupDto groupDto) {
+        String groupId = groupDto.getGroupId();
+        List<ImGroupMemberPo> members = imGroupMemberDubboService.queryList(groupId);
+        if (CollectionUtils.isEmpty(members)) {
+            return Collections.emptyMap();
+        }
+        List<String> memberIds = members.stream()
+                .map(ImGroupMemberPo::getMemberId)
+                .collect(Collectors.toList());
+        List<ImUserDataPo> users = imUserDataDubboService.queryListByIds(memberIds);
+        Map<String, ImUserDataPo> userMap = users.stream()
+                .collect(Collectors.toMap(ImUserDataPo::getUserId, Function.identity()));
+        Map<String, GroupMemberVo> voMap = new HashMap<>(members.size());
+        for (ImGroupMemberPo member : members) {
+            ImUserDataPo user = userMap.get(member.getMemberId());
+            if (user != null) {
+                GroupMemberVo vo = GroupMemberBeanMapper.INSTANCE.toGroupMemberVo(member);
+                vo.setName(user.getName());
+                vo.setAvatar(user.getAvatar());
+                vo.setGender(user.getGender());
+                vo.setLocation(user.getLocation());
+                vo.setSelfSignature(user.getSelfSignature());
+                vo.setBirthDay(user.getBirthday());
+                vo.setRole(member.getRole());
+                vo.setMute(member.getMute());
+                vo.setAlias(member.getAlias());
+                vo.setJoinType(member.getJoinType());
+                voMap.put(user.getUserId(), vo);
             }
-            List<String> memberIds = members.stream()
-                    .map(ImGroupMemberPo::getMemberId)
-                    .collect(Collectors.toList());
-            List<ImUserDataPo> users = imUserDataDubboService.queryListByIds(memberIds);
-            Map<String, ImUserDataPo> userMap = users.stream()
-                    .collect(Collectors.toMap(ImUserDataPo::getUserId, Function.identity()));
-            Map<String, GroupMemberVo> voMap = new HashMap<>(members.size());
-            for (ImGroupMemberPo member : members) {
-                ImUserDataPo user = userMap.get(member.getMemberId());
-                if (user != null) {
-                    GroupMemberVo vo = GroupMemberBeanMapper.INSTANCE.toGroupMemberVo(member);
-                    vo.setName(user.getName());
-                    vo.setAvatar(user.getAvatar());
-                    vo.setGender(user.getGender());
-                    vo.setLocation(user.getLocation());
-                    vo.setSelfSignature(user.getSelfSignature());
-                    vo.setBirthDay(user.getBirthday());
-                    vo.setRole(member.getRole());
-                    vo.setMute(member.getMute());
-                    vo.setAlias(member.getAlias());
-                    vo.setJoinType(member.getJoinType());
-                    voMap.put(user.getUserId(), vo);
-                }
-            }
-            return voMap;
-        }).subscribeOn(Schedulers.boundedElastic());
+        }
+        return voMap;
     }
 
     @Override
-    public Mono<Void> quitGroup(GroupDto groupDto) {
-        return Mono.fromCallable(() -> {
-                    String groupId = groupDto.getGroupId();
-                    String userId = groupDto.getUserId();
-                    withLockSync(QUIT_PREFIX + groupId + ":" + userId, "退出群聊 " + groupId, () -> {
-                        ImGroupMemberPo member = imGroupMemberDubboService.queryOne(groupId, userId);
-                        if (member == null) {
-                            throw new GroupException("用户不在群聊中");
-                        }
-                        if (IMemberStatus.GROUP_OWNER.getCode().equals(member.getRole())) {
-                            throw new GroupException("群主不可退出群聊");
-                        }
-                        boolean success = imGroupMemberDubboService.removeOne(member.getGroupMemberId());
-                        if (success) {
-                            log.info("退出群聊成功 groupId={} userId={}", groupId, userId);
-                        }
-                        return null;
-                    });
-                    return 0;
-                })
-                .subscribeOn(Schedulers.boundedElastic())
-                .then();
+    public void quitGroup(GroupDto groupDto) {
+        String groupId = groupDto.getGroupId();
+        String userId = groupDto.getUserId();
+        withLockSync(QUIT_PREFIX + groupId + ":" + userId, "退出群聊 " + groupId, () -> {
+            ImGroupMemberPo member = imGroupMemberDubboService.queryOne(groupId, userId);
+            if (member == null) {
+                throw new GroupException("用户不在群聊中");
+            }
+            if (IMemberStatus.GROUP_OWNER.getCode().equals(member.getRole())) {
+                throw new GroupException("群主不可退出群聊");
+            }
+            boolean success = imGroupMemberDubboService.removeOne(member.getGroupMemberId());
+            if (success) {
+                log.info("退出群聊成功 groupId={} userId={}", groupId, userId);
+            }
+            return null;
+        });
     }
 
-    public Mono<String> createGroup(@NonNull GroupInviteDto dto) {
-        return Mono.fromCallable(() -> createGroupSync(dto))
-                .subscribeOn(Schedulers.boundedElastic());
+    public String createGroup(@NonNull GroupInviteDto dto) {
+        return createGroupSync(dto);
     }
 
-    public Mono<String> groupInvite(@NonNull GroupInviteDto dto) {
-        return Mono.fromCallable(() -> groupInviteSync(dto))
-                .subscribeOn(Schedulers.boundedElastic());
+    public String groupInvite(@NonNull GroupInviteDto dto) {
+        return groupInviteSync(dto);
     }
 
     @Override
-    public Mono<String> inviteGroup(GroupInviteDto dto) {
-        return Mono.fromCallable(() -> {
+    public String inviteGroup(GroupInviteDto dto) {
+//        return Mono.fromCallable(() -> {
                     Integer type = dto.getType();
                     if (IMessageType.CREATE_GROUP.getCode().equals(type)) {
                         return createGroupSync(dto);
@@ -196,88 +185,80 @@ public class GroupServiceImpl implements GroupService {
                         return groupInviteSync(dto);
                     }
                     throw new GroupException("无效邀请类型");
-                })
-                .subscribeOn(Schedulers.boundedElastic());
+        //})
+//                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @Override
-    public Mono<String> approveGroupInvite(GroupInviteDto dto) {
-        return Mono.fromCallable(() -> approveGroupInviteSync(dto))
-                .subscribeOn(Schedulers.boundedElastic());
+    public String approveGroupInvite(GroupInviteDto dto) {
+        return approveGroupInviteSync(dto);
     }
 
     @Override
-    public Mono<ImGroupPo> groupInfo(@NonNull GroupDto groupDto) {
-        return Mono.fromCallable(() -> {
-                    String groupId = groupDto.getGroupId();
-                    RMapCache<String, Object> cache = redissonClient.getMapCache(GROUP_INFO_PREFIX);
-                    Object cached = cache.get(groupId);
-                    if (cached instanceof ImGroupPo cachedGroup) {
-                        return cachedGroup;
-                    }
+    public ImGroupPo groupInfo(@NonNull GroupDto groupDto) {
+        String groupId = groupDto.getGroupId();
+        RMapCache<String, Object> cache = redissonClient.getMapCache(GROUP_INFO_PREFIX);
+        Object cached = cache.get(groupId);
+        if (cached instanceof ImGroupPo cachedGroup) {
+            return cachedGroup;
+        }
 
-                    ImGroupPo group = imGroupDubboService.queryOne(groupId);
-                    if (group != null) {
-                        cache.fastPut(groupId, group, TTL_SECONDS, TimeUnit.SECONDS);
-                        return group;
-                    }
-                    return new ImGroupPo();
-                })
-                .subscribeOn(Schedulers.boundedElastic());
+        ImGroupPo group = imGroupDubboService.queryOne(groupId);
+        if (group != null) {
+            cache.fastPut(groupId, group, TTL_SECONDS, TimeUnit.SECONDS);
+            return group;
+        }
+        return new ImGroupPo();
     }
 
     @Override
-    public Mono<Boolean> updateGroupInfo(GroupDto groupDto) {
-        return Mono.fromCallable(() -> {
-            String groupId = groupDto.getGroupId();
-            ImGroupPo existingGroup = imGroupDubboService.queryOne(groupId);
-            if (existingGroup == null) {
-                throw new GroupException("群组不存在");
-            }
-            ImGroupPo updateGroup = new ImGroupPo().setGroupId(groupId);
-            if (StringUtils.hasText(groupDto.getGroupName())) {
-                updateGroup.setGroupName(groupDto.getGroupName());
-            }
-            if (StringUtils.hasText(groupDto.getAvatar())) {
-                updateGroup.setAvatar(groupDto.getAvatar());
-            }
-            if (StringUtils.hasText(groupDto.getIntroduction())) {
-                updateGroup.setIntroduction(groupDto.getIntroduction());
-            }
-            if (StringUtils.hasText(groupDto.getNotification())) {
-                updateGroup.setNotification(groupDto.getNotification());
-            }
-            boolean success = imGroupDubboService.modify(updateGroup);
-            if (!success) {
-                throw new GroupException("更新失败");
-            }
-            return true;
-        }).subscribeOn(Schedulers.boundedElastic());
+    public Boolean updateGroupInfo(GroupDto groupDto) {
+        String groupId = groupDto.getGroupId();
+        ImGroupPo existingGroup = imGroupDubboService.queryOne(groupId);
+        if (existingGroup == null) {
+            throw new GroupException("群组不存在");
+        }
+        ImGroupPo updateGroup = new ImGroupPo().setGroupId(groupId);
+        if (StringUtils.hasText(groupDto.getGroupName())) {
+            updateGroup.setGroupName(groupDto.getGroupName());
+        }
+        if (StringUtils.hasText(groupDto.getAvatar())) {
+            updateGroup.setAvatar(groupDto.getAvatar());
+        }
+        if (StringUtils.hasText(groupDto.getIntroduction())) {
+            updateGroup.setIntroduction(groupDto.getIntroduction());
+        }
+        if (StringUtils.hasText(groupDto.getNotification())) {
+            updateGroup.setNotification(groupDto.getNotification());
+        }
+        boolean success = imGroupDubboService.modify(updateGroup);
+        if (!success) {
+            throw new GroupException("更新失败");
+        }
+        return true;
     }
 
     @Override
-    public Mono<Boolean> updateGroupMember(GroupMemberDto groupMemberDto) {
-        return Mono.fromCallable(() -> {
-            String groupId = groupMemberDto.getGroupId();
-            String userId = groupMemberDto.getUserId();
-            ImGroupMemberPo member = imGroupMemberDubboService.queryOne(groupId, userId);
-            if (member == null) {
-                throw new GroupException("用户不在群聊中");
-            }
-            ImGroupMemberPo updateMember = new ImGroupMemberPo()
-                    .setGroupMemberId(member.getGroupMemberId());
-            if (StringUtils.hasText(groupMemberDto.getAlias())) {
-                updateMember.setAlias(groupMemberDto.getAlias());
-            }
-            if (StringUtils.hasText(groupMemberDto.getRemark())) {
-                updateMember.setRemark(groupMemberDto.getRemark());
-            }
-            boolean success = imGroupMemberDubboService.modify(updateMember);
-            if (!success) {
-                throw new GroupException("更新失败");
-            }
-            return true;
-        }).subscribeOn(Schedulers.boundedElastic());
+    public Boolean updateGroupMember(GroupMemberDto groupMemberDto) {
+        String groupId = groupMemberDto.getGroupId();
+        String userId = groupMemberDto.getUserId();
+        ImGroupMemberPo member = imGroupMemberDubboService.queryOne(groupId, userId);
+        if (member == null) {
+            throw new GroupException("用户不在群聊中");
+        }
+        ImGroupMemberPo updateMember = new ImGroupMemberPo()
+                .setGroupMemberId(member.getGroupMemberId());
+        if (StringUtils.hasText(groupMemberDto.getAlias())) {
+            updateMember.setAlias(groupMemberDto.getAlias());
+        }
+        if (StringUtils.hasText(groupMemberDto.getRemark())) {
+            updateMember.setRemark(groupMemberDto.getRemark());
+        }
+        boolean success = imGroupMemberDubboService.modify(updateMember);
+        if (!success) {
+            throw new GroupException("更新失败");
+        }
+        return true;
     }
 
     private ImGroupMemberPo buildMember(String groupId, String memberId, IMemberStatus role, long joinTime) {
@@ -309,7 +290,7 @@ public class GroupServiceImpl implements GroupService {
         }
 
         String groupId = imIdDubboService.generateId(IdGeneratorConstant.uuid, IdGeneratorConstant.group_message_id).getStringId();
-        String groupName = "默认群聊" + IdUtils.randomUUID();
+        String groupName = "默认群聊" + IdUtils.randomUUID().substring(0, 8);
         long now = DateTimeUtils.getCurrentUTCTimestamp();
         String ownerId = dto.getUserId();
         List<String> memberIds = dto.getMemberIds();
@@ -347,7 +328,7 @@ public class GroupServiceImpl implements GroupService {
         RMapCache<String, Object> groupCache = redissonClient.getMapCache(GROUP_INFO_PREFIX);
         groupCache.fastPut(groupId, group, TTL_SECONDS, TimeUnit.SECONDS);
 
-        messageService.sendGroupMessage(systemMessage(groupId, "已加入群聊,请尽情聊天吧")).block();
+        messageService.sendGroupMessage(systemMessage(groupId, "已加入群聊,请尽情聊天吧"));
         return groupId;
     }
 
@@ -472,7 +453,7 @@ public class GroupServiceImpl implements GroupService {
     private void generateGroupAvatarSync(String groupId) {
         List<String> avatars = imGroupMemberDubboService.queryNinePeopleAvatar(groupId);
         java.io.File headFile = groupHeadImageUtils.getCombinationOfhead(avatars, "defaultGroupHead" + groupId);
-        FileVo fileVo = fileService.uploadFile(headFile).block();
+        FileVo fileVo = fileService.uploadFile(headFile);
         if (fileVo == null || !StringUtils.hasText(fileVo.getPath())) {
             return;
         }
@@ -510,7 +491,7 @@ public class GroupServiceImpl implements GroupService {
                     .setInviterName(inviterInfo != null ? inviterInfo.getName() : inviterId)
                     .setApproveStatus(0);
             msg.setMessageBody(body);
-            messageService.sendSingleMessage(msg).block();
+            messageService.sendSingleMessage(msg);
         }
     }
 
@@ -519,7 +500,7 @@ public class GroupServiceImpl implements GroupService {
         ImUserDataPo inviter = imUserDataDubboService.queryOne(inviterId);
         String msg = "\"" + (inviter != null ? inviter.getName() : inviterId) + "\" 邀请 \"" +
                 (invitee != null ? invitee.getName() : userId) + "\" 加入群聊";
-        messageService.sendGroupMessage(systemMessage(groupId, msg)).block();
+        messageService.sendGroupMessage(systemMessage(groupId, msg));
     }
 
     private void sendJoinApprovalRequestToAdminsSync(String groupId, String inviterId, String inviteeId, ImGroupPo groupPo) {
@@ -556,48 +537,28 @@ public class GroupServiceImpl implements GroupService {
                     .setInviterName(inviterInfo != null ? inviterInfo.getName() : inviterId)
                     .setApproveStatus(0);
             msg.setMessageBody(body);
-            messageService.sendSingleMessage(msg).block();
+            messageService.sendSingleMessage(msg);
         }
     }
 
-    public Mono<Void> generateGroupAvatar(String groupId) {
-        return Mono.fromCallable(() -> {
-                    try {
-                        generateGroupAvatarSync(groupId);
-                    } catch (Exception e) {
-                        log.error("异步生成群头像失败 groupId={}", groupId, e);
-                    }
-                    return 0;
-                })
-                .subscribeOn(Schedulers.boundedElastic())
-                .then();
+    public void generateGroupAvatar(String groupId) {
+        try {
+            generateGroupAvatarSync(groupId);
+        } catch (Exception e) {
+            log.error("异步生成群头像失败 groupId={}", groupId, e);
+        }
     }
 
-    public Mono<Void> sendBatchInviteMessages(String groupId, String inviterId, List<String> invitees, ImGroupPo groupPo) {
-        return Mono.fromCallable(() -> {
-                    sendBatchInviteMessagesSync(groupId, inviterId, invitees, groupPo);
-                    return 0;
-                })
-                .subscribeOn(Schedulers.boundedElastic())
-                .then();
+    public void sendBatchInviteMessages(String groupId, String inviterId, List<String> invitees, ImGroupPo groupPo) {
+        sendBatchInviteMessagesSync(groupId, inviterId, invitees, groupPo);
     }
 
-    public Mono<Void> sendJoinNotification(String groupId, String inviterId, String userId) {
-        return Mono.fromCallable(() -> {
-                    sendJoinNotificationSync(groupId, inviterId, userId);
-                    return 0;
-                })
-                .subscribeOn(Schedulers.boundedElastic())
-                .then();
+    public void sendJoinNotification(String groupId, String inviterId, String userId) {
+        sendJoinNotificationSync(groupId, inviterId, userId);
     }
 
-    private Mono<Void> sendJoinApprovalRequestToAdmins(String groupId, String inviterId, String inviteeId, ImGroupPo groupPo) {
-        return Mono.fromCallable(() -> {
-                    sendJoinApprovalRequestToAdminsSync(groupId, inviterId, inviteeId, groupPo);
-                    return 0;
-                })
-                .subscribeOn(Schedulers.boundedElastic())
-                .then();
+    private void sendJoinApprovalRequestToAdmins(String groupId, String inviterId, String inviteeId, ImGroupPo groupPo) {
+        sendJoinApprovalRequestToAdminsSync(groupId, inviterId, inviteeId, groupPo);
     }
 
     @FunctionalInterface

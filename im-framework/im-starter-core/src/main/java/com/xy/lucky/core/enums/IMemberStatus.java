@@ -10,9 +10,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public enum IMemberStatus {
 
-    NORMAL(0, "普通成员"),
+    GROUP_OWNER(0, "群主"),
     ADMIN(1, "管理员"),
-    GROUP_OWNER(2, "群主"),
+    NORMAL(2, "普通成员"),
     MUTED(3, "禁言成员"),
     REMOVED(4, "已移除成员");
 

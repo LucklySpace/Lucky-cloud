@@ -6,10 +6,7 @@ import com.xy.lucky.core.enums.IMessageType;
 import com.xy.lucky.core.model.*;
 import com.xy.lucky.domain.dto.ChatDto;
 import com.xy.lucky.domain.mapper.MessageBeanMapper;
-import com.xy.lucky.domain.po.IMOutboxPo;
-import com.xy.lucky.domain.po.ImGroupMemberPo;
-import com.xy.lucky.domain.po.ImGroupMessagePo;
-import com.xy.lucky.domain.po.ImSingleMessagePo;
+import com.xy.lucky.domain.po.*;
 import com.xy.lucky.dubbo.web.api.database.chat.ImChatDubboService;
 import com.xy.lucky.dubbo.web.api.database.group.ImGroupMemberDubboService;
 import com.xy.lucky.dubbo.web.api.database.message.ImGroupMessageDubboService;
@@ -34,13 +31,8 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -133,166 +125,156 @@ public class MessageServiceImpl implements MessageService {
      * 发送单聊消息
      */
     @Override
-    public Mono<IMSingleMessage> sendSingleMessage(IMSingleMessage dto) {
-        return Mono.fromCallable(() -> {
-                    log.info("Send single message: {}", dto);
-                    final String lockKey = LOCK_KEY_SEND_SINGLE + dto.getFromId() + ":" + dto.getToId();
-                    return withLockSync(lockKey, "发送私聊消息 " + dto.getMessageTempId(), () -> {
-                        Long messageId = imIdDubboService.generateId(IdGeneratorConstant.snowflake, IdGeneratorConstant.private_message_id).getLongId();
-                        Long messageTime = DateTimeUtils.getCurrentUTCTimestamp();
+    public IMSingleMessage sendSingleMessage(IMSingleMessage dto) {
+        log.info("Send single message: {}", dto);
+        final String lockKey = LOCK_KEY_SEND_SINGLE + dto.getFromId() + ":" + dto.getToId();
+        return withLockSync(lockKey, "发送私聊消息 " + dto.getMessageTempId(), () -> {
+            Long messageId = imIdDubboService.generateId(IdGeneratorConstant.snowflake, IdGeneratorConstant.private_message_id).getLongId();
+            Long messageTime = DateTimeUtils.getCurrentUTCTimestamp();
 
-                        dto.setMessageId(String.valueOf(messageId))
-                                .setMessageTime(messageTime)
-                                .setReadStatus(IMessageReadStatus.UNREAD.getCode())
-                                .setSequence(messageTime);
+            dto.setMessageId(String.valueOf(messageId))
+                    .setMessageTime(messageTime)
+                    .setReadStatus(IMessageReadStatus.UNREAD.getCode())
+                    .setSequence(messageTime);
 
-                        ImSingleMessagePo messagePo = MessageBeanMapper.INSTANCE.toImSingleMessagePo(dto);
-                        messagePo.setDelFlag(IMStatus.YES.getCode());
+            ImSingleMessagePo messagePo = MessageBeanMapper.INSTANCE.toImSingleMessagePo(dto);
+            messagePo.setDelFlag(IMStatus.YES.getCode());
 
-                        asyncTaskExecutor.execute(() -> {
-                            try {
-                                createOutbox(String.valueOf(messageId), JacksonUtils.toJSONString(dto), MQ_EXCHANGE_NAME, "single.message." + dto.getToId(), messageTime);
-                                insertImSingleMessage(messagePo);
-                                createOrUpdateImChat(dto.getFromId(), dto.getToId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
-                                createOrUpdateImChat(dto.getToId(), dto.getFromId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
-                            } catch (Exception e) {
-                                log.error("Async DB tasks failed for messageId: {}", messageId, e);
-                            }
-                        });
+            asyncTaskExecutor.execute(() -> {
+                try {
+                    createOutbox(String.valueOf(messageId), JacksonUtils.toJSONString(dto), MQ_EXCHANGE_NAME, "single.message." + dto.getToId(), messageTime);
+                    insertImSingleMessage(messagePo);
+                    createOrUpdateImChat(dto.getFromId(), dto.getToId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
+                    createOrUpdateImChat(dto.getToId(), dto.getFromId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
+                } catch (Exception e) {
+                    log.error("Async DB tasks failed for messageId: {}", messageId, e);
+                }
+            });
 
-                        IMRegisterUser receiver = (IMRegisterUser) redisUtil.get(USER_CACHE_PREFIX + dto.getToId());
-                        if (receiver == null || receiver.getUserId() == null) {
-                            log.info("sendSingleMessage: 目标不在线 from={} to={}", dto.getFromId(), dto.getToId());
-                            return dto;
-                        }
+            IMRegisterUser receiver = (IMRegisterUser) redisUtil.get(USER_CACHE_PREFIX + dto.getToId());
+            if (receiver == null || receiver.getUserId() == null) {
+                log.info("sendSingleMessage: 目标不在线 from={} to={}", dto.getFromId(), dto.getToId());
+                return dto;
+            }
 
-                        IMessageWrap<Object> wrapper = new IMessageWrap<>()
-                                .setCode(IMessageType.SINGLE_MESSAGE.getCode())
-                                .setData(dto)
-                                .setIds(List.of(dto.getToId()));
-                        String payload = JacksonUtils.toJSONString(wrapper);
-                        publishToBrokerSync(MQ_EXCHANGE_NAME, receiver.getBrokerId(), payload, String.valueOf(messageId));
+            IMessageWrap<Object> wrapper = new IMessageWrap<>()
+                    .setCode(IMessageType.SINGLE_MESSAGE.getCode())
+                    .setData(dto)
+                    .setIds(List.of(dto.getToId()));
+            String payload = JacksonUtils.toJSONString(wrapper);
+            publishToBrokerSync(MQ_EXCHANGE_NAME, receiver.getBrokerId(), payload, String.valueOf(messageId));
 
-                        log.info("sendSingleMessage: 发送成功 from={} to={} messageId={}", dto.getFromId(), dto.getToId(), dto.getMessageId());
-                        return dto;
-                    });
-                })
-                .subscribeOn(Schedulers.boundedElastic());
+            log.info("sendSingleMessage: 发送成功 from={} to={} messageId={}", dto.getFromId(), dto.getToId(), dto.getMessageId());
+            return dto;
+        });
     }
 
     /**
      * 发送群聊消息
      */
     @Override
-    public Mono<IMGroupMessage> sendGroupMessage(IMGroupMessage dto) {
-        return Mono.fromCallable(() -> {
-                    log.info("Send group message: {}", dto);
-                    final String lockKey = LOCK_KEY_SEND_GROUP + dto.getGroupId() + ":" + dto.getFromId() + ":" + dto.getMessageTempId();
-                    return withLockSync(lockKey, "发送群聊消息 " + dto.getMessageTempId(), () -> {
-                        Long messageId = imIdDubboService.generateId(IdGeneratorConstant.snowflake, IdGeneratorConstant.group_message_id).getLongId();
-                        Long messageTime = DateTimeUtils.getCurrentUTCTimestamp();
+    public IMGroupMessage sendGroupMessage(IMGroupMessage dto) {
+        log.info("Send group message: {}", dto);
+        final String lockKey = LOCK_KEY_SEND_GROUP + dto.getGroupId() + ":" + dto.getFromId() + ":" + dto.getMessageTempId();
+        return withLockSync(lockKey, "发送群聊消息 " + dto.getMessageTempId(), () -> {
+            Long messageId = imIdDubboService.generateId(IdGeneratorConstant.snowflake, IdGeneratorConstant.group_message_id).getLongId();
+            Long messageTime = DateTimeUtils.getCurrentUTCTimestamp();
 
-                        dto.setMessageId(String.valueOf(messageId))
-                                .setMessageTime(messageTime)
-                                .setReadStatus(IMessageReadStatus.UNREAD.getCode())
-                                .setSequence(messageTime);
+            dto.setMessageId(String.valueOf(messageId))
+                    .setMessageTime(messageTime)
+                    .setReadStatus(IMessageReadStatus.UNREAD.getCode())
+                    .setSequence(messageTime);
 
-                        ImGroupMessagePo messagePo = MessageBeanMapper.INSTANCE.toImGroupMessagePo(dto);
-                        messagePo.setDelFlag(IMStatus.YES.getCode());
+            ImGroupMessagePo messagePo = MessageBeanMapper.INSTANCE.toImGroupMessagePo(dto);
+            messagePo.setDelFlag(IMStatus.YES.getCode());
 
-                        asyncTaskExecutor.execute(() -> {
-                            try {
-                                createOutbox(String.valueOf(messageId), JacksonUtils.toJSONString(dto), MQ_EXCHANGE_NAME, "group.message." + dto.getGroupId(), messageTime);
-                                insertImGroupMessage(messagePo);
-                            } catch (Exception e) {
-                                log.error("Async DB tasks failed for group messageId: {}", messageId, e);
-                            }
-                        });
+            List<ImGroupMemberPo> members = imGroupMemberDubboService.queryList(dto.getGroupId());
+            if (CollectionUtils.isEmpty(members)) {
+                log.warn("群聊没有任何成员 groupId={}", dto.getGroupId());
+                return dto;
+            }
 
-                        List<ImGroupMemberPo> userIds = imGroupMemberDubboService.queryList(dto.getGroupId());
-                        if (CollectionUtils.isEmpty(userIds)) {
-                            log.warn("群聊没有任何成员 groupId={}", dto.getGroupId());
-                            return dto;
-                        }
+            List<String> ids = members.stream().map(member -> USER_CACHE_PREFIX + member.getMemberId()).toList();
 
-                        userIds.remove(dto.getFromId());
-                        if (CollectionUtils.isEmpty(userIds)) {
-                            return dto;
-                        }
+            asyncTaskExecutor.execute(() -> {
+                try {
+                    createOutbox(String.valueOf(messageId), JacksonUtils.toJSONString(dto), MQ_EXCHANGE_NAME, "group.message." + dto.getGroupId(), messageTime);
+                    insertImGroupMessage(messagePo);
+                    setGroupReadStatus(String.valueOf(messageId), dto.getGroupId(), members);
+                    updateGroupChats(dto.getGroupId(), messageTime, members);
+                } catch (Exception e) {
+                    log.error("Async DB tasks failed for group messageId: {}", messageId, e);
+                }
+            });
 
-                        List<String> redisKeys = userIds.stream().map(id -> USER_CACHE_PREFIX + id).collect(Collectors.toList());
-                        List<Object> redisObjs = redisUtil.batchGet(redisKeys);
-                        if (CollectionUtils.isEmpty(redisObjs)) {
-                            return dto;
-                        }
+            List<Object> userObjs = redisUtil.batchGet(ids);
+            if (CollectionUtils.isEmpty(userObjs)) {
+                return dto;
+            }
 
-                        Map<String, List<String>> brokerUserMap = new HashMap<>();
-                        for (Object obj : redisObjs) {
-                            if (obj instanceof IMRegisterUser user && user.getBrokerId() != null && user.getUserId() != null) {
-                                brokerUserMap.computeIfAbsent(user.getBrokerId(), k -> new ArrayList<>()).add(user.getUserId());
-                            }
-                        }
+            Map<String, List<String>> brokerUserMap = new HashMap<>();
+            userObjs.stream().filter(Objects::nonNull).forEach(obj -> {
+                IMRegisterUser user = JacksonUtils.parseObject(obj, IMRegisterUser.class);
+                if (user == null || user.getUserId() == null) {
+                    log.info("sendGroupMessage: 群成员不在线 groupId={} userId={}", dto.getGroupId(), user != null ? user.getUserId() : null);
+                    return;
+                }
+                if (user.getUserId().equals(dto.getFromId())) {
+                    return;
+                }
+                brokerUserMap.computeIfAbsent(user.getBrokerId(), k -> new ArrayList<>()).add(user.getUserId());
+            });
 
-                        brokerUserMap.forEach((brokerId, users) -> {
-                            IMessageWrap<Object> wrapper = new IMessageWrap<>()
-                                    .setCode(IMessageType.GROUP_MESSAGE.getCode())
-                                    .setData(dto)
-                                    .setIds(users);
-                            publishToBrokerSync(MQ_EXCHANGE_NAME, brokerId, JacksonUtils.toJSONString(wrapper), String.valueOf(messageId));
-                        });
+            brokerUserMap.forEach((brokerId, users) -> {
+                IMessageWrap<Object> wrapper = new IMessageWrap<>()
+                        .setCode(IMessageType.GROUP_MESSAGE.getCode())
+                        .setData(dto)
+                        .setIds(users);
+                publishToBrokerSync(MQ_EXCHANGE_NAME, brokerId, JacksonUtils.toJSONString(wrapper), String.valueOf(messageId));
+            });
 
-                        log.info("sendGroupMessage: 发送成功 from={} groupId={} messageId={}", dto.getFromId(), dto.getGroupId(), dto.getMessageId());
-                        return dto;
-                    });
-                })
-                .subscribeOn(Schedulers.boundedElastic());
+            log.info("sendGroupMessage: 发送成功 from={} groupId={} messageId={}", dto.getFromId(), dto.getGroupId(), dto.getMessageId());
+            return dto;
+        });
     }
 
     @Override
-    public Mono<Void> sendVideoMessage(IMVideoMessage videoMessage) {
-        return Mono.fromCallable(() -> {
-                    log.info("Send video message: {}", videoMessage);
-                    String lockKey = LOCK_KEY_SEND_VIDEO + videoMessage.getFromId() + ":" + videoMessage.getToId();
-                    return withLockSync(lockKey, "发送视频消息", () -> {
-                        IMRegisterUser receiver = (IMRegisterUser) redisUtil.get(USER_CACHE_PREFIX + videoMessage.getToId());
-                        if (receiver == null || receiver.getUserId() == null) {
-                            log.info("sendVideoMessage: 目标不在线 from={} to={}", videoMessage.getFromId(), videoMessage.getToId());
-                            return null;
-                        }
-                        IMessageWrap<Object> wrapper = new IMessageWrap<>()
-                                .setCode(IMessageType.VIDEO_MESSAGE.getCode())
-                                .setData(videoMessage)
-                                .setIds(List.of(videoMessage.getToId()));
-                        publishToBrokerSync(MQ_EXCHANGE_NAME, receiver.getBrokerId(), JacksonUtils.toJSONString(wrapper), null);
-                        return null;
-                    });
-                })
-                .subscribeOn(Schedulers.boundedElastic())
-                .then();
+    public void sendVideoMessage(IMVideoMessage videoMessage) {
+        log.info("Send video message: {}", videoMessage);
+        String lockKey = LOCK_KEY_SEND_VIDEO + videoMessage.getFromId() + ":" + videoMessage.getToId();
+        withLockSync(lockKey, "发送视频消息", () -> {
+            IMRegisterUser receiver = (IMRegisterUser) redisUtil.get(USER_CACHE_PREFIX + videoMessage.getToId());
+            if (receiver == null || receiver.getUserId() == null) {
+                log.info("sendVideoMessage: 目标不在线 from={} to={}", videoMessage.getFromId(), videoMessage.getToId());
+                return null;
+            }
+            IMessageWrap<Object> wrapper = new IMessageWrap<>()
+                    .setCode(IMessageType.VIDEO_MESSAGE.getCode())
+                    .setData(videoMessage)
+                    .setIds(List.of(videoMessage.getToId()));
+            publishToBrokerSync(MQ_EXCHANGE_NAME, receiver.getBrokerId(), JacksonUtils.toJSONString(wrapper), null);
+            return null;
+        });
     }
 
     @Override
-    public Mono<Void> recallMessage(IMessageAction dto) {
-        return Mono.fromCallable(() -> {
-                    log.info("Recall message: {}", dto);
-                    final String lockKey = LOCK_KEY_RECALL_MESSAGE + dto.getMessageId();
-                    return withLockSync(lockKey, "撤回消息 " + dto.getMessageId(), () -> {
-                        ImSingleMessagePo singleMsg = imSingleMessageDubboService.queryOne(dto.getMessageId());
-                        if (singleMsg != null) {
-                            processRecallSingleSync(singleMsg, dto);
-                            return null;
-                        }
+    public void recallMessage(IMessageAction dto) {
+        log.info("Recall message: {}", dto);
+        final String lockKey = LOCK_KEY_RECALL_MESSAGE + dto.getMessageId();
+        withLockSync(lockKey, "撤回消息 " + dto.getMessageId(), () -> {
+            ImSingleMessagePo singleMsg = imSingleMessageDubboService.queryOne(dto.getMessageId());
+            if (singleMsg != null) {
+                processRecallSingleSync(singleMsg, dto);
+                return null;
+            }
 
-                        ImGroupMessagePo groupMsg = imGroupMessageDubboService.queryOne(dto.getMessageId());
-                        if (groupMsg != null) {
-                            processRecallGroupSync(groupMsg, dto);
-                            return null;
-                        }
-                        throw new MessageException("消息不存在");
-                    });
-                })
-                .subscribeOn(Schedulers.boundedElastic())
-                .then();
+            ImGroupMessagePo groupMsg = imGroupMessageDubboService.queryOne(dto.getMessageId());
+            if (groupMsg != null) {
+                processRecallGroupSync(groupMsg, dto);
+                return null;
+            }
+            throw new MessageException("消息不存在");
+        });
     }
 
     private void processRecallSingleSync(ImSingleMessagePo msg, IMessageAction dto) {
@@ -354,29 +336,26 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
-    public Mono<Map<Integer, Object>> list(ChatDto chatDto) {
-        return Mono.fromCallable(() -> {
+    public Map<Integer, Object> list(ChatDto chatDto) {
+        String userId = chatDto.getFromId();
+        Long sequence = chatDto.getSequence();
 
-            String userId = chatDto.getFromId();
-            Long sequence = chatDto.getSequence();
+        Map<Integer, Object> map = new HashMap<>();
 
-            Map<Integer, Object> map = new HashMap<>();
+        List<ImSingleMessagePo> singleMessages = imSingleMessageDubboService.queryList(userId, sequence);
+        if (!CollectionUtils.isEmpty(singleMessages)) {
+            map.put(IMessageType.SINGLE_MESSAGE.getCode(), singleMessages);
+        }
 
-            List<ImSingleMessagePo> singleMessages = imSingleMessageDubboService.queryList(userId, sequence);
-            if (!CollectionUtils.isEmpty(singleMessages)) {
-                map.put(IMessageType.SINGLE_MESSAGE.getCode(), singleMessages);
-            }
+        List<ImGroupMessagePo> groupMessages = imGroupMessageDubboService.queryList(userId, sequence);
+        if (!CollectionUtils.isEmpty(groupMessages)) {
+            map.put(IMessageType.GROUP_MESSAGE.getCode(), groupMessages);
+        }
 
-            List<ImGroupMessagePo> groupMessages = imGroupMessageDubboService.queryList(userId, sequence);
-            if (!CollectionUtils.isEmpty(groupMessages)) {
-                map.put(IMessageType.GROUP_MESSAGE.getCode(), groupMessages);
-            }
-
-            return map;
-        }).subscribeOn(Schedulers.boundedElastic());
+        return map;
     }
 
-    private <T> T withLockSync(String key, String logDesc, ThrowingSupplier<T> action) throws Exception {
+    private <T> T withLockSync(String key, String logDesc, ThrowingSupplier<T> action) {
         RLock lock = redissonClient.getLock(key);
         boolean acquired = false;
         try {
@@ -385,6 +364,13 @@ public class MessageServiceImpl implements MessageService {
                 throw new MessageException("无法获取锁: " + logDesc);
             }
             return action.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new MessageException("无法获取锁: " + logDesc);
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         } finally {
             if (acquired && lock.isHeldByCurrentThread()) {
                 try {
@@ -411,30 +397,100 @@ public class MessageServiceImpl implements MessageService {
 //        messageToOutboxIdMap.put(messageId, outboxId);
     }
 
+
+    /**
+     * 插入私聊消息
+     */
     private void insertImSingleMessage(ImSingleMessagePo po) {
-        imSingleMessageDubboService.creat(po); // Blocking
+        try {
+            if (!imSingleMessageDubboService.creat(po)) {
+                log.error("保存私聊消息失败 messageId={}", po.getMessageId());
+            }
+        } catch (Exception e) {
+            log.error("插入私聊消息异常 messageId={}", po.getMessageId(), e);
+        }
     }
 
+    /**
+     * 插入群聊消息
+     */
     private void insertImGroupMessage(ImGroupMessagePo po) {
-        imGroupMessageDubboService.creat(po); // Blocking
+        try {
+            if (!imGroupMessageDubboService.creat(po)) {
+                log.error("保存群消息失败 messageId={}", po.getMessageId());
+            }
+        } catch (Exception e) {
+            log.error("插入群消息异常 messageId={}", po.getMessageId(), e);
+        }
     }
 
-    private void createOrUpdateImChat(String userId, String friendId, Long time, Integer type) {
-        // imChatDubboService.createOrUpdate(userId, friendId, time, type);
+    /**
+     * 创建或更新会话（通用）
+     */
+    private void createOrUpdateImChat(String ownerId, String toId, Long messageTime, Integer chatType) {
+        try {
+            ImChatPo chatPo = imChatDubboService.queryOne(ownerId, toId, chatType);
+            if (Objects.isNull(chatPo)) {
+                chatPo = new ImChatPo()
+                        .setChatId(imIdDubboService.generateId(IdGeneratorConstant.uuid, IdGeneratorConstant.chat_id).getStringId())
+                        .setOwnerId(ownerId)
+                        .setToId(toId)
+                        .setSequence(messageTime)
+                        .setIsMute(IMStatus.NO.getCode())
+                        .setIsTop(IMStatus.NO.getCode())
+                        .setDelFlag(IMStatus.YES.getCode())
+                        .setChatType(chatType);
+                if (!imChatDubboService.creat(chatPo)) {
+                    log.error("保存会话失败 ownerId={} toId={}", ownerId, toId);
+                }
+            } else {
+                chatPo.setSequence(messageTime);
+                if (!imChatDubboService.modify(chatPo)) {
+                    log.error("更新会话失败 ownerId={} toId={}", ownerId, toId);
+                }
+            }
+        } catch (Exception e) {
+            log.error("创建/更新会话异常 ownerId={} toId={}", ownerId, toId, e);
+        }
     }
+
+    /**
+     * 更新群聊会话
+     */
+    private void updateGroupChats(String groupId, Long messageTime, List<ImGroupMemberPo> members) {
+        for (ImGroupMemberPo member : members) {
+            createOrUpdateImChat(member.getMemberId(), groupId, messageTime, IMessageType.GROUP_MESSAGE.getCode());
+        }
+    }
+
+    /**
+     * 设置群消息读状态
+     */
+    private void setGroupReadStatus(String messageId, String groupId, List<ImGroupMemberPo> members) {
+        try {
+            List<ImGroupMessageStatusPo> statusList = members.stream()
+                    .map(m -> new ImGroupMessageStatusPo().setMessageId(messageId).setGroupId(groupId)
+                            .setReadStatus(IMessageReadStatus.UNREAD.getCode()).setToId(m.getMemberId()))
+                    .collect(Collectors.toList());
+            imGroupMessageDubboService.creatBatch(statusList);
+        } catch (Exception e) {
+            log.error("设置群读状态失败 messageId={}", messageId, e);
+        }
+    }
+
 
     private void handleConfirm(String messageId, boolean success, String error) {
         if (messageId == null) return;
         Long outboxId = messageToOutboxIdMap.remove(messageId);
         if (outboxId != null) {
             // Update outbox status asynchronously
-            Mono.fromRunnable(() -> {
+            asyncTaskExecutor.execute(() -> {
                 try {
                     imOutboxDubboService.modifyStatus(outboxId, String.valueOf(success ? 1 : 2), 1); // 1: SENT, 2: FAILED
                 } catch (Exception e) {
                     log.error("Failed to update outbox status", e);
                 }
-            }).subscribeOn(Schedulers.boundedElastic()).subscribe();
+            });
         }
     }
 

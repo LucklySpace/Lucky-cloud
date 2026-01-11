@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -32,7 +33,8 @@ public class UserEmojiController {
             @Parameter(name = "userId", description = "用户ID", required = true, in = ParameterIn.QUERY)
     })
     public Mono<List<String>> list(@RequestParam("userId") @NotBlank @Size(max = 64) String userId) {
-        return userEmojiService.listPackIds(userId);
+        return Mono.fromCallable(() -> userEmojiService.listPackIds(userId))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping("/bind")
@@ -43,7 +45,8 @@ public class UserEmojiController {
     })
     public Mono<Boolean> bind(@RequestParam("userId") @NotBlank @Size(max = 64) String userId,
                               @RequestParam("packId") @NotBlank @Size(max = 64) String packId) {
-        return userEmojiService.bindPack(userId, packId);
+        return Mono.fromCallable(() -> userEmojiService.bindPack(userId, packId))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @DeleteMapping("/unbind")
@@ -54,7 +57,8 @@ public class UserEmojiController {
     })
     public Mono<Boolean> unbind(@RequestParam("userId") @NotBlank @Size(max = 64) String userId,
                                 @RequestParam("packId") @NotBlank @Size(max = 64) String packId) {
-        return userEmojiService.unbindPack(userId, packId);
+        return Mono.fromCallable(() -> userEmojiService.unbindPack(userId, packId))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 }
 

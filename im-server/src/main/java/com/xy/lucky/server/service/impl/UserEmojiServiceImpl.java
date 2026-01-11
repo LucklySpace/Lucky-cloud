@@ -5,8 +5,6 @@ import com.xy.lucky.server.service.UserEmojiService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -17,21 +15,19 @@ public class UserEmojiServiceImpl implements UserEmojiService {
     @DubboReference
     private ImUserEmojiPackDubboService dubboService;
 
-    public Mono<List<String>> listPackIds(String userId) {
-        return Mono.fromCallable(() -> dubboService.listPackIds(userId))
-                .subscribeOn(Schedulers.boundedElastic());
+    @Override
+    public List<String> listPackIds(String userId) {
+        return dubboService.listPackIds(userId);
     }
 
     @Override
-    public Mono<Boolean> bindPack(String userId, String packId) {
-        return Mono.fromCallable(() -> dubboService.bindPack(userId, packId))
-                .subscribeOn(Schedulers.boundedElastic());
+    public Boolean bindPack(String userId, String packId) {
+        return dubboService.bindPack(userId, packId);
     }
 
     @Override
-    public Mono<Boolean> unbindPack(String userId, String packId) {
-        return Mono.fromCallable(() -> dubboService.unbindPack(userId, packId))
-                .subscribeOn(Schedulers.boundedElastic());
+    public Boolean unbindPack(String userId, String packId) {
+        return dubboService.unbindPack(userId, packId);
     }
 }
 

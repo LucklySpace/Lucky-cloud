@@ -6,21 +6,19 @@ import com.xy.lucky.core.model.IMSingleMessage;
 import com.xy.lucky.core.model.IMVideoMessage;
 import com.xy.lucky.core.model.IMessageAction;
 import com.xy.lucky.domain.dto.ChatDto;
-import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
-
 public interface MessageService {
 
-    Mono<IMSingleMessage> sendSingleMessage(IMSingleMessage singleMessageDto);
+    IMSingleMessage sendSingleMessage(IMSingleMessage singleMessageDto);
 
-    Mono<IMGroupMessage> sendGroupMessage(IMGroupMessage groupMessageDto);
+    IMGroupMessage sendGroupMessage(IMGroupMessage groupMessageDto);
 
-    Mono<Void> sendVideoMessage(IMVideoMessage videoMessageDto);
+    void sendVideoMessage(IMVideoMessage videoMessageDto);
 
-    Mono<Void> recallMessage(IMessageAction dto);
+    void recallMessage(IMessageAction dto);
 
-    Mono<Map<Integer, Object>> list(ChatDto chatDto);
+    Map<Integer, Object> list(ChatDto chatDto);
 
 }

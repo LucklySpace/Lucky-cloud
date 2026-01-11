@@ -3,6 +3,7 @@ package com.xy.lucky.server.service.impl;
 import com.xy.lucky.domain.vo.FileVo;
 import com.xy.lucky.general.exception.BusinessException;
 import com.xy.lucky.general.response.domain.ResultCode;
+import com.xy.lucky.server.exception.FileException;
 import com.xy.lucky.server.service.FileService;
 import com.xy.lucky.server.utils.MinioUtil;
 import jakarta.annotation.PostConstruct;
@@ -14,9 +15,8 @@ import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -90,62 +90,60 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public Mono<FileVo> uploadFile(FilePart file) {
-        return Mono.fromCallable(() -> {
-                    DataBuffer dataBuffer = DataBufferUtils.join(file.content()).block();
-                    if (dataBuffer == null) {
-                        throw new BusinessException(ResultCode.FAIL);
-                    }
+    public FileVo uploadFile(FilePart file) {
+        DataBuffer dataBuffer = DataBufferUtils.join(file.content()).block();
+        if (dataBuffer == null) {
+            throw new BusinessException(ResultCode.FAIL);
+        }
 
-                    byte[] bytes = new byte[dataBuffer.readableByteCount()];
-                    dataBuffer.read(bytes);
-                    DataBufferUtils.release(dataBuffer);
+        byte[] bytes = new byte[dataBuffer.readableByteCount()];
+        dataBuffer.read(bytes);
+        DataBufferUtils.release(dataBuffer);
 
-                    long size = bytes.length;
-                    if (size > 1000 * 1024 * 1024) {
-                        throw new BusinessException(ResultCode.REQUEST_DATA_TOO_LARGE);
-                    }
+        long size = bytes.length;
+        if (size > 1000 * 1024 * 1024) {
+            throw new BusinessException(ResultCode.REQUEST_DATA_TOO_LARGE);
+        }
 
-                    String originalFilename = file.filename();
-                    String filePath = getFileType(originalFilename);
-                    MediaType contentType = file.headers().getContentType();
-                    String contentTypeStr = contentType != null ? contentType.toString() : "application/octet-stream";
+        String originalFilename = file.filename();
+        String filePath = getFileType(originalFilename);
+        MediaType contentType = file.headers().getContentType();
+        String contentTypeStr = contentType != null ? contentType.toString() : "application/octet-stream";
 
-                    try (InputStream inputStream = new java.io.ByteArrayInputStream(bytes)) {
-                        String fileName = minioUtil.upload(bucketName, filePath, originalFilename, inputStream, size, contentTypeStr);
-                        if (StringUtils.isEmpty(fileName)) {
-                            throw new BusinessException(ResultCode.FAIL);
-                        }
-                        return new FileVo()
-                                .setName(originalFilename)
-                                .setPath(generUrl(filePath, fileName));
-                    }
-                })
-                .subscribeOn(Schedulers.boundedElastic());
+        try (InputStream inputStream = new ByteArrayInputStream(bytes)) {
+            String fileName = minioUtil.upload(bucketName, filePath, originalFilename, inputStream, size, contentTypeStr);
+            if (StringUtils.isEmpty(fileName)) {
+                throw new BusinessException(ResultCode.FAIL);
+            }
+            return new FileVo()
+                    .setName(originalFilename)
+                    .setPath(generUrl(filePath, fileName));
+        } catch (Exception e) {
+            throw new FileException("文件上传失败");
+        }
     }
 
     @Override
-    public Mono<FileVo> uploadFile(File file) {
-        return Mono.fromCallable(() -> {
-                    if (file.length() > 1000 * 1024 * 1024) {
-                        throw new BusinessException(ResultCode.REQUEST_DATA_TOO_LARGE);
-                    }
+    public FileVo uploadFile(File file) {
+        if (file.length() > 1000 * 1024 * 1024) {
+            throw new BusinessException(ResultCode.REQUEST_DATA_TOO_LARGE);
+        }
 
-                    String originalFilename = file.getName();
-                    String filePath = getFileType(originalFilename);
-                    String contentType = "application/octet-stream";
+        String originalFilename = file.getName();
+        String filePath = getFileType(originalFilename);
+        String contentType = "application/octet-stream";
 
-                    try (InputStream inputStream = new FileInputStream(file)) {
-                        String fileName = minioUtil.upload(bucketName, filePath, originalFilename, inputStream, file.length(), contentType);
-                        if (StringUtils.isEmpty(fileName)) {
-                            throw new BusinessException(ResultCode.FAIL);
-                        }
-                        return new FileVo()
-                                .setName(originalFilename)
-                                .setPath(generUrl(filePath, fileName));
-                    }
-                })
-                .subscribeOn(Schedulers.boundedElastic());
+        try (InputStream inputStream = new FileInputStream(file)) {
+            String fileName = minioUtil.upload(bucketName, filePath, originalFilename, inputStream, file.length(), contentType);
+            if (StringUtils.isEmpty(fileName)) {
+                throw new BusinessException(ResultCode.FAIL);
+            }
+            return new FileVo()
+                    .setName(originalFilename)
+                    .setPath(generUrl(filePath, fileName));
+        } catch (Exception e) {
+            throw new FileException("文件上传失败");
+        }
     }
 
     public String generUrl(String fileType, String fileName) {

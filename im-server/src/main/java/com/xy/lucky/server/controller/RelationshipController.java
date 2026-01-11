@@ -14,8 +14,7 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
-
-import java.util.List;
+import reactor.core.scheduler.Schedulers;
 
 
 /**
@@ -36,8 +35,9 @@ public class RelationshipController {
             @Parameter(name = "userId", description = "请求对象", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "sequence", description = "时序", required = true, in = ParameterIn.QUERY)
     })
-    public Mono<List<?>> contacts(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
-        return relationshipService.contacts(userId, sequence);
+    public Mono contacts(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
+        return Mono.fromCallable(() -> relationshipService.contacts(userId, sequence))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @GetMapping("/groups/list")
@@ -46,8 +46,9 @@ public class RelationshipController {
             @Parameter(name = "userId", description = "请求对象", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "sequence", description = "时序", required = true, in = ParameterIn.QUERY)
     })
-    public Mono<List<?>> groups(@RequestParam("userId") String userId) {
-        return relationshipService.groups(userId);
+    public Mono groups(@RequestParam("userId") String userId) {
+        return Mono.fromCallable(() -> relationshipService.groups(userId))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
 
@@ -56,8 +57,9 @@ public class RelationshipController {
     @Parameters({
             @Parameter(name = "userId", description = "请求对象", required = true, in = ParameterIn.DEFAULT)
     })
-    public Mono<List<?>> newFriends(@RequestParam("userId") String userId) {
-        return relationshipService.newFriends(userId);
+    public Mono newFriends(@RequestParam("userId") String userId) {
+        return Mono.fromCallable(() -> relationshipService.newFriends(userId))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping("/getFriendInfo")
@@ -66,7 +68,8 @@ public class RelationshipController {
             @Parameter(name = "friendDto", description = "请求对象", required = true, in = ParameterIn.QUERY),
     })
     public Mono<FriendVo> getFriendInfo(@RequestBody FriendDto friendDto) {
-        return relationshipService.getFriendInfo(friendDto);
+        return Mono.fromCallable(() -> relationshipService.getFriendInfo(friendDto))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping("/search/getFriendInfoList")
@@ -74,8 +77,9 @@ public class RelationshipController {
     @Parameters({
             @Parameter(name = "friendDto", description = "请求对象", required = true, in = ParameterIn.QUERY),
     })
-    public Mono<List<?>> getFriendInfoList(@RequestBody FriendDto friendDto) {
-        return relationshipService.getFriendInfoList(friendDto);
+    public Mono getFriendInfoList(@RequestBody FriendDto friendDto) {
+        return Mono.fromCallable(() -> relationshipService.getFriendInfoList(friendDto))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
 
@@ -85,7 +89,8 @@ public class RelationshipController {
             @Parameter(name = "friendRequestDto", description = "添加好友", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<String> addFriend(@RequestBody FriendRequestDto friendRequestDto) {
-        return relationshipService.addFriend(friendRequestDto);
+        return Mono.fromCallable(() -> relationshipService.addFriend(friendRequestDto))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     @PostMapping("/approveContact")
@@ -94,7 +99,9 @@ public class RelationshipController {
             @Parameter(name = "friendshipRequestDto", description = "好友申请信息", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<Void> approveFriend(@RequestBody FriendRequestDto friendshipRequestDto) {
-        return relationshipService.approveFriend(friendshipRequestDto);
+        return Mono.fromRunnable(() -> relationshipService.approveFriend(friendshipRequestDto))
+                .subscribeOn(Schedulers.boundedElastic())
+                .then();
     }
 
     @PostMapping("/deleteFriendById")
@@ -103,7 +110,9 @@ public class RelationshipController {
             @Parameter(name = "friendDto", description = "好友信息", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<Void> delFriend(@RequestBody FriendDto friendDto) {
-        return relationshipService.delFriend(friendDto);
+        return Mono.fromRunnable(() -> relationshipService.delFriend(friendDto))
+                .subscribeOn(Schedulers.boundedElastic())
+                .then();
     }
 
 
@@ -113,7 +122,8 @@ public class RelationshipController {
             @Parameter(name = "friendDto", description = "好友信息", required = true, in = ParameterIn.DEFAULT)
     })
     public Mono<Boolean> updateFriendRemark(@RequestBody FriendDto friendDto) {
-        return relationshipService.updateFriendRemark(friendDto);
+        return Mono.fromCallable(() -> relationshipService.updateFriendRemark(friendDto))
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
 }

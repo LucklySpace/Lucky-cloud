@@ -40,10 +40,12 @@ dubbo: # dubbo
     name: dubbo
     port: -1
   consumer:
-    check: false
+    retries: 2
+    check: true
     timeout: 5000
   provider:
     delay: -1
+    timeout: 5000
   registry: # 注册到nacos
     address: nacos://@nacos.config.server-addr@
     register-mode: instance

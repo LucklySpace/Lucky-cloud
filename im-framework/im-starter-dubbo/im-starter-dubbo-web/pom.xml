@@ -11,7 +11,6 @@
     </parent>
 
     <artifactId>im-starter-dubbo-web</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <name>im-starter-dubbo-web</name>
     <description>im-starter-dubbo-web</description>
 

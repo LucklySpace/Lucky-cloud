@@ -1,6 +1,7 @@
 package com.xy.lucky.server.utils;
 
 import jakarta.annotation.Resource;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -13,9 +14,9 @@ public class RedisUtil {
     private RedisTemplate<String, Object> redisTemplate;
 
     /**
-     * Get value by key
-     * @param key key
-     * @return Mono of value
+     * 获取
+     *
+     * @param key   键
      */
     @SuppressWarnings("unchecked")
     public Object get(String key) {
@@ -23,11 +24,17 @@ public class RedisUtil {
     }
 
     /**
-     * Batch get values
-     * @param keys list of keys
-     * @return Mono of list of values
+     * 批量获取
+     *
+     * @param keys 键集合
+     * @return 值
      */
     public List<Object> batchGet(List<String> keys) {
-        return redisTemplate.opsForValue().multiGet(keys);
+        return redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+            for (String key : keys) {
+                connection.get(key.getBytes());
+            }
+            return null;
+        });
     }
 }

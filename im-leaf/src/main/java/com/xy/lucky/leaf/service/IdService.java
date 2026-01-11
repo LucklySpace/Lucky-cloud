@@ -6,13 +6,11 @@ import com.xy.lucky.leaf.core.IDGen;
 import com.xy.lucky.leaf.model.IdMetaInfo;
 import com.xy.lucky.leaf.repository.IdMetaInfoRepository;
 import com.xy.lucky.leaf.utils.StrategyContext;
-import jakarta.annotation.Resource;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.hibernate.service.spi.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
@@ -26,14 +24,11 @@ import java.util.List;
  * 提供多种ID生成策略的统一入口
  */
 @DubboService
-@Service
 public class IdService implements ImIdDubboService {
 
-    @Resource
-    private ReactiveRedisTemplate<String, Object> reactiveRedisTemplate;
+    private final ReactiveRedisTemplate<String, Object> reactiveRedisTemplate;
 
-    @Resource
-    private IdMetaInfoRepository idMetaInfoRepo;
+    private final IdMetaInfoRepository idMetaInfoRepo;
 
     /**
      * 策略上下文
@@ -53,7 +48,9 @@ public class IdService implements ImIdDubboService {
             @Autowired @Qualifier("snowflakeIDGen") IDGen snowflakeGen,
             @Autowired @Qualifier("redisSegmentIDGen") IDGen redisGen,
             @Autowired @Qualifier("uidIDGen") IDGen uidGen,
-            @Autowired @Qualifier("uuidIDGen") IDGen uuidGen) {
+            @Autowired @Qualifier("uuidIDGen") IDGen uuidGen, ReactiveRedisTemplate<String, Object> reactiveRedisTemplate, IdMetaInfoRepository idMetaInfoRepo) {
+        this.reactiveRedisTemplate = reactiveRedisTemplate;
+        this.idMetaInfoRepo = idMetaInfoRepo;
 
         this.strategyContext = new StrategyContext<>();
         // 在构造时统一注册
@@ -65,6 +62,7 @@ public class IdService implements ImIdDubboService {
 
         // 一次性调用 init，确保各实现完成内部准备
         this.strategyContext.getAllStrategies().values().forEach(IDGen::init);
+
     }
 
     /**

@@ -104,15 +104,15 @@ public abstract class IMessage implements Serializable {
     @JsonSubTypes({
             @JsonSubTypes.Type(value = SystemMessageBody.class, name = "0"), // 系统消息
             @JsonSubTypes.Type(value = TextMessageBody.class, name = "1"), // 文本消息
-            @JsonSubTypes.Type(value = ImageMessageBody.class, name = "2"),// 图片消息
-            @JsonSubTypes.Type(value = VideoMessageBody.class, name = "3"),// 视频消息
-            @JsonSubTypes.Type(value = AudioMessageBody.class, name = "4"),// 语音消息
-            @JsonSubTypes.Type(value = FileMessageBody.class, name = "5"),// 文件消息
-            @JsonSubTypes.Type(value = ImageMessageBody.class, name = "6"), // 表情消息
-            @JsonSubTypes.Type(value = LocationMessageBody.class, name = "7"),// 位置消息
-            @JsonSubTypes.Type(value = ComplexMessageBody.class, name = "8"),// 混合消息
+            @JsonSubTypes.Type(value = ImageMessageBody.class, name = "100"),// 图片消息
+            @JsonSubTypes.Type(value = VideoMessageBody.class, name = "110"),// 视频消息
+            @JsonSubTypes.Type(value = AudioMessageBody.class, name = "120"),// 语音消息
+            @JsonSubTypes.Type(value = ImageMessageBody.class, name = "130"), // 表情消息
+            @JsonSubTypes.Type(value = FileMessageBody.class, name = "200"),// 文件消息
+            @JsonSubTypes.Type(value = LocationMessageBody.class, name = "300"),// 位置消息
+            @JsonSubTypes.Type(value = ComplexMessageBody.class, name = "500"),// 混合消息
 
-            @JsonSubTypes.Type(value = GroupInviteMessageBody.class, name = "202"),// 群组邀请
+            @JsonSubTypes.Type(value = GroupInviteMessageBody.class, name = "400"),// 群组邀请
     })
     private MessageBody messageBody;
 

@@ -16,6 +16,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public enum IMStatus {
+
     YES(1, "yes"),
     NO(0, "no");
 

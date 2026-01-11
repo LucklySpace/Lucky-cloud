@@ -7,6 +7,7 @@ import lombok.experimental.Accessors;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * IM 用户注册/登录请求实体，用于客户端连接 Netty 时的身份认证。
@@ -37,23 +38,16 @@ public class IMRegisterUser implements Serializable {
     private String brokerId;
 
     /**
-     * 当前设备的唯一标识（可为 UUID、设备序列号等）
+     * 多平台设备信息
      */
-    private String deviceId;
+    private Map<String, Driver> drivers;
 
     /**
-     * 设备类型（如：android、ios、windows、mac、web 等）
+     * 设备信息  设备类型（如：android、ios、windows、mac、web 等）
+     * @param deviceId 当前设备的唯一标识（可为 UUID、设备序列号等）
+     * @param deviceType 设备类型（如：android、ios、windows、mac、web 等）
+     * @param clientVersion 客户端应用版本号（如：1.0.3）
      */
-    private String deviceType;
-
-    /**
-     * 客户端应用版本号（如：1.0.3）
-     */
-    private String clientVersion;
-
-    /**
-     * 客户端平台（可选字段，标识运行平台）
-     * 示例：Android、iOS、Windows、Linux、Web
-     */
-    private String platform;
+    public record Driver(String deviceId, String deviceType) {
+    }
 }

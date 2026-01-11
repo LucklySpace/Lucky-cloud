@@ -59,9 +59,9 @@ public class MessageHandler {
         try {
             // 直接 switch 分发（基于 code，避免 Map 查找）
             switch (msgType) {
-                case IMessageType.GROUP_MESSAGE -> groupMessageProcess.dispose(messageWrap);
-                case IMessageType.SINGLE_MESSAGE -> singleMessageProcess.dispose(messageWrap);
-                case IMessageType.VIDEO_MESSAGE -> videoMessageProcess.dispose(messageWrap);
+                case GROUP_MESSAGE -> groupMessageProcess.dispose(messageWrap);
+                case SINGLE_MESSAGE -> singleMessageProcess.dispose(messageWrap);
+                case VIDEO_MESSAGE -> videoMessageProcess.dispose(messageWrap);
                 default -> {
                     log.warn("没有为消息类型 {} 注册处理器，忽略该消息", msgType);
                     return;

@@ -2,29 +2,74 @@ package com.xy.lucky.core.enums;
 
 public enum IMessageType {
 
-    ERROR(-1, "信息异常"),
-    LOGIN_OVER(900, "登录过期"),
-    REFRESHTOKEN(999, "刷新token"),
-    LOGIN(1000, "登录"),
-    HEART_BEAT(1001, "心跳"),
-    FORCE_LOGOUT(1002, "强制下线"),
-    SINGLE_MESSAGE(1003, "私聊消息"),
-    GROUP_MESSAGE(1004, "群发消息"),
-    VIDEO_MESSAGE(1005, "视频通话"),
-    AUDIO_MESSAGE(1006, "音频通话"),
+    /*
+     * 协议 / 错误
+     */
+    ERROR(-1, "协议错误/非法数据包"),
+    SUCCESS(0, "成功响应"),
+
+    /*
+     * 鉴权 / 会话（0 - 99）
+     */
+    LOGIN(1, "登录"),
+    LOGOUT(2, "退出登录"),
+    LOGIN_EXPIRED(3, "登录过期"),
+    REFRESH_TOKEN(4, "刷新 Token"),
+    FORCE_LOGOUT(5, "强制下线"),
+    TOKEN_ERROR(6, "Token 错误"),
+    NOT_LOGIN(7, "未登录"),
+
+    /*
+     * 连接控制（100 - 199）
+     */
+    REGISTER(100, "用户注册"),
+    HEART_BEAT(101, "心跳"),
+    CONNECT(102, "建立连接"),
+    DISCONNECT(103, "断开连接"),
+    DUPLICATE_LOGIN(104, "异地登录"),
+    PRESENCE_UPDATE(105, "在线状态更新"),
+    LAST_SEEN_UPDATE(106, "最后在线时间更新"),
+    LOGIN_FAILED_TOO_MANY_TIMES(107, "登录失败次数过多"),
+    REGISTER_SUCCESS(120, "注册成功"),
+    REGISTER_FAILED(121, "注册失败"),
+    HEART_BEAT_SUCCESS(130, "心跳成功"),
+    HEART_BEAT_FAILED(131, "心跳失败"),
 
 
-    CREATE_GROUP(1500, "创建群聊"),
-    GROUP_INVITE(1501, "群聊邀请"),
+    /*
+     * 音视频（500 - 599）
+     */
+    RTC_START_AUDIO_CALL(500, "发起语音通话"),
+    RTC_START_VIDEO_CALL(501, "发起视频通话"),
+    RTC_ACCEPT(502, "接受通话"),
+    RTC_REJECT(503, "拒绝通话"),
+    RTC_CANCEL(504, "取消通话"),
+    RTC_FAILED(505, "通话失败"),
+    RTC_HANDUP(506, "挂断通话"),
+    RTC_CANDIDATE(507, "同步candidate"),
+    RTC_OFFLINE(508, "对方离线"),
 
+    /*
+     * 消息投递（1000 - 1999）
+     */
+    SINGLE_MESSAGE(1000, "单聊消息"),
+    GROUP_MESSAGE(1001, "群聊消息"),
+    VIDEO_MESSAGE(1002, "视频消息"),
+    SYSTEM_MESSAGE(1003, "系统消息"),
+    BROADCAST_MESSAGE(1004, "广播消息"),
 
-    ROBOT(2000, "机器人"),
-    PUBLIC(2001, "公众号"),
+    /*
+     * 会话对象 / 虚拟主体（2000 - 2999）
+     */
+    USER(2000, "普通用户"),
+    ROBOT(2001, "机器人"),
+    PUBLIC_ACCOUNT(2002, "公众号"),
+    CUSTOMER_SERVICE(2003, "客服"),
 
-    MESSAGE_ACTION(3000, "消息更新"),
-    RECALL_MESSAGE(3001, "撤回消息"),
-
-
+    /*
+     * 系统保留（9000+）
+     */
+    UNKNOWN(9999, "未知指令");
     ;
 
     private Integer code;

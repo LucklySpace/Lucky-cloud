@@ -3,10 +3,14 @@ package com.xy.lucky.connect.netty;
 
 import com.xy.lucky.connect.channel.UserChannelMap;
 import com.xy.lucky.connect.config.LogConstant;
+import com.xy.lucky.connect.config.properties.NettyProperties;
 import com.xy.lucky.connect.netty.process.impl.LoginProcess;
 import com.xy.lucky.connect.redis.RedisTemplate;
+import com.xy.lucky.connect.utils.JacksonUtil;
 import com.xy.lucky.core.constants.IMConstant;
+import com.xy.lucky.core.enums.IMDeviceType;
 import com.xy.lucky.core.enums.IMessageType;
+import com.xy.lucky.core.model.IMRegisterUser;
 import com.xy.lucky.core.model.IMessageWrap;
 import com.xy.lucky.core.utils.StringUtils;
 import com.xy.lucky.spring.annotations.core.Autowired;
@@ -25,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 public class IMLoginHandler extends SimpleChannelInboundHandler<IMessageWrap<Object>> {
 
     private static final AttributeKey<String> USER_ID_ATTR_KEY = AttributeKey.valueOf(IMConstant.IM_USER);
+    private static final AttributeKey<String> DEVICE_TYPE_ATTR_KEY = AttributeKey.valueOf(IMConstant.IM_DEVICE_TYPE);
 
     @Autowired
     private LoginProcess loginProcess;
@@ -35,10 +40,16 @@ public class IMLoginHandler extends SimpleChannelInboundHandler<IMessageWrap<Obj
     @Autowired
     private UserChannelMap userChannelMap;
 
+    @Autowired
+    private NettyProperties nettyProperties;
+
+    @com.xy.lucky.spring.annotations.core.Value("${brokerId}")
+    private String brokerId;
+
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, IMessageWrap<Object> message) {
         int code = message.getCode();
-        if (code == IMessageType.LOGIN.getCode()) {
+        if (code == IMessageType.REGISTER.getCode()) {
             try {
                 loginProcess.process(ctx, message);
             } catch (Throwable t) {
@@ -64,7 +75,15 @@ public class IMLoginHandler extends SimpleChannelInboundHandler<IMessageWrap<Obj
 
         userChannelMap.removeByChannel(ctx.channel());
 
-        asyncRedisDelete(IMConstant.USER_CACHE_PREFIX + userId);
+        String deviceType = ctx.channel().attr(DEVICE_TYPE_ATTR_KEY).get();
+        IMDeviceType dt = IMDeviceType.ofOrDefault(deviceType, IMDeviceType.WEB);
+        String slot = Boolean.TRUE.equals(nettyProperties.getMultiDeviceEnabled())
+                ? dt.getGroup().name().toLowerCase()
+                : "single";
+        asyncRedisDeleteRouteIfMatch(IMConstant.USER_ROUTE_PREFIX + userId + ":" + slot);
+        if (!hasAnyRoute(userId)) {
+            asyncRedisDelete(IMConstant.USER_CACHE_PREFIX + userId);
+        }
 
         try {
             Channel ch = ctx.channel();
@@ -94,5 +113,32 @@ public class IMLoginHandler extends SimpleChannelInboundHandler<IMessageWrap<Obj
     private void asyncRedisDelete(final String key) throws Exception {
         if (key == null || key.isEmpty()) return;
         redisTemplate.del(key);
+    }
+
+    private void asyncRedisDeleteRouteIfMatch(final String key) throws Exception {
+        if (!StringUtils.hasText(key)) return;
+        String json = redisTemplate.get(key);
+        if (!StringUtils.hasText(json)) {
+            redisTemplate.del(key);
+            return;
+        }
+        IMRegisterUser user = JacksonUtil.parseObject(json, IMRegisterUser.class);
+        if (user != null && StringUtils.hasText(user.getBrokerId())) {
+            if (!user.getBrokerId().equals(brokerId)) {
+                return;
+            }
+        } else if (StringUtils.hasText(brokerId) && !json.contains(brokerId)) {
+            return;
+        }
+        redisTemplate.del(key);
+    }
+
+    private boolean hasAnyRoute(String userId) {
+        if (!StringUtils.hasText(userId)) return false;
+        String prefix = IMConstant.USER_ROUTE_PREFIX + userId + ":";
+        return redisTemplate.exists(prefix + "single")
+                || redisTemplate.exists(prefix + "web")
+                || redisTemplate.exists(prefix + "mobile")
+                || redisTemplate.exists(prefix + "desktop");
     }
 }

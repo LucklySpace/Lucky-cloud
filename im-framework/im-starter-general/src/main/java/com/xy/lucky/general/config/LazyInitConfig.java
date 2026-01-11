@@ -1,4 +1,4 @@
-package com.xy.lucky.gateway.config;
+package com.xy.lucky.general.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;

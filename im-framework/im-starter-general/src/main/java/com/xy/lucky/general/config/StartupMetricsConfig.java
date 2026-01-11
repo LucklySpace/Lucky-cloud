@@ -1,8 +1,6 @@
-package com.xy.lucky.gateway.config;
+package com.xy.lucky.general.config;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.metrics.buffering.BufferingApplicationStartup;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -47,14 +45,6 @@ public class StartupMetricsConfig {
             log.info("  Heap Memory Max: {} MB", heapUsage.getMax() / 1024 / 1024);
             log.info("========================================");
 
-            // Register metrics
-            try {
-                MeterRegistry registry = event.getApplicationContext().getBean(MeterRegistry.class);
-                registry.gauge("application.startup.time.ms", startupTime);
-                registry.gauge("application.startup.memory.heap.used.mb", heapUsage.getUsed() / 1024.0 / 1024.0);
-            } catch (Exception e) {
-                log.warn("Failed to register startup metrics: {}", e.getMessage());
-            }
             hasPrintLog = true;
         }
     }

@@ -21,6 +21,8 @@ import java.util.regex.PatternSyntaxException;
 @Lazy(value = false)
 public class LazyInitConfig implements EnvironmentAware {
 
+    private static final String DEFAULT_LAZY_INIT_KEY = "default";
+
     private Environment environment;
 
     @Override
@@ -49,21 +51,41 @@ public class LazyInitConfig implements EnvironmentAware {
                     return;
                 }
 
-                // Read exclude patterns from Environment (Nacos config is already loaded)
-                List<String> commonPatterns = readListProperty("lazy-init.common.exclude-patterns");
-                List<String> servicePatterns = readListProperty("lazy-init.service.exclude-patterns");
+                // Get current application name
+                String applicationName = environment.getProperty("spring.application.name", "");
+
+                // Read exclude patterns from new configuration format
+                // im.lazy-init.config is a list, each item has 'id' and 'exclude-patterns'
+                List<String> defaultPatterns = new ArrayList<>();
+                List<String> servicePatterns = new ArrayList<>();
+
+                int configIndex = 0;
+                while (true) {
+                    String idKey = "im.lazy-init.config[" + configIndex + "].id";
+                    String configId = environment.getProperty(idKey);
+
+                    if (configId == null) {
+                        break;
+                    }
+
+                    // Read exclude-patterns for this config item
+                    String patternPrefix = "im.lazy-init.config[" + configIndex + "].exclude-patterns";
+                    List<String> patterns = readListProperty(patternPrefix);
+
+                    if (DEFAULT_LAZY_INIT_KEY.equals(configId)) {
+                        // This is the default/common configuration
+                        defaultPatterns.addAll(patterns);
+                    } else if (configId.equals(applicationName)) {
+                        // This is the service-specific configuration
+                        servicePatterns.addAll(patterns);
+                    }
+
+                    configIndex++;
+                }
 
                 // Merge and compile exclude patterns
-                List<String> allPatterns = mergePatterns(commonPatterns, servicePatterns);
-                if (allPatterns.isEmpty()) {
-                    log.warn("No exclude patterns configured, all beans will be lazily initialized");
-                }
-
+                List<String> allPatterns = mergePatterns(defaultPatterns, servicePatterns);
                 compilePatterns(allPatterns);
-
-                if (log.isDebugEnabled()) {
-                    log.debug("Exclude patterns: {}", allPatterns);
-                }
 
                 // Process all bean definitions
                 String[] beanNames = beanFactory.getBeanDefinitionNames();

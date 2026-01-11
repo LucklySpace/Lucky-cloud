@@ -309,7 +309,7 @@ public class GroupServiceImpl implements GroupService {
         }
 
         String groupId = imIdDubboService.generateId(IdGeneratorConstant.uuid, IdGeneratorConstant.group_message_id).getStringId();
-        String groupName = "默认群聊" + IdUtils.randomUUID();
+        String groupName = "默认群聊" + IdUtils.randomUUID().substring(0, 8);
         long now = DateTimeUtils.getCurrentUTCTimestamp();
         String ownerId = dto.getUserId();
         List<String> memberIds = dto.getMemberIds();
@@ -347,7 +347,7 @@ public class GroupServiceImpl implements GroupService {
         RMapCache<String, Object> groupCache = redissonClient.getMapCache(GROUP_INFO_PREFIX);
         groupCache.fastPut(groupId, group, TTL_SECONDS, TimeUnit.SECONDS);
 
-        messageService.sendGroupMessage(systemMessage(groupId, "已加入群聊,请尽情聊天吧")).block();
+        messageService.sendGroupMessage(systemMessage(groupId, "已加入群聊,请尽情聊天吧"));
         return groupId;
     }
 
@@ -510,7 +510,7 @@ public class GroupServiceImpl implements GroupService {
                     .setInviterName(inviterInfo != null ? inviterInfo.getName() : inviterId)
                     .setApproveStatus(0);
             msg.setMessageBody(body);
-            messageService.sendSingleMessage(msg).block();
+            messageService.sendSingleMessage(msg);
         }
     }
 
@@ -519,7 +519,7 @@ public class GroupServiceImpl implements GroupService {
         ImUserDataPo inviter = imUserDataDubboService.queryOne(inviterId);
         String msg = "\"" + (inviter != null ? inviter.getName() : inviterId) + "\" 邀请 \"" +
                 (invitee != null ? invitee.getName() : userId) + "\" 加入群聊";
-        messageService.sendGroupMessage(systemMessage(groupId, msg)).block();
+        messageService.sendGroupMessage(systemMessage(groupId, msg));
     }
 
     private void sendJoinApprovalRequestToAdminsSync(String groupId, String inviterId, String inviteeId, ImGroupPo groupPo) {
@@ -556,7 +556,7 @@ public class GroupServiceImpl implements GroupService {
                     .setInviterName(inviterInfo != null ? inviterInfo.getName() : inviterId)
                     .setApproveStatus(0);
             msg.setMessageBody(body);
-            messageService.sendSingleMessage(msg).block();
+            messageService.sendSingleMessage(msg);
         }
     }
 

@@ -49,7 +49,7 @@ public class ImGroupMemberService extends ServiceImpl<ImGroupMemberMapper, ImGro
 
     @Override
     public Boolean creatBatch(List<ImGroupMemberPo> groupMemberList) {
-        return !imGroupMemberMapper.insert(groupMemberList).isEmpty();
+        return super.saveBatch(groupMemberList);
     }
 
     @Override

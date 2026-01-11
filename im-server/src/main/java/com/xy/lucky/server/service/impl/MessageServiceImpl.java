@@ -6,10 +6,7 @@ import com.xy.lucky.core.enums.IMessageType;
 import com.xy.lucky.core.model.*;
 import com.xy.lucky.domain.dto.ChatDto;
 import com.xy.lucky.domain.mapper.MessageBeanMapper;
-import com.xy.lucky.domain.po.IMOutboxPo;
-import com.xy.lucky.domain.po.ImGroupMemberPo;
-import com.xy.lucky.domain.po.ImGroupMessagePo;
-import com.xy.lucky.domain.po.ImSingleMessagePo;
+import com.xy.lucky.domain.po.*;
 import com.xy.lucky.dubbo.web.api.database.chat.ImChatDubboService;
 import com.xy.lucky.dubbo.web.api.database.group.ImGroupMemberDubboService;
 import com.xy.lucky.dubbo.web.api.database.message.ImGroupMessageDubboService;
@@ -37,10 +34,7 @@ import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -200,38 +194,39 @@ public class MessageServiceImpl implements MessageService {
                         ImGroupMessagePo messagePo = MessageBeanMapper.INSTANCE.toImGroupMessagePo(dto);
                         messagePo.setDelFlag(IMStatus.YES.getCode());
 
+                        List<ImGroupMemberPo> members = imGroupMemberDubboService.queryList(dto.getGroupId());
+                        if (CollectionUtils.isEmpty(members)) {
+                            log.warn("群聊没有任何成员 groupId={}", dto.getGroupId());
+                            return dto;
+                        }
+
+                        if (CollectionUtils.isEmpty(members)) {
+                            return dto;
+                        }
+
+                        List<String> ids = members.stream().map(member -> USER_CACHE_PREFIX + member.getMemberId()).toList();
+
                         asyncTaskExecutor.execute(() -> {
                             try {
                                 createOutbox(String.valueOf(messageId), JacksonUtils.toJSONString(dto), MQ_EXCHANGE_NAME, "group.message." + dto.getGroupId(), messageTime);
                                 insertImGroupMessage(messagePo);
+                                setGroupReadStatus(String.valueOf(messageId), dto.getGroupId(), members);
+                                updateGroupChats(dto.getGroupId(), messageTime, members);
                             } catch (Exception e) {
                                 log.error("Async DB tasks failed for group messageId: {}", messageId, e);
                             }
                         });
 
-                        List<ImGroupMemberPo> userIds = imGroupMemberDubboService.queryList(dto.getGroupId());
-                        if (CollectionUtils.isEmpty(userIds)) {
-                            log.warn("群聊没有任何成员 groupId={}", dto.getGroupId());
-                            return dto;
-                        }
-
-                        userIds.remove(dto.getFromId());
-                        if (CollectionUtils.isEmpty(userIds)) {
-                            return dto;
-                        }
-
-                        List<String> redisKeys = userIds.stream().map(id -> USER_CACHE_PREFIX + id).collect(Collectors.toList());
-                        List<Object> redisObjs = redisUtil.batchGet(redisKeys);
-                        if (CollectionUtils.isEmpty(redisObjs)) {
+                        List<Object> userObjs = redisUtil.batchGet(ids);
+                        if (CollectionUtils.isEmpty(userObjs)) {
                             return dto;
                         }
 
                         Map<String, List<String>> brokerUserMap = new HashMap<>();
-                        for (Object obj : redisObjs) {
-                            if (obj instanceof IMRegisterUser user && user.getBrokerId() != null && user.getUserId() != null) {
-                                brokerUserMap.computeIfAbsent(user.getBrokerId(), k -> new ArrayList<>()).add(user.getUserId());
-                            }
-                        }
+                        userObjs.stream().filter(Objects::nonNull).forEach(obj -> {
+                            IMRegisterUser user = JacksonUtils.parseObject(obj, IMRegisterUser.class);
+                            brokerUserMap.computeIfAbsent(user.getBrokerId(), k -> new ArrayList<>()).add(user.getUserId());
+                        });
 
                         brokerUserMap.forEach((brokerId, users) -> {
                             IMessageWrap<Object> wrapper = new IMessageWrap<>()
@@ -244,8 +239,7 @@ public class MessageServiceImpl implements MessageService {
                         log.info("sendGroupMessage: 发送成功 from={} groupId={} messageId={}", dto.getFromId(), dto.getGroupId(), dto.getMessageId());
                         return dto;
                     });
-                })
-                .subscribeOn(Schedulers.boundedElastic());
+        }).subscribeOn(Schedulers.boundedElastic());
     }
 
     @Override
@@ -411,17 +405,87 @@ public class MessageServiceImpl implements MessageService {
 //        messageToOutboxIdMap.put(messageId, outboxId);
     }
 
+
+    /**
+     * 插入私聊消息
+     */
     private void insertImSingleMessage(ImSingleMessagePo po) {
-        imSingleMessageDubboService.creat(po); // Blocking
+        try {
+            if (!imSingleMessageDubboService.creat(po)) {
+                log.error("保存私聊消息失败 messageId={}", po.getMessageId());
+            }
+        } catch (Exception e) {
+            log.error("插入私聊消息异常 messageId={}", po.getMessageId(), e);
+        }
     }
 
+    /**
+     * 插入群聊消息
+     */
     private void insertImGroupMessage(ImGroupMessagePo po) {
-        imGroupMessageDubboService.creat(po); // Blocking
+        try {
+            if (!imGroupMessageDubboService.creat(po)) {
+                log.error("保存群消息失败 messageId={}", po.getMessageId());
+            }
+        } catch (Exception e) {
+            log.error("插入群消息异常 messageId={}", po.getMessageId(), e);
+        }
     }
 
-    private void createOrUpdateImChat(String userId, String friendId, Long time, Integer type) {
-        // imChatDubboService.createOrUpdate(userId, friendId, time, type);
+    /**
+     * 创建或更新会话（通用）
+     */
+    private void createOrUpdateImChat(String ownerId, String toId, Long messageTime, Integer chatType) {
+        try {
+            ImChatPo chatPo = imChatDubboService.queryOne(ownerId, toId, chatType);
+            if (Objects.isNull(chatPo)) {
+                chatPo = new ImChatPo()
+                        .setChatId(imIdDubboService.generateId(IdGeneratorConstant.uuid, IdGeneratorConstant.chat_id).getStringId())
+                        .setOwnerId(ownerId)
+                        .setToId(toId)
+                        .setSequence(messageTime)
+                        .setIsMute(IMStatus.NO.getCode())
+                        .setIsTop(IMStatus.NO.getCode())
+                        .setDelFlag(IMStatus.YES.getCode())
+                        .setChatType(chatType);
+                if (!imChatDubboService.creat(chatPo)) {
+                    log.error("保存会话失败 ownerId={} toId={}", ownerId, toId);
+                }
+            } else {
+                chatPo.setSequence(messageTime);
+                if (!imChatDubboService.modify(chatPo)) {
+                    log.error("更新会话失败 ownerId={} toId={}", ownerId, toId);
+                }
+            }
+        } catch (Exception e) {
+            log.error("创建/更新会话异常 ownerId={} toId={}", ownerId, toId, e);
+        }
     }
+
+    /**
+     * 更新群聊会话
+     */
+    private void updateGroupChats(String groupId, Long messageTime, List<ImGroupMemberPo> members) {
+        for (ImGroupMemberPo member : members) {
+            createOrUpdateImChat(member.getMemberId(), groupId, messageTime, IMessageType.GROUP_MESSAGE.getCode());
+        }
+    }
+
+    /**
+     * 设置群消息读状态
+     */
+    private void setGroupReadStatus(String messageId, String groupId, List<ImGroupMemberPo> members) {
+        try {
+            List<ImGroupMessageStatusPo> statusList = members.stream()
+                    .map(m -> new ImGroupMessageStatusPo().setMessageId(messageId).setGroupId(groupId)
+                            .setReadStatus(IMessageReadStatus.UNREAD.getCode()).setToId(m.getMemberId()))
+                    .collect(Collectors.toList());
+            imGroupMessageDubboService.creatBatch(statusList);
+        } catch (Exception e) {
+            log.error("设置群读状态失败 messageId={}", messageId, e);
+        }
+    }
+
 
     private void handleConfirm(String messageId, boolean success, String error) {
         if (messageId == null) return;

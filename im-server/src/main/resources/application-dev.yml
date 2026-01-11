@@ -17,8 +17,6 @@ server:
 
 spring:
   main:
-    main:
-      web-application-type: reactive
     lazy-initialization: true  # 启用懒加载以加快启动速度
   jackson:
     time-zone: UTC

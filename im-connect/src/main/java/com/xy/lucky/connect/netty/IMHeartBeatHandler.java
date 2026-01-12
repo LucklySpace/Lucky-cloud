@@ -97,7 +97,7 @@ public class IMHeartBeatHandler extends SimpleChannelInboundHandler<IMessageWrap
         String slot = Boolean.TRUE.equals(nettyProperties.getMultiDeviceEnabled())
                 ? dt.getGroup().name().toLowerCase()
                 : "single";
-        asyncRedisDeleteRouteIfMatch(IMConstant.USER_ROUTE_PREFIX + userId + ":" + slot);
+        asyncRedisDeleteRouteIfMatch(IMConstant.USER_CACHE_PREFIX + userId + ":" + slot);
         if (!hasAnyRoute(userId)) {
             asyncRedisDelete(IMConstant.USER_CACHE_PREFIX + userId);
         }
@@ -142,7 +142,7 @@ public class IMHeartBeatHandler extends SimpleChannelInboundHandler<IMessageWrap
 
     private boolean hasAnyRoute(String userId) {
         if (!StringUtils.hasText(userId)) return false;
-        String prefix = IMConstant.USER_ROUTE_PREFIX + userId + ":";
+        String prefix = IMConstant.USER_CACHE_PREFIX + userId + ":";
         return redisTemplate.exists(prefix + "single")
                 || redisTemplate.exists(prefix + "web")
                 || redisTemplate.exists(prefix + "mobile")

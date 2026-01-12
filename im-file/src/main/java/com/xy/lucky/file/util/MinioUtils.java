@@ -172,7 +172,7 @@ public class MinioUtils {
     public String createBucket(String bucketName) {
         try {
             if (bucketExists(bucketName)) return bucketName;
-            pearlMinioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
+            pearlMinioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build()).get();
             return bucketName;
         } catch (Exception e) {
             log.error("创建桶失败 bucket={}", bucketName, e);
@@ -349,7 +349,8 @@ public class MinioUtils {
      * 根据文件名选择或创建 bucket，名称规则：{year}-avatar
      */
     public String getOrCreateBucketByAvatar() {
-        String bucket = createBucket(LocalDate.now().format(DATE_FORMATTER) + "-" + AVATAR_BUCKET_NAME);
+        String year = String.valueOf(LocalDate.now().getYear());
+        String bucket = createBucket(year + "-" + AVATAR_BUCKET_NAME);
         setBucketPublic(bucket);
         return bucket;
     }

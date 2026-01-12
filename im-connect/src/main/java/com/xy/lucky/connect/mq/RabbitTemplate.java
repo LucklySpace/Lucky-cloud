@@ -53,6 +53,25 @@ public class RabbitTemplate {
     @Autowired
     private ApplicationEventBus applicationEventBus;
 
+    public void sendToBroker(String routingKey, String message) {
+        if (!StringUtils.hasText(routingKey) || !StringUtils.hasText(message)) {
+            return;
+        }
+        if (publishChannel == null) {
+            log.warn("publishChannel is null, cannot publish message");
+            return;
+        }
+        String exchangeName = rabbitProperties.getExchange();
+        byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
+        synchronized (publishChannel) {
+            try {
+                publishChannel.basicPublish(exchangeName, routingKey, null, bytes);
+            } catch (IOException e) {
+                log.error("Failed to publish message to broker={}, exchange={}", routingKey, exchangeName, e);
+            }
+        }
+    }
+
 
     /**
      * 初始化方法：启动容器后自动调用

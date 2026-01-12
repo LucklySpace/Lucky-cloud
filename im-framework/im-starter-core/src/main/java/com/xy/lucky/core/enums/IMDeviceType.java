@@ -1,5 +1,7 @@
 package com.xy.lucky.core.enums;
 
+import lombok.Getter;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -14,6 +16,7 @@ import java.util.Objects;
  *   <li>WEB：Web 端（WEB） — 单独一组</li>
  * </ul>
  */
+@Getter
 public enum IMDeviceType {
 
     ANDROID("android", DeviceGroup.MOBILE),
@@ -80,6 +83,12 @@ public enum IMDeviceType {
 
     public DeviceGroup getGroup() {
         return group;
+    }
+
+    public static DeviceGroup getDeviceGroupOrDefault(String device, DeviceGroup defaultValue) {
+        Objects.requireNonNull(defaultValue, "defaultValue");
+        IMDeviceType result = getByDevice(device);
+        return result != null ? result.getGroup() : defaultValue;
     }
 
     /**

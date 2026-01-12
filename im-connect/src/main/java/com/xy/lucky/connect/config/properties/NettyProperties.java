@@ -40,9 +40,14 @@ public class NettyProperties {
     private String protocol = "proto";
 
     /**
-     * 心跳超时时间（毫秒）
+     * 心跳间隔时间（毫秒）
      */
     private int heartBeatTime = 30000;
+
+    /**
+     * 超时时间（毫秒）
+     */
+    private int timeout = 5000;
 
     /**
      * Boss 线程池大小
@@ -53,6 +58,11 @@ public class NettyProperties {
      * Worker 线程池大小
      */
     private int workThreadSize = 16;
+
+    /**
+     * 是否启用多设备登录
+     */
+    private Boolean multiDeviceEnabled = false;
 
     /**
      * TCP 配置

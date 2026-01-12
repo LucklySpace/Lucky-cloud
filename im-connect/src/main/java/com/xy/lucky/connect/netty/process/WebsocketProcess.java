@@ -27,13 +27,13 @@ public interface WebsocketProcess {
 
         // 判断 token 是否为空
         if (!StringUtils.hasText(token)) {
-            MessageUtils.sendError(ctx, IMessageType.ERROR.getCode(), "未登录");
+            MessageUtils.sendError(ctx, IMessageType.NOT_LOGIN.getCode(), "未登录");
             throw new IllegalArgumentException("未登录");
         }
 
         // 检验token是否过期
         if (!JwtUtil.validate(token)) {
-            MessageUtils.sendError(ctx, IMessageType.LOGIN_OVER.getCode(), "token已失效");
+            MessageUtils.sendError(ctx, IMessageType.LOGIN_EXPIRED.getCode(), "token已失效");
             throw new IllegalArgumentException("token已失效");
         }
 
@@ -41,7 +41,7 @@ public interface WebsocketProcess {
             // 从 token 中获取 userId
             return JwtUtil.getUsername(token);
         } catch (Exception e) {
-            MessageUtils.sendError(ctx, IMessageType.ERROR.getCode(), "token有误");
+            MessageUtils.sendError(ctx, IMessageType.TOKEN_ERROR.getCode(), "token有误");
             throw new IllegalArgumentException("token有误");
         }
     }

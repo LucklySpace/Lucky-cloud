@@ -1,5 +1,6 @@
 package com.xy.lucky.server.service.impl;
 
+import com.xy.lucky.core.enums.IMActionType;
 import com.xy.lucky.core.enums.IMStatus;
 import com.xy.lucky.core.enums.IMessageReadStatus;
 import com.xy.lucky.core.enums.IMessageType;
@@ -286,14 +287,14 @@ public class MessageServiceImpl implements MessageService {
             throw new MessageException("发送时间超过2分钟，无法撤回");
         }
 
-        msg.setMessageContentType(IMessageType.RECALL_MESSAGE.getCode());
+        msg.setMessageContentType(IMActionType.RECALL_MESSAGE.getCode());
         msg.setMessageBody("撤回了一条消息");
         imSingleMessageDubboService.modify(msg);
 
         IMRegisterUser receiver = (IMRegisterUser) redisUtil.get(USER_CACHE_PREFIX + msg.getToId());
         if (receiver == null || receiver.getBrokerId() == null) return;
         IMessageWrap<Object> wrapper = new IMessageWrap<>()
-                .setCode(IMessageType.RECALL_MESSAGE.getCode())
+                .setCode(IMActionType.RECALL_MESSAGE.getCode())
                 .setData(dto)
                 .setIds(List.of(msg.getToId()));
         publishToBrokerSync(MQ_EXCHANGE_NAME, receiver.getBrokerId(), JacksonUtils.toJSONString(wrapper), null);
@@ -308,7 +309,7 @@ public class MessageServiceImpl implements MessageService {
             throw new MessageException("发送时间超过2分钟，无法撤回");
         }
 
-        msg.setMessageContentType(IMessageType.RECALL_MESSAGE.getCode());
+        msg.setMessageContentType(IMActionType.RECALL_MESSAGE.getCode());
         msg.setMessageBody("撤回了一条消息");
         imGroupMessageDubboService.modify(msg);
 
@@ -328,7 +329,7 @@ public class MessageServiceImpl implements MessageService {
 
         brokerUserMap.forEach((brokerId, users) -> {
             IMessageWrap<Object> wrapper = new IMessageWrap<>()
-                    .setCode(IMessageType.RECALL_MESSAGE.getCode())
+                    .setCode(IMActionType.RECALL_MESSAGE.getCode())
                     .setData(dto)
                     .setIds(users);
             publishToBrokerSync(MQ_EXCHANGE_NAME, brokerId, JacksonUtils.toJSONString(wrapper), null);

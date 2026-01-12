@@ -1,10 +1,14 @@
 package com.xy.lucky.connect.channel;
 
 import com.xy.lucky.connect.config.LogConstant;
+import com.xy.lucky.connect.config.properties.NettyProperties;
 import com.xy.lucky.connect.domain.IMUserChannel;
 import com.xy.lucky.connect.domain.IMUserChannel.UserChannel;
 import com.xy.lucky.core.constants.IMConstant;
 import com.xy.lucky.core.enums.IMDeviceType;
+import com.xy.lucky.core.enums.IMessageType;
+import com.xy.lucky.core.model.IMessageWrap;
+import com.xy.lucky.spring.annotations.core.Autowired;
 import com.xy.lucky.spring.annotations.core.Component;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
@@ -31,6 +35,9 @@ public class UserChannelMap {
     // 用户 -> 多设备映射
     private final ConcurrentHashMap<String, IMUserChannel> userChannels = new ConcurrentHashMap<>();
 
+    @Autowired
+    private NettyProperties nettyProperties;
+
     /**
      * 添加用户通道
      * - 默认到 WEB
@@ -55,6 +62,7 @@ public class UserChannelMap {
         // 默认到 WEB
         final IMDeviceType dt = deviceType == null ? IMDeviceType.WEB : deviceType;
         final String deviceKey = dt.getType();
+        final IMDeviceType.DeviceGroup group = dt.getGroup();
 
         if (!ch.isActive()) {
             log.warn("绑定未激活 channel: userId={}, channelId={}", userId, ch.id().asLongText());
@@ -72,32 +80,30 @@ public class UserChannelMap {
             return u;
         });
 
-        // 收集需要被踢掉的旧连接（同组互斥或相同 deviceType）
-        List<UserChannel> toKick = imUserChannel.getUserChannelMap().values().stream()
-                .filter(uc -> uc != null && uc.getDeviceType() != null && uc.getChannel() != null)
-                .filter(uc -> !uc.getChannel().id().asLongText().equals(ch.id().asLongText()))
-                .filter(uc -> uc.getDeviceType().isConflicting(dt) || uc.getDeviceType() == dt)
-                .toList();
-
-        // 逐个移除并优雅关闭旧连接
-        toKick.forEach(old -> {
-            try {
-                String prevId = old.getChannel().id().asLongText();
-                imUserChannel.getUserChannelMap().remove(old.getDeviceType().getType(), old);
-                old.getChannel().close().addListener((ChannelFutureListener) future -> 
-                    log.info("被替换旧连接已关闭: userId={}, deviceType={}, prevChannelId={}, success={}",
-                            userId, old.getDeviceType().getType(), prevId, future.isSuccess()));
-            } catch (Exception ex) {
-                log.warn("关闭替换旧连接时出错 userId={}, deviceType={}", userId, old.getDeviceType(), ex);
+        if (!Boolean.TRUE.equals(nettyProperties.getMultiDeviceEnabled())) {
+            if (!imUserChannel.getUserChannelMap().isEmpty()) {
+                for (UserChannel old : imUserChannel.getUserChannelMap().values()) {
+                    if (old == null || old.getChannel() == null) {
+                        continue;
+                    }
+                    if (old.getChannel().id().asLongText().equals(ch.id().asLongText())) {
+                        continue;
+                    }
+                    safeKickAndClose(userId, old);
+                }
+                imUserChannel.getUserChannelMap().clear();
             }
-        });
+        } else {
+            UserChannel existing = imUserChannel.getUserChannelMap().get(group);
+            if (existing != null && existing.getChannel() != null
+                    && !existing.getChannel().id().asLongText().equals(ch.id().asLongText())) {
+                imUserChannel.getUserChannelMap().remove(group, existing);
+                safeKickAndClose(userId, existing);
+            }
+        }
 
-        // 放入新连接并注册 closeFuture 清理
-        UserChannel newUc = new UserChannel(ch.id().asLongText(), dt, ch);
-        imUserChannel.getUserChannelMap().put(IMDeviceType.getByDevice(deviceKey), newUc);
-
-        // 记录连接信息
-        log.info("添加用户通道: userId={}, deviceType={}, channelId={}", userId, dt.getType(), ch.id().asLongText());
+        UserChannel newUc = new UserChannel(ch.id().asLongText(), dt, group, ch);
+        imUserChannel.getUserChannelMap().put(group, newUc);
 
         // 注册关闭监听器，确保资源清理
         ch.closeFuture().addListener(future -> {
@@ -108,7 +114,7 @@ public class UserChannelMap {
             }
         });
 
-        log.info("绑定 channel -> userId={}, deviceType={}, channelId={}", userId, deviceKey, ch.id().asLongText());
+        log.info("绑定 channel -> userId={}, group={}, deviceType={}, channelId={}", userId, group.name(), deviceKey, ch.id().asLongText());
     }
 
     /**
@@ -118,7 +124,9 @@ public class UserChannelMap {
         if (userId == null || deviceTypeString == null) return null;
         IMUserChannel im = userChannels.get(userId);
         if (im == null) return null;
-        UserChannel uc = im.getUserChannelMap().get(deviceTypeString);
+        IMDeviceType dt = IMDeviceType.ofOrDefault(deviceTypeString, IMDeviceType.WEB);
+        final IMDeviceType.DeviceGroup group = dt.getGroup();
+        UserChannel uc = im.getUserChannelMap().get(group);
         return uc == null ? null : uc.getChannel();
     }
 
@@ -167,6 +175,10 @@ public class UserChannelMap {
         return userChannels.size();
     }
 
+    public ConcurrentHashMap<String, IMUserChannel> getUserChannels() {
+        return userChannels;
+    }
+
     /**
      * 获取总连接数
      */
@@ -186,7 +198,10 @@ public class UserChannelMap {
         IMUserChannel im = userChannels.get(userId);
         if (im == null) return null;
 
-        UserChannel removed = im.getUserChannelMap().remove(deviceType);
+        IMDeviceType dt = IMDeviceType.ofOrDefault(deviceType, IMDeviceType.WEB);
+        IMDeviceType.DeviceGroup group = dt.getGroup();
+
+        UserChannel removed = im.getUserChannelMap().remove(group);
         if (removed == null) return null;
 
         if (im.getUserChannelMap().isEmpty()) {
@@ -210,8 +225,8 @@ public class UserChannelMap {
      * 通过 Channel 对象扫描并移除对应映射（无索引版本）
      * - 增强版本，确保资源完全清理
      */
-    public boolean removeByChannel(Channel channel) {
-        if (channel == null) return false;
+    public void removeByChannel(Channel channel) {
+        if (channel == null) return;
         final String chId = channel.id().asLongText();
 
         // 尝试从 channel 属性获取信息（快速路径）
@@ -222,67 +237,45 @@ public class UserChannelMap {
         if (userId != null && deviceType != null) {
             IMUserChannel im = userChannels.get(userId);
             if (im != null) {
-                UserChannel uc = im.getUserChannelMap().get(deviceType);
+                IMDeviceType.DeviceGroup group = IMDeviceType.getDeviceGroupOrDefault(deviceType, IMDeviceType.DeviceGroup.DESKTOP);
+                UserChannel uc = im.getUserChannelMap().get(group);
                 if (uc != null && chId.equals(uc.getChannelId())) {
-                    im.getUserChannelMap().remove(deviceType);
-                    log.info("快速移除通道映射: userId={}, deviceType={}, channelId={}",
-                            userId, deviceType, chId);
+                    im.getUserChannelMap().remove(group);
+                    log.info("快速移除通道映射: userId={}, deviceType={}, group={}, channelId={}",
+                            userId, deviceType, group, chId);
                     if (im.getUserChannelMap().isEmpty()) {
                         userChannels.remove(userId, im);
                     }
-                    return true;
                 }
             }
         }
-
-        // 回退到全表扫描
-        for (Map.Entry<String, IMUserChannel> entry : userChannels.entrySet()) {
-            userId = entry.getKey();
-            IMUserChannel im = entry.getValue();
-            if (im == null) continue;
-
-            // 寻找并删除匹配的 device 条目
-            Iterator<Map.Entry<IMDeviceType, UserChannel>> it = im.getUserChannelMap().entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<IMDeviceType, UserChannel> e = it.next();
-                UserChannel uc = e.getValue();
-                if (uc != null && chId.equals(uc.getChannelId())) {
-                    it.remove();
-                    log.info("全表扫描移除通道映射: userId={}, deviceType={}, channelId={}",
-                            userId, e.getKey(), chId);
-                    // 如果该用户无设备则移除用户条目
-                    if (im.getUserChannelMap().isEmpty()) {
-                        userChannels.remove(userId, im);
-                    }
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
-    // ---------------- 发送 ----------------
-
-    public int sendToUser(String userId, String deviceType, Object data) {
-        if (userId == null) return 0;
-        if (deviceType == null) {
-            Collection<Channel> channels = getChannelsByUser(userId);
-            channels.stream()
-                    .filter(Channel::isActive)
-                    .forEach(ch -> ch.writeAndFlush(data));
-            return channels.size();
-        } else {
-            Channel ch = getChannel(userId, deviceType);
-            if (ch != null && ch.isActive()) {
-                ch.writeAndFlush(data);
-                return 1;
-            }
-            return 0;
+    private void safeKickAndClose(String userId, UserChannel old) {
+        Channel oldCh = old.getChannel();
+        if (oldCh == null) return;
+        try {
+            oldCh.writeAndFlush(new IMessageWrap<>()
+                    .setCode(IMessageType.FORCE_LOGOUT.getCode())
+                    .setMessage("同端登录，已被强制下线"));
+        } catch (Exception ignored) {
         }
-    }
-
-    public int sendToUser(String userId, IMDeviceType deviceType, Object data) {
-        return deviceType == null ? 0 : sendToUser(userId, deviceType.getType(), data);
+        try {
+            String prevId = oldCh.id().asLongText();
+            oldCh.close().addListener((ChannelFutureListener) future ->
+                    log.info("被替换旧连接已关闭: userId={}, deviceType={}, group={}, prevChannelId={}, success={}",
+                            userId,
+                            old.getDeviceType() != null ? old.getDeviceType().getType() : null,
+                            old.getGroup(),
+                            prevId,
+                            future.isSuccess()));
+        } catch (Exception ex) {
+            log.warn("关闭替换旧连接时出错 userId={}, deviceType={}, group={}",
+                    userId,
+                    old.getDeviceType() != null ? old.getDeviceType().getType() : null,
+                    old.getGroup(),
+                    ex);
+        }
     }
 
 }

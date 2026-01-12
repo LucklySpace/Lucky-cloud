@@ -179,9 +179,9 @@ public class GroupServiceImpl implements GroupService {
     public String inviteGroup(GroupInviteDto dto) {
 //        return Mono.fromCallable(() -> {
                     Integer type = dto.getType();
-                    if (IMessageType.CREATE_GROUP.getCode().equals(type)) {
+        if (IMActionType.CREATE_GROUP.getCode().equals(type)) {
                         return createGroupSync(dto);
-                    } else if (IMessageType.GROUP_INVITE.getCode().equals(type)) {
+        } else if (IMActionType.INVITE_TO_GROUP.getCode().equals(type)) {
                         return groupInviteSync(dto);
                     }
                     throw new GroupException("无效邀请类型");
@@ -476,7 +476,7 @@ public class GroupServiceImpl implements GroupService {
                     .messageTempId(IdUtils.snowflakeIdStr())
                     .fromId(inviterId)
                     .toId(inviteeId)
-                    .messageContentType(IMessageContentType.GROUP_INVITE.getCode())
+                    .messageContentType(IMActionType.INVITE_TO_GROUP.getCode())
                     .messageTime(DateTimeUtils.getCurrentUTCTimestamp())
                     .messageType(IMessageType.SINGLE_MESSAGE.getCode())
                     .build();
@@ -524,7 +524,7 @@ public class GroupServiceImpl implements GroupService {
                     .messageTempId(IdUtils.snowflakeIdStr())
                     .fromId(inviterId)
                     .toId(adminId)
-                    .messageContentType(IMessageContentType.GROUP_JOIN_APPROVE.getCode())
+                    .messageContentType(IMActionType.JOIN_APPROVE_GROUP.getCode())
                     .messageTime(DateTimeUtils.getCurrentUTCTimestamp())
                     .build();
 

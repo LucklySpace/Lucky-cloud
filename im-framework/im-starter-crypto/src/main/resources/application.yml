@@ -1,15 +1,52 @@
-spring:
-  application:
-    name: im-crypto
+# ======================================
+# 加解密模块默认配置
+# ======================================
+# 使用时请在业务模块中覆盖以下配置
 
 security:
+  # 是否启用安全模块
+  enabled: false
+
+  # 加解密配置
   crypto:
+    # 是否启用加解密功能
+    enabled: true
+    # 默认加密模式
     default-encrypt: AES
+    # 默认解密模式
     default-decrypt: AES
-    aes-key: g64fi7uihebib6d34njcbybfiuyiusyhdf98q38i7unqi7ew
+    # AES 密钥（16/24/32 字节）- 生产环境请务必修改
+    aes-key: defaultaeskey123
+    # AES 加密模式: GCM(推荐) / CBC / ECB
+    aes-mode: GCM
+    # 排除路径（支持 Ant 风格通配符）
+    exclude-paths: [ ]
+    # 是否在响应头中包含加密算法标识
+    include-algorithm-header: false
+    # 加密算法标识 Header 名称
+    algorithm-header-name: X-Crypto-Algorithm
+    # 是否开启调试模式（打印加解密日志）
+    debug: false
+
+  # 签名配置
   sign:
-    secret: g876q3f4fiddybc7684cq87b634fg87
-  rsa-public-key:
-    3f3b7uyttuify7634fgb8y87tgbery7475t9h4f5487ygb8y8eyr93uqhuo972o8yubrf9672t45f
-  rsa-private-key:
-    hd9834678yc98go34i7iifyh96784hfub78438bf7g8457yth79gychu857uy85gtfr883
+    # 是否启用签名功能
+    enabled: true
+    # 默认签名算法
+    mode: HMAC_SHA256
+    # 签名密钥 - 生产环境请务必修改
+    secret: your-secret-key-here
+    # 时间戳容差（毫秒），默认5分钟
+    timestamp-tolerance: 300000
+    # 是否启用 nonce 防重放
+    nonce-enabled: true
+    # nonce 缓存过期时间（秒）
+    nonce-expire-seconds: 300
+    # 签名字段名
+    sign-field-name: sign
+    # 时间戳字段名
+    timestamp-field-name: timestamp
+    # nonce 字段名
+    nonce-field-name: nonce
+    # 排除路径
+    exclude-paths: [ ]

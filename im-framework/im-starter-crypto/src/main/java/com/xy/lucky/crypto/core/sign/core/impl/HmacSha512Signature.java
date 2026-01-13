@@ -13,30 +13,30 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * HMAC-SHA256 签名算法实现
+ * HMAC-SHA512 签名算法实现
  */
 @Component
-public class HmacSha256Signature implements SignatureAlgorithm {
+public class HmacSha512Signature implements SignatureAlgorithm {
 
     @Resource
     private CryptoProperties properties;
 
     @Override
     public SignatureMode mode() {
-        return SignatureMode.HMAC_SHA256;
+        return SignatureMode.HMAC_SHA512;
     }
 
     @Override
     public String sign(Map<String, String> data) {
         String base = SignUtil.buildBaseString(data);
-        return SignUtil.hmacSha256(base, properties.getSign().getSecret());
+        return SignUtil.hmacSha512(base, properties.getSign().getSecret());
     }
 
     @Override
     public String sign(Map<String, String> data, String[] excludeFields) {
         Set<String> excludeSet = new HashSet<>(Arrays.asList(excludeFields));
         String base = SignUtil.buildBaseString(data, excludeSet);
-        return SignUtil.hmacSha256(base, properties.getSign().getSecret());
+        return SignUtil.hmacSha512(base, properties.getSign().getSecret());
     }
 
     @Override
@@ -51,3 +51,4 @@ public class HmacSha256Signature implements SignatureAlgorithm {
         return SignUtil.safeEquals(computed, signature);
     }
 }
+

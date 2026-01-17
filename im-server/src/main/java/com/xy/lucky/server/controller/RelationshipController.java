@@ -12,10 +12,13 @@ import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
+import java.util.concurrent.Executor;
 
 /**
  * 用户关系
@@ -29,6 +32,14 @@ public class RelationshipController {
     @Resource
     private RelationshipService relationshipService;
 
+    @Resource
+    @Qualifier("virtualThreadExecutor")
+    private Executor virtualThreadExecutor;
+
+    private Scheduler getScheduler() {
+        return Schedulers.fromExecutor(virtualThreadExecutor);
+    }
+
     @GetMapping("/contacts/list")
     @Operation(summary = "查询好友列表", tags = {"friend"}, description = "请使用此接口查询好友列表")
     @Parameters({
@@ -37,7 +48,7 @@ public class RelationshipController {
     })
     public Mono contacts(@RequestParam("userId") String userId, @RequestParam("sequence") Long sequence) {
         return Mono.fromCallable(() -> relationshipService.contacts(userId, sequence))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
     @GetMapping("/groups/list")
@@ -48,7 +59,7 @@ public class RelationshipController {
     })
     public Mono groups(@RequestParam("userId") String userId) {
         return Mono.fromCallable(() -> relationshipService.groups(userId))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
 
@@ -59,7 +70,7 @@ public class RelationshipController {
     })
     public Mono newFriends(@RequestParam("userId") String userId) {
         return Mono.fromCallable(() -> relationshipService.newFriends(userId))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
     @PostMapping("/getFriendInfo")
@@ -69,7 +80,7 @@ public class RelationshipController {
     })
     public Mono<FriendVo> getFriendInfo(@RequestBody FriendDto friendDto) {
         return Mono.fromCallable(() -> relationshipService.getFriendInfo(friendDto))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
     @PostMapping("/search/getFriendInfoList")
@@ -79,7 +90,7 @@ public class RelationshipController {
     })
     public Mono getFriendInfoList(@RequestBody FriendDto friendDto) {
         return Mono.fromCallable(() -> relationshipService.getFriendInfoList(friendDto))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
 
@@ -90,7 +101,7 @@ public class RelationshipController {
     })
     public Mono<String> addFriend(@RequestBody FriendRequestDto friendRequestDto) {
         return Mono.fromCallable(() -> relationshipService.addFriend(friendRequestDto))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
     @PostMapping("/approveContact")
@@ -100,7 +111,7 @@ public class RelationshipController {
     })
     public Mono<Void> approveFriend(@RequestBody FriendRequestDto friendshipRequestDto) {
         return Mono.fromRunnable(() -> relationshipService.approveFriend(friendshipRequestDto))
-                .subscribeOn(Schedulers.boundedElastic())
+                .subscribeOn(getScheduler())
                 .then();
     }
 
@@ -111,7 +122,7 @@ public class RelationshipController {
     })
     public Mono<Void> delFriend(@RequestBody FriendDto friendDto) {
         return Mono.fromRunnable(() -> relationshipService.delFriend(friendDto))
-                .subscribeOn(Schedulers.boundedElastic())
+                .subscribeOn(getScheduler())
                 .then();
     }
 
@@ -123,7 +134,7 @@ public class RelationshipController {
     })
     public Mono<Boolean> updateFriendRemark(@RequestBody FriendDto friendDto) {
         return Mono.fromCallable(() -> relationshipService.updateFriendRemark(friendDto))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
 }

@@ -15,11 +15,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
+import java.util.concurrent.Executor;
 
 @Slf4j
 @RestController
@@ -29,6 +32,14 @@ public class ChatController {
 
     @Resource
     private ChatService chatService;
+
+    @Resource
+    @Qualifier("virtualThreadExecutor")
+    private Executor virtualThreadExecutor;
+
+    private Scheduler getScheduler() {
+        return Schedulers.fromExecutor(virtualThreadExecutor);
+    }
 
     @PostMapping("/list")
     @Operation(summary = "查询用户会话", tags = {"chat"}, description = "请使用此接口查找用户会话")
@@ -42,7 +53,7 @@ public class ChatController {
     })
     public Mono<List<ChatVo>> list(@RequestBody ChatDto chatDto) {
         return Mono.fromCallable(() -> chatService.list(chatDto))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
 
@@ -57,7 +68,7 @@ public class ChatController {
     })
     public Mono<Void> read(@RequestBody ChatDto chatDto) {
         return Mono.fromRunnable(() -> chatService.read(chatDto))
-                .subscribeOn(Schedulers.boundedElastic())
+                .subscribeOn(getScheduler())
                 .then();
     }
 
@@ -74,7 +85,7 @@ public class ChatController {
     })
     public Mono<ChatVo> one(@RequestParam("ownerId") String ownerId, @RequestParam("toId") String toId) {
         return Mono.fromCallable(() -> chatService.one(ownerId, toId))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
     @PostMapping("/create")
@@ -89,7 +100,7 @@ public class ChatController {
     })
     public Mono<ChatVo> create(@RequestBody ChatDto ChatDto) {
         return Mono.fromCallable(() -> chatService.create(ChatDto))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
 }

@@ -10,11 +10,15 @@ import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
+
+import java.util.concurrent.Executor;
 
 @Slf4j
 @RestController
@@ -25,6 +29,14 @@ public class FileController {
     @Resource
     private FileService fileService;
 
+    @Resource
+    @Qualifier("virtualThreadExecutor")
+    private Executor virtualThreadExecutor;
+
+    private Scheduler getScheduler() {
+        return Schedulers.fromExecutor(virtualThreadExecutor);
+    }
+
     @CrossOrigin(origins = "*") //重点
     @PostMapping(value = "/formUpload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "上传文件", tags = {"file"}, description = "请使用此接口上传文件")
@@ -33,7 +45,7 @@ public class FileController {
     })
     public Mono<FileVo> uploadFile(@RequestPart("file") FilePart file) {
         return Mono.fromCallable(() -> fileService.uploadFile(file))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
 
@@ -42,6 +54,6 @@ public class FileController {
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Mono<FileVo> upload(@RequestPart("file") FilePart file) {
         return Mono.fromCallable(() -> fileService.uploadFile(file))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 }

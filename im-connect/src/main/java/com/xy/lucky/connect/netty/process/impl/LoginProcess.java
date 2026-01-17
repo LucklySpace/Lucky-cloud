@@ -4,6 +4,7 @@ package com.xy.lucky.connect.netty.process.impl;
 import com.xy.lucky.connect.channel.UserChannelMap;
 import com.xy.lucky.connect.config.LogConstant;
 import com.xy.lucky.connect.config.properties.NettyProperties;
+import com.xy.lucky.connect.mq.RabbitTemplate;
 import com.xy.lucky.connect.netty.process.WebsocketProcess;
 import com.xy.lucky.connect.redis.RedisTemplate;
 import com.xy.lucky.connect.utils.JacksonUtil;
@@ -21,9 +22,11 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 
 import static com.xy.lucky.core.constants.IMConstant.USER_CACHE_PREFIX;
 
@@ -33,10 +36,10 @@ public class LoginProcess implements WebsocketProcess {
 
     private static final AttributeKey<String> USER_ATTR = AttributeKey.valueOf(IMConstant.IM_USER);
     private static final AttributeKey<String> DEVICE_ATTR = AttributeKey.valueOf(IMConstant.IM_DEVICE_TYPE);
-
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     // 用户登录时记录活跃数到redis 键前缀
-    private final String hyperloglogKey = "IM-ACTIVE-USERS-";
+    private static final String ACTIVE_USERS_PREFIX = "IM-ACTIVE-USERS-";
 
     @Value("${brokerId}")
     private String brokerId;
@@ -50,109 +53,100 @@ public class LoginProcess implements WebsocketProcess {
     @Autowired
     private NettyProperties nettyProperties;
 
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+
     /**
-     * 用户登录时保存用户 token、机器码 和 deviceType 到 redis
-     *
-     * @param ctx      channel
-     * @param sendInfo 消息
+     * 用户登录处理逻辑
+     * 1. 解析设备类型
+     * 2. 处理同组设备冲突（踢出旧连接）
+     * 3. 绑定本地 Channel 映射
+     * 4. 同步更新 Redis 注册信息
+     * 5. 响应客户端并记录日活
      */
     @Override
     public void process(ChannelHandlerContext ctx, IMessageWrap sendInfo) throws Exception {
-
-        String token = sendInfo.getToken();
-
-        // 设置用户id属性
         String userId = ctx.channel().attr(USER_ATTR).get();
+        String token = sendInfo.getToken();
+        IMDeviceType imDeviceType = resolveDeviceType(ctx, sendInfo);
 
-        String deviceType = sendInfo.getDeviceType();
+        log.debug("开始处理用户登录: userId={}, deviceType={}, group={}", userId, imDeviceType.getType(), imDeviceType.getGroup());
 
-        String routeKey = USER_CACHE_PREFIX + userId;
+        // 1. 处理同组冲突并绑定 Channel
+        // UserChannelMap.addChannel 内部已处理本地同组互斥逻辑
+        userChannelMap.addChannel(userId, ctx.channel(), imDeviceType);
 
-        Object existing = redisTemplate.get(routeKey);
+        // 2. 更新 Redis 全局注册信息（支持多端在线状态同步）
+        updateRedisRegistration(userId, token, imDeviceType, sendInfo.getRequestId());
 
-        if (Objects.nonNull(existing)) {
-            IMRegisterUser old = JacksonUtil.parseObject(existing, IMRegisterUser.class);
-            if (old != null && StringUtils.hasText(old.getBrokerId()) && !old.getBrokerId().equals(brokerId)) {
-                IMessageWrap<Object> kick = new IMessageWrap<>()
-                        .setCode(IMessageType.FORCE_LOGOUT.getCode())
-                        .setIds(List.of(userId))
-                        .setMessage("同端登录，已被踢下线");
-                ctx.channel().writeAndFlush(kick);
-            }
-        }
+        // 3. 构建并返回成功消息
+        sendLoginSuccessResponse(ctx, sendInfo, imDeviceType);
 
-        // 绑定用户、设备和channel（自动处理旧连接踢掉）
-        userChannelMap.addChannel(userId, ctx, deviceType);
-
-        long ttlSeconds = toSeconds(nettyProperties.getHeartBeatTime() + nettyProperties.getTimeout());
-
-        // 初始化用户对象
-        IMRegisterUser imRegisterUser = new IMRegisterUser()
-                // 用户id
-                .setUserId(userId)
-                // 用户token
-                .setBrokerId(brokerId)
-                // 用户token
-                .setToken(token);
-                // 设备类型
-//                .setDrivers(buildDrivers(sendInfo, userId));
-
-        String json = JacksonUtil.toJSONString(imRegisterUser);
-
-        redisTemplate.setEx(USER_CACHE_PREFIX + userId, json, ttlSeconds);
-        redisTemplate.setEx(routeKey, json, ttlSeconds);
-
-        // 响应ws
-        MessageUtils.send(ctx, sendInfo.setCode(IMessageType.REGISTER_SUCCESS.getCode()));
-
-        // 用户上线时，记录到redis,记录日活（按 userId，不分设备）
+        // 4. 异步记录日活统计
         addActiveUser(userId);
 
-        log.info("用户:{} {} 设备连接成功", userId, deviceType);
-    }
-
-    public Map<String, IMRegisterUser.Driver> buildDrivers(IMessageWrap sendInfo, String userId) {
-        String deviceType = sendInfo.getDeviceType();
-        //IMDeviceType imDeviceType = IMDeviceType.ofOrDefault(deviceType, IMDeviceType.WIN);
-
-        IMDeviceType.DeviceGroup group = IMDeviceType.getDeviceGroupOrDefault(deviceType, IMDeviceType.DeviceGroup.DESKTOP);
-
-//        // 获取或创建用户映射
-//        IMUserChannel imUserChannel = userChannelMap.getUserChannels().computeIfAbsent(userId, k -> {
-//            IMUserChannel u = new IMUserChannel();
-//            u.setUserId(userId);
-//            u.setUserChannelMap(new ConcurrentHashMap<>());
-//            return u;
-//        });
-//
-//
-//        if (imUserChannel.getUserChannelMap().containsKey(group)) {
-//            IMUserChannel.UserChannel userChannel = imUserChannel.getUserChannelMap().get(group);
-//            if (userChannel.getChannel() != null) {
-//                log.warn("用户:{} {} 设备已存在，强制下线", userId, deviceType);
-//                // 旧设备已存在，强制下线
-//                userChannel.getChannel().close();
-//            }
-//            imUserChannel.getUserChannelMap().put(group, new IMUserChannel.UserChannel(userChannel.getChannelId(), imDeviceType, group, null));
-//        }
-
-
-        return Map.of(group.name(), new IMRegisterUser.Driver(sendInfo.getRequestId(), deviceType));
+        log.info("用户登录处理完成: userId={}, group={}, type={}", userId, imDeviceType.getGroup(), imDeviceType.getType());
     }
 
     /**
-     * 使用HyperLogLog存储用户活跃信息  用户上线时，记录到redis,记录日活
-     * https://mp.weixin.qq.com/s/ay8YO6e6uHxkO3qR5sgVAQ
-     *
-     * @param userId 用户id
+     * 解析设备类型
+     */
+    private IMDeviceType resolveDeviceType(ChannelHandlerContext ctx, IMessageWrap sendInfo) {
+        String type = StringUtils.hasText(sendInfo.getDeviceType())
+                ? sendInfo.getDeviceType()
+                : ctx.channel().attr(DEVICE_ATTR).get();
+        return IMDeviceType.ofOrDefault(type, IMDeviceType.WEB);
+    }
+
+    /**
+     * 同步更新 Redis 注册信息
+     */
+    private void updateRedisRegistration(String userId, String token, IMDeviceType deviceType, String requestId) {
+        String routeKey = USER_CACHE_PREFIX + userId;
+        long ttlSeconds = toSeconds(nettyProperties.getHeartBeatTime() + nettyProperties.getTimeout());
+
+        // 使用 Optional 简化获取与初始化逻辑
+        IMRegisterUser registerUser = Optional.ofNullable(redisTemplate.get(routeKey))
+                .map(json -> JacksonUtil.parseObject(json, IMRegisterUser.class))
+                .orElseGet(() -> new IMRegisterUser().setUserId(userId).setDrivers(new HashMap<>()));
+
+        // 更新用户全局信息与当前设备驱动信息
+        registerUser.setToken(token)
+                .setBrokerId(brokerId)
+                .getDrivers().put(deviceType.getGroup().name(), new IMRegisterUser.Driver(requestId, deviceType.getType()));
+
+        redisTemplate.setEx(routeKey, JacksonUtil.toJSONString(registerUser), ttlSeconds);
+    }
+
+    /**
+     * 构建并返回成功消息
+     */
+    private void sendLoginSuccessResponse(ChannelHandlerContext ctx, IMessageWrap sendInfo, IMDeviceType deviceType) {
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("platform", deviceType.getGroup().name());
+        metadata.put("deviceType", deviceType.getType());
+        metadata.put("brokerId", brokerId);
+
+        sendInfo.setCode(IMessageType.REGISTER_SUCCESS.getCode())
+                .setMessage("登录成功")
+                .setToken("") // 安全考虑，响应不携带 token
+                .setMetadata(metadata)
+                .setDeviceType(deviceType.getType());
+
+        MessageUtils.send(ctx, sendInfo);
+    }
+
+    /**
+     * 使用 HyperLogLog 存储日活跃用户
      */
     public void addActiveUser(String userId) {
-        //String dateStr = new SimpleDateFormat("yyyyMMdd").format(new Date());
-        // redisTemplate.pfadd(hyperloglogKey + dateStr, userId);
+        String key = ACTIVE_USERS_PREFIX + LocalDate.now().format(DATE_FORMATTER);
+        redisTemplate.pfadd(key, userId);
+        // 设置 30 天过期，避免 Key 永久留存
+        redisTemplate.expire(key, 30 * 24 * 3600);
     }
 
     private long toSeconds(long millis) {
-        long s = (millis + 999L) / 1000L;
-        return Math.max(1L, s);
+        return Math.max(1L, (millis + 999L) / 1000L);
     }
 }

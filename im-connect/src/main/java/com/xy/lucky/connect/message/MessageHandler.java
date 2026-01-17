@@ -3,6 +3,7 @@ package com.xy.lucky.connect.message;
 
 import com.xy.lucky.connect.config.LogConstant;
 import com.xy.lucky.connect.domain.MessageEvent;
+import com.xy.lucky.connect.message.process.impl.ForceLogoutProcess;
 import com.xy.lucky.connect.message.process.impl.GroupMessageProcess;
 import com.xy.lucky.connect.message.process.impl.SingleMessageProcess;
 import com.xy.lucky.connect.message.process.impl.VideoMessageProcess;
@@ -22,13 +23,16 @@ import java.util.Objects;
 public class MessageHandler {
 
     @Autowired
-    GroupMessageProcess groupMessageProcess;
+    private GroupMessageProcess groupMessageProcess;
 
     @Autowired
-    SingleMessageProcess singleMessageProcess;
+    private SingleMessageProcess singleMessageProcess;
 
     @Autowired
-    VideoMessageProcess videoMessageProcess;
+    private VideoMessageProcess videoMessageProcess;
+
+    @Autowired
+    private ForceLogoutProcess forceLogoutProcess;
 
     /**
      * 监听并分发消息
@@ -62,6 +66,7 @@ public class MessageHandler {
                 case GROUP_MESSAGE -> groupMessageProcess.dispose(messageWrap);
                 case SINGLE_MESSAGE -> singleMessageProcess.dispose(messageWrap);
                 case VIDEO_MESSAGE -> videoMessageProcess.dispose(messageWrap);
+                case FORCE_LOGOUT -> forceLogoutProcess.dispose(messageWrap);
                 default -> {
                     log.warn("没有为消息类型 {} 注册处理器，忽略该消息", msgType);
                     return;

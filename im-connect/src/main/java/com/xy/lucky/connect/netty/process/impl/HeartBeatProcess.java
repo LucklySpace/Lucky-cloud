@@ -10,6 +10,7 @@ import com.xy.lucky.core.constants.IMConstant;
 import com.xy.lucky.core.enums.IMDeviceType;
 import com.xy.lucky.core.enums.IMessageType;
 import com.xy.lucky.core.model.IMessageWrap;
+import com.xy.lucky.core.utils.JwtUtil;
 import com.xy.lucky.core.utils.StringUtils;
 import com.xy.lucky.spring.annotations.core.Autowired;
 import com.xy.lucky.spring.annotations.core.Component;
@@ -17,6 +18,10 @@ import com.xy.lucky.spring.annotations.core.Value;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j(topic = LogConstant.HeartBeat)
 @Component
@@ -36,48 +41,61 @@ public class HeartBeatProcess implements WebsocketProcess {
 
     @Override
     public void process(ChannelHandlerContext ctx, IMessageWrap sendInfo) {
-
         String token = sendInfo.getToken();
-
         String userId = ctx.channel().attr(USER_ATTR).get();
-        String deviceType = ctx.channel().attr(DEVICE_ATTR).get();
+        String deviceTypeStr = ctx.channel().attr(DEVICE_ATTR).get();
 
-        if (!StringUtils.hasText(userId)) {
-            userId = parseUsername(ctx, token);
+        // 1. 身份识别容错：如果属性中 userId 丢失，尝试解析 Token
+        if (!StringUtils.hasText(userId) && StringUtils.hasText(token)) {
+            userId = JwtUtil.getUsername(token);
         }
 
-        // 如果token剩余时间小于有效时间，  则通知客户端刷新token
-        Integer code = IMessageType.HEART_BEAT_SUCCESS.getCode();
+        if (!StringUtils.hasText(userId)) {
+            log.warn("心跳处理失败：未识别的用户身份");
+            ctx.close();
+            return;
+        }
 
+        IMDeviceType deviceType = IMDeviceType.ofOrDefault(deviceTypeStr, IMDeviceType.WEB);
+
+        // 2. Token 有效期检查与提醒
+        Integer code = IMessageType.HEART_BEAT_SUCCESS.getCode();
         String message = "心跳成功";
         if (StringUtils.hasText(token) && tokenExpired != null && tokenExpired > 0) {
             try {
-                if (getRemaining(token) <= tokenExpired) {
+                // 如果 Token 剩余有效期小于预设阈值 (默认单位: 小时)，通知客户端刷新
+                if (JwtUtil.getRemaining(token, TimeUnit.HOURS) <= tokenExpired) {
                     code = IMessageType.REFRESH_TOKEN.getCode();
+                    message = "token 即将过期，请及时刷新";
                 }
             } catch (Exception ignored) {
+                // Token 解析失败或过期由网关或 AuthHandler 拦截，心跳此处不做强校验
             }
         }
 
-        if (code.equals(IMessageType.REFRESH_TOKEN.getCode())) {
-            log.warn("用户:{} token已过期", userId);
-            message = "token已过期";
-        }
+        // 3. 构造并发送响应
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("platform", deviceType.getGroup().name());
+        metadata.put("deviceType", deviceType.getType());
 
-        // 响应ws
-        MessageUtils.send(ctx, sendInfo.setCode(code).setMessage(message));
+        sendInfo.setCode(code)
+                .setToken("")
+                .setMessage(message)
+                .setMetadata(metadata);
 
+        MessageUtils.send(ctx, sendInfo);
+
+        // 4. 续期 Redis 路由缓存
         long ttlSeconds = toSeconds(nettyProperties.getHeartBeatTime() + nettyProperties.getTimeout());
         redisTemplate.expire(IMConstant.USER_CACHE_PREFIX + userId, ttlSeconds);
 
-        IMDeviceType.DeviceGroup group = IMDeviceType.getDeviceGroupOrDefault(deviceType, IMDeviceType.DeviceGroup.DESKTOP);
-
-        log.info("platform:{} 用户:{} 心跳中", group, userId);
+        if (log.isDebugEnabled()) {
+            log.debug("心跳成功: userId={}, group={}, type={}", userId, deviceType.getGroup(), deviceType.getType());
+        }
     }
 
     private long toSeconds(long millis) {
-        long s = (millis + 999L) / 1000L;
-        return Math.max(1L, s);
+        return Math.max(1L, (millis + 999L) / 1000L);
     }
 
 }

@@ -17,8 +17,8 @@ import com.xy.lucky.auth.utils.RequestContextUtil;
 import com.xy.lucky.core.constants.IMConstant;
 import com.xy.lucky.core.constants.NacosMetadataConstants;
 import com.xy.lucky.core.constants.ServiceNameConstants;
+import com.xy.lucky.core.model.IMRegisterUser;
 import com.xy.lucky.core.utils.JwtUtil;
-import com.xy.lucky.domain.po.ImUserDataPo;
 import com.xy.lucky.domain.vo.UserVo;
 import com.xy.lucky.dubbo.web.api.database.user.ImUserDataDubboService;
 import com.xy.lucky.dubbo.web.api.database.user.ImUserDubboService;
@@ -42,7 +42,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -87,55 +87,60 @@ public class AuthServiceImpl implements AuthService {
      */
     @Override
     public IMLoginResult login(IMLoginRequest req, HttpServletRequest request) {
-        log.info("开始登录：authType={}, principal={}", req.getAuthType(), req.getPrincipal());
-        Authentication auth;
+        log.info("用户登录请求：authType={}, principal={}", req.getAuthType(), req.getPrincipal());
+
+        // 1. 认证
+        Authentication auth = authenticate(req, request);
+
+        // 2. 生成或获取认证信息 (Token 等)
+        IMLoginResult loginResult = generateAuthInfo(auth);
+
+        // 3. 获取可用的连接端点 (网关/Broker 地址)
         try {
-            auth = switch (req.getAuthType()) {
+            List<IMConnectEndpointMetadata> endpoints = fetchConnectServerEndpoints();
+            if (CollectionUtils.isEmpty(endpoints)) {
+                log.warn("未发现可用的 IM 连接节点，用户可能无法即时通信: userId={}", loginResult.getUserId());
+            }
+            loginResult.setConnectEndpoints(endpoints);
+        } catch (Exception ex) {
+            log.error("获取连接端点失败: {}", ex.getMessage());
+            // 容错处理：即使获取端点失败，登录本身是成功的，允许返回，由客户端重试或稍后获取
+            loginResult.setConnectEndpoints(Collections.emptyList());
+        }
+
+        log.info("用户登录成功：userId={}", loginResult.getUserId());
+        return loginResult;
+    }
+
+    private Authentication authenticate(IMLoginRequest req, HttpServletRequest request) {
+        try {
+            return switch (req.getAuthType()) {
                 case IMConstant.AUTH_TYPE_FORM ->
-                    // 表单登录
-                        authenticationManager.authenticate(
-                                new UserAuthenticationToken(req.getPrincipal(), req.getCredentials()));
+                        authenticationManager.authenticate(new UserAuthenticationToken(req.getPrincipal(), req.getCredentials()));
                 case IMConstant.AUTH_TYPE_SMS -> {
-                    String clientIp = request != null ? RequestContextUtil.resolveClientIp(request) : null;
-                    String deviceId = request != null ? RequestContextUtil.resolveDeviceId(request, clientIp) : null;
+                    String clientIp = RequestContextUtil.resolveClientIp(request);
+                    String deviceId = RequestContextUtil.resolveDeviceId(request, clientIp);
                     MobileAuthenticationToken token = new MobileAuthenticationToken(req.getPrincipal(), req.getCredentials());
                     token.setDetails(new AuthRequestContext(clientIp, deviceId));
                     yield authenticationManager.authenticate(token);
                 }
                 case IMConstant.AUTH_TYPE_QR ->
-                    // 扫码登录
-                        authenticationManager.authenticate(
-                                new QrScanAuthenticationToken(req.getPrincipal(), req.getCredentials()));
+                        authenticationManager.authenticate(new QrScanAuthenticationToken(req.getPrincipal(), req.getCredentials()));
                 default -> {
-                    log.warn("不支持的认证类型：{}", req.getAuthType());
+                    log.error("不支持的认证类型: {}", req.getAuthType());
                     throw new AuthenticationFailException(ResultCode.UNSUPPORTED_AUTHENTICATION_TYPE);
                 }
             };
         } catch (Exception ex) {
-            log.error("认证失败：authType={}, principal={}", req.getAuthType(), req.getPrincipal(), ex);
+            log.error("认证过程异常 [{}]: {}", req.getAuthType(), ex.getMessage());
             throw new AuthenticationFailException(ResultCode.AUTHENTICATION_FAILED);
         }
-        // 生成用户认证信息
-        IMLoginResult loginResult = generateAuthInfo(auth);
-
-        try {
-            loginResult.setConnectEndpoints(fetchConnectServerEndpoints());
-        } catch (Exception ex) {
-            throw new AuthenticationFailException(ResultCode.AUTHENTICATION_FAILED);
-        }
-
-        log.info("登录成功：userId={}", loginResult.getUserId());
-
-        return loginResult;
     }
 
     /**
      * 获取用户连接服务端信息
      * <p>
-     * 策略：从不同的 broker 分组中各选择一个实例，打乱顺序后返回最多3个端点，
-     * 确保负载均衡且不返回重复端点。
-     *
-     * @return 连接端点元数据列表（最多3个，不重复）
+     * 策略：从不同的 broker 分组中选择实例，打乱顺序后返回最多 3 个端点，实现负载均衡。
      */
     private List<IMConnectEndpointMetadata> fetchConnectServerEndpoints() {
         List<ServiceInstance> instances = discoveryClient.getInstances(ServiceNameConstants.SVC_IM_CONNECT);
@@ -143,22 +148,19 @@ public class AuthServiceImpl implements AuthService {
             return Collections.emptyList();
         }
 
-        // 按 broker 分组，同一 broker 下可能有多个实例
-        Map<String, List<ServiceInstance>> brokerGroups = instances.stream()
+        // 按 brokerId 分组，避免同一物理机/容器过度集中
+        return instances.stream()
                 .collect(Collectors.groupingBy(instance ->
-                        instance.getMetadata().getOrDefault(NacosMetadataConstants.BROKER_ID, instance.getHost())));
-
-        // 从每个 broker 分组中随机选择一个实例，确保端点不重复
-        List<ServiceInstance> selectedInstances = brokerGroups.values().stream()
-                .map(brokerInstances -> brokerInstances.get(
-                        ThreadLocalRandom.current().nextInt(brokerInstances.size())))
-                .toList();
-
-        // 打乱顺序以实现负载均衡
-        Collections.shuffle(selectedInstances, ThreadLocalRandom.current());
-
-        // 最多返回3个端点
-        return selectedInstances.stream()
+                        instance.getMetadata().getOrDefault(NacosMetadataConstants.BROKER_ID, instance.getHost())))
+                .values()
+                .stream()
+                // 每个 Broker 组内随机抽取一个实例
+                .map(group -> group.get(ThreadLocalRandom.current().nextInt(group.size())))
+                // 打乱 Broker 间的顺序
+                .collect(Collectors.collectingAndThen(Collectors.toList(), list -> {
+                    Collections.shuffle(list);
+                    return list.stream();
+                }))
                 .limit(3)
                 .map(this::buildIMConnectEndpointMetadata)
                 .toList();
@@ -195,112 +197,61 @@ public class AuthServiceImpl implements AuthService {
      */
     @Override
     public UserVo info(String userId) {
-
         log.debug("获取用户信息：userId={}", userId);
-
-        // 获取用户信息
-        ImUserDataPo data = imUserDataDubboService.queryOne(userId);
-
-        UserVo vo = new UserVo();
-
-        if (Objects.nonNull(data)) {
-
-            BeanUtils.copyProperties(data, vo);
-        }
-
-        return vo;
+        return Optional.ofNullable(imUserDataDubboService.queryOne(userId))
+                .map(data -> {
+                    UserVo vo = new UserVo();
+                    BeanUtils.copyProperties(data, vo);
+                    return vo;
+                }).orElseGet(UserVo::new);
     }
 
-    /**
-     * 检查用户是否在线（Redis 中有对应 key 即在线）。
-     *
-     * @param userId 用户 ID
-     * @return Mono 布尔值
-     */
     @Override
     public Boolean isOnline(String userId) {
-
         boolean online = redisCache.hasKey(IMConstant.USER_CACHE_PREFIX + userId);
-
         log.debug("用户在线检查：userId={}, online={}", userId, online);
-
         return online;
     }
 
-    // --------------------------------------------------
-    // 3. Token 刷新
-    // --------------------------------------------------
-
-    /**
-     * 刷新 JWT Token。
-     *
-     * @param request HttpServletRequest
-     * @return Mono<Result < 新 token>>
-     */
     @Override
     public Map<String, String> refreshToken(HttpServletRequest request) {
-
         String oldToken = extractToken(request);
-
         if (!StringUtils.hasText(oldToken)) {
-
-            log.warn("未检测到旧 token");
-
+            log.warn("刷新 Token 失败：请求中未包含有效 Token");
             throw new AuthenticationFailException(ResultCode.TOKEN_IS_NULL);
         }
 
-        String newToken = JwtUtil.refreshToken(oldToken, iMSecurityAuthProperties.getExpiration(), ChronoUnit.HOURS);
-
-        log.info("Token 刷新成功");
-
-        return Map.of("token", newToken);
+        try {
+            String newToken = JwtUtil.refreshToken(oldToken, iMSecurityAuthProperties.getExpiration(), ChronoUnit.HOURS);
+            log.info("Token 刷新成功");
+            return Map.of("token", newToken);
+        } catch (Exception e) {
+            log.error("Token 刷新异常: {}", e.getMessage());
+            throw new AuthenticationFailException(ResultCode.AUTHENTICATION_FAILED);
+        }
     }
 
-    // --------------------------------------------------
-    // 4. RSA 公钥获取
-    // --------------------------------------------------
-
-    /**
-     * 返回当前 RSA 公钥字符串
-     */
     @Override
     public Map<String, String> getPublicKey() {
-        String pubKey = iMRSAKeyProperties.getPublicKeyStr();
-
         log.debug("获取 RSA 公钥");
-
-        return Map.of("publicKey", pubKey);
+        return Map.of("publicKey", iMRSAKeyProperties.getPublicKeyStr());
     }
 
-    // --------------------------------------------------
-    // 5. 二维码登录流程
-    // --------------------------------------------------
-
-    /**
-     * 生成二维码：返回凭证 code、base64 图片及到期时间。
-     */
     @Override
     public IMQRCodeResult generateQRCode(String qrCodeId) {
-
         log.info("生成二维码：qrCodeId={}", qrCodeId);
-
-        // 1. 拼装完整的 Redis Key
         String redisKey = IMConstant.QRCODE_KEY_PREFIX + qrCodeId;
-
-        // 2. 生成 base64 格式的二维码图片
         String image = createCodeToBase64(redisKey);
 
-        // 3. 构建二维码状态实体，初始状态为待扫描
         IMQRCode qr = IMQRCode.builder()
                 .code(qrCodeId)
                 .status(IMConstant.QRCODE_PENDING)
                 .createdAt(System.currentTimeMillis())
                 .build();
 
-        // 4. 将二维码状态存入 Redis，3 分钟后过期
+        // 二维码有效期 3 分钟
         redisCache.set(redisKey, qr, 3, TimeUnit.MINUTES);
 
-        // 5. 返回统一结果
         return new IMQRCodeResult()
                 .setCode(qrCodeId)
                 .setStatus(IMConstant.QRCODE_PENDING)
@@ -309,39 +260,30 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * 扫码接口：更新状态为已扫描，30 秒后过期。
+     * 手机端确认授权：更新状态为已授权，并绑定用户 ID
      */
     @Override
     public IMQRCodeResult scanQRCode(Map<String, String> payload) {
-
         String qrCodeId = payload.get("qrCode");
-
         String userId = payload.get("userId");
-
-        log.info("扫码通知：qrCodeId={}, userId={}", qrCodeId, userId);
+        log.info("扫码授权：qrCodeId={}, userId={}", qrCodeId, userId);
 
         String redisKey = IMConstant.QRCODE_KEY_PREFIX + qrCodeId;
+        IMQRCode qr = redisCache.get(redisKey);
 
-        // 1. 检查 Redis 中是否存在该二维码
-        if (!redisCache.hasKey(redisKey)) {
-
-            log.warn("二维码无效或已过期：qrCodeId={}", qrCodeId);
-            // 已失效
-            return new IMQRCodeResult()
-                    .setCode(qrCodeId)
-                    .setStatus(IMConstant.QRCODE_EXPIRED);
+        if (qr == null) {
+            log.warn("二维码授权失败：二维码无效或已过期, qrCodeId={}", qrCodeId);
+            return new IMQRCodeResult().setCode(qrCodeId).setStatus(IMConstant.QRCODE_EXPIRED);
         }
 
-        // 2. 获取并更新二维码状态
-        IMQRCode qr = redisCache.get(redisKey);
+        // 更新为已授权状态，并记录授权人
         qr.setStatus(IMConstant.QRCODE_AUTHORIZED)
                 .setUserId(userId)
                 .setScannedAt(System.currentTimeMillis());
 
-        // 3. 写回 Redis，设置 30 秒后过期
+        // 授权后有效期缩短至 30 秒，需尽快完成登录轮询
         redisCache.set(redisKey, qr, 30, TimeUnit.SECONDS);
 
-        // 4. 返回统一响应
         return new IMQRCodeResult()
                 .setCode(qrCodeId)
                 .setStatus(IMConstant.QRCODE_AUTHORIZED)
@@ -349,42 +291,27 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * 状态查询：若已扫描则生成临时密码并标记已授权，20 秒后过期。
+     * 网页端轮询：获取二维码状态，若已授权则生成登录凭证
      */
     @Override
     public IMQRCodeResult getQRCodeStatus(String qrCodeId) {
-
-        log.debug("查询二维码状态：qrCodeId={}", qrCodeId);
-
         String redisKey = IMConstant.QRCODE_KEY_PREFIX + qrCodeId;
-
         IMQRCode qr = redisCache.get(redisKey);
 
-        // 如果二维码不存在或已过期
-        if (Objects.isNull(qr)) {
-            log.warn("二维码不存在或已过期：qrCodeId={}", qrCodeId);
-
-            return new IMQRCodeResult()
-                    .setCode(qrCodeId)
-                    .setStatus(IMConstant.QRCODE_EXPIRED);
+        if (qr == null) {
+            return new IMQRCodeResult().setCode(qrCodeId).setStatus(IMConstant.QRCODE_EXPIRED);
         }
 
-        // 如果已扫描且确认登录，生成临时密码并标记为已授权
+        // 如果手机端已授权，生成一次性登录凭证（临时密码）
         if (IMConstant.QRCODE_AUTHORIZED.equals(qr.getStatus())) {
+            // 生成 6 位随机数作为临时凭证
+            String tempPwd = String.format("%06d", ThreadLocalRandom.current().nextInt(1000000));
 
-            // 生成临时密码
-            String tempPwd = String.valueOf((int) ((Math.random() * 9 + 1) * 100000));
-
-            qr.setStatus(IMConstant.QRCODE_AUTHORIZED)
-                    .setPassword(tempPwd)
-                    .setLoggedInAt(System.currentTimeMillis());
-
-            // 更新 Redis，20 秒后过期
+            qr.setPassword(tempPwd).setLoggedInAt(System.currentTimeMillis());
+            // 凭证 20 秒内有效
             redisCache.set(redisKey, qr, 20, TimeUnit.SECONDS);
 
-            log.info("二维码授权：qrCodeId={}, password={}", qrCodeId, tempPwd);
-
-            // 返回包含临时密码的响应
+            log.info("二维码登录凭证已生成：qrCodeId={}", qrCodeId);
             return new IMQRCodeResult()
                     .setCode(qrCodeId)
                     .setStatus(IMConstant.QRCODE_AUTHORIZED)
@@ -392,52 +319,35 @@ public class AuthServiceImpl implements AuthService {
                     .setExtra(Map.of("password", tempPwd));
         }
 
-        // 其他状态直接返回
-        return new IMQRCodeResult()
-                .setCode(qrCodeId)
-                .setStatus(qr.getStatus());
+        return new IMQRCodeResult().setCode(qrCodeId).setStatus(qr.getStatus());
     }
 
-    // --------------------------------------------------
-    // 6. 辅助方法
-    // --------------------------------------------------
-
-    /**
-     * 生成登录用 JWT Token 并封装返回结果
-     */
     private IMLoginResult generateAuthInfo(Authentication auth) {
-
         String userId = auth.getPrincipal().toString();
+        Integer expiration = iMSecurityAuthProperties.getExpiration();
 
-        // 生成token
-        String token = JwtUtil.createToken(userId, iMSecurityAuthProperties.getExpiration(), ChronoUnit.HOURS);
+        // 优先从缓存获取已有的有效 Token（支持多端复用同一 Token 逻辑）
+        IMRegisterUser userInfo = redisCache.get(IMConstant.USER_CACHE_PREFIX + userId);
+        String token = (userInfo != null && StringUtils.hasText(userInfo.getToken()))
+                ? userInfo.getToken()
+                : JwtUtil.createToken(userId, expiration, ChronoUnit.HOURS);
 
-        log.debug("生成 JWT Token：userId={}", userId);
+        log.debug("生成/获取认证信息：userId={}, tokenSource={}", userId, (userInfo != null ? "cache" : "new"));
 
         return new IMLoginResult()
                 .setUserId(userId)
                 .setAccessToken(token)
-                .setExpiration(iMSecurityAuthProperties.getExpiration());
+                .setExpiration(expiration);
     }
 
-    /**
-     * 从请求头或参数中提取 Bearer Token
-     */
     private String extractToken(HttpServletRequest req) {
-
-        String header = req.getHeader(IMConstant.AUTH_TOKEN_HEADER);
-
-        if (StringUtils.hasText(header)) {
-            return header.replaceFirst(IMConstant.BEARER_PREFIX, "").trim();
-        }
-
-        String param = req.getParameter(IMConstant.ACCESS_TOKEN_PARAM);
-
-        if (StringUtils.hasText(param)) {
-            return param.replaceFirst(IMConstant.BEARER_PREFIX, "").trim();
-        }
-
-        return null;
+        return Optional.ofNullable(req.getHeader(IMConstant.AUTH_TOKEN_HEADER))
+                .filter(StringUtils::hasText)
+                .map(h -> h.replaceFirst(IMConstant.BEARER_PREFIX, "").trim())
+                .orElseGet(() -> Optional.ofNullable(req.getParameter(IMConstant.ACCESS_TOKEN_PARAM))
+                        .filter(StringUtils::hasText)
+                        .map(p -> p.replaceFirst(IMConstant.BEARER_PREFIX, "").trim())
+                        .orElse(null));
     }
 
     /**

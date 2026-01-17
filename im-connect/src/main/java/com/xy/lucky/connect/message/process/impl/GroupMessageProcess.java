@@ -1,6 +1,5 @@
 package com.xy.lucky.connect.message.process.impl;
 
-
 import com.xy.lucky.connect.channel.UserChannelMap;
 import com.xy.lucky.connect.config.LogConstant;
 import com.xy.lucky.connect.message.process.MessageProcess;
@@ -19,46 +18,42 @@ import java.util.List;
  */
 @Slf4j(topic = LogConstant.Message)
 @Service("groupMessageProcess")
-public class GroupMessageProcess implements MessageProcess {
+public class GroupMessageProcess implements MessageProcess<Object> {
 
     @Autowired
-    private UserChannelMap userChannelMap;
+    protected UserChannelMap userChannelMap;
 
     @Override
-    public void dispose(IMessageWrap messageWrap) {
+    public void dispose(IMessageWrap<Object> messageWrap) {
+        String typeName = getSupportedType().name();
+        List<String> ids = messageWrap.getIds();
+        Object data = messageWrap.getData();
 
-        log.info("接收到消息，接收者:{}，内容:{}", messageWrap.getIds(),
-                messageWrap.getData());
+        log.info("接收到 [{}] 消息, 目标用户数: {}, 内容: {}", typeName, ids != null ? ids.size() : 0, data);
+
+        if (ids == null || ids.isEmpty()) {
+            log.warn("[{}] 消息目标 ID 列表为空，忽略处理", typeName);
+            return;
+        }
 
         try {
-
-            List<String> ids = messageWrap.getIds();
-
-            // 2. 遍历当前netty中存在的指定群聊用户
-            for (String id : ids) {
-                // 3. 获取群聊接收者的channel
-                Collection<Channel> ctxMap = userChannelMap.getChannelsByUser(id);
-
-                for (Channel ctx : ctxMap) {
-
-                    // 4. 推送消息到接收者
-                    if (ctx != null && ctx.isOpen()) {
-
-                        // 推送消息到用户
-                        ctx.writeAndFlush(messageWrap);
-
-                    } else {
-                        // 消息推送失败确认
-                        log.error("未找到WS连接，接收者:{}，内容:{}", messageWrap.getIds(),
-                                messageWrap.getData());
-                    }
-
+            for (String userId : ids) {
+                Collection<Channel> channels = userChannelMap.getChannelsByUser(userId);
+                if (channels.isEmpty()) {
+                    log.debug("用户 {} 在线通道为空，无法推送 [{}] 消息", userId, typeName);
+                    continue;
                 }
 
+                for (Channel channel : channels) {
+                    if (channel != null && channel.isActive()) {
+                        channel.writeAndFlush(messageWrap);
+                    } else {
+                        log.warn("用户 {} 的通道已失效，无法推送消息", userId);
+                    }
+                }
             }
         } catch (Exception e) {
-            log.error("发送异常，接收者:{}，内容:{}", messageWrap.getIds(),
-                    messageWrap.getData());
+            log.error("[{}] 消息处理异常: userId={}, err={}", typeName, ids, e.getMessage(), e);
         }
     }
 

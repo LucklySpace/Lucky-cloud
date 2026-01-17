@@ -2,7 +2,9 @@ package com.xy.lucky.connect.domain;
 
 import com.xy.lucky.core.enums.IMDeviceType;
 import io.netty.channel.Channel;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
@@ -14,45 +16,49 @@ import java.util.Map;
 @NoArgsConstructor
 public class IMUserChannel {
 
-    // 用户id
+    /**
+     * 用户 ID
+     */
     private String userId;
 
-    // 用户设备通道映射：连接槽位 -> UserChannel（如：mobile/desktop/web/single）
+    /**
+     * 用户设备通道映射：设备分组 -> 用户通道详情
+     * - 设备分组（MOBILE/DESKTOP/WEB）作为 Key 确保同组互斥
+     */
     private Map<IMDeviceType.DeviceGroup, UserChannel> userChannelMap;
 
     /**
-     * 判断当前设备类型是否与已有设备冲突，确保同类设备只允许一个连接
-     * 
-     * @param deviceType 当前设备类型
-     * @return true 如果冲突，false 如果没有冲突
+     * 获取用户在特定分组上的在线通道
      */
-    public boolean isDeviceConflict(IMDeviceType deviceType) {
-        return userChannelMap != null && userChannelMap.values().stream()
-                .map(UserChannel::getDeviceType)
-                .anyMatch(existing -> existing.isConflicting(deviceType));
+    public UserChannel getChannelByGroup(IMDeviceType.DeviceGroup group) {
+        return userChannelMap != null ? userChannelMap.get(group) : null;
     }
 
     /**
-     * 设备通道类
+     * 设备通道详情类
      */
-    @Getter
-    @Setter
-    @ToString
-    @NoArgsConstructor
+    @Data
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class UserChannel {
-
-        // 通道id
+        /**
+         * Netty Channel ID (LongText)
+         */
         private String channelId;
 
-        // 设备类型
+        /**
+         * 具体设备类型 (如 ANDROID, IOS, WIN)
+         */
         private IMDeviceType deviceType;
 
-        // 连接槽位（如：mobile/desktop/web/single）
+        /**
+         * 所属设备分组 (如 MOBILE, DESKTOP, WEB)
+         */
         private IMDeviceType.DeviceGroup group;
 
-        // 用户通道
+        /**
+         * Netty Channel 实例
+         */
         private Channel channel;
     }
-
 }

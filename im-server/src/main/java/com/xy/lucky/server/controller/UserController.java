@@ -11,11 +11,14 @@ import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
+import java.util.concurrent.Executor;
 
 
 /**
@@ -30,6 +33,14 @@ public class UserController {
     @Resource
     private UserService userService;
 
+    @Resource
+    @Qualifier("virtualThreadExecutor")
+    private Executor virtualThreadExecutor;
+
+    private Scheduler getScheduler() {
+        return Schedulers.fromExecutor(virtualThreadExecutor);
+    }
+
     @PostMapping("/list")
     @Operation(summary = "查询用户列表", tags = {"user"}, description = "请使用此接口查找用户列表")
     @Parameters({
@@ -37,7 +48,7 @@ public class UserController {
     })
     public Mono<List<UserVo>> list(@RequestBody UserDto userDto) {
         return Mono.fromCallable(() -> userService.list(userDto))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
     @GetMapping("/one")
@@ -47,7 +58,7 @@ public class UserController {
     })
     public Mono<UserVo> one(@RequestParam("userId") String userId) {
         return Mono.fromCallable(() -> userService.one(userId))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
     @PostMapping("/create")
@@ -57,7 +68,7 @@ public class UserController {
     })
     public Mono<UserVo> create(@RequestBody UserDto userDto) {
         return Mono.fromCallable(() -> userService.create(userDto))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
     @PostMapping("/update")
@@ -67,7 +78,7 @@ public class UserController {
     })
     public Mono<Boolean> update(@RequestBody UserDto userDto) {
         return Mono.fromCallable(() -> userService.update(userDto))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
     @DeleteMapping("/delete")
@@ -77,6 +88,6 @@ public class UserController {
     })
     public Mono<Boolean> delete(@RequestParam("userId") String userId) {
         return Mono.fromCallable(() -> userService.delete(userId))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 }

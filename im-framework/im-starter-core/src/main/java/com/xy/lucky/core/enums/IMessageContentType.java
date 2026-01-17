@@ -48,17 +48,20 @@ public enum IMessageContentType {
     POLL(330, "投票 / 问卷"),
     FORWARD(340, "转发内容（封装）"),
 
-
     /**
      * 群组（400-499）
      */
     GROUP_INVITE(400, "群组邀请"),
-
+    GROUP_APPROVE(401, "群组审批"),
 
     /**
      * 其它 / 保留
      */
     COMPLEX(500, "混合消息（多类型组合）"),
+    recall(501, "撤回消息"),
+    edit(502, "编辑消息"),
+
+
     UNKNOWN(999, "未知类型（保底）");
 
     private Integer code;

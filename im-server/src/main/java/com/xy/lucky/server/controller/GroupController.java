@@ -17,14 +17,17 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.Map;
+import java.util.concurrent.Executor;
 
 /**
  * 群聊
@@ -38,6 +41,17 @@ public class GroupController {
     @Resource
     private GroupService groupService;
 
+    @Resource
+    @Qualifier("virtualThreadExecutor")
+    private Executor virtualThreadExecutor;
+
+    /**
+     * 获取虚拟线程调度器
+     */
+    private Scheduler getScheduler() {
+        return Schedulers.fromExecutor(virtualThreadExecutor);
+    }
+
     @PostMapping("/invite")
     @Operation(summary = "群聊邀请", tags = {"group"}, description = "请使用此接口群聊邀请")
     @ApiResponses(value = {
@@ -48,8 +62,9 @@ public class GroupController {
     @Parameters({
             @Parameter(name = "groupInviteDto", description = "邀请信息", required = true, in = ParameterIn.DEFAULT)
     })
-    public String inviteGroup(@RequestBody GroupInviteDto groupInviteDto) {
-        return groupService.inviteGroup(groupInviteDto);
+    public Mono<String> inviteGroup(@RequestBody GroupInviteDto groupInviteDto) {
+        return Mono.fromCallable(() -> groupService.inviteGroup(groupInviteDto))
+                .subscribeOn(getScheduler());
     }
 
     @PostMapping("/member")
@@ -64,7 +79,7 @@ public class GroupController {
     })
     public Mono getGroupMembers(@RequestBody GroupDto groupDto) {
         return Mono.fromCallable(() -> groupService.getGroupMembers(groupDto))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
     @PostMapping("/approve")
@@ -79,7 +94,7 @@ public class GroupController {
     })
     public Mono<String> approveGroupInvite(@RequestBody GroupInviteDto groupInviteDto) {
         return Mono.fromCallable(() -> groupService.approveGroupInvite(groupInviteDto))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
     @PostMapping("/info")
@@ -94,7 +109,7 @@ public class GroupController {
     })
     public Mono<ImGroupPo> groupInfo(@RequestBody GroupDto groupDto) {
         return Mono.fromCallable(() -> groupService.groupInfo(groupDto))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
     @PostMapping("/update")
@@ -109,7 +124,7 @@ public class GroupController {
     })
     public Mono<Boolean> updateGroupInfo(@RequestBody GroupDto groupDto) {
         return Mono.fromCallable(() -> groupService.updateGroupInfo(groupDto))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
     @PostMapping("/quit")
@@ -119,7 +134,7 @@ public class GroupController {
     })
     public Mono<Void> quit(@RequestBody GroupDto groupDto) {
         return Mono.fromRunnable(() -> groupService.quitGroup(groupDto))
-                .subscribeOn(Schedulers.boundedElastic())
+                .subscribeOn(getScheduler())
                 .then();
     }
 
@@ -130,6 +145,6 @@ public class GroupController {
     })
     public Mono<Boolean> updateGroupMember(@RequestBody GroupMemberDto groupMemberDto) {
         return Mono.fromCallable(() -> groupService.updateGroupMember(groupMemberDto))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 }

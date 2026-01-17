@@ -10,12 +10,15 @@ import jakarta.annotation.Resource;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
+import java.util.concurrent.Executor;
 
 @Slf4j
 @RestController
@@ -27,6 +30,14 @@ public class UserEmojiController {
     @Resource
     private UserEmojiService userEmojiService;
 
+    @Resource
+    @Qualifier("virtualThreadExecutor")
+    private Executor virtualThreadExecutor;
+
+    private Scheduler getScheduler() {
+        return Schedulers.fromExecutor(virtualThreadExecutor);
+    }
+
     @GetMapping("/list")
     @Operation(summary = "查询用户已关联的表情包编码列表", tags = {"emoji-user"}, description = "通过用户ID查询其已绑定的表情包编码列表")
     @Parameters({
@@ -34,7 +45,7 @@ public class UserEmojiController {
     })
     public Mono<List<String>> list(@RequestParam("userId") @NotBlank @Size(max = 64) String userId) {
         return Mono.fromCallable(() -> userEmojiService.listPackIds(userId))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
     @PostMapping("/bind")
@@ -46,7 +57,7 @@ public class UserEmojiController {
     public Mono<Boolean> bind(@RequestParam("userId") @NotBlank @Size(max = 64) String userId,
                               @RequestParam("packId") @NotBlank @Size(max = 64) String packId) {
         return Mono.fromCallable(() -> userEmojiService.bindPack(userId, packId))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 
     @DeleteMapping("/unbind")
@@ -58,7 +69,6 @@ public class UserEmojiController {
     public Mono<Boolean> unbind(@RequestParam("userId") @NotBlank @Size(max = 64) String userId,
                                 @RequestParam("packId") @NotBlank @Size(max = 64) String packId) {
         return Mono.fromCallable(() -> userEmojiService.unbindPack(userId, packId))
-                .subscribeOn(Schedulers.boundedElastic());
+                .subscribeOn(getScheduler());
     }
 }
-

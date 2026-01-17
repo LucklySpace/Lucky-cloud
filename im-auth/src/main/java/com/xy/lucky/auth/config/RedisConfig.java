@@ -1,43 +1,57 @@
 package com.xy.lucky.auth.config;
 
+
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
+import org.springframework.cache.annotation.CachingConfigurerSupport;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
 
-
-/**
- * Redis 配置类，支持包容性序列化：
- * - 使用 Jackson 序列化器，模拟 FastJSON 的 @class 处理。
- * - 序列化时添加 @class 类型信息（默认启用，可配置）。
- * - 反序列化时：
- * - 如果 JSON 中有 @class，使用它解析类型（支持多态）。
- * - 如果无 @class，尝试使用目标类型解析（fallback，包容性强）。
- * - 配置包容性：忽略未知属性、未知类型 fallback。
- */
 @EnableCaching  //开启缓存注解功能
 @Configuration
-public class RedisConfig {
+public class RedisConfig extends CachingConfigurerSupport {
 
     @Bean
     public RedisCacheConfiguration redisCacheConfiguration() {
+        GenericJackson2JsonRedisSerializer genericJackson2JsonRedisSerializer
+                = new GenericJackson2JsonRedisSerializer();
         RedisCacheConfiguration configuration = RedisCacheConfiguration.defaultCacheConfig();
-        configuration = configuration.serializeValuesWith(
-                        RedisSerializationContext.SerializationPair.fromSerializer(getSerializer()))
+        configuration = configuration.serializeValuesWith
+                        (RedisSerializationContext.SerializationPair.fromSerializer(genericJackson2JsonRedisSerializer))
                 .entryTtl(Duration.ofDays(1));
         return configuration;
     }
 
+
+    @Bean
+    public ReactiveRedisTemplate<String, Object> reactiveRedisTemplate(ReactiveRedisConnectionFactory factory) {
+        StringRedisSerializer keySerializer = new StringRedisSerializer();
+        Jackson2JsonRedisSerializer<Object> valueSerializer = getSerializer();
+        RedisSerializationContext.RedisSerializationContextBuilder<String, Object> builder =
+                RedisSerializationContext.newSerializationContext(keySerializer);
+        RedisSerializationContext<String, Object> context = builder.value(valueSerializer).hashValue(valueSerializer).build();
+        return new ReactiveRedisTemplate<>(factory, context);
+    }
 
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
@@ -58,13 +72,31 @@ public class RedisConfig {
     }
 
     public Jackson2JsonRedisSerializer<Object> getSerializer() {
-
         ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-        objectMapper.activateDefaultTyping(objectMapper.getPolymorphicTypeValidator(), ObjectMapper.DefaultTyping.NON_FINAL);
 
-//        om.addMixIn(Object.class, ObjectMixin.class);
+        // 基础配置：与 im-connect 的 JacksonUtil 保持一致
+        objectMapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
+        objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+        objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+        // 支持 Java 8 时间、参数名（用于 Record）等
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.registerModule(new Jdk8Module());
+        objectMapper.registerModule(new ParameterNamesModule());
+
+        // 设置可见性
+        objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+
+        // 核心修复：启用多态类型处理，必须使用 EVERYTHING 才能与 im-connect 的 JacksonUtil 兼容
+        // 特别是针对 record 这种 final 类型，DefaultTyping.NON_FINAL 会导致反序列化时无法识别包装数组
+        objectMapper.activateDefaultTyping(
+                LaissezFaireSubTypeValidator.instance,
+                ObjectMapper.DefaultTyping.EVERYTHING
+        );
+
         return new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
     }
+
 
 }

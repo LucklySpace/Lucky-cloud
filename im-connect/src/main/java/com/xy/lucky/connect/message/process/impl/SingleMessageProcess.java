@@ -18,42 +18,42 @@ import java.util.List;
  */
 @Slf4j(topic = LogConstant.Message)
 @Service("singleMessageProcess")
-public class SingleMessageProcess implements MessageProcess {
+public class SingleMessageProcess implements MessageProcess<Object> {
 
     @Autowired
-    private UserChannelMap userChannelMap;
+    protected UserChannelMap userChannelMap;
 
     @Override
-    public void dispose(IMessageWrap messageWrap) {
-        // 1. 序列化获取消息
-        log.info("接收到消息  接收者:{}，内容:{}", messageWrap.getIds(),
-                messageWrap.getData());
+    public void dispose(IMessageWrap<Object> messageWrap) {
+        String typeName = getSupportedType().name();
+        List<String> ids = messageWrap.getIds();
+        Object data = messageWrap.getData();
+
+        log.info("接收到 [{}] 消息, 目标用户数: {}, 内容: {}", typeName, ids != null ? ids.size() : 0, data);
+
+        if (ids == null || ids.isEmpty()) {
+            log.warn("[{}] 消息目标 ID 列表为空，忽略处理", typeName);
+            return;
+        }
+
         try {
+            for (String userId : ids) {
+                Collection<Channel> channels = userChannelMap.getChannelsByUser(userId);
+                if (channels.isEmpty()) {
+                    log.debug("用户 {} 在线通道为空，无法推送 [{}] 消息", userId, typeName);
+                    continue;
+                }
 
-            List<String> ids = messageWrap.getIds();
-
-            for (String id : ids) {
-                // 2. 获取接收者的channel
-                Collection<Channel> ctxMap = userChannelMap.getChannelsByUser(id);
-
-                for (Channel ctx : ctxMap) {
-
-                    // 3. 推送消息到接收者
-                    if (ctx != null && ctx.isOpen()) {
-
-                        // 推送消息到用户
-                        ctx.writeAndFlush(messageWrap);
-
+                for (Channel channel : channels) {
+                    if (channel != null && channel.isActive()) {
+                        channel.writeAndFlush(messageWrap);
                     } else {
-                        // 消息推送失败确认
-                        log.error("未找到WS连接，接收者:{}，内容:{}", messageWrap.getIds(),
-                                messageWrap.getData());
+                        log.warn("用户 {} 的通道已失效，无法推送消息", userId);
                     }
                 }
             }
         } catch (Exception e) {
-            log.error("发送异常，接收者:{}，内容:{}", messageWrap.getIds(),
-                    messageWrap.getData());
+            log.error("[{}] 消息处理异常: userId={}, err={}", typeName, ids, e.getMessage(), e);
         }
     }
 

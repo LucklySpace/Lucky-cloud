@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j(topic = LogConstant.HeartBeat)
 @Component
 @ChannelHandler.Sharable
-public class IMHeartBeatHandler extends SimpleChannelInboundHandler<IMessageWrap<Object>> {
+public class HeartBeatHandler extends SimpleChannelInboundHandler<IMessageWrap<Object>> {
 
     @Autowired
     private HeartBeatProcess heartBeatProcess;

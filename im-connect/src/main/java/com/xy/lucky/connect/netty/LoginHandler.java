@@ -21,7 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j(topic = LogConstant.Login)
 @Component
 @ChannelHandler.Sharable
-public class IMLoginHandler extends SimpleChannelInboundHandler<IMessageWrap<Object>> {
+public class LoginHandler extends SimpleChannelInboundHandler<IMessageWrap<Object>> {
 
     @Autowired
     private LoginProcess loginProcess;

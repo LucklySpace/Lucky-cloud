@@ -1,6 +1,7 @@
 package com.xy.lucky.auth;
 
 import com.github.xiaoymin.knife4j.spring.annotations.EnableKnife4j;
+import com.xy.lucky.auth.security.config.OAuth2Properties;
 import com.xy.lucky.auth.security.config.RSAKeyProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -17,7 +18,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableKnife4j
 @EnableAspectJAutoProxy(exposeProxy = true)
 @ComponentScan("com.xy.lucky") // 扫描包路径
-@EnableConfigurationProperties({RSAKeyProperties.class})
+@EnableConfigurationProperties({RSAKeyProperties.class, OAuth2Properties.class})
 @SpringBootApplication(exclude = {DataSourceAutoConfiguration.class}) //去除不必要的组件
 public class ImAuthApplication {
 

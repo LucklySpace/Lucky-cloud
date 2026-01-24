@@ -1,23 +1,22 @@
 package com.xy.lucky.gateway.lb;
 
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.loadbalancer.*;
 import org.springframework.cloud.loadbalancer.core.NoopServiceInstanceListSupplier;
 import org.springframework.cloud.loadbalancer.core.ReactorServiceInstanceLoadBalancer;
-import org.springframework.cloud.loadbalancer.core.SelectedInstanceCallback;
 import org.springframework.cloud.loadbalancer.core.ServiceInstanceListSupplier;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Mono;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -56,160 +55,86 @@ public class NacosWebsocketClusterChooseRule implements ReactorServiceInstanceLo
         this.reactiveRedisTemplate = reactiveRedisTemplate;
     }
 
-    @SneakyThrows
     @Override
     public Mono<Response<ServiceInstance>> choose(Request request) {
-
-        // 获取请求url
-        String rawQuery = ((RequestDataContext) request.getContext()).getClientRequest().getUrl().getRawQuery();
-
-        // 获取用户uid
+        RequestDataContext context = (RequestDataContext) request.getContext();
+        String rawQuery = context.getClientRequest().getUrl().getRawQuery();
         String uid = extractQueryParam(rawQuery, "uid");
 
         if (uid == null) {
-            log.error("建立连接失败，缺少字段uid，url:{}", rawQuery);
+            log.error("建立连接失败：缺少 uid 参数, url={}", rawQuery);
             return Mono.just(new EmptyResponse());
         }
 
-        log.debug("当前用户 {} 的请求url为：{}", uid, rawQuery);
+        log.debug("长连接负载均衡：uid={}, url={}", uid, rawQuery);
 
         ServiceInstanceListSupplier supplier = serviceInstanceListSupplierProvider.getIfAvailable(NoopServiceInstanceListSupplier::new);
+        return supplier.get(request).next().flatMap(instances -> {
+            if (instances.isEmpty()) {
+                log.warn("没有可用的 im-connect 实例");
+                return Mono.just(new EmptyResponse());
+            }
 
-        // 获取长连接服务
-        return supplier.get(request).next()
-                .map(serviceInstances -> processInstanceResponse(supplier, serviceInstances, uid));
-    }
-
-    private Response<ServiceInstance> processInstanceResponse(ServiceInstanceListSupplier supplier, List<ServiceInstance> serviceInstances, String uid) {
-
-        Response<ServiceInstance> serviceInstanceResponse = getInstanceResponse(serviceInstances, uid);
-
-        if (supplier instanceof SelectedInstanceCallback && serviceInstanceResponse.hasServer()) {
-            ((SelectedInstanceCallback) supplier).selectedServiceInstance(serviceInstanceResponse.getServer());
-        }
-
-        return serviceInstanceResponse;
-    }
-
-    /**
-     * 获取实例
-     *
-     * @param instances 实例列表
-     * @param uid       用户ID
-     * @return 实例
-     */
-    private Response<ServiceInstance> getInstanceResponse(List<ServiceInstance> instances, String uid) {
-
-        if (instances.isEmpty()) {
-            log.warn("没有可用的服务器实例");
-            return new EmptyResponse();
-        }
-
-        // 根据用户ID选择服务器实例
-        String brokerId = getUserBroker(uid);
-
-        if (StringUtils.hasText(brokerId)) {
-            log.debug("当前用户 {} 的 brokerId 为：{}", uid, brokerId);
-            // 根据机器码从实例列表选择实例 ，如果没有匹配的 brokerId，使用结合轮询与最小连接数的算法选择实例
-            return instances.stream()
-                    .filter(instance -> brokerId.equals(instance.getMetadata().get(IM_BROKER)))
-                    .findFirst()
-                    .map(DefaultResponse::new)
-                    .orElseGet(() -> (DefaultResponse) chooseByRoundRobinWithLeastConnection(instances, uid));
-        }
-
-        // 如果没有匹配的 brokerId，使用结合轮询与最小连接数的算法选择实例
-        return chooseByRoundRobinWithLeastConnection(instances, uid);
+            return getUserBroker(uid).map(brokerId -> {
+                if (StringUtils.hasText(brokerId)) {
+                    Optional<ServiceInstance> match = instances.stream()
+                            .filter(i -> brokerId.equals(i.getMetadata().get(IM_BROKER)))
+                            .findFirst();
+                    if (match.isPresent()) {
+                        return (Response<ServiceInstance>) new DefaultResponse(match.get());
+                    }
+                }
+                return chooseByLeastConnection(instances);
+            });
+        });
     }
 
     /**
-     * 轮询与最小连接数结合的负载算法
-     * 轮询负载均衡 + 最少连接数选择：每次轮询选择一个实例，且优先选择连接数较少的实例。
-     *
-     * @param instances 实例列表
-     * @param uid       用户ID
-     * @return 选择的服务器实例
-     */
-    private Response<ServiceInstance> chooseByRoundRobinWithLeastConnection(List<ServiceInstance> instances, String uid) {
-        // 获取当前的轮询位置
-        int pos = Math.abs(position.incrementAndGet()) % instances.size();
-
-        ServiceInstance chosenInstance = instances.get(pos);
-
-        // 获取实例的连接数并比较，选择连接数最少的实例
-//        chosenInstance = instances.stream()
-//                .min(Comparator.comparingInt(this::getConnectionCount))
-//                .orElse(chosenInstance);
-
-        log.info("用户 {} 分配的服务器为：{}，当前连接数为：{}", uid, chosenInstance.getMetadata().get(IM_BROKER), getConnectionCount(chosenInstance));
-
-        return new DefaultResponse(chosenInstance);
-    }
-
-    /**
-     * 最少连接数算法选择实例
-     *
-     * @param instances 服务器实例列表
-     * @return
+     * 最少连接数负载均衡算法
      */
     private Response<ServiceInstance> chooseByLeastConnection(List<ServiceInstance> instances) {
-        // 找到连接数最少的实例
-        ServiceInstance leastConnectionInstance = instances.stream()
+        ServiceInstance instance = instances.stream()
                 .min(Comparator.comparingInt(this::getConnectionCount))
-                .orElseThrow(() -> new IllegalStateException("找不到合适的服务实例"));
+                .orElse(instances.get(Math.abs(position.incrementAndGet()) % instances.size()));
 
-        log.info("选择的服务器为：{}，连接数为：{}", leastConnectionInstance.getMetadata().get(IM_BROKER), getConnectionCount(leastConnectionInstance));
-
-        return new DefaultResponse(leastConnectionInstance);
+        log.info("负载均衡结果：已选实例 {}, 当前连接数 {}", instance.getMetadata().get(IM_BROKER), getConnectionCount(instance));
+        return new DefaultResponse(instance);
     }
 
-    /**
-     * 获取连接数的最少值
-     *
-     * @param instance 服务实例
-     * @return 连接数
-     */
     private Integer getConnectionCount(ServiceInstance instance) {
-        String connectionCountStr = instance.getMetadata().get(CONNECTION_COUNT);
         try {
-            return connectionCountStr != null ? Integer.parseInt(connectionCountStr) : 0;
-        } catch (NumberFormatException e) {
-            log.error("解析连接数失败: {}", connectionCountStr, e);
-            // 如果解析失败，视为最大值，避免选择这个实例
-            return Integer.MAX_VALUE;
-        }
-    }
-
-    /**
-     * 根据用户ID获取用户对应的 brokerId
-     *
-     * @param uid 用户ID
-     * @return brokerId
-     */
-    private String getUserBroker(String uid) {
-        try {
-            Object userObj = reactiveRedisTemplate.opsForValue().get(IM_USER_PREFIX + uid).toFuture().get();
-            return userObj == null ? null : ((LinkedHashMap<?, ?>) userObj).get(IM_BROKER).toString();
+            String count = instance.getMetadata().get(CONNECTION_COUNT);
+            return count != null ? Integer.parseInt(count) : 0;
         } catch (Exception e) {
-            log.error("Redis 获取 broker 出错，UID: {}", uid, e);
-            return null;
+            return 0;
         }
     }
 
     /**
-     * 解析查询参数
-     *
-     * @param url   url
-     * @param param 参数名
-     * @return 参数值
-     * @throws UnsupportedEncodingException
+     * 异步从 Redis 获取用户绑定的 brokerId
      */
-    private String extractQueryParam(String url, String param) throws UnsupportedEncodingException {
-        for (String p : url.split("&")) {
-            String[] keyValue = p.split("=");
-            if (keyValue[0].equals(param)) {
-                return URLDecoder.decode(keyValue[1], "UTF-8");
+    private Mono<String> getUserBroker(String uid) {
+        return reactiveRedisTemplate.opsForValue().get(IM_USER_PREFIX + uid)
+                .map(userObj -> {
+                    if (userObj instanceof LinkedHashMap<?, ?> map) {
+                        Object bId = map.get(IM_BROKER);
+                        return bId != null ? bId.toString() : "";
+                    }
+                    return "";
+                })
+                .defaultIfEmpty("");
+    }
+
+    private String extractQueryParam(String query, String param) {
+        if (!StringUtils.hasText(query)) return null;
+        try {
+            for (String p : query.split("&")) {
+                String[] kv = p.split("=");
+                if (kv.length > 1 && kv[0].equals(param)) {
+                    return URLDecoder.decode(kv[1], StandardCharsets.UTF_8);
+                }
             }
+        } catch (Exception ignored) {
         }
         return null;
     }

@@ -40,9 +40,21 @@ spring:
 
 lucky:
   gateway:
-    sign:
+    security:
       enabled: true
-      expire-time: 3000
+      ignore:
+        - '/auth/**'
+        - '/im/**'
+        - '/actuator/**'
+      auth:
+        enabled: true
+        check-blacklist-enabled: true
+        replay-protection-enabled: true
+      ip-guard:
+        enabled: true
+        max-requests: 20
+      sign:
+        enabled: true
     route-cache:
       cache-key: routes
       data-id: ${spring.config.location}

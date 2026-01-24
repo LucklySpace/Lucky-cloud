@@ -8,18 +8,21 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Map;
 
-/**
- * 二维码扫码状态响应
- */
 @Data
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Accessors(chain = true)
 @AllArgsConstructor
 @NoArgsConstructor
-public class IMQRCodeResult {
+@Schema(description = "二维码扫码状态响应")
+public class QRCodeResult implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     @Schema(description = "二维码凭证 ID，用于后续查询认证状态")
     private String code;

@@ -21,6 +21,16 @@
             <artifactId>im-starter-logging</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.xy.lucky</groupId>
+            <artifactId>im-starter-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xy.lucky</groupId>
+            <artifactId>im-starter-common</artifactId>
+        </dependency>
+
         <!-- Caffeine 本地缓存 -->
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
@@ -88,10 +98,6 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.xy.lucky</groupId>
-            <artifactId>im-starter-core</artifactId>
         </dependency>
 
     </dependencies>

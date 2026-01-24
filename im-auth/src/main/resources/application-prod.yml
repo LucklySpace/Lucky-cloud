@@ -63,8 +63,21 @@ security:
     default-height: 300
     format: PNG
     error-correction-level: L
+  oauth2:
+    authorization-code-ttl-seconds: 300
+    pkce-required: true
+    clients:
+      - client-id: mobile-app
+        redirect-uris:
+          - 'myapp://oauth/callback'
+        scopes:
+          - 'read'
+          - 'write'
+        require-pkce: true
   auth:
     expiration: 30                                                      #JWT过期时间 单位：min
+    refresh-expiration: 168                                             #refreshToken 过期时间 单位：hour
+    reuse-refresh-tokens: false
     secret: 'dasfdffdsfgfadgfshfghfgdsfgxcxfdghhfh'                     #JWT盐值
     ignore:
       - '/api/v1/auth/login'
@@ -73,6 +86,7 @@ security:
       - '/api/v1/auth/qrcode'
       - '/api/v1/auth/qrcode/status'
       - '/api/v1/auth/sms'
+      - '/api/*/oauth2/token'
 
 # TODO: log settings
 logging:

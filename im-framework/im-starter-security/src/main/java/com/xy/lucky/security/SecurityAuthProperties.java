@@ -28,5 +28,15 @@ public class SecurityAuthProperties {
      */
     private Integer expiration;
 
+    /**
+     * refresh token 过期时间 单位：hour
+     */
+    private Integer refreshExpiration = 720;
+
+    /**
+     * 是否复用刷新令牌
+     */
+    private Boolean reuseRefreshTokens = Boolean.FALSE;
+
 }
 

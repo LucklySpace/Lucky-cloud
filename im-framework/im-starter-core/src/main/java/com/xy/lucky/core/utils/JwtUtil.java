@@ -49,6 +49,19 @@ public class JwtUtil {
      * @return token 字符串
      */
     public static String createToken(String username, Integer time, ChronoUnit chronoUnit) {
+        return createToken(username, 0L, time, chronoUnit);
+    }
+
+    /**
+     * 创建带版本号的 Token
+     *
+     * @param username     用户名
+     * @param tokenVersion 令牌版本号，用于踢人和会话失效控制
+     * @param time         有效时间值（例如：30）
+     * @param chronoUnit   时间单位（例如：DateField.MINUTE）
+     * @return token 字符串
+     */
+    public static String createToken(String username, long tokenVersion, Integer time, ChronoUnit chronoUnit) {
         try {
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime expTime = now.plus(time, chronoUnit);
@@ -58,6 +71,7 @@ public class JwtUtil {
             payload.put(EXPIRES_AT, Date.from(expTime.atZone(ZoneId.systemDefault()).toInstant()).getTime() / 1000);
             payload.put(NOT_BEFORE, Date.from(now.atZone(ZoneId.systemDefault()).toInstant()).getTime() / 1000);
             payload.put("username", username);
+            payload.put("ver", tokenVersion);
             JWSObject jwsObject = new JWSObject(new JWSHeader(JWSAlgorithm.HS256), new Payload(payload));
             // Apply the HMAC
             jwsObject.sign(signer);
@@ -146,6 +160,31 @@ public class JwtUtil {
         } catch (ParseException e) {
             log.error("getUsername error:", e);
             return "";
+        }
+    }
+
+    /**
+     * 获取令牌版本号
+     *
+     * @param token JWT字符串
+     * @return 版本号，如果不存在则返回0
+     */
+    public static long getTokenVersion(String token) {
+        try {
+            Object ver = getPayload(token).toJSONObject().get("ver");
+            if (ver == null) {
+                return 0L;
+            }
+            if (ver instanceof Long) {
+                return (Long) ver;
+            }
+            if (ver instanceof Integer) {
+                return ((Integer) ver).longValue();
+            }
+            return Long.parseLong(ver.toString());
+        } catch (Exception e) {
+            log.error("getTokenVersion error:", e);
+            return 0L;
         }
     }
 

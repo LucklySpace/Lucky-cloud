@@ -79,7 +79,7 @@ public class HeartBeatProcess implements WebsocketProcess {
         metadata.put("deviceType", deviceType.getType());
 
         sendInfo.setCode(code)
-                .setToken("")
+                .setToken(null)
                 .setMessage(message)
                 .setMetadata(metadata);
 

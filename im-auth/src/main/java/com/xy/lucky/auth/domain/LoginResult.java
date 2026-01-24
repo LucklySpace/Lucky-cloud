@@ -9,6 +9,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+import java.io.Serial;
+import java.io.Serializable;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -19,10 +22,17 @@ import java.util.List;
 @Accessors(chain = true)
 @AllArgsConstructor
 @NoArgsConstructor
-public class IMLoginResult {
+@Schema(description = "用户登录成功响应")
+public class LoginResult implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     @Schema(description = "accessToken")
     private String accessToken;
+
+    @Schema(description = "refreshToken")
+    private String refreshToken;
 
     @Schema(description = "userId")
     private String userId;
@@ -30,13 +40,16 @@ public class IMLoginResult {
     @Schema(description = "token 类型", example = "Bearer")
     private String tokenType = IMConstant.BEARER_PREFIX;
 
-    @Schema(description = "过期时间(单位：秒)", example = "604800")
-    private Integer expiration;
+    @Schema(description = "accessToken  过期时间(单位：秒)", example = "604800")
+    private Integer accessExpiration;
 
-    @Schema(description = "refreshToken")
-    private String refreshToken;
+    @Schema(description = "refreshToken 过期时间(单位：秒)", example = "604800")
+    private Integer refreshExpiration;
+
+    @Schema(description = "token版本")
+    private String version;
 
     @Schema(description = "im-connect endpoints")
-    private List<IMConnectEndpointMetadata> connectEndpoints;
+    private List<ConnectEndpointMetadata> connectEndpoints = Collections.emptyList();
 
 }

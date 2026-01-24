@@ -45,6 +45,13 @@ public enum ResultCode implements IResult {
     UNSUPPORTED_AUTHENTICATION_TYPE(1015, "user.unsupported_authentication_type"), // 不支持的认证方式
     VALIDATION_INCOMPLETE(1016, "user.validation_incomplete"), // 验证信息不完整
     USER_OFFLINE(1017, "user.offline"),                     // 用户当前不在线
+    TOKEN_EXPIRED(1018, "user.token_expired"),              // 令牌已过期
+    TOKEN_REUSE_DETECTED(1019, "user.token_reuse_detected"), // 检测到令牌重用攻击
+    TOKEN_FAMILY_REVOKED(1020, "user.token_family_revoked"), // 令牌族已被撤销
+    TOKEN_VERSION_INVALID(1021, "user.token_version_invalid"), // 令牌版本已失效
+    DEVICE_MISMATCH(1022, "user.device_mismatch"),          // 设备不匹配
+    DEVICE_KICKED(1023, "user.device_kicked"),              // 设备已被踢出
+    TOKEN_EXPIRED_NEED_RELOGIN(1024, "user.token_expired_need_relogin"), // 令牌已达绝对过期时间，需重新登录
 
     // ========== 权限/业务 ==========
     NO_PERMISSION(2001, "biz.no_permission"),               // 没有权限访问该资源或操作

@@ -7,15 +7,19 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-/**
- * 二维码扫码状态
- */
+import java.io.Serial;
+import java.io.Serializable;
+
 @Data
 @Accessors(chain = true)
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class IMQRCode {
+@Schema(description = "二维码扫码状态")
+public class QRCode implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     @Schema(description = "用户id")
     private String userId;

@@ -4,8 +4,6 @@ import com.xy.lucky.auth.config.SmsCodeProperties;
 import com.xy.lucky.auth.service.RateLimitService;
 import com.xy.lucky.auth.service.SmsCodeService;
 import com.xy.lucky.auth.service.SmsService;
-import com.xy.lucky.general.response.domain.ResultCode;
-import com.xy.lucky.security.exception.AuthenticationFailException;
 import com.zhenzi.sms.ZhenziSmsClient;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -41,34 +39,28 @@ public class SmsServiceImpl implements SmsService {
     private SmsCodeProperties smsCodeProperties;
 
     @Override
-    public String sendMessage(String phone, String clientIp, String deviceId) throws Exception {
+    public Boolean sendMessage(String phone, String clientIp, String deviceId) {
         rateLimitService.allowSmsSend(phone, clientIp, deviceId);
 
         String plainCode = smsCodeService.generateAndStore(phone, clientIp, deviceId);
         try {
-            return sendSms(phone, plainCode);
-        } catch (Exception e) {
-            smsCodeService.deleteCode(phone);
-            throw e;
-        }
-    }
-
-    private String sendSms(String phone, String plainCode) throws Exception {
-        try {
-            ZhenziSmsClient client = new ZhenziSmsClient(apiUrl, appId, appSecret);
-
-            Map<String, Object> params = new HashMap<>();
-            params.put("number", phone);
-            params.put("templateId", TEMPLATE_ID);
-
-            long minutes = Math.max(1, smsCodeProperties.getTtl().toMinutes());
-            String[] templateParams = {plainCode, minutes + "分钟"};
-            params.put("templateParams", templateParams);
-
-            return client.send(params);
+            sendSms(phone, plainCode);
         } catch (Exception e) {
             log.error("短信发送失败，手机号: {}, 错误信息: {}", phone, e.getMessage());
-            throw new AuthenticationFailException(ResultCode.SMS_ERROR);
+            smsCodeService.deleteCode(phone);
+            return false;
         }
+        return true;
+    }
+
+    private void sendSms(String phone, String plainCode) throws Exception {
+        ZhenziSmsClient client = new ZhenziSmsClient(apiUrl, appId, appSecret);
+        Map<String, Object> params = new HashMap<>();
+        params.put("number", phone);
+        params.put("templateId", TEMPLATE_ID);
+        long minutes = Math.max(1, smsCodeProperties.getTtl().toMinutes());
+        String[] templateParams = {plainCode, minutes + "分钟"};
+        params.put("templateParams", templateParams);
+        client.send(params);
     }
 }

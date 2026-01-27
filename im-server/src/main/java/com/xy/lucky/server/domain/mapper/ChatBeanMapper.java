@@ -1,8 +1,8 @@
-package com.xy.lucky.domain.mapper;
+package com.xy.lucky.server.domain.mapper;
 
-import com.xy.lucky.domain.dto.ChatDto;
 import com.xy.lucky.domain.po.ImChatPo;
-import com.xy.lucky.domain.vo.ChatVo;
+import com.xy.lucky.server.domain.dto.ChatDto;
+import com.xy.lucky.server.domain.vo.ChatVo;
 import org.mapstruct.Mapper;
 import org.mapstruct.factory.Mappers;
 

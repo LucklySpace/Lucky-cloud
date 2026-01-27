@@ -1,4 +1,4 @@
-package com.xy.lucky.domain.vo;
+package com.xy.lucky.auth.domain.vo;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
@@ -6,30 +6,24 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
-import java.io.Serializable;
-
-
 @Data
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class FriendshipRequestVo implements Serializable {
+public class UserVo {
 
-    private String id;
-
-    private String fromId;
-
-    private String toId;
+    private String userId;
 
     private String name;
 
     private String avatar;
 
-    private String message;
+    private Integer gender;
 
-    private Long createTime;
+    private String birthday;
 
-    private Integer approveStatus;
+    private String location;
 
+    private String selfSignature;
 }

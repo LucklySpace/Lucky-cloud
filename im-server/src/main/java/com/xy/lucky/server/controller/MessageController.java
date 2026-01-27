@@ -4,7 +4,7 @@ import com.xy.lucky.core.model.IMGroupMessage;
 import com.xy.lucky.core.model.IMSingleMessage;
 import com.xy.lucky.core.model.IMVideoMessage;
 import com.xy.lucky.core.model.IMessageAction;
-import com.xy.lucky.domain.dto.ChatDto;
+import com.xy.lucky.server.domain.dto.ChatDto;
 import com.xy.lucky.server.service.MessageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

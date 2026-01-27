@@ -1,10 +1,10 @@
 package com.xy.lucky.server.controller;
 
 
-import com.xy.lucky.domain.dto.GroupDto;
-import com.xy.lucky.domain.dto.GroupInviteDto;
-import com.xy.lucky.domain.dto.GroupMemberDto;
 import com.xy.lucky.domain.po.ImGroupPo;
+import com.xy.lucky.server.domain.dto.GroupDto;
+import com.xy.lucky.server.domain.dto.GroupInviteDto;
+import com.xy.lucky.server.domain.dto.GroupMemberDto;
 import com.xy.lucky.server.service.GroupService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

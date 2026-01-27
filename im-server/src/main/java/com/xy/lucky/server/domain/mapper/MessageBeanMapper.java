@@ -1,4 +1,4 @@
-package com.xy.lucky.domain.mapper;
+package com.xy.lucky.server.domain.mapper;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;

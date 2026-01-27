@@ -1,4 +1,4 @@
-package com.xy.lucky.domain.dto;
+package com.xy.lucky.server.domain.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;

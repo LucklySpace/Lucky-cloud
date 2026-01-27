@@ -1,8 +1,8 @@
 package com.xy.lucky.server.controller;
 
 
-import com.xy.lucky.domain.dto.UserDto;
-import com.xy.lucky.domain.vo.UserVo;
+import com.xy.lucky.server.domain.dto.UserDto;
+import com.xy.lucky.server.domain.vo.UserVo;
 import com.xy.lucky.server.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

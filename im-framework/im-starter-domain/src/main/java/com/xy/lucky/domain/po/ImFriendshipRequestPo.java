@@ -1,29 +1,22 @@
 package com.xy.lucky.domain.po;
 
-import com.baomidou.mybatisplus.annotation.*;
-import com.fasterxml.jackson.annotation.JsonFormat;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.xy.lucky.domain.BasePo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.springframework.format.annotation.DateTimeFormat;
 
-import java.io.Serializable;
-
-/**
- * @TableName im_friendship_request
- */
 @Data
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "好友请求信息")
 @TableName(value = "im_friendship_request")
-public class ImFriendshipRequestPo implements Serializable {
-
-    @TableField(exist = false)
-    private static final long serialVersionUID = 1L;
+public class ImFriendshipRequestPo extends BasePo {
 
     /**
      * 请求ID
@@ -74,34 +67,8 @@ public class ImFriendshipRequestPo implements Serializable {
     private Integer approveStatus;
 
     /**
-     * 创建时间
-     */
-    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @TableField(value = "create_time", fill = FieldFill.INSERT)
-    private Long createTime;
-
-    /**
-     * 更新时间
-     */
-    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @TableField(value = "update_time", fill = FieldFill.UPDATE)
-    private Long updateTime;
-
-    /**
      * 序列号
      */
     @TableField(value = "sequence")
     private Long sequence;
-
-    /**
-     * 删除标识（1正常，0删除）
-     */
-    @TableLogic(value = "1", delval = "0")
-    @TableField(value = "del_flag")
-    private Integer delFlag;
-
-    @Version
-    private Integer version;
 }

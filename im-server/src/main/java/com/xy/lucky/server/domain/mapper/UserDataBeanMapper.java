@@ -1,9 +1,9 @@
-package com.xy.lucky.domain.mapper;
+package com.xy.lucky.server.domain.mapper;
 
-import com.xy.lucky.domain.dto.UserDto;
 import com.xy.lucky.domain.po.ImUserDataPo;
-import com.xy.lucky.domain.vo.FriendVo;
-import com.xy.lucky.domain.vo.UserVo;
+import com.xy.lucky.server.domain.dto.UserDto;
+import com.xy.lucky.server.domain.vo.FriendVo;
+import com.xy.lucky.server.domain.vo.UserVo;
 import org.mapstruct.Mapper;
 import org.mapstruct.factory.Mappers;
 

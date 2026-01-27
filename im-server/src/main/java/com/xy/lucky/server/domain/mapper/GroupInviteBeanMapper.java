@@ -1,4 +1,4 @@
-package com.xy.lucky.domain.mapper;
+package com.xy.lucky.server.domain.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.factory.Mappers;

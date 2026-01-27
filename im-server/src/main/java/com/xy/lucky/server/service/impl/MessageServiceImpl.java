@@ -5,8 +5,6 @@ import com.xy.lucky.core.enums.IMStatus;
 import com.xy.lucky.core.enums.IMessageReadStatus;
 import com.xy.lucky.core.enums.IMessageType;
 import com.xy.lucky.core.model.*;
-import com.xy.lucky.domain.dto.ChatDto;
-import com.xy.lucky.domain.mapper.MessageBeanMapper;
 import com.xy.lucky.domain.po.*;
 import com.xy.lucky.dubbo.web.api.database.chat.ImChatDubboService;
 import com.xy.lucky.dubbo.web.api.database.group.ImGroupMemberDubboService;
@@ -16,6 +14,8 @@ import com.xy.lucky.dubbo.web.api.database.outbox.IMOutboxDubboService;
 import com.xy.lucky.dubbo.web.api.id.ImIdDubboService;
 import com.xy.lucky.mq.rabbit.core.RabbitTemplateFactory;
 import com.xy.lucky.server.config.IdGeneratorConstant;
+import com.xy.lucky.server.domain.dto.ChatDto;
+import com.xy.lucky.server.domain.mapper.MessageBeanMapper;
 import com.xy.lucky.server.exception.MessageException;
 import com.xy.lucky.server.service.MessageService;
 import com.xy.lucky.server.utils.RedisUtil;
@@ -439,7 +439,6 @@ public class MessageServiceImpl implements MessageService {
                         .setSequence(messageTime)
                         .setIsMute(IMStatus.NO.getCode())
                         .setIsTop(IMStatus.NO.getCode())
-                        .setDelFlag(IMStatus.YES.getCode())
                         .setChatType(chatType);
                 if (!imChatDubboService.creat(chatPo)) {
                     log.error("保存会话失败 ownerId={} toId={}", ownerId, toId);

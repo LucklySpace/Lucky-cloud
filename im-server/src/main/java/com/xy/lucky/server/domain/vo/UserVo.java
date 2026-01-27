@@ -1,5 +1,4 @@
-package com.xy.lucky.domain.vo;
-
+package com.xy.lucky.server.domain.vo;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
@@ -12,7 +11,7 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class GroupMemberVo {
+public class UserVo {
 
     private String userId;
 
@@ -22,18 +21,9 @@ public class GroupMemberVo {
 
     private Integer gender;
 
-    private String birthDay;
+    private String birthday;
 
     private String location;
 
     private String selfSignature;
-
-    private Integer mute;
-
-    private String alias;
-
-    private Integer role;
-
-    private String joinType;
-
 }

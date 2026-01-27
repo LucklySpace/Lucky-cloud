@@ -1,4 +1,4 @@
-package com.xy.lucky.domain.dto;
+package com.xy.lucky.server.domain.dto;
 
 
 import com.fasterxml.jackson.annotation.JsonFormat;

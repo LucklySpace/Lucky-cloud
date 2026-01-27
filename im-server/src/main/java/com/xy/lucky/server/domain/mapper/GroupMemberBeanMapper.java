@@ -1,8 +1,8 @@
-package com.xy.lucky.domain.mapper;
+package com.xy.lucky.server.domain.mapper;
 
-import com.xy.lucky.domain.dto.GroupMemberDto;
 import com.xy.lucky.domain.po.ImGroupMemberPo;
-import com.xy.lucky.domain.vo.GroupMemberVo;
+import com.xy.lucky.server.domain.dto.GroupMemberDto;
+import com.xy.lucky.server.domain.vo.GroupMemberVo;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Mappings;

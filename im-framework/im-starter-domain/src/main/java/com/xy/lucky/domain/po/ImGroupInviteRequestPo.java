@@ -1,28 +1,22 @@
 package com.xy.lucky.domain.po;
 
-import com.baomidou.mybatisplus.annotation.*;
-import com.fasterxml.jackson.annotation.JsonFormat;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.xy.lucky.domain.BasePo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.springframework.format.annotation.DateTimeFormat;
 
-import java.io.Serializable;
-
-/**
- * 群聊邀请请求
- */
 @Data
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "群邀请请求信息")
 @TableName(value = "im_group_invite_request")
-public class ImGroupInviteRequestPo implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+public class ImGroupInviteRequestPo extends BasePo {
 
     /**
      * 邀请请求ID
@@ -83,33 +77,4 @@ public class ImGroupInviteRequestPo implements Serializable {
      */
     @TableField(value = "expire_time")
     private Long expireTime;
-
-    /**
-     * 创建时间（Unix时间戳）
-     */
-    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @TableField(value = "create_time", fill = FieldFill.INSERT)
-    private Long createTime;
-
-    /**
-     * 更新时间（Unix时间戳）
-     */
-    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @TableField(value = "update_time", fill = FieldFill.UPDATE)
-    private Long updateTime;
-
-    /**
-     * 删除标识（1:正常, 0:删除）
-     */
-    @TableLogic(value = "1", delval = "0")
-    @TableField(value = "del_flag")
-    private Integer delFlag;
-
-    /**
-     * 版本信息（用于乐观锁）
-     */
-    @Version
-    private Long version;
 }

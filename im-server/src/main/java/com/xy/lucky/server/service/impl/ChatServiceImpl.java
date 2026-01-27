@@ -3,10 +3,7 @@ package com.xy.lucky.server.service.impl;
 import com.xy.lucky.core.enums.IMStatus;
 import com.xy.lucky.core.enums.IMessageReadStatus;
 import com.xy.lucky.core.enums.IMessageType;
-import com.xy.lucky.domain.dto.ChatDto;
-import com.xy.lucky.domain.mapper.ChatBeanMapper;
 import com.xy.lucky.domain.po.*;
-import com.xy.lucky.domain.vo.ChatVo;
 import com.xy.lucky.dubbo.web.api.database.chat.ImChatDubboService;
 import com.xy.lucky.dubbo.web.api.database.group.ImGroupDubboService;
 import com.xy.lucky.dubbo.web.api.database.message.ImGroupMessageDubboService;
@@ -14,6 +11,9 @@ import com.xy.lucky.dubbo.web.api.database.message.ImSingleMessageDubboService;
 import com.xy.lucky.dubbo.web.api.database.user.ImUserDataDubboService;
 import com.xy.lucky.general.exception.GlobalException;
 import com.xy.lucky.general.response.domain.ResultCode;
+import com.xy.lucky.server.domain.dto.ChatDto;
+import com.xy.lucky.server.domain.mapper.ChatBeanMapper;
+import com.xy.lucky.server.domain.vo.ChatVo;
 import com.xy.lucky.server.exception.ChatException;
 import com.xy.lucky.server.exception.MessageException;
 import com.xy.lucky.server.service.ChatService;
@@ -111,7 +111,6 @@ public class ChatServiceImpl implements ChatService {
                         .setToId(chatDto.getToId())
                         .setIsMute(IMStatus.NO.getCode())
                         .setIsTop(IMStatus.NO.getCode())
-                        .setDelFlag(IMStatus.YES.getCode())
                         .setChatType(chatDto.getChatType());
 
                 boolean success = imChatDubboService.creat(newChatPO);

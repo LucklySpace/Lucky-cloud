@@ -1,8 +1,8 @@
-package com.xy.lucky.domain.mapper;
+package com.xy.lucky.server.domain.mapper;
 
-import com.xy.lucky.domain.dto.FriendDto;
 import com.xy.lucky.domain.po.ImFriendshipPo;
-import com.xy.lucky.domain.vo.FriendVo;
+import com.xy.lucky.server.domain.dto.FriendDto;
+import com.xy.lucky.server.domain.vo.FriendVo;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Mappings;

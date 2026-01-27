@@ -1,6 +1,5 @@
-package com.xy.lucky.domain.dto;
+package com.xy.lucky.server.domain.dto;
 
-import com.baomidou.mybatisplus.annotation.TableField;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -50,21 +49,12 @@ public class GroupInviteDto implements Serializable {
     @Schema(description = "验证者用户ID（群主或管理员）")
     private String verifierId;
 
-    /**
-     * 邀请来源（如二维码、成员邀请等）
-     */
     @Schema(description = "邀请来源")
     private String addSource;
 
-    /**
-     * 被邀请人状态（0:待处理, 1:同意, 2:拒绝）
-     */
-    @TableField(value = "approve_status")
+    @Schema(description = "被邀请人状态 （0:待处理, 1:同意, 2:拒绝）")
     private Integer approveStatus;
 
-    /**
-     * 群主或管理员验证 （0:待处理, 1:同意, 2:拒绝）
-     */
-    @Schema(description = "群主或管理员验证")
+    @Schema(description = "群主或管理员验证 （0:待处理, 1:同意, 2:拒绝）")
     private Integer verifierStatus;
 }

@@ -1,10 +1,10 @@
 package com.xy.lucky.server.service.impl;
 
-import com.xy.lucky.domain.dto.UserDto;
-import com.xy.lucky.domain.mapper.UserDataBeanMapper;
 import com.xy.lucky.domain.po.ImUserDataPo;
-import com.xy.lucky.domain.vo.UserVo;
 import com.xy.lucky.dubbo.web.api.database.user.ImUserDataDubboService;
+import com.xy.lucky.server.domain.dto.UserDto;
+import com.xy.lucky.server.domain.mapper.UserDataBeanMapper;
+import com.xy.lucky.server.domain.vo.UserVo;
 import com.xy.lucky.server.exception.MessageException;
 import com.xy.lucky.server.service.UserService;
 import jakarta.annotation.Resource;

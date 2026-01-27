@@ -1,7 +1,7 @@
-package com.xy.lucky.domain.dto;
+package com.xy.lucky.server.domain.vo;
 
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,15 +13,10 @@ import java.io.Serializable;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "登录")
-public class LoginDto implements Serializable {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class LoginVo implements Serializable {
 
     private static final long serialVersionUID = 1L;
-
-    @Schema(description = "用户id")
     private String userId;
-
-    @Schema(description = "密码")
-    private String password;
-
+    private String token;
 }

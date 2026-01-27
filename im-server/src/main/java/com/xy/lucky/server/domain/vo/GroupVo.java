@@ -1,4 +1,4 @@
-package com.xy.lucky.domain.vo;
+package com.xy.lucky.server.domain.vo;
 
 
 import com.fasterxml.jackson.annotation.JsonInclude;

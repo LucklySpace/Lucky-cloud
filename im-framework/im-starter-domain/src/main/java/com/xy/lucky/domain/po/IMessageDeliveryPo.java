@@ -2,6 +2,7 @@ package com.xy.lucky.domain.po;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.xy.lucky.domain.BasePo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,22 +10,13 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.springframework.format.annotation.DateTimeFormat;
 
-import java.io.Serializable;
-
-/**
- * 消息投递状态表
- * 记录每个 message 到每个用户的投递状态
- */
 @Data
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "消息投递状态记录")
-@TableName(value = "im_message_delivery")
-public class IMessageDeliveryPo implements Serializable {
-
-    @TableField(exist = false)
-    private static final long serialVersionUID = 1L;
+@TableName(value = "im_message_delivery", excludeProperty = {"createTime", "updateTime", "delFlag", "version"})
+public class IMessageDeliveryPo extends BasePo {
 
     /**
      * 主键ID

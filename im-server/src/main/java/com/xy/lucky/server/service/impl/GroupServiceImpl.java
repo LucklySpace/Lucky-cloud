@@ -5,16 +5,10 @@ import com.xy.lucky.core.enums.*;
 import com.xy.lucky.core.model.IMGroupMessage;
 import com.xy.lucky.core.model.IMSingleMessage;
 import com.xy.lucky.core.model.IMessage;
-import com.xy.lucky.domain.dto.GroupDto;
-import com.xy.lucky.domain.dto.GroupInviteDto;
-import com.xy.lucky.domain.dto.GroupMemberDto;
-import com.xy.lucky.domain.mapper.GroupMemberBeanMapper;
 import com.xy.lucky.domain.po.ImGroupInviteRequestPo;
 import com.xy.lucky.domain.po.ImGroupMemberPo;
 import com.xy.lucky.domain.po.ImGroupPo;
 import com.xy.lucky.domain.po.ImUserDataPo;
-import com.xy.lucky.domain.vo.FileVo;
-import com.xy.lucky.domain.vo.GroupMemberVo;
 import com.xy.lucky.dubbo.web.api.database.group.ImGroupDubboService;
 import com.xy.lucky.dubbo.web.api.database.group.ImGroupInviteRequestDubboService;
 import com.xy.lucky.dubbo.web.api.database.group.ImGroupMemberDubboService;
@@ -23,6 +17,12 @@ import com.xy.lucky.dubbo.web.api.id.ImIdDubboService;
 import com.xy.lucky.general.exception.GlobalException;
 import com.xy.lucky.general.response.domain.ResultCode;
 import com.xy.lucky.server.config.IdGeneratorConstant;
+import com.xy.lucky.server.domain.dto.GroupDto;
+import com.xy.lucky.server.domain.dto.GroupInviteDto;
+import com.xy.lucky.server.domain.dto.GroupMemberDto;
+import com.xy.lucky.server.domain.mapper.GroupMemberBeanMapper;
+import com.xy.lucky.server.domain.vo.FileVo;
+import com.xy.lucky.server.domain.vo.GroupMemberVo;
 import com.xy.lucky.server.exception.GroupException;
 import com.xy.lucky.server.exception.MessageException;
 import com.xy.lucky.server.service.FileService;
@@ -265,7 +265,6 @@ public class GroupServiceImpl implements GroupService {
                 .setMemberId(memberId)
                 .setRole(role.getCode())
                 .setMute(IMStatus.NO.getCode())
-                .setDelFlag(IMStatus.YES.getCode())
                 .setJoinTime(joinTime);
     }
 
@@ -307,9 +306,7 @@ public class GroupServiceImpl implements GroupService {
                 .setGroupType(1)
                 .setGroupName(groupName)
                 .setApplyJoinType(ImGroupJoinStatus.FREE.getCode())
-                .setStatus(IMStatus.YES.getCode())
-                .setCreateTime(now)
-                .setDelFlag(IMStatus.YES.getCode());
+                .setStatus(IMStatus.YES.getCode());
 
         boolean groupOk = imGroupDubboService.creat(group);
         if (!groupOk) {
@@ -374,9 +371,7 @@ public class GroupServiceImpl implements GroupService {
                         .setMessage(dto.getMessage())
                         .setApproveStatus(0)
                         .setAddSource(dto.getAddSource())
-                        .setExpireTime(expireTime)
-                        .setCreateTime(now)
-                        .setDelFlag(1);
+                        .setExpireTime(expireTime);
                 requests.add(po);
             }
 

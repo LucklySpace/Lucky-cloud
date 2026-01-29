@@ -3,10 +3,7 @@ package com.xy.lucky.connect.message;
 
 import com.xy.lucky.connect.config.LogConstant;
 import com.xy.lucky.connect.domain.MessageEvent;
-import com.xy.lucky.connect.message.process.impl.ForceLogoutProcess;
-import com.xy.lucky.connect.message.process.impl.GroupMessageProcess;
-import com.xy.lucky.connect.message.process.impl.SingleMessageProcess;
-import com.xy.lucky.connect.message.process.impl.VideoMessageProcess;
+import com.xy.lucky.connect.message.process.impl.*;
 import com.xy.lucky.connect.utils.JacksonUtil;
 import com.xy.lucky.core.enums.IMessageType;
 import com.xy.lucky.core.model.IMessageWrap;
@@ -33,6 +30,9 @@ public class MessageHandler {
 
     @Autowired
     private ForceLogoutProcess forceLogoutProcess;
+
+    @Autowired
+    private GroupOperationProcess groupOperationProcess;
 
     /**
      * 监听并分发消息
@@ -63,10 +63,16 @@ public class MessageHandler {
         try {
             // 直接 switch 分发（基于 code，避免 Map 查找）
             switch (msgType) {
-                case GROUP_MESSAGE -> groupMessageProcess.dispose(messageWrap);
+                // 单聊消息
                 case SINGLE_MESSAGE -> singleMessageProcess.dispose(messageWrap);
+                // 群消息
+                case GROUP_MESSAGE -> groupMessageProcess.dispose(messageWrap);
+                // 视频消息
                 case VIDEO_MESSAGE -> videoMessageProcess.dispose(messageWrap);
+                // 强制下线
                 case FORCE_LOGOUT -> forceLogoutProcess.dispose(messageWrap);
+                // 群组操作
+                case GROUP_OPERATION -> groupOperationProcess.dispose(messageWrap);
                 default -> {
                     log.warn("没有为消息类型 {} 注册处理器，忽略该消息", msgType);
                     return;

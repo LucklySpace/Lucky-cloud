@@ -9,316 +9,277 @@ import com.xy.lucky.dubbo.web.api.database.group.ImGroupDubboService;
 import com.xy.lucky.dubbo.web.api.database.message.ImGroupMessageDubboService;
 import com.xy.lucky.dubbo.web.api.database.message.ImSingleMessageDubboService;
 import com.xy.lucky.dubbo.web.api.database.user.ImUserDataDubboService;
-import com.xy.lucky.general.exception.GlobalException;
-import com.xy.lucky.general.response.domain.ResultCode;
+import com.xy.lucky.server.common.LockExecutor;
 import com.xy.lucky.server.domain.dto.ChatDto;
 import com.xy.lucky.server.domain.mapper.ChatBeanMapper;
 import com.xy.lucky.server.domain.vo.ChatVo;
 import com.xy.lucky.server.exception.ChatException;
-import com.xy.lucky.server.exception.MessageException;
 import com.xy.lucky.server.service.ChatService;
-import jakarta.annotation.Resource;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.redisson.api.RLock;
-import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
+/**
+ * 会话服务实现
+ *
+ * @author xy
+ */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
 
-    // 分布式锁常量
-    private static final String LOCK_CREATE_CHAT_PREFIX = "lock:create:chat:";
-    private static final String LOCK_READ_MSG_PREFIX = "lock:read:msg:";
-    private static final String LOCK_READ_CHAT_PREFIX = "lock:read:chat:";
-    private static final long LOCK_WAIT_TIME = 3L; // 锁等待时间（秒）
-    private static final long LOCK_LEASE_TIME = 10L; // 锁持有时间（秒）
-
+    /**
+     * 分布式锁前缀
+     */
+    private static final String LOCK_PREFIX = "lock:chat:";
+    private final LockExecutor lockExecutor;
     @DubboReference
-    private ImChatDubboService imChatDubboService;
-
+    private ImChatDubboService chatDubboService;
     @DubboReference
-    private ImUserDataDubboService imUserDataDubboService;
-
+    private ImUserDataDubboService userDataDubboService;
     @DubboReference
-    private ImGroupDubboService imGroupDubboService;
-
+    private ImGroupDubboService groupDubboService;
     @DubboReference
-    private ImSingleMessageDubboService imSingleMessageDubboService;
-
+    private ImSingleMessageDubboService singleMessageDubboService;
     @DubboReference
-    private ImGroupMessageDubboService imGroupMessageDubboService;
-
-    @Resource
-    private RedissonClient redissonClient;
+    private ImGroupMessageDubboService groupMessageDubboService;
 
     /**
-     * 读消息（加锁防并发更新）
+     * 标记消息已读
+     *
+     * @param dto 会话信息（已在 Controller 层校验）
      */
     @Override
-    public void read(ChatDto chatDto) {
-        if (chatDto == null || chatDto.getFromId() == null || chatDto.getToId() == null || chatDto.getChatType() == null) {
-            log.warn("read参数无效");
-            throw new ChatException("参数错误");
-        }
-
-        String lockKey = LOCK_READ_MSG_PREFIX + chatDto.getChatType() + ":" + chatDto.getFromId() + ":" + chatDto.getToId();
-        withLockSync(lockKey, "设置消息已读 " + chatDto.getFromId() + "->" + chatDto.getToId(), () -> {
-            long start = System.currentTimeMillis();
-            IMessageType messageType = IMessageType.getByCode(chatDto.getChatType());
-            if (messageType == null) {
-                log.warn("未知chatType={}", chatDto.getChatType());
+    public void read(ChatDto dto) {
+        String lockKey = LOCK_PREFIX + "read:" + dto.getChatType() + ":" + dto.getFromId() + ":" + dto.getToId();
+        lockExecutor.execute(lockKey, () -> {
+            IMessageType type = IMessageType.getByCode(dto.getChatType());
+            if (type == null) {
                 throw new ChatException("不支持的消息类型");
             }
 
-            switch (messageType) {
-                case SINGLE_MESSAGE -> saveSingleMessageChatReadStatusSync(chatDto);
-                case GROUP_MESSAGE -> saveGroupMessageChatReadStatusSync(chatDto);
+            switch (type) {
+                case SINGLE_MESSAGE -> markSingleMessageRead(dto);
+                case GROUP_MESSAGE -> markGroupMessageRead(dto);
                 default -> throw new ChatException("不支持的消息类型");
             }
-            log.debug("read消息耗时:{}ms", System.currentTimeMillis() - start);
-            return null;
         });
     }
 
     /**
-     * 创建会话（加锁防重复创建）
+     * 创建会话
+     *
+     * @param dto 会话信息（已在 Controller 层校验）
+     * @return 会话详情
      */
     @Override
-    public ChatVo create(ChatDto chatDto) {
-        if (chatDto == null || chatDto.getFromId() == null || chatDto.getToId() == null || chatDto.getChatType() == null) {
-            log.warn("create参数无效");
-            throw new ChatException("参数错误");
-        }
-
-        String lockKey = LOCK_CREATE_CHAT_PREFIX + chatDto.getFromId() + ":" + chatDto.getToId() + ":" + chatDto.getChatType();
-        return withLockSync(lockKey, "创建会话 " + chatDto.getFromId() + "->" + chatDto.getToId(), () -> {
-            long start = System.currentTimeMillis();
-
-            ImChatPo imChatPo = imChatDubboService.queryOne(chatDto.getFromId(), chatDto.getToId(), chatDto.getChatType());
-            ImChatPo chatPo;
-            if (Objects.isNull(imChatPo)) {
-                ImChatPo newChatPO = new ImChatPo();
-                String chatId = UUID.randomUUID().toString();
-                newChatPO.setChatId(chatId)
-                        .setOwnerId(chatDto.getFromId())
-                        .setToId(chatDto.getToId())
-                        .setIsMute(IMStatus.NO.getCode())
-                        .setIsTop(IMStatus.NO.getCode())
-                        .setChatType(chatDto.getChatType());
-
-                boolean success = imChatDubboService.creat(newChatPO);
-                if (success) {
-                    log.info("会话信息插入成功 chatId={} from={} to={}", chatId, chatDto.getFromId(), chatDto.getToId());
-                    chatPo = newChatPO;
-                } else {
-                    log.error("会话信息插入失败 chatId={} from={} to={}", chatId, chatDto.getFromId(), chatDto.getToId());
-                    throw new GlobalException(ResultCode.FAIL, "创建会话失败");
-                }
-            } else {
-                chatPo = imChatPo;
-            }
-
-            ChatVo vo = buildChatVoSync(chatPo, chatDto.getChatType());
-            log.debug("create会话完成 from={} to={} type={} 耗时:{}ms", vo.getOwnerId(), vo.getToId(), vo.getChatType(), System.currentTimeMillis() - start);
-            return vo;
+    public ChatVo create(ChatDto dto) {
+        String lockKey = LOCK_PREFIX + "create:" + dto.getFromId() + ":" + dto.getToId() + ":" + dto.getChatType();
+        return lockExecutor.execute(lockKey, () -> {
+            // 查询是否已存在
+            ImChatPo existingChat = chatDubboService.queryOne(dto.getFromId(), dto.getToId(), dto.getChatType());
+            ImChatPo chatPo = existingChat != null ? existingChat : createNewChat(dto);
+            return enrichChatVo(chatPo, dto.getChatType());
         });
     }
 
     /**
-     * 获取单个会话信息（加读锁）
+     * 查询单个会话
+     *
+     * @param ownerId 所有者ID（已在 Controller 层校验）
+     * @param toId    目标ID（已在 Controller 层校验）
+     * @return 会话详情
      */
     @Override
     public ChatVo one(String ownerId, String toId) {
-        if (ownerId == null || toId == null) {
-            log.warn("one参数无效");
-            throw new ChatException("参数错误");
-        }
-
-        String lockKey = LOCK_READ_CHAT_PREFIX + ownerId + ":" + toId;
-        return withLockSync(lockKey, "读取会话 " + ownerId + "->" + toId, () -> {
-            long start = System.currentTimeMillis();
-            ImChatPo chatPo = imChatDubboService.queryOne(ownerId, toId, null);
-            ChatVo vo = getChatSync(chatPo);
-            log.debug("one会话完成 from={} to={} 耗时:{}ms", ownerId, toId, System.currentTimeMillis() - start);
-            return vo;
+        String lockKey = LOCK_PREFIX + "one:" + ownerId + ":" + toId;
+        return lockExecutor.execute(lockKey, () -> {
+            ImChatPo chatPo = chatDubboService.queryOne(ownerId, toId, null);
+            return chatPo != null ? buildChatVo(chatPo) : new ChatVo();
         });
     }
 
     /**
-     * 获取会话列表（加读锁）
+     * 查询会话列表
+     *
+     * @param dto 查询条件（已在 Controller 层校验）
+     * @return 会话列表
      */
     @Override
-    public List<ChatVo> list(ChatDto chatDto) {
-        if (chatDto == null || chatDto.getFromId() == null) {
-            log.warn("list参数无效");
-            throw new ChatException("参数错误");
-        }
+    public List<ChatVo> list(ChatDto dto) {
+        String lockKey = LOCK_PREFIX + "list:" + dto.getFromId();
+        return lockExecutor.execute(lockKey, () -> {
+            List<ImChatPo> chatList = chatDubboService.queryList(dto.getFromId(), dto.getSequence());
 
-        String lockKey = LOCK_READ_CHAT_PREFIX + chatDto.getFromId() + ":list";
-        return withLockSync(lockKey, "读取会话列表 " + chatDto.getFromId(), () -> {
-            long start = System.currentTimeMillis();
-
-            List<ImChatPo> list = imChatDubboService.queryList(chatDto.getFromId(), chatDto.getSequence());
-            if (list == null || list.isEmpty()) {
-                log.debug("list会话完成 from={} 返回0条 耗时:{}ms", chatDto.getFromId(), System.currentTimeMillis() - start);
-                return List.<ChatVo>of();
+            if (CollectionUtils.isEmpty(chatList)) {
+                return Collections.emptyList();
             }
 
-            List<ChatVo> result = list.stream()
-                    .map(this::getChatSync)
+            return chatList.stream()
+                    .map(this::buildChatVo)
                     .toList();
-
-            log.debug("list会话完成 from={} 返回{}条 耗时:{}ms", chatDto.getFromId(), result.size(), System.currentTimeMillis() - start);
-            return result;
         });
     }
 
+    // ==================== 私有方法 ====================
+
     /**
-     * 获取ChatVo（同步）
+     * 创建新会话
      */
-    private ChatVo getChatSync(ImChatPo chatPo) {
-        if (Objects.isNull(chatPo)) {
+    private ImChatPo createNewChat(ChatDto dto) {
+        ImChatPo chatPo = new ImChatPo()
+                .setChatId(UUID.randomUUID().toString())
+                .setOwnerId(dto.getFromId())
+                .setToId(dto.getToId())
+                .setChatType(dto.getChatType())
+                .setIsMute(IMStatus.NO.getCode())
+                .setIsTop(IMStatus.NO.getCode());
+
+        if (!chatDubboService.creat(chatPo)) {
+            throw new ChatException("创建会话失败");
+        }
+
+        log.info("创建会话成功: chatId={}, from={}, to={}", chatPo.getChatId(), dto.getFromId(), dto.getToId());
+        return chatPo;
+    }
+
+    /**
+     * 构建会话 VO（根据类型选择策略）
+     */
+    private ChatVo buildChatVo(ImChatPo chatPo) {
+        if (chatPo == null) {
             return new ChatVo();
         }
+
         IMessageType type = IMessageType.getByCode(chatPo.getChatType());
-        if (type == null) return new ChatVo();
+        if (type == null) {
+            return new ChatVo();
+        }
 
         return switch (type) {
-            case SINGLE_MESSAGE -> getSingleMessageChatSync(chatPo);
-            case GROUP_MESSAGE -> getGroupMessageChatSync(chatPo);
+            case SINGLE_MESSAGE -> buildSingleChatVo(chatPo);
+            case GROUP_MESSAGE -> buildGroupChatVo(chatPo);
             default -> new ChatVo();
         };
     }
 
     /**
-     * 构建单聊ChatVo（同步）
+     * 构建单聊会话 VO
      */
-    private ChatVo getSingleMessageChatSync(ImChatPo chatPo) {
-        ChatVo chatVo = ChatBeanMapper.INSTANCE.toChatVo(chatPo);
-        String ownerId = chatVo.getOwnerId();
-        String toId = chatVo.getToId();
-        String targetUserId = ownerId.equals(toId) ? chatVo.getOwnerId() : chatVo.getToId();
+    private ChatVo buildSingleChatVo(ImChatPo chatPo) {
+        ChatVo vo = ChatBeanMapper.INSTANCE.toChatVo(chatPo);
+        String ownerId = vo.getOwnerId();
+        String toId = vo.getToId();
 
-        ImSingleMessagePo msg = imSingleMessageDubboService.queryLast(ownerId, toId);
-        Integer unread = imSingleMessageDubboService.queryReadStatus(toId, ownerId, IMessageReadStatus.UNREAD.getCode());
-        ImUserDataPo user = imUserDataDubboService.queryOne(targetUserId);
-
-        chatVo.setMessageTime(0L);
-        if (msg != null && msg.getMessageId() != null) {
-            chatVo.setMessage(msg.getMessageBody());
-            chatVo.setMessageContentType(msg.getMessageContentType());
-            chatVo.setMessageTime(msg.getMessageTime());
+        // 获取最后一条消息
+        ImSingleMessagePo lastMsg = singleMessageDubboService.queryLast(ownerId, toId);
+        if (lastMsg != null && lastMsg.getMessageId() != null) {
+            vo.setMessage(lastMsg.getMessageBody());
+            vo.setMessageContentType(lastMsg.getMessageContentType());
+            vo.setMessageTime(lastMsg.getMessageTime());
+        } else {
+            vo.setMessageTime(0L);
         }
 
-        chatVo.setUnread(unread != null ? unread : 0);
+        // 获取未读数
+        Integer unread = singleMessageDubboService.queryReadStatus(toId, ownerId, IMessageReadStatus.UNREAD.getCode());
+        vo.setUnread(unread != null ? unread : 0);
 
-        if (user != null && user.getUserId() != null) {
-            chatVo.setName(user.getName());
-            chatVo.setAvatar(user.getAvatar());
-            chatVo.setId(user.getUserId());
+        // 获取用户信息
+        String targetUserId = ownerId.equals(toId) ? ownerId : toId;
+        ImUserDataPo user = userDataDubboService.queryOne(targetUserId);
+        if (user != null) {
+            vo.setId(user.getUserId());
+            vo.setName(user.getName());
+            vo.setAvatar(user.getAvatar());
         }
-        return chatVo;
+
+        return vo;
     }
 
     /**
-     * 构建群聊ChatVo（同步）
+     * 构建群聊会话 VO
      */
-    private ChatVo getGroupMessageChatSync(ImChatPo chatPo) {
-        ChatVo chatVo = ChatBeanMapper.INSTANCE.toChatVo(chatPo);
-        String ownerId = chatVo.getOwnerId();
-        String groupId = chatVo.getToId();
+    private ChatVo buildGroupChatVo(ImChatPo chatPo) {
+        ChatVo vo = ChatBeanMapper.INSTANCE.toChatVo(chatPo);
+        String ownerId = vo.getOwnerId();
+        String groupId = vo.getToId();
 
-        ImGroupMessagePo msg = imGroupMessageDubboService.queryLast(ownerId, groupId);
-        Integer unread = imGroupMessageDubboService.queryReadStatus(groupId, ownerId, IMessageReadStatus.UNREAD.getCode());
-        ImGroupPo group = imGroupDubboService.queryOne(groupId);
-
-        chatVo.setMessageTime(0L);
-        if (msg != null && msg.getMessageId() != null) {
-            chatVo.setMessage(msg.getMessageBody());
-            chatVo.setMessageTime(msg.getMessageTime());
+        // 获取最后一条消息
+        ImGroupMessagePo lastMsg = groupMessageDubboService.queryLast(ownerId, groupId);
+        if (lastMsg != null && lastMsg.getMessageId() != null) {
+            vo.setMessage(lastMsg.getMessageBody());
+            vo.setMessageTime(lastMsg.getMessageTime());
+        } else {
+            vo.setMessageTime(0L);
         }
 
-        chatVo.setUnread(unread != null ? unread : 0);
+        // 获取未读数
+        Integer unread = groupMessageDubboService.queryReadStatus(groupId, ownerId, IMessageReadStatus.UNREAD.getCode());
+        vo.setUnread(unread != null ? unread : 0);
 
-        if (group != null && group.getGroupId() != null) {
-            chatVo.setName(group.getGroupName());
-            chatVo.setAvatar(group.getAvatar());
-            chatVo.setId(group.getGroupId());
+        // 获取群信息
+        ImGroupPo group = groupDubboService.queryOne(groupId);
+        if (group != null) {
+            vo.setId(group.getGroupId());
+            vo.setName(group.getGroupName());
+            vo.setAvatar(group.getAvatar());
         }
-        return chatVo;
+
+        return vo;
     }
 
     /**
-     * 构建ChatVo（create专用，同步）
+     * 丰富会话 VO（用于创建会话后返回）
      */
-    private ChatVo buildChatVoSync(ImChatPo chatPo, Integer chatType) {
-        ChatVo chatVo = ChatBeanMapper.INSTANCE.toChatVo(chatPo);
+    private ChatVo enrichChatVo(ImChatPo chatPo, Integer chatType) {
+        ChatVo vo = ChatBeanMapper.INSTANCE.toChatVo(chatPo);
+
         if (IMessageType.SINGLE_MESSAGE.getCode().equals(chatType)) {
-            ImUserDataPo user = imUserDataDubboService.queryOne(chatVo.getToId());
+            ImUserDataPo user = userDataDubboService.queryOne(vo.getToId());
             if (user != null) {
-                chatVo.setName(user.getName());
-                chatVo.setAvatar(user.getAvatar());
-                chatVo.setId(user.getUserId());
+                vo.setId(user.getUserId());
+                vo.setName(user.getName());
+                vo.setAvatar(user.getAvatar());
             }
-            return chatVo;
         } else if (IMessageType.GROUP_MESSAGE.getCode().equals(chatType)) {
-            ImGroupPo group = imGroupDubboService.queryOne(chatVo.getToId());
+            ImGroupPo group = groupDubboService.queryOne(vo.getToId());
             if (group != null) {
-                chatVo.setName(group.getGroupName());
-                chatVo.setAvatar(group.getAvatar());
-                chatVo.setId(group.getGroupId());
-            }
-            return chatVo;
-        }
-        return chatVo;
-    }
-
-    private void saveSingleMessageChatReadStatusSync(ChatDto chatDto) {
-        ImSingleMessagePo updateMessage = new ImSingleMessagePo();
-        updateMessage.setReadStatus(IMessageReadStatus.ALREADY_READ.getCode());
-        updateMessage.setFromId(chatDto.getFromId());
-        updateMessage.setToId(chatDto.getToId());
-        imSingleMessageDubboService.modify(updateMessage);
-    }
-
-    private void saveGroupMessageChatReadStatusSync(ChatDto chatDto) {
-        ImGroupMessageStatusPo updateMessage = new ImGroupMessageStatusPo();
-        updateMessage.setReadStatus(IMessageReadStatus.ALREADY_READ.getCode());
-        updateMessage.setGroupId(chatDto.getFromId());
-        updateMessage.setToId(chatDto.getToId());
-        imGroupMessageDubboService.creatBatch(List.of(updateMessage));
-    }
-
-    private <T> T withLockSync(String key, String logDesc, java.util.concurrent.Callable<T> action) {
-        RLock lock = redissonClient.getLock(key);
-        boolean acquired = false;
-        try {
-            acquired = lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS);
-            if (!acquired) {
-                throw new MessageException("无法获取锁: " + logDesc);
-            }
-            return action.call();
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
-            if (acquired) {
-                try {
-                    if (lock.isHeldByCurrentThread()) {
-                        lock.unlock();
-                    }
-                } catch (Exception ignore) {
-                    // ignore unlock failures
-                }
+                vo.setId(group.getGroupId());
+                vo.setName(group.getGroupName());
+                vo.setAvatar(group.getAvatar());
             }
         }
+
+        return vo;
+    }
+
+    /**
+     * 标记单聊消息已读
+     */
+    private void markSingleMessageRead(ChatDto dto) {
+        ImSingleMessagePo updatePo = new ImSingleMessagePo()
+                .setReadStatus(IMessageReadStatus.ALREADY_READ.getCode())
+                .setFromId(dto.getFromId())
+                .setToId(dto.getToId());
+        singleMessageDubboService.modify(updatePo);
+    }
+
+    /**
+     * 标记群聊消息已读
+     */
+    private void markGroupMessageRead(ChatDto dto) {
+        ImGroupMessageStatusPo updatePo = new ImGroupMessageStatusPo()
+                .setReadStatus(IMessageReadStatus.ALREADY_READ.getCode())
+                .setGroupId(dto.getFromId())
+                .setToId(dto.getToId());
+        groupMessageDubboService.creatBatch(List.of(updatePo));
     }
 }

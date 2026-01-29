@@ -34,6 +34,15 @@ public interface ImGroupMemberDubboService {
     Mono<ImGroupMemberPo> queryOne(String groupId, String memberId);
 
     /**
+     * 按角色查询群成员
+     *
+     * @param groupId 群组 ID
+     * @param role    角色
+     * @return 成员列表 Flux
+     */
+    Flux<ImGroupMemberPo> queryByRole(String groupId, Integer role);
+
+    /**
      * 查询群组内前 9 名成员的头像（用于生成群头像）
      *
      * @param groupId 群组 ID
@@ -66,10 +75,34 @@ public interface ImGroupMemberDubboService {
     Mono<Boolean> modify(ImGroupMemberPo groupMember);
 
     /**
+     * 批量修改群组成员信息
+     *
+     * @param groupMemberList 群组成员列表
+     * @return 是否全部修改成功 Mono
+     */
+    Mono<Boolean> modifyBatch(List<ImGroupMemberPo> groupMemberList);
+
+    /**
      * 移除群组成员
      *
      * @param memberId 成员 ID
      * @return 是否移除成功 Mono
      */
     Mono<Boolean> removeOne(String memberId);
+
+    /**
+     * 删除群所有成员
+     *
+     * @param groupId 群组 ID
+     * @return 是否删除成功 Mono
+     */
+    Mono<Boolean> removeByGroupId(String groupId);
+
+    /**
+     * 统计群成员数量
+     *
+     * @param groupId 群组 ID
+     * @return 成员数量 Mono
+     */
+    Mono<Long> countByGroupId(String groupId);
 }

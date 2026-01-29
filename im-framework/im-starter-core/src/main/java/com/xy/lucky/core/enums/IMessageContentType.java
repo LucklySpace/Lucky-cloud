@@ -50,6 +50,8 @@ public enum IMessageContentType {
 
     /**
      * 群组（400-499）
+     * 注：群组操作类型通过 GroupOperationMessageBody.operationType 细分
+     * 具体操作类型对应 IMActionType 中 200-299 区间的 code
      */
     GROUP_INVITE(400, "群组邀请"),
     GROUP_APPROVE(401, "群组审批"),
@@ -58,8 +60,8 @@ public enum IMessageContentType {
      * 其它 / 保留
      */
     COMPLEX(500, "混合消息（多类型组合）"),
-    recall(501, "撤回消息"),
-    edit(502, "编辑消息"),
+    RECALL(501, "撤回消息"),
+    EDIT(502, "编辑消息"),
 
 
     UNKNOWN(999, "未知类型（保底）");

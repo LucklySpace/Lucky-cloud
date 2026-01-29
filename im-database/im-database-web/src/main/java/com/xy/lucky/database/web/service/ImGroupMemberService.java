@@ -10,6 +10,11 @@ import org.apache.dubbo.config.annotation.DubboService;
 
 import java.util.List;
 
+/**
+ * 群成员服务实现
+ *
+ * @author xy
+ */
 @DubboService
 @RequiredArgsConstructor
 public class ImGroupMemberService extends ServiceImpl<ImGroupMemberMapper, ImGroupMemberPo>
@@ -19,17 +24,25 @@ public class ImGroupMemberService extends ServiceImpl<ImGroupMemberMapper, ImGro
 
     @Override
     public List<ImGroupMemberPo> queryList(String groupId) {
-        QueryWrapper<ImGroupMemberPo> imGroupMemberPoQueryWrapper = new QueryWrapper<>();
-        imGroupMemberPoQueryWrapper.eq("group_id", groupId);
-        return super.list(imGroupMemberPoQueryWrapper);
+        QueryWrapper<ImGroupMemberPo> wrapper = new QueryWrapper<>();
+        wrapper.eq("group_id", groupId);
+        return super.list(wrapper);
     }
 
     @Override
     public ImGroupMemberPo queryOne(String groupId, String memberId) {
-        QueryWrapper<ImGroupMemberPo> imGroupMemberPoQueryWrapper = new QueryWrapper<>();
-        imGroupMemberPoQueryWrapper.eq("group_id", groupId);
-        imGroupMemberPoQueryWrapper.eq("member_id", memberId);
-        return super.getOne(imGroupMemberPoQueryWrapper);
+        QueryWrapper<ImGroupMemberPo> wrapper = new QueryWrapper<>();
+        wrapper.eq("group_id", groupId);
+        wrapper.eq("member_id", memberId);
+        return super.getOne(wrapper);
+    }
+
+    @Override
+    public List<ImGroupMemberPo> queryByRole(String groupId, Integer role) {
+        QueryWrapper<ImGroupMemberPo> wrapper = new QueryWrapper<>();
+        wrapper.eq("group_id", groupId);
+        wrapper.eq("role", role);
+        return super.list(wrapper);
     }
 
     @Override
@@ -48,6 +61,11 @@ public class ImGroupMemberService extends ServiceImpl<ImGroupMemberMapper, ImGro
     }
 
     @Override
+    public Boolean modifyBatch(List<ImGroupMemberPo> groupMemberList) {
+        return super.updateBatchById(groupMemberList);
+    }
+
+    @Override
     public Boolean creatBatch(List<ImGroupMemberPo> groupMemberList) {
         return super.saveBatch(groupMemberList);
     }
@@ -55,5 +73,19 @@ public class ImGroupMemberService extends ServiceImpl<ImGroupMemberMapper, ImGro
     @Override
     public Boolean removeOne(String memberId) {
         return super.removeById(memberId);
+    }
+
+    @Override
+    public Boolean removeByGroupId(String groupId) {
+        QueryWrapper<ImGroupMemberPo> wrapper = new QueryWrapper<>();
+        wrapper.eq("group_id", groupId);
+        return super.remove(wrapper);
+    }
+
+    @Override
+    public Long countByGroupId(String groupId) {
+        QueryWrapper<ImGroupMemberPo> wrapper = new QueryWrapper<>();
+        wrapper.eq("group_id", groupId);
+        return super.count(wrapper);
     }
 }

@@ -70,7 +70,7 @@ public class ImGroupInviteRequestPo extends BasePo {
      * 邀请来源（如二维码、成员邀请等）
      */
     @TableField(value = "add_source")
-    private String addSource;
+    private Integer addSource;
 
     /**
      * 邀请过期时间（Unix时间戳）

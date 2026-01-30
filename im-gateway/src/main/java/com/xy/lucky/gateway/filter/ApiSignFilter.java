@@ -1,16 +1,17 @@
 //package com.xy.lucky.gateway.filter;
 //
 //import com.alibaba.nacos.common.utils.JacksonUtils;
+//import com.xy.lucky.gateway.config.GatewayAuthProperties;
+//import com.xy.lucky.gateway.utils.ResponseUtil;
 //import com.xy.lucky.gateway.utils.SignUtils;
-//import jakarta.annotation.Resource;
+//import lombok.RequiredArgsConstructor;
 //import lombok.extern.slf4j.Slf4j;
-//import org.springframework.beans.factory.annotation.Value;
 //import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 //import org.springframework.cloud.gateway.filter.GlobalFilter;
 //import org.springframework.core.Ordered;
 //import org.springframework.core.io.buffer.DataBuffer;
 //import org.springframework.core.io.buffer.DataBufferUtils;
-//import org.springframework.data.redis.core.ReactiveRedisTemplate;
+//import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 //import org.springframework.http.HttpMethod;
 //import org.springframework.http.HttpStatus;
 //import org.springframework.http.MediaType;
@@ -29,184 +30,130 @@
 //import java.util.Map;
 //
 /// **
-// * 网关全局签名验证过滤器
-// * <p>
-// * 功能：
-// * - 针对 /api/ 路径进行签名校验（appId/sign/nonce/timestamp）
-// * - 防重放：使用 Redis 的 setIfAbsent + expire（非阻塞）
-// * - 验签成功后将 body 缓存并注入下游请求，保证下游仍可读取请求体
-// * <p>
-// * 说明：
-// * - 仅支持 JSON body 的 POST 签名（可按需扩展表单或其他 content-type）
-// * - 若 Redis 异常或校验失败，返回 400 与错误信息
+// * 接口签名验证过滤器
+// * 职责：对关键写操作接口进行 App 级签名验证，防止数据被篡改。
+// * 参数：appId, sign, nonce, timestamp
 // */
 //@Slf4j
 //@Component
+//@RequiredArgsConstructor
 //public class ApiSignFilter implements GlobalFilter, Ordered {
 //
-//    @Value("${lucky.gateway.sign.enabled:false}")
-//    private Boolean isEnable = false;
-//
-//    /**
-//     * nonce 在 Redis 中默认过期秒数（防止重复利用）
-//     */
-//    @Value("${lucky.gateway.sign.expire-time:300}")
-//    private Long expireTime;
-//
-//    @Resource
-//    private ReactiveRedisTemplate<String, Object> reactiveRedisTemplate;
-//
-//    private static String getString(Map<String, Object> map, String key) {
-//        if (map == null || key == null) return null;
-//        Object v = map.get(key);
-//        if (v == null) return null;
-//        String s = String.valueOf(v);
-//        return s == null ? null : s.trim();
-//    }
-//
-//    /* -------------------- 辅助方法 -------------------- */
+//    private final GatewayAuthProperties properties;
+//    private final ReactiveStringRedisTemplate reactiveStringRedisTemplate;
 //
 //    @Override
 //    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+//        GatewayAuthProperties.ApiSign config = properties.getSign();
+//        if (!properties.isEnabled() || !config.isEnabled()) {
+//            return chain.filter(exchange);
+//        }
+//
 //        ServerHttpRequest request = exchange.getRequest();
-//        String path = request.getPath().value();
-//
-//        // 仅对 /api/ 路径生效
-//        if (!path.contains("/api/")) {
+//        // 签名通常针对写操作或敏感查询
+//        if (HttpMethod.GET.equals(request.getMethod())) {
 //            return chain.filter(exchange);
 //        }
 //
-//        // 禁用
-//        if (!isEnable) {
-//            return chain.filter(exchange);
-//        }
-//
-//        HttpMethod method = request.getMethod();
-//        MediaType contentType = request.getHeaders().getContentType();
-//        Map<String, String> queryParams = request.getQueryParams().toSingleValueMap();
-//
-//        // 读取并缓存 body（如果存在），然后进行签名校验与防重放
 //        return DataBufferUtils.join(request.getBody())
 //                .defaultIfEmpty(exchange.getResponse().bufferFactory().wrap(new byte[0]))
 //                .flatMap(dataBuffer -> {
 //                    byte[] bodyBytes = new byte[dataBuffer.readableByteCount()];
 //                    dataBuffer.read(bodyBytes);
 //                    DataBufferUtils.release(dataBuffer);
-//                    String bodyString = new String(bodyBytes, StandardCharsets.UTF_8).trim();
+//                    String bodyString = new String(bodyBytes, StandardCharsets.UTF_8);
 //
-//                    // 合并参数：queryParams + JSON body（仅当是 POST+JSON 时解析）
-//                    Map<String, Object> allParams = new HashMap<>();
-//                    if (!CollectionUtils.isEmpty(queryParams)) {
-//                        allParams.putAll(queryParams);
-//                    }
-//                    //
-//                    if (HttpMethod.POST.equals(method)
-//                            && contentType != null
-//                            && MediaType.APPLICATION_JSON.isCompatibleWith(contentType)
-//                            && StringUtils.hasText(bodyString)) {
-//                        try {
-//                            Map jsonMap = JacksonUtils.toObj(bodyString, Map.class);
-//                            if (jsonMap != null) allParams.putAll(jsonMap);
-//                        } catch (Exception e) {
-//                            log.warn("JSON 解析失败: {}", e.getMessage());
-//                            return badRequest(exchange, "JSON 解析失败");
-//                        }
-//                    }
-//
-//                    // 获取签名相关字段（安全获取，避免 "null" 字符串）
-//                    String appId = getString(allParams, "appId");
-//                    String sign = getString(allParams, "sign");
-//                    String nonce = getString(allParams, "nonce");
-//                    String timestamp = getString(allParams, "timestamp");
-//
-//                    if (!StringUtils.hasText(appId) || !StringUtils.hasText(sign)
-//                            || !StringUtils.hasText(nonce) || !StringUtils.hasText(timestamp)) {
-//                        return badRequest(exchange, "签名参数缺失");
-//                    }
-//
-//                    long nowSec = System.currentTimeMillis() / 1000L;
-//                    long ts;
-//                    try {
-//                        ts = Long.parseLong(timestamp);
-//                    } catch (NumberFormatException e) {
-//                        return badRequest(exchange, "timestamp 格式错误");
-//                    }
-//                    if (Math.abs(nowSec - ts) > expireTime) {
-//                        return badRequest(exchange, "请求已过期");
-//                    }
-//
-//                    // 防重放：非阻塞地在 Redis 中做 setIfAbsent + expire
-//                    String nonceKey = "nonce_cache:" + appId + ":" + nonce;
-//                    return reactiveRedisTemplate.opsForValue().setIfAbsent(nonceKey, "1")
-//                            .flatMap(set -> {
-//                                if (Boolean.FALSE.equals(set)) {
-//                                    return badRequest(exchange, "重复请求被拒绝");
+//                    return validateSignature(exchange, bodyString)
+//                            .flatMap(valid -> {
+//                                if (Boolean.FALSE.equals(valid)) {
+//                                    return ResponseUtil.writeJson(exchange, HttpStatus.BAD_REQUEST, "SIGNATURE_INVALID");
 //                                }
-//                                // 设置过期时间，确保 key 不会一直存在
-//                                return reactiveRedisTemplate.expire(nonceKey, Duration.ofSeconds(expireTime))
-//                                        .onErrorResume(e -> {
-//                                            // expire 失败不要阻断请求（容错），仅记录日志
-//                                            log.warn("设置 nonce 过期失败: {}", e.getMessage(), e);
-//                                            return Mono.just(false);
-//                                        })
-//                                        .then(Mono.defer(() -> {
-//                                            // 计算签名并校验
-//                                            String secret = getAppSecret(appId);
-//                                            String calculated = SignUtils.calculateSign(allParams, secret);
-//                                            if (!equalsIgnoreCase(sign, calculated)) {
-//                                                log.warn("签名验证失败：appId={}, provided={}, calculated={}", appId, sign, calculated);
-//                                                return badRequest(exchange, "签名校验失败");
-//                                            }
-//                                            log.debug("签名校验通过：appId={}", appId);
-//
-//                                            // 创建可重复消费的 body Flux
-//                                            Flux<DataBuffer> cachedBody = Flux.defer(() -> {
-//                                                DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(bodyBytes);
-//                                                return Mono.just(buffer);
-//                                            });
-//
-//                                            // 构造带标记的下游请求（header + body decorator）
-//                                            ServerHttpRequest mutatedRequest = request.mutate()
-//                                                    .header("X-Verified-Signature", "true")
-//                                                    .build();
-//
-//                                            ServerHttpRequestDecorator decorated = new ServerHttpRequestDecorator(mutatedRequest) {
-//                                                @Override
-//                                                public Flux<DataBuffer> getBody() {
-//                                                    return cachedBody;
-//                                                }
-//                                            };
-//
-//                                            return chain.filter(exchange.mutate().request(decorated).build());
-//                                        }));
-//                            })
-//                            .onErrorResume(ex -> {
-//                                // Redis 异常时，允许通过或拒绝：此处选择记录并拒绝以保安全（也可以降级为允许）
-//                                log.error("Redis 操作失败：{}", ex.getMessage(), ex);
-//                                return badRequest(exchange, "内部错误");
+//                                // 重新包装请求体，向下游透传
+//                                ServerHttpRequest mutatedRequest = new ServerHttpRequestDecorator(request) {
+//                                    @Override
+//                                    public Flux<DataBuffer> getBody() {
+//                                        return Flux.just(exchange.getResponse().bufferFactory().wrap(bodyBytes));
+//                                    }
+//                                };
+//                                return chain.filter(exchange.mutate().request(mutatedRequest).build());
 //                            });
 //                });
 //    }
 //
+//    private Mono<Boolean> validateSignature(ServerWebExchange exchange, String body) {
+//        ServerHttpRequest request = exchange.getRequest();
+//        Map<String, String> queryParams = request.getQueryParams().toSingleValueMap();
+//
+//        Map<String, Object> allParams = new HashMap<>();
+//        if (!CollectionUtils.isEmpty(queryParams)) {
+//            allParams.putAll(queryParams);
+//        }
+//
+//        if (StringUtils.hasText(body) && isJsonRequest(request)) {
+//            try {
+//                Map<?, ?> jsonMap = JacksonUtils.toObj(body, Map.class);
+//                if (jsonMap != null) {
+//                    jsonMap.forEach((k, v) -> allParams.put(String.valueOf(k), v));
+//                }
+//            } catch (Exception e) {
+//                log.warn("签名解析 JSON Body 失败");
+//            }
+//        }
+//
+//        String appId = String.valueOf(allParams.get("appId"));
+//        String sign = String.valueOf(allParams.get("sign"));
+//        String nonce = String.valueOf(allParams.get("nonce"));
+//        String timestampStr = String.valueOf(allParams.get("timestamp"));
+//
+//        if (!StringUtils.hasText(appId) || !StringUtils.hasText(sign) || !StringUtils.hasText(nonce)) {
+//            return Mono.just(false);
+//        }
+//
+//        // 1. 时间戳校验
+//        long now = System.currentTimeMillis() / 1000L;
+//        long ts = parseLong(timestampStr);
+//        if (Math.abs(now - ts) > properties.getSign().getExpireTimeSeconds()) {
+//            log.warn("签名失效：时间戳超时 - {}", timestampStr);
+//            return Mono.just(false);
+//        }
+//
+//        // 2. 防重放校验
+//        String nonceKey = "gw:sign:nonce:" + appId + ":" + nonce;
+//        return reactiveStringRedisTemplate.opsForValue()
+//                .setIfAbsent(nonceKey, "1", Duration.ofSeconds(properties.getSign().getExpireTimeSeconds()))
+//                .flatMap(saved -> {
+//                    if (Boolean.FALSE.equals(saved)) {
+//                        log.warn("重复请求：Nonce 已存在 - {}", nonce);
+//                        return Mono.just(false);
+//                    }
+//                    // 3. 计算签名校验
+//                    return getSecret(appId).map(secret -> {
+//                        String calculated = SignUtils.calculateSign(allParams, secret);
+//                        return sign.equalsIgnoreCase(calculated);
+//                    });
+//                });
+//    }
+//
+//    private Mono<String> getSecret(String appId) {
+//        // 优先从缓存/配置中获取，此处模拟逻辑
+//        return Mono.just("LUCKY_IM_DEFAULT_SECRET_" + appId);
+//    }
+//
+//    private boolean isJsonRequest(ServerHttpRequest request) {
+//        MediaType contentType = request.getHeaders().getContentType();
+//        return contentType != null && MediaType.APPLICATION_JSON.isCompatibleWith(contentType);
+//    }
+//
+//    private long parseLong(String val) {
+//        try {
+//            return Long.parseLong(val);
+//        } catch (Exception e) {
+//            return 0;
+//        }
+//    }
+//
 //    @Override
 //    public int getOrder() {
-//        return -100;
-//    }
-//
-//    private String getAppSecret(String appId) {
-//        // TODO: 从配置或数据库获取 appSecret（示例返回静态字符串）
-//        return "secretFor_" + appId;
-//    }
-//
-//    private Boolean equalsIgnoreCase(String s1, String s2) {
-//        return s1 == null ? s2 == null : s1.equalsIgnoreCase(s2);
-//    }
-//
-//    private Mono<Void> badRequest(ServerWebExchange exchange, String msg) {
-//        exchange.getResponse().setStatusCode(HttpStatus.BAD_REQUEST);
-//        exchange.getResponse().getHeaders().setContentType(MediaType.TEXT_PLAIN);
-//        byte[] bytes = msg.getBytes(StandardCharsets.UTF_8);
-//        DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(bytes);
-//        return exchange.getResponse().writeWith(Mono.just(buffer));
+//        return -180; // 在认证之前进行签名校验
 //    }
 //}

@@ -1,14 +1,15 @@
 package com.xy.lucky.domain.po;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
-import com.fasterxml.jackson.annotation.JsonFormat;
+import com.xy.lucky.domain.BasePo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.springframework.format.annotation.DateTimeFormat;
 
 import java.io.Serializable;
 
@@ -21,7 +22,7 @@ import java.io.Serializable;
 @AllArgsConstructor
 @Schema(description = "单聊消息")
 @TableName(value = "im_single_message")
-public class ImSingleMessagePo implements Serializable {
+public class ImSingleMessagePo extends BasePo implements Serializable {
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
@@ -73,13 +74,6 @@ public class ImSingleMessagePo implements Serializable {
     private Object replyMessage;
 
     /**
-     * 删除标识（1正常，0删除）
-     */
-    @TableLogic(value = "1", delval = "0")
-    @TableField(value = "del_flag")
-    private Integer delFlag;
-
-    /**
      * 消息序列
      */
     @TableField(value = "sequence")
@@ -89,21 +83,4 @@ public class ImSingleMessagePo implements Serializable {
      */
     @TableField(value = "message_random")
     private String messageRandom;
-    /**
-     * 创建时间
-     */
-    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @TableField(value = "create_time", fill = FieldFill.INSERT)
-    private Long createTime;
-    /**
-     * 更新时间
-     */
-    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @TableField(value = "update_time", fill = FieldFill.UPDATE)
-    private Long updateTime;
-
-    @Version
-    private Integer version;
 }

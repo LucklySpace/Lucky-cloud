@@ -3,6 +3,7 @@ package com.xy.lucky.domain.po;
 import com.baomidou.mybatisplus.annotation.*;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.xy.lucky.domain.BasePo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,22 +11,13 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.springframework.format.annotation.DateTimeFormat;
 
-import java.io.Serializable;
-
-/**
- * 消息投递表
- * 存储要发送到 MQ 的消息
- */
 @Data
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "消息投递 Outbox 实体")
-@TableName(value = "im_outbox")
-public class IMOutboxPo implements Serializable {
-
-    @TableField(exist = false)
-    private static final long serialVersionUID = 1L;
+@TableName(value = "im_outbox", excludeProperty = {"createTime", "updateTime", "delFlag", "version"})
+public class IMOutboxPo extends BasePo {
 
     /**
      * 主键ID

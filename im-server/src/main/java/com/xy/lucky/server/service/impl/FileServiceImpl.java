@@ -1,8 +1,8 @@
 package com.xy.lucky.server.service.impl;
 
-import com.xy.lucky.domain.vo.FileVo;
 import com.xy.lucky.general.exception.BusinessException;
 import com.xy.lucky.general.response.domain.ResultCode;
+import com.xy.lucky.server.domain.vo.FileVo;
 import com.xy.lucky.server.exception.FileException;
 import com.xy.lucky.server.service.FileService;
 import com.xy.lucky.server.utils.MinioUtil;

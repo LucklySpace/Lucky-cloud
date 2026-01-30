@@ -1,7 +1,7 @@
 package com.xy.lucky.server.controller;
 
 
-import com.xy.lucky.domain.vo.FileVo;
+import com.xy.lucky.server.domain.vo.FileVo;
 import com.xy.lucky.server.service.FileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

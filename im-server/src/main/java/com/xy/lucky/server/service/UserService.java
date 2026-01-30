@@ -1,7 +1,7 @@
 package com.xy.lucky.server.service;
 
-import com.xy.lucky.domain.dto.UserDto;
-import com.xy.lucky.domain.vo.UserVo;
+import com.xy.lucky.server.domain.dto.UserDto;
+import com.xy.lucky.server.domain.vo.UserVo;
 
 import java.util.List;
 

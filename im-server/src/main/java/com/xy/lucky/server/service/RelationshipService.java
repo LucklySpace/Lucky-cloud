@@ -1,9 +1,9 @@
 package com.xy.lucky.server.service;
 
 
-import com.xy.lucky.domain.dto.FriendDto;
-import com.xy.lucky.domain.dto.FriendRequestDto;
-import com.xy.lucky.domain.vo.FriendVo;
+import com.xy.lucky.server.domain.dto.FriendDto;
+import com.xy.lucky.server.domain.dto.FriendRequestDto;
+import com.xy.lucky.server.domain.vo.FriendVo;
 
 import java.util.List;
 

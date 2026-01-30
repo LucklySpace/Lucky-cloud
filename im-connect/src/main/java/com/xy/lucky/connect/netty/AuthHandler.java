@@ -57,10 +57,10 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
     private String protocolType;
 
     @Autowired
-    private IMLoginHandler imLoginHandler;
+    private LoginHandler loginHandler;
 
     @Autowired
-    private IMHeartBeatHandler imHeartBeatHandler;
+    private HeartBeatHandler heartBeatHandler;
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
@@ -394,10 +394,10 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
     private void ensurePostAuthPipeline(ChannelHandlerContext ctx) {
         ChannelPipeline pipeline = ctx.pipeline();
 
-        if (pipeline.get(IMLoginHandler.class) == null) {
+        if (pipeline.get(LoginHandler.class) == null) {
             pipeline.addLast("idle", new IdleStateHandler(0, 0, heartBeatTime, TimeUnit.MILLISECONDS));
-            pipeline.addLast("heartBeat", imHeartBeatHandler);
-            pipeline.addLast("login", imLoginHandler);
+            pipeline.addLast("heartBeat", heartBeatHandler);
+            pipeline.addLast("login", loginHandler);
         }
 
         // 移除鉴权 Handler (已完成使命)

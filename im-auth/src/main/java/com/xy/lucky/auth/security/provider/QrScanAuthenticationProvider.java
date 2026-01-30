@@ -1,6 +1,6 @@
 package com.xy.lucky.auth.security.provider;
 
-import com.xy.lucky.auth.domain.IMQRCode;
+import com.xy.lucky.auth.domain.QRCode;
 import com.xy.lucky.auth.security.token.QrScanAuthenticationToken;
 import com.xy.lucky.auth.utils.RedisCache;
 import com.xy.lucky.core.constants.IMConstant;
@@ -42,7 +42,7 @@ public class QrScanAuthenticationProvider implements AuthenticationProvider {
         String password = (String) authentication.getCredentials();
 
         validateInput(qrCodeId, password);
-        IMQRCode qrCodeInfo = getQrCodeInfo(qrCodeId);
+        QRCode qrCodeInfo = getQrCodeInfo(qrCodeId);
         ImUserPo user = getUserFromQrCode(qrCodeInfo);
 
         log.info("二维码登录成功: userId={}", user.getUserId());
@@ -63,7 +63,7 @@ public class QrScanAuthenticationProvider implements AuthenticationProvider {
         }
     }
 
-    private IMQRCode getQrCodeInfo(String qrCodeId) {
+    private QRCode getQrCodeInfo(String qrCodeId) {
         String redisKey = IMConstant.QRCODE_KEY_PREFIX + qrCodeId;
         if (!redisCache.hasKey(redisKey)) {
             log.warn("二维码无效或已过期: qrCodeId={}", qrCodeId);
@@ -72,7 +72,7 @@ public class QrScanAuthenticationProvider implements AuthenticationProvider {
         return redisCache.get(redisKey);
     }
 
-    private ImUserPo getUserFromQrCode(IMQRCode qrCodeInfo) {
+    private ImUserPo getUserFromQrCode(QRCode qrCodeInfo) {
         String userId = qrCodeInfo.getUserId();
         if (!StringUtils.hasText(userId)) {
             log.error("二维码信息中缺少用户ID");

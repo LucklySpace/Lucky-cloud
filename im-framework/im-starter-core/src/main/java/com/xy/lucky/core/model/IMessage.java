@@ -110,9 +110,9 @@ public abstract class IMessage implements Serializable {
             @JsonSubTypes.Type(value = ImageMessageBody.class, name = "130"), // 表情消息
             @JsonSubTypes.Type(value = FileMessageBody.class, name = "200"),// 文件消息
             @JsonSubTypes.Type(value = LocationMessageBody.class, name = "300"),// 位置消息
+            @JsonSubTypes.Type(value = GroupOperationMessageBody.class, name = "400"),// 群组操作
+            @JsonSubTypes.Type(value = GroupInviteMessageBody.class, name = "401"),// 群组邀请
             @JsonSubTypes.Type(value = ComplexMessageBody.class, name = "500"),// 混合消息
-
-            @JsonSubTypes.Type(value = GroupInviteMessageBody.class, name = "400"),// 群组邀请
     })
     private MessageBody messageBody;
 
@@ -273,6 +273,91 @@ public abstract class IMessage implements Serializable {
         @NotNull(message = "邀请状态不能为空")
         // 1:待处理 2:已同意 3:已拒绝
         private Integer approveStatus;
+    }
+
+    /**
+     * 群组操作消息体
+     * 用于描述群组管理操作（踢人、设置管理员、禁言、移交群主、解散群等）
+     * 对应 messageContentType = 400 (GROUP_OPERATION)
+     * 操作类型对应 IMActionType 200-299 区间的 code
+     */
+    @Getter
+    @Setter
+    @ToString(callSuper = true)
+    @Accessors(chain = true)
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class GroupOperationMessageBody extends MessageBody implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+
+        /**
+         * 操作类型（对应 IMActionType 200-299 区间的 code）
+         * 如：204-踢人、205-设置管理员、207-移交群主、215-禁言、220-解散群等
+         */
+        @NotNull(message = "操作类型不能为空")
+        private Integer operationType;
+
+        /**
+         * 群组ID
+         */
+        @NotBlank(message = "群组ID不能为空")
+        private String groupId;
+
+        /**
+         * 群组名称（可选）
+         */
+        private String groupName;
+
+        /**
+         * 群组头像（可选）
+         */
+        private String groupAvatar;
+
+        /**
+         * 操作者ID
+         */
+        @NotBlank(message = "操作者ID不能为空")
+        private String operatorId;
+
+        /**
+         * 操作者名称
+         */
+        private String operatorName;
+
+        /**
+         * 目标用户ID（被操作的成员，部分操作如全员禁言、解散群可为空）
+         */
+        private String targetUserId;
+
+        /**
+         * 目标用户名称
+         */
+        private String targetUserName;
+
+        /**
+         * 操作时间（毫秒时间戳）
+         */
+        @NotNull(message = "操作时间不能为空")
+        private Long operationTime;
+
+        /**
+         * 扩展数据（用于存储操作相关的额外信息）
+         * 常用字段：
+         * - muteDuration: 禁言时长(秒)
+         * - newRole: 新角色
+         * - oldRole: 原角色
+         * - announcement: 群公告内容
+         * - joinMode: 加入方式
+         * - reason: 操作原因
+         */
+        private Map<String, Object> extra;
+
+        /**
+         * 操作描述（如 "被移出群聊"、"被设为管理员" 等）
+         */
+        private String description;
     }
 
     /**

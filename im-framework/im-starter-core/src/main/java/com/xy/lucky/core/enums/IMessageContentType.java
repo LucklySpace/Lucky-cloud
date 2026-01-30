@@ -53,8 +53,9 @@ public enum IMessageContentType {
      * 注：群组操作类型通过 GroupOperationMessageBody.operationType 细分
      * 具体操作类型对应 IMActionType 中 200-299 区间的 code
      */
-    GROUP_INVITE(400, "群组邀请"),
-    GROUP_APPROVE(401, "群组审批"),
+    GROUP_OPERATION(400, "群组操作"),
+    GROUP_INVITE(401, "群组邀请"),
+    GROUP_APPROVE(402, "群组审批"),
 
     /**
      * 其它 / 保留

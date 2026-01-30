@@ -2,7 +2,6 @@ package com.xy.lucky.server.service.impl;
 
 import com.xy.lucky.core.constants.IMConstant;
 import com.xy.lucky.core.enums.*;
-import com.xy.lucky.core.model.IMGroupAction;
 import com.xy.lucky.core.model.IMGroupMessage;
 import com.xy.lucky.core.model.IMSingleMessage;
 import com.xy.lucky.core.model.IMessage;
@@ -61,33 +60,28 @@ public class GroupServiceImpl implements GroupService {
     private static final String CACHE_GROUP_INFO = "group:info:";
     private static final long CACHE_TTL_SECONDS = 300L;
 
-    /**
-     * 分布式锁前缀
-     */
+    /** 分布式锁前缀 */
     private static final String LOCK_PREFIX = "lock:group:";
 
-    /**
-     * 群头像生成工具
-     */
+    /** 群头像生成工具 */
     private final GroupHeadImageUtils groupHeadImageUtils = new GroupHeadImageUtils();
-    private final RedissonClient redissonClient;
-    private final LockExecutor lockExecutor;
+
     @DubboReference
     private ImUserDataDubboService userDataDubboService;
     @DubboReference
     private ImGroupDubboService groupDubboService;
     @DubboReference
     private ImGroupMemberDubboService groupMemberDubboService;
-
-    @Resource
-    private MessageService messageService;
-
-    @Resource
-    private FileService fileService;
     @DubboReference
     private ImGroupInviteRequestDubboService groupInviteRequestDubboService;
     @DubboReference
     private ImIdDubboService idDubboService;
+    private final RedissonClient redissonClient;
+    private final LockExecutor lockExecutor;
+    @Resource
+    private MessageService messageService;
+    @Resource
+    private FileService fileService;
 
     /**
      * 获取群成员列表
@@ -494,7 +488,7 @@ public class GroupServiceImpl implements GroupService {
                 .setGroupMemberId(IdUtils.snowflakeIdStr())
                 .setMemberId(memberId)
                 .setRole(role.getCode())
-                .setMute(IMStatus.YES.getCode())
+                .setMute(IMStatus.NO.getCode())
                 .setJoinTime(joinTime);
     }
 
@@ -1005,7 +999,7 @@ public class GroupServiceImpl implements GroupService {
      * 发送群操作通知消息（结构化消息体）
      *
      * @param groupId       群组ID
-     * @param operationType 操作类型（IMActionType 200-299 区间的 code）
+     * @param operationType 操作类型（IMessageType 200-299 区间的 code）
      * @param operatorId    操作者ID
      * @param targetId      目标用户ID（可为 null）
      * @param description   操作描述
@@ -1023,8 +1017,6 @@ public class GroupServiceImpl implements GroupService {
         // 获取目标用户信息（如有）
         ImUserDataPo targetInfo = StringUtils.hasText(targetId) ? userDataDubboService.queryOne(targetId) : null;
 
-        Long currentUTCTimestamp = DateTimeUtils.getCurrentUTCTimestamp();
-
         // 构建群操作消息体
         IMessage.GroupOperationMessageBody body = IMessage.GroupOperationMessageBody.builder()
                 .operationType(operationType.getCode())
@@ -1035,20 +1027,23 @@ public class GroupServiceImpl implements GroupService {
                 .operatorName(operatorInfo != null ? operatorInfo.getName() : operatorId)
                 .targetUserId(targetId)
                 .targetUserName(targetInfo != null ? targetInfo.getName() : targetId)
-                .operationTime(currentUTCTimestamp)
+                .operationTime(DateTimeUtils.getCurrentUTCTimestamp())
                 .description(description)
                 .extra(extra)
                 .build();
 
-        IMGroupAction message = IMGroupAction.builder()
+        // 构建群消息
+        IMGroupMessage message = IMGroupMessage.builder()
                 .groupId(groupId)
-                .fromId(operatorId)
-                .messageContentType(operationType.getCode())
-                .messageTime(currentUTCTimestamp)
-                .messageType(IMessageType.GROUP_OPERATION.getCode())
+                .fromId(IMConstant.SYSTEM)
+                .messageContentType(IMessageContentType.GROUP_OPERATION.getCode())
+                .messageType(IMessageType.GROUP_MESSAGE.getCode())
+                .messageTime(DateTimeUtils.getCurrentUTCTimestamp())
+                .readStatus(IMessageReadStatus.UNREAD.getCode())
                 .messageBody(body)
                 .build();
-        messageService.sendGroupAction(message);
+
+        messageService.sendGroupMessage(message);
     }
 
     /**

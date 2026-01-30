@@ -20,6 +20,7 @@ import com.xy.lucky.server.domain.dto.ChatDto;
 import com.xy.lucky.server.domain.mapper.MessageBeanMapper;
 import com.xy.lucky.server.exception.MessageException;
 import com.xy.lucky.server.service.MessageService;
+import com.xy.lucky.server.service.MuteService;
 import com.xy.lucky.server.utils.RedisUtil;
 import com.xy.lucky.utils.id.IdUtils;
 import com.xy.lucky.utils.json.JacksonUtils;
@@ -81,16 +82,21 @@ public class MessageServiceImpl implements MessageService {
     private ImGroupMessageDubboService groupMessageDubboService;
     @DubboReference
     private IMOutboxDubboService outboxDubboService;
-
+    @DubboReference
+    private ImIdDubboService idDubboService;
     @Resource
     private RedisUtil redisUtil;
+
     @Resource
     private RabbitTemplateFactory rabbitTemplateFactory;
+
+    @Resource
+    private MuteService muteService;
+
     @Resource
     @Qualifier("asyncTaskExecutor")
     private Executor asyncTaskExecutor;
-    @DubboReference
-    private ImIdDubboService idDubboService;
+
     private RabbitTemplate rabbitTemplate;
 
     /**
@@ -112,6 +118,9 @@ public class MessageServiceImpl implements MessageService {
      */
     @Override
     public IMSingleMessage sendSingleMessage(IMSingleMessage dto) {
+        if (muteService.isMutedInPrivate(dto.getFromId(), dto.getToId())) {
+            throw new MessageException("禁言中，无法发送消息");
+        }
         String lockKey = LOCK_PREFIX + "single:" + dto.getFromId() + ":" + dto.getToId();
         return lockExecutor.execute(lockKey, () -> {
             Long messageId = generateLongId(IdGeneratorConstant.snowflake, IdGeneratorConstant.private_message_id);
@@ -138,6 +147,9 @@ public class MessageServiceImpl implements MessageService {
      */
     @Override
     public IMGroupMessage sendGroupMessage(IMGroupMessage dto) {
+        if (muteService.isMutedInGroup(dto.getGroupId(), dto.getFromId())) {
+            throw new MessageException("禁言中，无法在群聊发送消息");
+        }
         String lockKey = LOCK_PREFIX + "group:" + dto.getGroupId() + ":" + dto.getFromId();
         return lockExecutor.execute(lockKey, () -> {
             List<ImGroupMemberPo> members = groupMemberDubboService.queryList(dto.getGroupId());
@@ -200,6 +212,9 @@ public class MessageServiceImpl implements MessageService {
      */
     @Override
     public void sendVideoMessage(IMVideoMessage dto) {
+        if (muteService.isMutedInPrivate(dto.getFromId(), dto.getToId())) {
+            return;
+        }
         String lockKey = LOCK_PREFIX + "video:" + dto.getFromId() + ":" + dto.getToId();
         lockExecutor.execute(lockKey, () -> {
             IMRegisterUser receiver = getOnlineUser(dto.getToId());

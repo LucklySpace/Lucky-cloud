@@ -23,6 +23,12 @@ public class FileVo {
     @Schema(description = "文件名称")
     private String name;
 
+    @Schema(description = "文件大小")
+    private Long size;
+
+    @Schema(description = "文件类型")
+    private String type;
+
     @Schema(description = "文件地址")
     private String path;
 

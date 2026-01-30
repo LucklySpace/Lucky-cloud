@@ -44,20 +44,14 @@ public class LazyInitConfig implements EnvironmentAware {
 
             @Override
             public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
-                // Check if lazy initialization is enabled
-                String lazyInitProperty = beanFactory.resolveEmbeddedValue("${spring.main.lazy-initialization:false}");
-                if (!"true".equalsIgnoreCase(lazyInitProperty)) {
-                    log.debug("Lazy initialization is disabled, skipping lazy init configuration");
-                    return;
-                }
-
                 // Get current application name
                 String applicationName = environment.getProperty("spring.application.name", "");
 
-                // Read exclude patterns from new configuration format
-                // im.lazy-init.config is a list, each item has 'id' and 'exclude-patterns'
+                // Read lazy-init configuration from Nacos
+                // im.lazy-init.config is a list, each item has 'id', 'enabled' and 'exclude-patterns'
                 List<String> defaultPatterns = new ArrayList<>();
                 List<String> servicePatterns = new ArrayList<>();
+                Boolean lazyEnabled = null;
 
                 int configIndex = 0;
                 while (true) {
@@ -78,9 +72,19 @@ public class LazyInitConfig implements EnvironmentAware {
                     } else if (configId.equals(applicationName)) {
                         // This is the service-specific configuration
                         servicePatterns.addAll(patterns);
+                        // Read the enabled flag for this service
+                        String enabledKey = "im.lazy-init.config[" + configIndex + "].enabled";
+                        String enabledValue = environment.getProperty(enabledKey, "false");
+                        lazyEnabled = Boolean.parseBoolean(enabledValue);
                     }
 
                     configIndex++;
+                }
+
+                // Check if lazy initialization is enabled for this service
+                if (lazyEnabled == null || !lazyEnabled) {
+                    log.info("Lazy initialization is disabled for service: {}", applicationName);
+                    return;
                 }
 
                 // Merge and compile exclude patterns

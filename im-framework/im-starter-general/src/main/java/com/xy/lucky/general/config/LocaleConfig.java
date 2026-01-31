@@ -11,6 +11,7 @@ import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver;
 
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -45,7 +46,7 @@ public class LocaleConfig {
         AcceptHeaderLocaleResolver localeResolver = new AcceptHeaderLocaleResolver();
         localeResolver.setDefaultLocale(Locale.ENGLISH);
         // 设置支持的语言环境列表，提高安全性
-        localeResolver.setSupportedLocales(java.util.List.of(
+        localeResolver.setSupportedLocales(List.of(
                 Locale.ENGLISH,
                 Locale.SIMPLIFIED_CHINESE,
                 Locale.US,

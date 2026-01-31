@@ -49,6 +49,16 @@ public class ImGroupMemberPo extends BasePo {
     @TableField(value = "mute")
     private Integer mute;
     /**
+     * 禁言开始时间（毫秒时间戳）
+     */
+    @TableField(value = "mute_start_time")
+    private Long muteStartTime;
+    /**
+     * 禁言结束时间（毫秒时间戳，null 表示永久禁言）
+     */
+    @TableField(value = "mute_end_time")
+    private Long muteEndTime;
+    /**
      * 群昵称
      */
     @TableField(value = "alias")

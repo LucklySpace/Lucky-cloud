@@ -9,8 +9,10 @@ spring:
   jackson:
     default-property-inclusion: non_null
   config:
-    import: nacos:${spring.application.name}-${spring.profiles.active}.yml
     location: gateway-routes-ws.yml
+    import:
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yml
+      - optional:nacos:im-lazy-init-config.yml
   cloud: # nacos
     sentinel:
       eager: true

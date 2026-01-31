@@ -26,6 +26,7 @@ import com.xy.lucky.server.exception.GroupException;
 import com.xy.lucky.server.service.FileService;
 import com.xy.lucky.server.service.GroupService;
 import com.xy.lucky.server.service.MessageService;
+import com.xy.lucky.server.service.MuteService;
 import com.xy.lucky.utils.id.IdUtils;
 import com.xy.lucky.utils.image.GroupHeadImageUtils;
 import com.xy.lucky.utils.time.DateTimeUtils;
@@ -33,14 +34,12 @@ import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.redisson.api.RMapCache;
-import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
+import java.io.File;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -53,12 +52,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class GroupServiceImpl implements GroupService {
-
-    /**
-     * 缓存相关常量
-     */
-    private static final String CACHE_GROUP_INFO = "group:info:";
-    private static final long CACHE_TTL_SECONDS = 300L;
 
     /** 分布式锁前缀 */
     private static final String LOCK_PREFIX = "lock:group:";
@@ -76,12 +69,14 @@ public class GroupServiceImpl implements GroupService {
     private ImGroupInviteRequestDubboService groupInviteRequestDubboService;
     @DubboReference
     private ImIdDubboService idDubboService;
-    private final RedissonClient redissonClient;
-    private final LockExecutor lockExecutor;
+
     @Resource
     private MessageService messageService;
     @Resource
     private FileService fileService;
+    private final LockExecutor lockExecutor;
+    @Resource
+    private MuteService muteService;
 
     /**
      * 获取群成员列表
@@ -201,21 +196,8 @@ public class GroupServiceImpl implements GroupService {
      */
     @Override
     public ImGroupPo groupInfo(GroupDto dto) {
-        // 先查缓存
-        RMapCache<String, Object> cache = redissonClient.getMapCache(CACHE_GROUP_INFO);
-        Object cached = cache.get(dto.getGroupId());
-        if (cached instanceof ImGroupPo cachedGroup) {
-            return cachedGroup;
-        }
-
-        // 查数据库
         ImGroupPo group = groupDubboService.queryOne(dto.getGroupId());
-        if (group != null) {
-            cache.fastPut(dto.getGroupId(), group, CACHE_TTL_SECONDS, TimeUnit.SECONDS);
-            return group;
-        }
-
-        return new ImGroupPo();
+        return group != null ? group : new ImGroupPo();
     }
 
     /**
@@ -322,10 +304,6 @@ public class GroupServiceImpl implements GroupService {
         // 异步生成群头像
         generateGroupAvatar(groupId);
 
-        // 缓存群信息
-        RMapCache<String, Object> cache = redissonClient.getMapCache(CACHE_GROUP_INFO);
-        cache.fastPut(groupId, group, CACHE_TTL_SECONDS, TimeUnit.SECONDS);
-
         // 发送欢迎消息
         messageService.sendGroupMessage(buildSystemMessage(groupId, "已加入群聊,请尽情聊天吧"));
 
@@ -416,9 +394,8 @@ public class GroupServiceImpl implements GroupService {
      * 更新群信息并发送通知
      */
     private void updateGroupInfoAndNotify(String groupId, String inviterId, String userId) {
-        List<ImGroupMemberPo> updatedMembers = groupMemberDubboService.queryList(groupId);
-        if (updatedMembers != null && updatedMembers.size() < 10) {
-            groupDubboService.modify(new ImGroupPo().setGroupId(groupId));
+        List<ImGroupMemberPo> members = groupMemberDubboService.queryList(groupId);
+        if (members != null && members.size() < 10) {
             generateGroupAvatar(groupId);
         }
         sendJoinNotification(groupId, inviterId, userId);
@@ -430,7 +407,7 @@ public class GroupServiceImpl implements GroupService {
     public void generateGroupAvatar(String groupId) {
         try {
             List<String> avatars = groupMemberDubboService.queryNinePeopleAvatar(groupId);
-        java.io.File headFile = groupHeadImageUtils.getCombinationOfhead(avatars, "defaultGroupHead" + groupId);
+            File headFile = groupHeadImageUtils.getCombinationOfhead(avatars, "defaultGroupHead" + groupId);
         FileVo fileVo = fileService.uploadFile(headFile);
         if (fileVo == null || !StringUtils.hasText(fileVo.getPath())) {
             return;
@@ -438,14 +415,6 @@ public class GroupServiceImpl implements GroupService {
 
         String avatarUrl = fileVo.getPath();
             groupDubboService.modify(new ImGroupPo().setGroupId(groupId).setAvatar(avatarUrl));
-
-            // 更新缓存
-            RMapCache<String, Object> cache = redissonClient.getMapCache(CACHE_GROUP_INFO);
-        Object cached = cache.get(groupId);
-        if (cached instanceof ImGroupPo cachedGroup) {
-            cachedGroup.setAvatar(avatarUrl);
-            cache.fastPut(groupId, cachedGroup, CACHE_TTL_SECONDS, TimeUnit.SECONDS);
-        }
         } catch (Exception e) {
             log.error("生成群头像失败: groupId={}", groupId, e);
         }
@@ -488,7 +457,7 @@ public class GroupServiceImpl implements GroupService {
                 .setGroupMemberId(IdUtils.snowflakeIdStr())
                 .setMemberId(memberId)
                 .setRole(role.getCode())
-                .setMute(IMStatus.NO.getCode())
+                .setMute(IMStatus.YES.getCode()) // 默认不禁言
                 .setJoinTime(joinTime);
     }
 
@@ -655,6 +624,9 @@ public class GroupServiceImpl implements GroupService {
                 throw new GroupException("移除成员失败");
             }
 
+            // 清除该成员在群组中的禁言状态
+            muteService.unmuteUserInGroup(dto.getGroupId(), dto.getTargetUserId());
+
             // 发送群操作消息
             sendGroupOperationWithTarget(dto.getGroupId(), IMessageType.KICK_FROM_GROUP,
                     dto.getUserId(), dto.getTargetUserId(), "被移出群聊");
@@ -796,9 +768,6 @@ public class GroupServiceImpl implements GroupService {
                 throw new GroupException("设置加入方式失败");
             }
 
-            // 更新缓存
-            invalidateGroupCache(dto.getGroupId());
-
             // 发送群操作消息
             String description = "群加入方式已设置为：" + joinStatus.getDesc();
             Map<String, Object> extra = Map.of("joinMode", dto.getApplyJoinType());
@@ -843,13 +812,38 @@ public class GroupServiceImpl implements GroupService {
             }
 
             // 更新禁言状态
-            target.setMute(dto.getMute());
+            long now = DateTimeUtils.getCurrentUTCTimestamp();
+            boolean isMute = IMStatus.NO.getCode().equals(dto.getMute());
+
+            if (isMute) {
+                // 禁言：计算结束时间
+                Long muteEndTime = null;
+                if (dto.getMuteDuration() != null && dto.getMuteDuration() > 0) {
+                    muteEndTime = now + dto.getMuteDuration() * 1000L; // 转换为毫秒
+                }
+                // null 表示永久禁言
+
+                target.setMute(IMStatus.NO.getCode());
+                target.setMuteStartTime(now);
+                target.setMuteEndTime(muteEndTime);
+
+                // 更新 Redis 禁言状态
+                muteService.muteUserInGroup(dto.getGroupId(), dto.getTargetUserId(), muteEndTime);
+            } else {
+                // 解除禁言
+                target.setMute(IMStatus.YES.getCode());
+                target.setMuteStartTime(null);
+                target.setMuteEndTime(null);
+
+                // 清除 Redis 禁言状态
+                muteService.unmuteUserInGroup(dto.getGroupId(), dto.getTargetUserId());
+            }
+
             if (!groupMemberDubboService.modify(target)) {
                 throw new GroupException("更新禁言状态失败");
             }
 
             // 发送群操作消息
-            boolean isMute = IMStatus.NO.getCode().equals(dto.getMute());
             IMessageType actionType = isMute ? IMessageType.MUTE_MEMBER : IMessageType.UNMUTE_MEMBER;
             String action = isMute ? "被禁言" : "被解除禁言";
             Map<String, Object> extra = new HashMap<>();
@@ -857,11 +851,14 @@ public class GroupServiceImpl implements GroupService {
             if (dto.getMuteDuration() != null) {
                 extra.put("muteDuration", dto.getMuteDuration());
             }
+            if (isMute && target.getMuteEndTime() != null) {
+                extra.put("muteEndTime", target.getMuteEndTime());
+            }
             sendGroupOperationWithTarget(dto.getGroupId(), actionType,
                     dto.getUserId(), dto.getTargetUserId(), action, extra);
 
-            log.info("禁言成员操作成功: groupId={}, target={}, mute={}",
-                    dto.getGroupId(), dto.getTargetUserId(), dto.getMute());
+            log.info("禁言成员操作成功: groupId={}, target={}, mute={}, muteEndTime={}",
+                    dto.getGroupId(), dto.getTargetUserId(), dto.getMute(), target.getMuteEndTime());
         });
     }
 
@@ -884,8 +881,14 @@ public class GroupServiceImpl implements GroupService {
                 throw new GroupException("设置全员禁言失败");
             }
 
-            // 更新缓存
-            invalidateGroupCache(dto.getGroupId());
+            // 更新 Redis 禁言状态
+            if (IMStatus.NO.getCode().equals(dto.getMuteAll())) {
+                // 开启全员禁言（永久禁言，null 表示永久）
+                muteService.muteAllInGroup(dto.getGroupId(), null);
+            } else {
+                // 关闭全员禁言
+                muteService.unmuteAllInGroup(dto.getGroupId());
+            }
 
             // 发送群操作消息
             boolean isMuteAll = IMStatus.NO.getCode().equals(dto.getMuteAll());
@@ -927,9 +930,6 @@ public class GroupServiceImpl implements GroupService {
                     .setStatus(IMStatus.NO.getCode());
             groupDubboService.modify(update);
 
-            // 清除缓存
-            invalidateGroupCache(dto.getGroupId());
-
             log.info("解散群组成功: groupId={}, operator={}", dto.getGroupId(), dto.getUserId());
         });
     }
@@ -952,9 +952,6 @@ public class GroupServiceImpl implements GroupService {
             if (!groupDubboService.modify(update)) {
                 throw new GroupException("设置群公告失败");
             }
-
-            // 更新缓存
-            invalidateGroupCache(dto.getGroupId());
 
             // 发送群操作消息
             String description = "群公告已更新：" + dto.getNotification();
@@ -1078,11 +1075,4 @@ public class GroupServiceImpl implements GroupService {
         sendGroupOperationMessage(groupId, operationType, operatorId, null, description, extra);
     }
 
-    /**
-     * 使群缓存失效
-     */
-    private void invalidateGroupCache(String groupId) {
-        RMapCache<String, Object> cache = redissonClient.getMapCache(CACHE_GROUP_INFO);
-        cache.fastRemove(groupId);
-    }
 }

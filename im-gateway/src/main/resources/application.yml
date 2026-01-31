@@ -5,6 +5,3 @@ spring:
     #  切换 web 为 http 网关配置  ws 为 websocket 网关配置
     include: web
     # include: ws
-  config:
-    import:
-      - optional:nacos:im-lazy-init-config.yml

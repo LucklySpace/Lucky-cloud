@@ -1,5 +1,3 @@
-application:
-  yml:
 server:
   compression:
     enabled: true #  开启gzip压缩

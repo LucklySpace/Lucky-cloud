@@ -1,10 +1,7 @@
 package com.xy.lucky.server.service.impl;
 
 import com.xy.lucky.core.constants.IMConstant;
-import com.xy.lucky.core.enums.IMOutboxStatus;
-import com.xy.lucky.core.enums.IMStatus;
-import com.xy.lucky.core.enums.IMessageReadStatus;
-import com.xy.lucky.core.enums.IMessageType;
+import com.xy.lucky.core.enums.*;
 import com.xy.lucky.core.model.*;
 import com.xy.lucky.domain.po.*;
 import com.xy.lucky.dubbo.web.api.database.chat.ImChatDubboService;
@@ -37,10 +34,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
@@ -181,18 +175,19 @@ public class MessageServiceImpl implements MessageService {
      * @return 发送后的操作
      */
     @Override
-    public IMGroupAction sendGroupAction(IMGroupAction dto) {
+    public void sendGroupAction(IMGroupAction dto) {
+
         String fromId = StringUtils.hasText(dto.getFromId()) ? dto.getFromId() : IMConstant.SYSTEM;
 
         dto.setFromId(fromId);
 
         String lockKey = LOCK_PREFIX + "groupAction:" + dto.getGroupId() + ":" + fromId;
 
-        return lockExecutor.execute(lockKey, () -> {
+        lockExecutor.execute(lockKey, () -> {
             List<ImGroupMemberPo> members = groupMemberDubboService.queryList(dto.getGroupId());
             if (CollectionUtils.isEmpty(members)) {
                 log.warn("群组操作没有成员: groupId={}", dto.getGroupId());
-                return dto;
+                return;
             }
             Long messageId = IdUtils.snowflakeId();
 
@@ -201,7 +196,6 @@ public class MessageServiceImpl implements MessageService {
             sendToOnlineMembers(dto, members, String.valueOf(messageId), IMessageType.GROUP_OPERATION);
 
             log.info("发送群组操作消息: from={}, groupId={}, messageId={}", dto.getFromId(), dto.getGroupId(), messageId);
-            return dto;
         });
     }
 
@@ -237,19 +231,25 @@ public class MessageServiceImpl implements MessageService {
     public void recallMessage(IMessageAction dto) {
         String lockKey = LOCK_PREFIX + "recall:" + dto.getMessageId();
         lockExecutor.execute(lockKey, () -> {
-            ImSingleMessagePo singleMsg = singleMessageDubboService.queryOne(dto.getMessageId());
-            if (singleMsg != null) {
-                recallSingleMessage(singleMsg, dto);
-                return;
+            // 单聊消息
+            if (Objects.equals(dto.getMessageType(), IMessageType.SINGLE_MESSAGE.getCode())) {
+                ImSingleMessagePo singleMsg = singleMessageDubboService.queryOne(dto.getMessageId());
+                if (singleMsg != null) {
+                    recallSingleMessage(singleMsg, dto);
+                    return;
+                }
             }
 
-            ImGroupMessagePo groupMsg = groupMessageDubboService.queryOne(dto.getMessageId());
-            if (groupMsg != null) {
-                recallGroupMessage(groupMsg, dto);
-                return;
+            // 群聊消息
+            if (Objects.equals(dto.getMessageType(), IMessageType.GROUP_MESSAGE.getCode())) {
+                ImGroupMessagePo groupMsg = groupMessageDubboService.queryOne(dto.getMessageId());
+                if (groupMsg != null) {
+                    recallGroupMessage(groupMsg, dto);
+                    return;
+                }
             }
 
-            throw new MessageException("消息不存在");
+            throw new MessageException("消息或类型不存在");
         });
     }
 
@@ -350,7 +350,7 @@ public class MessageServiceImpl implements MessageService {
 
             IMRegisterUser user = JacksonUtils.parseObject(obj, IMRegisterUser.class);
             if (user == null || user.getUserId() == null || user.getBrokerId() == null) continue;
-            if (user.getUserId().equals(dto.getFromId())) continue;
+            //if (user.getUserId().equals(dto.getFromId())) continue;
 
             brokerUserMap.computeIfAbsent(user.getBrokerId(), k -> new ArrayList<>()).add(user.getUserId());
         }
@@ -365,54 +365,121 @@ public class MessageServiceImpl implements MessageService {
      * 撤回单聊消息
      */
     private void recallSingleMessage(ImSingleMessagePo msg, IMessageAction dto) {
-        if (!msg.getFromId().equals(dto.getOperatorId())) {
-            throw new MessageException("无权撤回他人消息");
-        }
 
-        long now = DateTimeUtils.getCurrentUTCTimestamp();
-        if (now - msg.getMessageTime() > RECALL_TIMEOUT_MS) {
-            throw new MessageException("发送时间超过2分钟，无法撤回");
-        }
+        long recallTime = DateTimeUtils.getCurrentUTCTimestamp();
 
-        msg.setMessageContentType(IMessageType.RECALL_MESSAGE.getCode());
-        msg.setMessageBody("撤回了一条消息");
+        // 验证撤回权限和时间
+        validateRecallPermission(msg.getFromId(), dto.getFromId(), recallTime, msg.getMessageTime());
+
+        // 构建撤回消息体
+        IMessage.RecallMessageBody recallBody = buildRecallMessageBody(
+                dto.getMessageId(), dto.getFromId(), recallTime,
+                msg.getToId(), IMessageType.SINGLE_MESSAGE.getCode());
+
+        // 更新数据库中的消息状态
+        msg.setMessageContentType(IMessageContentType.RECALL_MESSAGE.getCode());
+        msg.setMessageBody(recallBody);
         singleMessageDubboService.modify(msg);
 
-        IMRegisterUser receiver = getOnlineUser(msg.getToId());
-        if (receiver != null && receiver.getBrokerId() != null) {
-            IMessageWrap<Object> wrapper = buildMessageWrapper(IMessageType.RECALL_MESSAGE.getCode(), dto, List.of(msg.getToId()));
-            publishToBroker(receiver.getBrokerId(), wrapper, null);
-        }
+        // 发送撤回通知给接收者
+        IMessageAction recallAction = buildRecallAction(dto.getFromId(), msg.getToId(), null,
+                dto.getMessageId(), recallTime, recallBody);
 
-        log.info("撤回单聊消息: messageId={}", dto.getMessageId());
+        sendRecallToUser(msg.getToId(), recallAction);
+
+        log.info("撤回单聊消息: messageId={}, fromId={}, toId={}", dto.getMessageId(), dto.getFromId(), msg.getToId());
     }
 
     /**
      * 撤回群聊消息
      */
     private void recallGroupMessage(ImGroupMessagePo msg, IMessageAction dto) {
-        if (!msg.getFromId().equals(dto.getOperatorId())) {
+
+        long recallTime = DateTimeUtils.getCurrentUTCTimestamp();
+
+        // 验证撤回权限和时间
+        validateRecallPermission(msg.getFromId(), dto.getFromId(), recallTime, msg.getMessageTime());
+
+        // 构建撤回消息体
+        IMessage.RecallMessageBody recallBody = buildRecallMessageBody(
+                dto.getMessageId(), dto.getFromId(), recallTime,
+                msg.getGroupId(), IMessageType.GROUP_MESSAGE.getCode());
+
+        // 更新数据库中的消息状态
+        msg.setMessageContentType(IMessageContentType.RECALL_MESSAGE.getCode());
+        msg.setMessageBody(recallBody);
+        groupMessageDubboService.modify(msg);
+
+        // 通知群成员
+        IMessageAction recallAction = buildRecallAction(dto.getFromId(), null, msg.getGroupId(),
+                dto.getMessageId(), recallTime, recallBody);
+        sendRecallToGroupMembers(msg.getGroupId(), dto.getFromId(), recallAction);
+
+        log.info("撤回群聊消息: messageId={}, fromId={}, groupId={}", dto.getMessageId(), dto.getFromId(), msg.getGroupId());
+    }
+
+    // ==================== 撤回消息辅助方法 ====================
+
+    /**
+     * 验证撤回权限和时间
+     */
+    private void validateRecallPermission(String messageFromId, String operatorId, Long now, Long messageTime) {
+        if (!messageFromId.equals(operatorId)) {
             throw new MessageException("无权撤回他人消息");
         }
 
-        long now = DateTimeUtils.getCurrentUTCTimestamp();
-        if (now - msg.getMessageTime() > RECALL_TIMEOUT_MS) {
+        if (now - messageTime > RECALL_TIMEOUT_MS) {
             throw new MessageException("发送时间超过2分钟，无法撤回");
         }
-
-        msg.setMessageContentType(IMessageType.RECALL_MESSAGE.getCode());
-        msg.setMessageBody("撤回了一条消息");
-        groupMessageDubboService.modify(msg);
-
-        notifyGroupMembersRecall(msg.getGroupId(), dto);
-
-        log.info("撤回群聊消息: messageId={}", dto.getMessageId());
     }
 
     /**
-     * 通知群成员消息已撤回
+     * 构建撤回消息体
      */
-    private void notifyGroupMembersRecall(String groupId, IMessageAction dto) {
+    private IMessage.RecallMessageBody buildRecallMessageBody(String messageId, String operatorId,
+                                                              long recallTime, String chatId, Integer chatType) {
+        return new IMessage.RecallMessageBody()
+                .setMessageId(messageId)
+                .setOperatorId(operatorId)
+                .setRecallTime(recallTime)
+                .setChatId(chatId)
+                .setChatType(chatType);
+    }
+
+    /**
+     * 构建撤回操作消息
+     */
+    private IMessageAction buildRecallAction(String fromId, String toId, String groupId,
+                                             String messageId, long recallTime,
+                                             IMessage.RecallMessageBody recallBody) {
+        return IMessageAction.builder()
+                .messageTempId(IdUtils.snowflakeIdStr())
+                .fromId(fromId)
+                .toId(toId)
+                .groupId(groupId)
+                .messageId(messageId)
+                .messageContentType(IMessageContentType.RECALL_MESSAGE.getCode())
+                .messageTime(recallTime)
+                .messageBody(recallBody)
+                .build();
+    }
+
+    /**
+     * 发送撤回通知给单个用户
+     */
+    private void sendRecallToUser(String userId, IMessageAction recallAction) {
+        IMRegisterUser receiver = getOnlineUser(userId);
+        if (receiver != null && receiver.getBrokerId() != null) {
+            IMessageWrap<Object> wrapper = buildMessageWrapper(
+                    IMessageType.MESSAGE_OPERATION.getCode(), recallAction, List.of(userId));
+            publishToBroker(receiver.getBrokerId(), wrapper, recallAction.getMessageId());
+        }
+    }
+
+    /**
+     * 发送撤回通知给群成员
+     */
+    private void sendRecallToGroupMembers(String groupId, String fromId, IMessageAction recallAction) {
         List<ImGroupMemberPo> members = groupMemberDubboService.queryList(groupId);
         if (CollectionUtils.isEmpty(members)) {
             return;
@@ -435,8 +502,9 @@ public class MessageServiceImpl implements MessageService {
         }
 
         brokerUserMap.forEach((brokerId, userIds) -> {
-            IMessageWrap<Object> wrapper = buildMessageWrapper(IMessageType.RECALL_MESSAGE.getCode(), dto, userIds);
-            publishToBroker(brokerId, wrapper, null);
+            IMessageWrap<Object> wrapper = buildMessageWrapper(
+                    IMessageType.MESSAGE_OPERATION.getCode(), recallAction, userIds);
+            publishToBroker(brokerId, wrapper, recallAction.getMessageId());
         });
     }
 

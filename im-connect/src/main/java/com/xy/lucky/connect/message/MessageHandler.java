@@ -34,6 +34,10 @@ public class MessageHandler {
     @Autowired
     private GroupOperationProcess groupOperationProcess;
 
+    @Autowired
+    private MessageActionProcess messageActionProcess;
+
+
     /**
      * 监听并分发消息
      */
@@ -73,6 +77,8 @@ public class MessageHandler {
                 case FORCE_LOGOUT -> forceLogoutProcess.dispose(messageWrap);
                 // 群组操作
                 case GROUP_OPERATION -> groupOperationProcess.dispose(messageWrap);
+                // 消息操作（撤回/编辑）
+                case MESSAGE_OPERATION -> messageActionProcess.dispose(messageWrap);
                 default -> {
                     log.warn("没有为消息类型 {} 注册处理器，忽略该消息", msgType);
                     return;

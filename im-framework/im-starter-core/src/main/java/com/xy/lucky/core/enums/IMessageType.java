@@ -37,43 +37,9 @@ public enum IMessageType {
     REGISTER_SUCCESS(209, "注册成功"),
     REGISTER_FAILED(210, "注册失败"),
 
-    /* Group (300 - 399) */
-    CREATE_GROUP(300, "创建群组"),
-    INVITE_TO_GROUP(301, "群组邀请"),
-    JOIN_GROUP(302, "成员加入群组"),
-    LEAVE_GROUP(303, "主动退出群组"),
-    KICK_FROM_GROUP(304, "移除群成员"),
-    PROMOTE_TO_ADMIN(305, "设置管理员"),
-    DEMOTE_FROM_ADMIN(306, "取消管理员"),
-    TRANSFER_GROUP_OWNER(307, "移交群主"),
-    SET_GROUP_INFO(308, "修改群信息"),
-    SET_GROUP_ANNOUNCEMENT(309, "设置群公告"),
-    SET_GROUP_JOIN_MODE(310, "设置群加入方式"),
-    APPROVE_JOIN_REQUEST(311, "批准入群申请"),
-    REJECT_JOIN_REQUEST(312, "拒绝入群申请"),
-    JOIN_APPROVE_GROUP(313, "群组加入审批"),
-    JOIN_APPROVE_RESULT_GROUP(314, "群组加入审批结果"),
-    MUTE_MEMBER(315, "单人禁言"),
-    UNMUTE_MEMBER(316, "取消禁言"),
-    MUTE_ALL(317, "全员禁言"),
-    UNMUTE_ALL(318, "取消全员禁言"),
-    SET_MEMBER_ROLE(319, "设置群成员角色"),
-    REMOVE_GROUP(320, "解散/删除群组"),
-
-    /* Message operations (450 - 499) */
-    SEND_MESSAGE(450, "发送消息"),
-    EDIT_MESSAGE(451, "编辑消息"),
-    DELETE_MESSAGE(452, "删除消息"),
-    RECALL_MESSAGE(453, "撤回消息"),
-    REPLY_MESSAGE(454, "回复消息"),
-    FORWARD_MESSAGE(455, "转发消息"),
-    MARK_READ(456, "已读回执"),
-    TYPING(457, "正在输入"),
-    MESSAGE_QUOTE(458, "引用消息"),
-
     /* Reactions (470 - 479) */
-    REACTION_ADD(470, "添加表情反应"),
-    REACTION_REMOVE(471, "移除表情反应"),
+    REACTION_ADD(400, "添加表情反应"),
+    REACTION_REMOVE(401, "移除表情反应"),
 
     /* Entity types (500 - 599) */
     USER(500, "普通用户"),
@@ -119,6 +85,7 @@ public enum IMessageType {
     SYSTEM_MESSAGE(1003, "系统消息"),
     BROADCAST_MESSAGE(1004, "广播消息"),
     GROUP_OPERATION(1005, "群组操作（通用）"),
+    MESSAGE_OPERATION(1006, "消息操作 (通用)"),
 
     /* Reserved / Unknown */
     UNKNOWN(9999, "未知指令");

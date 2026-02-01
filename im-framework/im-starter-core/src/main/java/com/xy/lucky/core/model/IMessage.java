@@ -112,6 +112,8 @@ public abstract class IMessage implements Serializable {
             @JsonSubTypes.Type(value = LocationMessageBody.class, name = "300"),// 位置消息
             @JsonSubTypes.Type(value = GroupOperationMessageBody.class, name = "400"),// 群组操作
             @JsonSubTypes.Type(value = GroupInviteMessageBody.class, name = "401"),// 群组邀请
+            @JsonSubTypes.Type(value = RecallMessageBody.class, name = "453"),// 撤回消息
+            @JsonSubTypes.Type(value = EditMessageBody.class, name = "451"),// 编辑消息
             @JsonSubTypes.Type(value = ComplexMessageBody.class, name = "500"),// 混合消息
     })
     private MessageBody messageBody;
@@ -293,7 +295,7 @@ public abstract class IMessage implements Serializable {
         private static final long serialVersionUID = 1L;
 
         /**
-         * 操作类型（对应 IMActionType 200-299 区间的 code）
+         * 操作类型（对应 IMessageContentType 200-299 区间的 code）
          * 如：204-踢人、205-设置管理员、207-移交群主、215-禁言、220-解散群等
          */
         @NotNull(message = "操作类型不能为空")

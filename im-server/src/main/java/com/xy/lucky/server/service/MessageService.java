@@ -12,11 +12,11 @@ public interface MessageService {
 
     IMGroupMessage sendGroupMessage(IMGroupMessage groupMessageDto);
 
-    IMGroupAction sendGroupAction(IMGroupAction groupActionDto);
-
     void sendVideoMessage(IMVideoMessage videoMessageDto);
 
     void recallMessage(IMessageAction dto);
+
+    void sendGroupAction(IMGroupAction groupActionDto);
 
     Map<Integer, Object> list(ChatDto chatDto);
 

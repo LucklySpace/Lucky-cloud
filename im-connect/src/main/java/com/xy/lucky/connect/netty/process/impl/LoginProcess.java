@@ -129,7 +129,7 @@ public class LoginProcess implements WebsocketProcess {
 
         sendInfo.setCode(IMessageType.REGISTER_SUCCESS.getCode())
                 .setMessage("登录成功")
-                .setToken("") // 安全考虑，响应不携带 token
+                .setToken(null)
                 .setMetadata(metadata)
                 .setDeviceType(deviceType.getType());
 

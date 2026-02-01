@@ -2,6 +2,7 @@ package com.xy.lucky.server.service.impl;
 
 import com.xy.lucky.core.constants.IMConstant;
 import com.xy.lucky.core.enums.*;
+import com.xy.lucky.core.model.IMGroupAction;
 import com.xy.lucky.core.model.IMGroupMessage;
 import com.xy.lucky.core.model.IMSingleMessage;
 import com.xy.lucky.core.model.IMessage;
@@ -140,12 +141,12 @@ public class GroupServiceImpl implements GroupService {
     @Override
     public String inviteGroup(GroupInviteDto dto) {
         // 创建群聊
-        if (IMessageType.CREATE_GROUP.getCode().equals(dto.getType())) {
+        if (IMessageContentType.CREATE_GROUP.getCode().equals(dto.getType())) {
             return createGroup(dto);
         }
 
         // 邀请入群
-        if (IMessageContentType.GROUP_INVITE.getCode().equals(dto.getType())) {
+        if (IMessageContentType.INVITE_TO_GROUP.getCode().equals(dto.getType())) {
             return inviteToGroup(dto);
         }
 
@@ -505,7 +506,7 @@ public class GroupServiceImpl implements GroupService {
                     .messageTempId(IdUtils.snowflakeIdStr())
                     .fromId(inviterId)
                     .toId(inviteeId)
-                    .messageContentType(IMessageContentType.GROUP_INVITE.getCode())
+                    .messageContentType(IMessageContentType.INVITE_TO_GROUP.getCode())
                     .messageTime(DateTimeUtils.getCurrentUTCTimestamp())
                     .messageType(IMessageType.SINGLE_MESSAGE.getCode())
                     .messageBody(new IMessage.GroupInviteMessageBody()
@@ -564,7 +565,7 @@ public class GroupServiceImpl implements GroupService {
                     .messageTempId(IdUtils.snowflakeIdStr())
                     .fromId(inviterId)
                     .toId(adminId)
-                    .messageContentType(IMessageType.JOIN_APPROVE_GROUP.getCode())
+                    .messageContentType(IMessageContentType.JOIN_APPROVE_GROUP.getCode())
                     .messageTime(DateTimeUtils.getCurrentUTCTimestamp())
                     .messageBody(new IMessage.GroupInviteMessageBody()
                     .setInviterId(inviterId)
@@ -628,7 +629,7 @@ public class GroupServiceImpl implements GroupService {
             muteService.unmuteUserInGroup(dto.getGroupId(), dto.getTargetUserId());
 
             // 发送群操作消息
-            sendGroupOperationWithTarget(dto.getGroupId(), IMessageType.KICK_FROM_GROUP,
+            sendGroupOperationWithTarget(dto.getGroupId(), IMessageContentType.KICK_FROM_GROUP,
                     dto.getUserId(), dto.getTargetUserId(), "被移出群聊");
 
             log.info("踢出群成员成功: groupId={}, operator={}, target={}",
@@ -673,7 +674,7 @@ public class GroupServiceImpl implements GroupService {
 
             // 发送群操作消息
             boolean isPromote = IMemberStatus.ADMIN.getCode().equals(newRole);
-            IMessageType actionType = isPromote ? IMessageType.PROMOTE_TO_ADMIN : IMessageType.DEMOTE_FROM_ADMIN;
+            IMessageContentType actionType = isPromote ? IMessageContentType.PROMOTE_TO_ADMIN : IMessageContentType.DEMOTE_FROM_ADMIN;
             String action = isPromote ? "被设为管理员" : "被取消管理员";
             Map<String, Object> extra = Map.of("newRole", newRole, "oldRole", oldRole);
             sendGroupOperationWithTarget(dto.getGroupId(), actionType,
@@ -735,7 +736,7 @@ public class GroupServiceImpl implements GroupService {
                     "oldOwner", dto.getUserId(),
                     "newOwner", dto.getTargetUserId()
             );
-            sendGroupOperationWithTarget(dto.getGroupId(), IMessageType.TRANSFER_GROUP_OWNER,
+            sendGroupOperationWithTarget(dto.getGroupId(), IMessageContentType.TRANSFER_GROUP_OWNER,
                     dto.getUserId(), dto.getTargetUserId(), "成为新群主", extra);
 
             log.info("移交群主成功: groupId={}, oldOwner={}, newOwner={}",
@@ -771,7 +772,7 @@ public class GroupServiceImpl implements GroupService {
             // 发送群操作消息
             String description = "群加入方式已设置为：" + joinStatus.getDesc();
             Map<String, Object> extra = Map.of("joinMode", dto.getApplyJoinType());
-            sendGroupOperationWithoutTarget(dto.getGroupId(), IMessageType.SET_GROUP_JOIN_MODE,
+            sendGroupOperationWithoutTarget(dto.getGroupId(), IMessageContentType.SET_GROUP_JOIN_MODE,
                     dto.getUserId(), description, extra);
 
             log.info("设置群加入方式成功: groupId={}, joinType={}",
@@ -844,7 +845,7 @@ public class GroupServiceImpl implements GroupService {
             }
 
             // 发送群操作消息
-            IMessageType actionType = isMute ? IMessageType.MUTE_MEMBER : IMessageType.UNMUTE_MEMBER;
+            IMessageContentType actionType = isMute ? IMessageContentType.MUTE_MEMBER : IMessageContentType.UNMUTE_MEMBER;
             String action = isMute ? "被禁言" : "被解除禁言";
             Map<String, Object> extra = new HashMap<>();
             extra.put("mute", dto.getMute());
@@ -892,7 +893,7 @@ public class GroupServiceImpl implements GroupService {
 
             // 发送群操作消息
             boolean isMuteAll = IMStatus.NO.getCode().equals(dto.getMuteAll());
-            IMessageType actionType = isMuteAll ? IMessageType.MUTE_ALL : IMessageType.UNMUTE_ALL;
+            IMessageContentType actionType = isMuteAll ? IMessageContentType.MUTE_ALL : IMessageContentType.UNMUTE_ALL;
             String description = isMuteAll ? "群主/管理员开启了全员禁言" : "群主/管理员关闭了全员禁言";
             Map<String, Object> extra = Map.of("muteAll", dto.getMuteAll());
             sendGroupOperationWithoutTarget(dto.getGroupId(), actionType, dto.getUserId(), description, extra);
@@ -915,7 +916,7 @@ public class GroupServiceImpl implements GroupService {
             }
 
             // 发送解散通知（在删除成员前发送，确保所有成员能收到）
-            sendGroupOperationWithoutTarget(dto.getGroupId(), IMessageType.REMOVE_GROUP,
+            sendGroupOperationWithoutTarget(dto.getGroupId(), IMessageContentType.REMOVE_GROUP,
                     dto.getUserId(), "群组已被群主解散", null);
 
             // 获取所有成员并删除
@@ -956,7 +957,7 @@ public class GroupServiceImpl implements GroupService {
             // 发送群操作消息
             String description = "群公告已更新：" + dto.getNotification();
             Map<String, Object> extra = Map.of("announcement", dto.getNotification());
-            sendGroupOperationWithoutTarget(dto.getGroupId(), IMessageType.SET_GROUP_ANNOUNCEMENT,
+            sendGroupOperationWithoutTarget(dto.getGroupId(), IMessageContentType.SET_GROUP_ANNOUNCEMENT,
                     dto.getUserId(), description, extra);
 
             log.info("设置群公告成功: groupId={}", dto.getGroupId());
@@ -996,13 +997,13 @@ public class GroupServiceImpl implements GroupService {
      * 发送群操作通知消息（结构化消息体）
      *
      * @param groupId       群组ID
-     * @param operationType 操作类型（IMessageType 200-299 区间的 code）
+     * @param operationType  操作类型
      * @param operatorId    操作者ID
      * @param targetId      目标用户ID（可为 null）
      * @param description   操作描述
      * @param extra         扩展数据
      */
-    private void sendGroupOperationMessage(String groupId, IMessageType operationType,
+    private void sendGroupOperationMessage(String groupId, IMessageContentType operationType,
                                            String operatorId, String targetId,
                                            String description, Map<String, Object> extra) {
         // 获取群信息
@@ -1030,7 +1031,7 @@ public class GroupServiceImpl implements GroupService {
                 .build();
 
         // 构建群消息
-        IMGroupMessage message = IMGroupMessage.builder()
+        IMGroupAction message = IMGroupAction.builder()
                 .groupId(groupId)
                 .fromId(IMConstant.SYSTEM)
                 .messageContentType(IMessageContentType.GROUP_OPERATION.getCode())
@@ -1040,13 +1041,13 @@ public class GroupServiceImpl implements GroupService {
                 .messageBody(body)
                 .build();
 
-        messageService.sendGroupMessage(message);
+        messageService.sendGroupAction(message);
     }
 
     /**
      * 发送带目标用户的群操作通知（便捷方法）
      */
-    private void sendGroupOperationWithTarget(String groupId, IMessageType operationType,
+    private void sendGroupOperationWithTarget(String groupId, IMessageContentType operationType,
                                               String operatorId, String targetId, String action) {
         sendGroupOperationWithTarget(groupId, operationType, operatorId, targetId, action, null);
     }
@@ -1054,7 +1055,7 @@ public class GroupServiceImpl implements GroupService {
     /**
      * 发送带目标用户的群操作通知（带扩展数据）
      */
-    private void sendGroupOperationWithTarget(String groupId, IMessageType operationType,
+    private void sendGroupOperationWithTarget(String groupId, IMessageContentType operationType,
                                               String operatorId, String targetId,
                                               String action, Map<String, Object> extra) {
         ImUserDataPo operatorInfo = userDataDubboService.queryOne(operatorId);
@@ -1069,7 +1070,7 @@ public class GroupServiceImpl implements GroupService {
     /**
      * 发送无目标用户的群操作通知（如全员禁言、解散群等）
      */
-    private void sendGroupOperationWithoutTarget(String groupId, IMessageType operationType,
+    private void sendGroupOperationWithoutTarget(String groupId, IMessageContentType operationType,
                                                  String operatorId, String description,
                                                  Map<String, Object> extra) {
         sendGroupOperationMessage(groupId, operationType, operatorId, null, description, extra);

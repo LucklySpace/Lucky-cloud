@@ -51,20 +51,53 @@ public enum IMessageContentType {
     /**
      * 群组（400-499）
      * 注：群组操作类型通过 GroupOperationMessageBody.operationType 细分
-     * 具体操作类型对应 IMActionType 中 200-299 区间的 code
      */
-    GROUP_OPERATION(400, "群组操作"),
-    GROUP_INVITE(401, "群组邀请"),
-    GROUP_APPROVE(402, "群组审批"),
+    CREATE_GROUP(400, "创建群组"),
+    INVITE_TO_GROUP(401, "群组邀请"),
+    JOIN_GROUP(402, "成员加入群组"),
+    LEAVE_GROUP(403, "主动退出群组"),
+    KICK_FROM_GROUP(404, "移除群成员"),
+    PROMOTE_TO_ADMIN(405, "设置管理员"),
+    DEMOTE_FROM_ADMIN(406, "取消管理员"),
+    TRANSFER_GROUP_OWNER(407, "移交群主"),
+    SET_GROUP_INFO(408, "修改群信息"),
+    SET_GROUP_ANNOUNCEMENT(409, "设置群公告"),
+    SET_GROUP_JOIN_MODE(410, "设置群加入方式"),
+    APPROVE_JOIN_REQUEST(411, "批准入群申请"),
+    REJECT_JOIN_REQUEST(412, "拒绝入群申请"),
+    JOIN_APPROVE_GROUP(413, "群组加入审批"),
+    JOIN_APPROVE_RESULT_GROUP(414, "群组加入审批结果"),
+    MUTE_MEMBER(415, "单人禁言"),
+    UNMUTE_MEMBER(416, "取消禁言"),
+    MUTE_ALL(417, "全员禁言"),
+    UNMUTE_ALL(418, "取消全员禁言"),
+    SET_MEMBER_ROLE(419, "设置群成员角色"),
+    REMOVE_GROUP(420, "解散/删除群组"),
+    GROUP_OPERATION(421, "群组操作（通用）"),
+
+    /**
+     * 消息操作 (450-499)
+     */
+    SEND_MESSAGE(450, "发送消息"),
+    EDIT_MESSAGE(451, "编辑消息"),
+    DELETE_MESSAGE(452, "删除消息"),
+    RECALL_MESSAGE(453, "撤回消息"),
+    REPLY_MESSAGE(454, "回复消息"),
+    FORWARD_MESSAGE(455, "转发消息"),
+    MARK_READ(456, "已读回执"),
+    TYPING(457, "正在输入"),
+    MESSAGE_QUOTE(458, "引用消息"),
+
 
     /**
      * 其它 / 保留
      */
     COMPLEX(500, "混合消息（多类型组合）"),
-    RECALL(501, "撤回消息"),
-    EDIT(502, "编辑消息"),
 
 
+    /**
+     * 未知类型（保底）
+     */
     UNKNOWN(999, "未知类型（保底）");
 
     private Integer code;

@@ -63,8 +63,8 @@ public class HeartBeatProcess implements WebsocketProcess {
         String message = "心跳成功";
         if (StringUtils.hasText(token) && tokenExpired != null && tokenExpired > 0) {
             try {
-                // 如果 Token 剩余有效期小于预设阈值 (默认单位: 小时)，通知客户端刷新
-                if (JwtUtil.getRemaining(token, TimeUnit.HOURS) <= tokenExpired) {
+                // 如果 Token 剩余有效期小于预设阈值 (默认单位: 分钟)，通知客户端刷新
+                if (JwtUtil.getRemaining(token, TimeUnit.MINUTES) <= tokenExpired) {
                     code = IMessageType.REFRESH_TOKEN.getCode();
                     message = "token 即将过期，请及时刷新";
                 }

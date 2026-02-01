@@ -14,7 +14,7 @@ import java.io.Serializable;
 import java.util.List;
 
 /**
- * 通用消息操作 DTO — 用于撤回/编辑等动作
+ * 通用群组操作 DTO
  * <p>
  * 通过 actionType 区分操作；使用 Validation Groups 做字段校验。
  */

@@ -35,12 +35,6 @@
         <dependency>
             <groupId>com.xy.lucky</groupId>
             <artifactId>im-starter-dubbo-web</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-web</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <dependency>

@@ -52,7 +52,7 @@ public class ImGroupInviteRequestEntity {
 
     @Schema(description = "邀请来源")
     @Column("add_source")
-    private String addSource;
+    private Integer addSource;
 
     @Schema(description = "邀请过期时间")
     @Column("expire_time")

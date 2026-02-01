@@ -30,6 +30,11 @@ public class ImGroupMemberReactiveService implements ImGroupMemberDubboService {
     }
 
     @Override
+    public Flux<ImGroupMemberPo> queryByRole(String groupId, Integer role) {
+        return repository.findByGroupIdAndRole(groupId, role).map(this::toPo);
+    }
+
+    @Override
     public Mono<List<String>> queryNinePeopleAvatar(String groupId) {
         return repository.selectNinePeopleAvatar(groupId).collectList();
     }
@@ -51,8 +56,24 @@ public class ImGroupMemberReactiveService implements ImGroupMemberDubboService {
     }
 
     @Override
+    public Mono<Boolean> modifyBatch(List<ImGroupMemberPo> groupMemberList) {
+        return repository.saveAll(groupMemberList.stream().map(this::fromPo).toList())
+                .count().map(count -> count == groupMemberList.size());
+    }
+
+    @Override
     public Mono<Boolean> removeOne(String memberId) {
         return repository.deleteById(memberId).thenReturn(true);
+    }
+
+    @Override
+    public Mono<Boolean> removeByGroupId(String groupId) {
+        return repository.deleteByGroupId(groupId).thenReturn(true);
+    }
+
+    @Override
+    public Mono<Long> countByGroupId(String groupId) {
+        return repository.countByGroupId(groupId);
     }
 
     private ImGroupMemberPo toPo(ImGroupMemberEntity e) {

@@ -62,12 +62,6 @@ public class ImGroupMessagePo extends BasePo {
     private Object extra;
 
     /**
-     * 被引用的消息 ID
-     */
-    @TableField(value = "reply_message", typeHandler = JacksonTypeHandler.class)
-    private Object replyMessage;
-
-    /**
      * 阅读状态（1已读）
      */
     @TableField(exist = false)

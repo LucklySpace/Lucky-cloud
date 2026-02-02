@@ -38,7 +38,6 @@ public interface MessageBeanMapper {
             @Mapping(source = "messageTime", target = "messageTime"),
             @Mapping(source = "messageBody", target = "messageBody", qualifiedByName = "messageBodyToObject"),
             @Mapping(source = "extra", target = "extra", qualifiedByName = "mapToObject"),
-            @Mapping(source = "replyMessage", target = "replyMessage", qualifiedByName = "replyMessageToObject"),
             @Mapping(source = "toId", target = "toId"),
             @Mapping(source = "readStatus", target = "readStatus"),
             @Mapping(source = "sequence", target = "sequence"),
@@ -60,7 +59,6 @@ public interface MessageBeanMapper {
             @Mapping(source = "messageTime", target = "messageTime"),
             @Mapping(source = "messageBody", target = "messageBody", qualifiedByName = "objectToMessageBody"),
             @Mapping(source = "extra", target = "extra", qualifiedByName = "objectToMap"),
-            @Mapping(source = "replyMessage", target = "replyMessage", qualifiedByName = "objectToReplyMessage"),
             @Mapping(source = "toId", target = "toId"),
             @Mapping(target = "messageTempId", ignore = true),
             @Mapping(target = "readStatus", ignore = true),
@@ -81,7 +79,6 @@ public interface MessageBeanMapper {
             @Mapping(source = "messageTime", target = "messageTime"),
             @Mapping(source = "messageBody", target = "messageBody", qualifiedByName = "messageBodyToObject"),
             @Mapping(source = "extra", target = "extra", qualifiedByName = "mapToObject"),
-            @Mapping(source = "replyMessage", target = "replyMessage", qualifiedByName = "replyMessageToObject"),
             @Mapping(source = "groupId", target = "groupId"),
             @Mapping(source = "sequence", target = "sequence"),
             @Mapping(target = "readStatus", ignore = true),
@@ -103,7 +100,6 @@ public interface MessageBeanMapper {
             @Mapping(source = "messageTime", target = "messageTime"),
             @Mapping(source = "messageBody", target = "messageBody", qualifiedByName = "objectToMessageBody"),
             @Mapping(source = "extra", target = "extra", qualifiedByName = "objectToMap"),
-            @Mapping(source = "replyMessage", target = "replyMessage", qualifiedByName = "objectToReplyMessage"),
             @Mapping(source = "groupId", target = "groupId"),
             @Mapping(target = "messageTempId", ignore = true),
             @Mapping(target = "readStatus", ignore = true),
@@ -127,7 +123,6 @@ public interface MessageBeanMapper {
             @Mapping(target = "messageTime", expression = "java(System.currentTimeMillis())"),
             @Mapping(target = "messageBody", ignore = true),
             @Mapping(target = "extra", ignore = true),
-            @Mapping(target = "replyMessage", ignore = true),
             @Mapping(target = "readStatus", ignore = true),
             @Mapping(target = "delFlag", ignore = true),
             @Mapping(target = "sequence", ignore = true),
@@ -199,32 +194,6 @@ public interface MessageBeanMapper {
             // 先将MessageBody转换为JSON，再转换为Object
             String json = OBJECT_MAPPER.writeValueAsString(messageBody);
             return OBJECT_MAPPER.readTree(json);
-        } catch (JsonProcessingException e) {
-            return null;
-        }
-    }
-
-    @Named("replyMessageToObject")
-    default Object replyMessageToObject(IMessage.ReplyMessageInfo replyMessage) {
-        if (replyMessage == null) {
-            return null;
-        }
-        try {
-            String json = OBJECT_MAPPER.writeValueAsString(replyMessage);
-            return OBJECT_MAPPER.readTree(json);
-        } catch (JsonProcessingException e) {
-            return null;
-        }
-    }
-
-    @Named("objectToReplyMessage")
-    default IMessage.ReplyMessageInfo objectToReplyMessage(Object obj) {
-        if (obj == null) {
-            return null;
-        }
-        try {
-            String json = OBJECT_MAPPER.writeValueAsString(obj);
-            return OBJECT_MAPPER.readValue(json, IMessage.ReplyMessageInfo.class);
         } catch (JsonProcessingException e) {
             return null;
         }

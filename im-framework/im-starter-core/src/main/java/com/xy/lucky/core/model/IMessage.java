@@ -1,6 +1,7 @@
 package com.xy.lucky.core.model;
 
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.xy.lucky.core.enums.IMessageReadStatus;
@@ -77,23 +78,6 @@ public abstract class IMessage implements Serializable {
      */
     private Map<String, Object> extra;
 
-    /* ------------------- 引用消息 & @人 扩展 ------------------- */
-
-    /**
-     * 引用的消息（被回复的消息）
-     */
-    private ReplyMessageInfo replyMessage;
-
-    /**
-     * 被 @ 的用户 ID 列表
-     */
-    private List<String> mentionedUserIds = Collections.emptyList();
-
-    /**
-     * 是否 @ 所有人
-     */
-    private Boolean mentionAll = false;
-
     /* ------------------- 消息体 ------------------- */
 
     /**
@@ -147,9 +131,25 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class TextMessageBody extends MessageBody implements Serializable {
         @NotBlank(message = "消息内容不能为空")
         private String text;
+
+        /**
+         * 引用的消息（被回复的消息）
+         */
+        private ReplyMessageInfo replyMessage;
+
+        /**
+         * 被 @ 的用户 ID 列表
+         */
+        private List<String> mentionedUserIds = Collections.emptyList();
+
+        /**
+         * 是否 @ 所有人
+         */
+        private Boolean mentionAll = false;
     }
 
     /**
@@ -161,11 +161,17 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ImageMessageBody extends MessageBody implements Serializable {
         @NotBlank(message = "图片 path 不能为空")
         private String path;
         private String name;
         private Integer size;
+
+        /**
+         * 引用的消息（被回复的消息）
+         */
+        private ReplyMessageInfo replyMessage;
     }
 
     /**
@@ -177,6 +183,7 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class VideoMessageBody extends MessageBody implements Serializable {
 
         @NotBlank(message = "视频 URL 不能为空")
@@ -186,6 +193,11 @@ public abstract class IMessage implements Serializable {
         private Integer duration;
 
         private Integer size;
+
+        /**
+         * 引用的消息（被回复的消息）
+         */
+        private ReplyMessageInfo replyMessage;
     }
 
     /**
@@ -197,6 +209,7 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AudioMessageBody extends MessageBody implements Serializable {
 
         @NotBlank(message = "视频 URL 不能为空")
@@ -206,6 +219,11 @@ public abstract class IMessage implements Serializable {
         private Integer duration;
 
         private Integer size;
+
+        /**
+         * 引用的消息（被回复的消息）
+         */
+        private ReplyMessageInfo replyMessage;
     }
 
     /**
@@ -217,6 +235,7 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class FileMessageBody extends MessageBody implements Serializable {
 
         @NotBlank(message = "视频 URL 不能为空")
@@ -224,6 +243,11 @@ public abstract class IMessage implements Serializable {
         private String name;
         private String suffix;
         private Integer size;
+
+        /**
+         * 引用的消息（被回复的消息）
+         */
+        private ReplyMessageInfo replyMessage;
     }
 
     /**
@@ -235,6 +259,7 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class SystemMessageBody extends MessageBody implements Serializable {
         @NotBlank(message = "系统消息不能为空")
         private String text;
@@ -249,6 +274,7 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class GroupInviteMessageBody extends MessageBody implements Serializable {
 
         @NotBlank(message = "邀请ID不能为空")
@@ -275,6 +301,11 @@ public abstract class IMessage implements Serializable {
         @NotNull(message = "邀请状态不能为空")
         // 1:待处理 2:已同意 3:已拒绝
         private Integer approveStatus;
+
+        /**
+         * 引用的消息（被回复的消息）
+         */
+        private ReplyMessageInfo replyMessage;
     }
 
     /**
@@ -290,6 +321,7 @@ public abstract class IMessage implements Serializable {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class GroupOperationMessageBody extends MessageBody implements Serializable {
 
         private static final long serialVersionUID = 1L;
@@ -371,6 +403,7 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class LocationMessageBody extends MessageBody implements Serializable {
         @NotBlank(message = "位置标题不能为空")
         private String title;
@@ -392,6 +425,7 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ComplexMessageBody extends MessageBody implements Serializable {
 
         /**
@@ -441,6 +475,7 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class RecallMessageBody extends MessageBody implements Serializable {
 
         private static final long serialVersionUID = 1L;
@@ -492,6 +527,7 @@ public abstract class IMessage implements Serializable {
     @Accessors(chain = true)
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class EditMessageBody extends MessageBody implements Serializable {
 
         private static final long serialVersionUID = 1L;

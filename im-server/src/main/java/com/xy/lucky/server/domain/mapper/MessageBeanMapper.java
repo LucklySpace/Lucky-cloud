@@ -63,8 +63,6 @@ public interface MessageBeanMapper {
             @Mapping(target = "messageTempId", ignore = true),
             @Mapping(target = "readStatus", ignore = true),
             @Mapping(target = "sequence", ignore = true),
-            @Mapping(target = "mentionedUserIds", ignore = true),
-            @Mapping(target = "mentionAll", ignore = true),
             @Mapping(target = "messageType", constant = "1003") // SINGLE_MESSAGE
     })
     IMSingleMessage toIMSingleMessage(ImSingleMessagePo imSingleMessagePo);
@@ -104,8 +102,6 @@ public interface MessageBeanMapper {
             @Mapping(target = "messageTempId", ignore = true),
             @Mapping(target = "readStatus", ignore = true),
             @Mapping(target = "sequence", ignore = true),
-            @Mapping(target = "mentionedUserIds", ignore = true),
-            @Mapping(target = "mentionAll", ignore = true),
             @Mapping(target = "toList", ignore = true),
             @Mapping(target = "messageType", constant = "1004") // GROUP_MESSAGE
     })

@@ -16,7 +16,7 @@
         <module>im-framework</module>
         <module>im-server</module>
         <module>im-database</module>
-        <module>im-file</module>
+        <module>im-oss</module>
         <module>im-analysis</module>
         <module>im-leaf</module>
         <module>im-proxy</module>
@@ -131,6 +131,7 @@
         <mapstruct.version>1.5.5.Final</mapstruct.version>
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <minio.version>8.6.0</minio.version>
+        <aws.version>1.12.772</aws.version>
         <okhttp.version>4.9.0</okhttp.version>
         <snakeyaml.version>2.2</snakeyaml.version>
         <javax.annotation.api.version>1.3.2</javax.annotation.api.version>
@@ -396,6 +397,13 @@
                 <version>${ip2region.version}</version>
             </dependency>
 
+            <!-- AWS Java SDK for S3 (支持所有 S3 协议兼容的对象存储) -->
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-java-sdk-s3</artifactId>
+                <version>${aws.version}</version>
+            </dependency>
+
             <!--hanlp 语义分析-->
             <dependency>
                 <groupId>com.hankcs</groupId>
@@ -615,7 +623,7 @@
             <!-- 文件管理模块 -->
             <dependency>
                 <groupId>com.xy.lucky</groupId>
-                <artifactId>im-file</artifactId>
+                <artifactId>im-oss</artifactId>
                 <version>${revision}</version>
             </dependency>
 
@@ -786,7 +794,7 @@
                 <im-auth.server.port>8084</im-auth.server.port>
                 <im-service.server.port>8085</im-service.server.port>
                 <im-leaf.server.port>8086</im-leaf.server.port>
-                <im-file.server.port>8087</im-file.server.port>
+                <im-oss.server.port>8087</im-oss.server.port>
                 <im-ai.server.port>8088</im-ai.server.port>
                 <im-analytics.server.port>8089</im-analytics.server.port>
                 <im-platform.server.port>8090</im-platform.server.port>
@@ -836,7 +844,7 @@
                 <im-auth.server.port>8084</im-auth.server.port>
                 <im-service.server.port>8085</im-service.server.port>
                 <im-leaf.server.port>8086</im-leaf.server.port>
-                <im-file.server.port>8087</im-file.server.port>
+                <im-oss.server.port>8087</im-oss.server.port>
                 <im-ai.server.port>8088</im-ai.server.port>
                 <im-analytics.server.port>8089</im-analytics.server.port>
                 <im-platform.server.port>8090</im-platform.server.port>
@@ -887,7 +895,7 @@
                 <im-auth.server.port>8084</im-auth.server.port>
                 <im-service.server.port>8085</im-service.server.port>
                 <im-leaf.server.port>8086</im-leaf.server.port>
-                <im-file.server.port>8087</im-file.server.port>
+                <im-oss.server.port>8087</im-oss.server.port>
                 <im-ai.server.port>8088</im-ai.server.port>
                 <im-analytics.server.port>8089</im-analytics.server.port>
                 <im-platform.server.port>8090</im-platform.server.port>

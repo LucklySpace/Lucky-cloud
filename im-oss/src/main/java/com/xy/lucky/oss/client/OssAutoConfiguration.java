@@ -8,6 +8,9 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.Bucket;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3Object;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -16,6 +19,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -160,7 +164,7 @@ public class OssAutoConfiguration {
         }
 
         @Override
-        public java.util.List<com.amazonaws.services.s3.model.Bucket> listBuckets() {
+        public List<Bucket> listBuckets() {
             String provider = defaultProvider;
             OssTemplate t = provider == null ? null : templates.get(provider);
             if (t == null && !templates.isEmpty()) {
@@ -190,7 +194,7 @@ public class OssAutoConfiguration {
         }
 
         @Override
-        public com.amazonaws.services.s3.model.S3Object getObject(String bucketName, String objectName) {
+        public S3Object getObject(String bucketName, String objectName) {
             return selectByBucket(bucketName).getObject(bucketName, objectName);
         }
 
@@ -235,7 +239,7 @@ public class OssAutoConfiguration {
         }
 
         @Override
-        public com.amazonaws.services.s3.model.ObjectMetadata getObjectMetadata(String bucketName, String objectName) {
+        public ObjectMetadata getObjectMetadata(String bucketName, String objectName) {
             return selectByBucket(bucketName).getObjectMetadata(bucketName, objectName);
         }
     }

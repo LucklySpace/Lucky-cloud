@@ -44,11 +44,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-/**
- * AuthServiceImpl 实现类，负责处理用户认证、二维码登录等逻辑。
- *
- * @author dense
- */
 @Slf4j
 @Service
 public class AuthServiceImpl implements AuthService {
@@ -218,6 +213,7 @@ public class AuthServiceImpl implements AuthService {
 
         String clientIp = RequestContextUtil.resolveClientIp(request);
         String deviceId = RequestContextUtil.resolveDeviceId(request, clientIp);
+        String userAgent = request.getHeader("User-Agent");
 
         try {
             AuthTokenPair pair = authTokenService.refreshTokens(refreshToken, clientIp, deviceId);
@@ -227,8 +223,6 @@ public class AuthServiceImpl implements AuthService {
             log.info("Token 刷新成功");
 
             return AuthRefreshTokenResult.builder().accessToken(pair.getAccessToken()).build();
-        } catch (AuthenticationFailException ex) {
-            throw ex;
         } catch (Exception e) {
             log.error("Token 刷新失败: {}", e.getMessage());
             throw new AuthenticationFailException(ResultCode.AUTHENTICATION_FAILED);
@@ -258,7 +252,7 @@ public class AuthServiceImpl implements AuthService {
 
         // 有效期 3 分钟
         redisCache.set(redisKey, qr, 3, TimeUnit.MINUTES);
-
+        log.info("二维码生成成功：qrCodeId={}", qrCodeId);
         return new QRCodeResult()
                 .setCode(qrCodeId)
                 .setStatus(IMConstant.QRCODE_PENDING)
@@ -279,6 +273,7 @@ public class AuthServiceImpl implements AuthService {
         QRCode qr = redisCache.get(redisKey);
 
         if (qr == null) {
+            log.warn("二维码不存在：qrCodeId={}", qrCodeId);
             return new QRCodeResult().setCode(qrCodeId).setStatus(IMConstant.QRCODE_EXPIRED);
         }
 
@@ -290,6 +285,7 @@ public class AuthServiceImpl implements AuthService {
         // 授权后有效期缩短，需尽快完成登录
         redisCache.set(redisKey, qr, 30, TimeUnit.SECONDS);
 
+        log.info("二维码授权成功：qrCodeId={}, userId={}", qrCodeId, userId);
         return new QRCodeResult()
                 .setCode(qrCodeId)
                 .setStatus(IMConstant.QRCODE_AUTHORIZED)
@@ -315,6 +311,7 @@ public class AuthServiceImpl implements AuthService {
             redisCache.set(redisKey, qr, 20, TimeUnit.SECONDS);
 
             log.info("二维码登录凭证已签发：qrCodeId={}", qrCodeId);
+
             return new QRCodeResult()
                     .setCode(qrCodeId)
                     .setStatus(IMConstant.QRCODE_AUTHORIZED)
@@ -380,6 +377,3 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 }
-
-
-

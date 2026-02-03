@@ -3,6 +3,9 @@ package com.xy.lucky.auth.utils;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.util.StringUtils;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
  * 请求上下文工具类
@@ -39,5 +42,12 @@ public final class RequestContextUtil {
         String raw = (StringUtils.hasText(userAgent) ? userAgent : "") + "|" + (StringUtils.hasText(clientIp) ? clientIp : "");
         return DigestUtils.sha256Hex(raw);
     }
-}
 
+    public static HttpServletRequest getRequest() {
+        RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
+        if (attrs instanceof ServletRequestAttributes sra) {
+            return sra.getRequest();
+        }
+        return null;
+    }
+}

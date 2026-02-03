@@ -66,6 +66,18 @@ logging:
     com.xy.lucky.*: info
     org.springframework: warn
 
+# ResponseHandler 配置：排除不需要进行 Result 封装的路径
+response:
+  handler:
+    exclude-paths:
+      - /swagger-resources/**
+      - /v*/api-docs/**
+      - /webjars/**
+      - /doc.html
+      - /favicon.ico
+      - /swagger-ui/**
+      - /swagger-ui.html
+
 #springdoc相关配置
 springdoc:
   swagger-ui:

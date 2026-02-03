@@ -139,6 +139,13 @@ public class GlobalExceptionHandler implements ResponseBodyAdvice<Object> {
                 returnType.getMethod().isAnnotationPresent(ResponseNotIntercept.class)) {
             return false;
         }
+        // 排除 Swagger/Knife4j/Springdoc 相关的控制器，避免干扰 API 文档
+        String className = returnType.getDeclaringClass().getName();
+        if (className.startsWith("org.springdoc") ||
+                className.startsWith("springfox") ||
+                className.startsWith("io.swagger")) {
+            return false;
+        }
         return true;
     }
 

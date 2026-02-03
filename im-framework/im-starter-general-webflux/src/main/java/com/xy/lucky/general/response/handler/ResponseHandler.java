@@ -12,6 +12,9 @@ import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.HttpMessageWriter;
 import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.util.AntPathMatcher;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.PathMatcher;
 import org.springframework.web.reactive.HandlerResult;
 import org.springframework.web.reactive.accept.RequestedContentTypeResolver;
 import org.springframework.web.reactive.result.method.annotation.ResponseBodyResultHandler;
@@ -25,9 +28,8 @@ import java.util.*;
 
 /**
  * 自定义响应处理器，用于统一包装控制器返回值为 Result 对象。
- *
  * - 修复 Jackson: "Null key for a Map not allowed in JSON" 问题：
- *   在包装返回值之前，对 Map 的 key 做 sanitize（将 null key 转为 "null" 或丢弃）。
+ * 在包装返回值之前，对 Map 的 key 做 sanitize（将 null key 转为 "null" 或丢弃）。
  * - 支持 Mono/Flux/同步返回值的包装。
  * - 排除 Void、Result 和 ResponseEntity 类型。
  */
@@ -35,10 +37,43 @@ public class ResponseHandler extends ResponseBodyResultHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ResponseHandler.class);
 
+    /**
+     * Ant 风格路径匹配器
+     */
+    private final PathMatcher pathMatcher = new AntPathMatcher();
+
+    /**
+     * 不需要进行 Result 封装的路径模式列表（从配置文件读取）
+     */
+    private final List<String> excludePaths;
+
     public ResponseHandler(List<HttpMessageWriter<?>> writers,
                            RequestedContentTypeResolver resolver,
-                           ReactiveAdapterRegistry registry) {
+                           ReactiveAdapterRegistry registry,
+                           List<String> excludePaths) {
         super(writers, resolver, registry);
+        this.excludePaths = excludePaths != null ? excludePaths : Collections.emptyList();
+        if (!CollectionUtils.isEmpty(this.excludePaths)) {
+            log.info("ResponseHandler initialized with exclude paths: {}", this.excludePaths);
+        }
+    }
+
+    /**
+     * 判断请求路径是否匹配排除路径模式
+     *
+     * @param path 请求路径
+     * @return true 表示匹配排除路径，不需要包装
+     */
+    private boolean isExcludedPath(String path) {
+        if (path == null || CollectionUtils.isEmpty(excludePaths)) {
+            return false;
+        }
+        for (String pattern : excludePaths) {
+            if (pathMatcher.match(pattern, path)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -61,6 +96,12 @@ public class ResponseHandler extends ResponseBodyResultHandler {
 
     @Override
     public Mono<Void> handleResult(ServerWebExchange exchange, HandlerResult result) {
+        // 检查是否匹配排除路径模式，如果匹配则不进行 Result 包装
+        String path = exchange.getRequest().getPath().pathWithinApplication().value();
+        if (isExcludedPath(path)) {
+            return super.handleResult(exchange, result);
+        }
+
         // 强制设置响应 Content-Type 为 JSON，避免文本转换导致的 ClassCastException
         ServerHttpResponse response = exchange.getResponse();
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);

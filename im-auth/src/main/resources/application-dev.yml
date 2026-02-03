@@ -63,12 +63,35 @@ knife4j:
     language: zh_cn   # 默认中文
     swagger-model-name: 实体类
 
+# ResponseHandler 配置：排除不需要进行 Result 封装的路径
+response:
+  handler:
+    exclude-paths:
+      - /swagger-resources/**
+      - /v*/api-docs/**
+      - /webjars/**
+      - /doc.html
+      - /favicon.ico
+      - /swagger-ui/**
+      - /swagger-ui.html
+
 # TODO: security
 security:
+  enabled: true
   crypto:
+    enabled: false  # 临时禁用加密功能以排查问题
     default-encrypt: AES
     default-decrypt: AES
     aes-key: g64fi7uihebib6d34njcbybfi565645v
+    exclude-paths:
+      - '/swagger-ui.html'
+      - '/doc.html'
+      - '/webjars/**'
+      - '/swagger-resources/**'
+      - '/v3/api-docs/**'
+      - '/swagger-ui/**'
+      - '/favicon.ico'
+      - '/.well-known/**'
   sign:
     secret: g876q3f4fiddybc7684cq87b634fg87
   rsa:

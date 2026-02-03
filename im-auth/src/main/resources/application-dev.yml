@@ -115,7 +115,10 @@ security:
       - '/swagger-resources/**'
       - '/v2/**'
       - '/v3/**'
-
+      - '/v3/api-docs/**'
+      - '/swagger-ui/**'
+      - '/favicon.ico'
+      - '/.well-known/**'
 
 # TODO: log settings
 logging:

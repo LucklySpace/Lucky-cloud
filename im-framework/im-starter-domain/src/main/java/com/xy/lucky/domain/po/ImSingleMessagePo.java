@@ -68,12 +68,6 @@ public class ImSingleMessagePo extends BasePo implements Serializable {
     private Object extra;
 
     /**
-     * 被引用的消息 ID
-     */
-    @TableField(value = "reply_message", typeHandler = JacksonTypeHandler.class)
-    private Object replyMessage;
-
-    /**
      * 消息序列
      */
     @TableField(value = "sequence")

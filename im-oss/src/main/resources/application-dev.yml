@@ -1,0 +1,88 @@
+server:
+  compression:
+    enabled: true #  开启gzip压缩
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+    min-response-size: 1024
+
+spring: #springboot的配置
+  banner:
+    location: classpath:banner.txt
+  threads:
+    virtual:
+      enabled: true  # 开启虚拟线程
+  servlet:
+    multipart:
+      max-file-size: 100MB
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://127.0.0.1:5432/im-core
+    username: postgres # 数据库账号
+    password: 123456 # 数据库密码
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      username:
+  jpa: # 添加JPA配置
+    hibernate:
+      ddl-auto: update  # 根据实体自动创建、更新、验证表结构
+    show-sql: true  # 显示SQL语句
+    database-platform: org.hibernate.dialect.PostgreSQLDialect  # 指定数据库方言
+    properties:
+      hibernate:
+        format_sql: true  # 格式化SQL输出
+
+
+oss:
+  providers:
+    default:
+      name: MinIO
+      endpoint: http://192.168.31.166:9000
+      region: us-east-1
+      access-key: admin
+      secret-key: admin123
+      path-style-access: true
+  defaultProvider: default
+  bucketProviderByCode:
+    image: default
+    video: default
+    avatar: default
+    other: default
+
+# TODO: log settings
+logging:
+  #  config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件
+  level:
+    com.xy.lucky.*: info
+    org.springframework: warn
+
+watermark:
+  word: Lucky
+  font: Arial
+
+# OpenAPI/Swagger UI 配置
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    path: /doc.html
+
+# Knife4j 开启开关
+knife4j:
+  enable: true
+
+# Actuator 健康检查配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+  info:
+    env:
+      enabled: true

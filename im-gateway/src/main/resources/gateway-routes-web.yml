@@ -34,10 +34,10 @@ spring:
           filters:
             - StripPrefix=1
 
-        - id: im-file # 文件服务
-          uri: lb://im-file
+        - id: im-oss # 文件服务
+          uri: lb://im-oss
           predicates:
-            - Path=/upload/**
+            - Path=/oss/**
           filters:
             - StripPrefix=1
 

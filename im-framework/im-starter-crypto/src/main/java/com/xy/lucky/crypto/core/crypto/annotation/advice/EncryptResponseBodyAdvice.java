@@ -66,14 +66,6 @@ public class EncryptResponseBodyAdvice implements ResponseBodyAdvice<Object> {
             return false;
         }
 
-        // 排除 Swagger/Knife4j/Springdoc 相关的控制器，避免干扰 API 文档
-        String className = returnType.getDeclaringClass().getName();
-        if (className.startsWith("org.springdoc") ||
-                className.startsWith("springfox") ||
-                className.startsWith("io.swagger")) {
-            return false;
-        }
-
         // 获取注解信息
         CryptoAnnotationInfo info = getAnnotationInfo(returnType);
         if (info == null || info.encryptMode == CryptoMode.NONE) {

@@ -20,9 +20,6 @@ import org.springframework.web.reactive.result.method.annotation.ResponseBodyRes
 @EnableConfigurationProperties(ResponseHandlerProperties.class)
 public class WebFluxConfig implements WebFluxConfigurer {
 
-    @Value("${response.handler.exclude-paths}")
-    private String[] excludePaths;
-
     @Bean("apiVersionRequestMappingHandlerMapping")
     public RequestMappingHandlerMapping apiVersionRequestMappingHandlerMapping() {
         ApiVersionRequestMappingHandlerMapping mapping = new ApiVersionRequestMappingHandlerMapping();

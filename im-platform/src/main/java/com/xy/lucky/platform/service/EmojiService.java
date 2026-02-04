@@ -1,6 +1,9 @@
 package com.xy.lucky.platform.service;
 
-import com.xy.lucky.platform.config.MinioProperties;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3Object;
+import com.xy.lucky.oss.client.OssProperties;
+import com.xy.lucky.oss.client.OssTemplate;
 import com.xy.lucky.platform.domain.po.EmojiPackPo;
 import com.xy.lucky.platform.domain.po.EmojiPo;
 import com.xy.lucky.platform.domain.vo.EmojiPackVo;
@@ -10,11 +13,14 @@ import com.xy.lucky.platform.exception.EmojiException;
 import com.xy.lucky.platform.mapper.EmojiVoMapper;
 import com.xy.lucky.platform.repository.EmojiPackRepository;
 import com.xy.lucky.platform.repository.EmojiRepository;
-import com.xy.lucky.platform.utils.MinioUtils;
 import com.xy.lucky.utils.id.IdUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Service;
@@ -43,8 +49,8 @@ public class EmojiService {
     private final EmojiPackRepository packRepository;
     private final EmojiRepository emojiRepository;
     private final EmojiVoMapper emojiVoMapper;
-    private final MinioUtils minioUtils;
-    private final MinioProperties minioProperties;
+    private final OssTemplate ossTemplate;
+    private final OssProperties ossProperties;
 
     /**
      * 创建或更新表情包
@@ -98,15 +104,16 @@ public class EmojiService {
             throw new EmojiException("已存在同名表情");
         });
 
-        String bucket = minioProperties.getBucketName();
+        String bucket = Optional.ofNullable(ossProperties.getBucketName())
+                .filter(StringUtils::hasText)
+                .orElseThrow(() -> new EmojiException("bucket 不能为空"));
         String filename = Optional.of(file.filename())
                 .filter(StringUtils::hasText).orElse(name);
 
         // 获取对象名称
-        String objectName = minioUtils.getObjectName(filename);
+        String objectName = getObjectName(filename);
 
         String objectKey = String.format("emoji/%s/%s", pack.getId(), objectName);
-        file.headers();
         String contentType = file.headers().getContentType() != null
                 ? String.valueOf(file.headers().getContentType()) : null;
         Path temp;
@@ -122,7 +129,7 @@ public class EmojiService {
         // 上传文件 并删除临时文件
         try {
             try (InputStream in = Files.newInputStream(temp)) {
-                minioUtils.uploadObject(bucket, objectKey, in, size, contentType);
+                ossTemplate.putObject(bucket, objectKey, in, contentType);
             }
         } catch (Exception e) {
             throw new EmojiException("文件上传失败: " + e.getMessage());
@@ -135,7 +142,7 @@ public class EmojiService {
         }
 
 
-        String url = minioUtils.presignedGetUrl(bucket, objectKey);
+        String url = ossTemplate.getPresignedUrl(bucket, objectKey, 24 * 60 * 60);
 
         int sort = Optional.ofNullable(meta.getSort()).orElseGet(() -> emojiRepository.findMaxSortByPackId(packId) + 1);
 
@@ -180,7 +187,9 @@ public class EmojiService {
         EmojiPackPo pack = packRepository.findById(packId)
                 .orElseThrow(() -> new EmojiException("表情包不存在"));
 
-        String bucket = minioProperties.getBucketName();
+        String bucket = Optional.ofNullable(ossProperties.getBucketName())
+                .filter(StringUtils::hasText)
+                .orElseThrow(() -> new EmojiException("bucket 不能为空"));
         List<EmojiVo> result = new ArrayList<>();
 
         int baseSort = emojiRepository.findMaxSortByPackId(packId);
@@ -192,10 +201,10 @@ public class EmojiService {
                     .orElse("emoji.png");
 
             // 获取对象名称
-            String objectName = minioUtils.getObjectName(filename);
+            String objectName = getObjectName(filename);
 
-            if (emojiRepository.findByPackIdAndName(packId, objectName).isPresent()) {
-                log.warn("跳过已存在同名表情 name={}", objectName);
+            if (emojiRepository.findByPackIdAndName(packId, filename).isPresent()) {
+                log.warn("跳过已存在同名表情 name={}", filename);
                 continue;
             }
 
@@ -205,11 +214,10 @@ public class EmojiService {
                 Path temp = Files.createTempFile("emoji-batch-", "-" + filename);
                 file.transferTo(temp.toFile()).block();
                 long size = Files.size(temp);
-                file.headers();
                 String ct = file.headers().getContentType() != null
                         ? String.valueOf(file.headers().getContentType()) : null;
                 try (InputStream in = Files.newInputStream(temp)) {
-                    minioUtils.uploadObject(bucket, objectKey, in, size, ct);
+                    ossTemplate.putObject(bucket, objectKey, in, ct);
                 }
                 try {
                     Files.deleteIfExists(temp);
@@ -217,7 +225,7 @@ public class EmojiService {
                     log.warn("删除临时文件失败: {}", temp);
                 }
 
-                String url = minioUtils.presignedGetUrl(bucket, objectKey);
+                String url = ossTemplate.getPresignedUrl(bucket, objectKey, 24 * 60 * 60);
 
                 baseSort += 1;
 
@@ -253,12 +261,18 @@ public class EmojiService {
         } catch (Exception e) {
             log.warn("热度更新失败 packId={} err={}", emo.getPack().getId(), e.getMessage());
         }
-        return minioUtils.streamObject(
-                emo.getBucket(),
-                emo.getObjectKey(),
-                emo.getName(),
-                emo.getContentType()
-        );
+        try {
+            ObjectMetadata metadata = ossTemplate.getObjectMetadata(emo.getBucket(), emo.getObjectKey());
+            S3Object s3Object = ossTemplate.getObject(emo.getBucket(), emo.getObjectKey());
+            InputStreamResource resource = new InputStreamResource(s3Object.getObjectContent());
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentDisposition(ContentDisposition.attachment().filename(emo.getName()).build());
+            headers.add(HttpHeaders.CONTENT_TYPE, metadata.getContentType());
+            headers.setContentLength(metadata.getContentLength());
+            return ResponseEntity.status(HttpStatus.OK).headers(headers).body(resource);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     /**
@@ -272,32 +286,33 @@ public class EmojiService {
         EmojiPackPo pack = packRepository.findById(packId)
                 .orElseThrow(() -> new EmojiException("表情包不存在"));
 
-        String bucket = minioProperties.getBucketName();
+        String bucket = Optional.ofNullable(ossProperties.getBucketName())
+                .filter(StringUtils::hasText)
+                .orElseThrow(() -> new EmojiException("bucket 不能为空"));
         String filename = Optional.of(file.filename()).filter(StringUtils::hasText)
                 .orElse("cover.png");
 
-        String objectName = minioUtils.getObjectName(filename);
+        String objectName = getObjectName(filename);
 
         String objectKey = String.format("emoji/%s/cover/%s", pack.getId(), objectName);
 
         try {
-            java.nio.file.Path temp = java.nio.file.Files.createTempFile("emoji-cover-", "-" + filename);
+            Path temp = Files.createTempFile("emoji-cover-", "-" + filename);
             file.transferTo(temp.toFile()).block();
-            long size = java.nio.file.Files.size(temp);
             String ct = file.headers() != null && file.headers().getContentType() != null
                     ? file.headers().getContentType().toString() : null;
-            try (java.io.InputStream in = java.nio.file.Files.newInputStream(temp)) {
-                minioUtils.uploadObject(bucket, objectKey, in, size, ct);
+            try (InputStream in = Files.newInputStream(temp)) {
+                ossTemplate.putObject(bucket, objectKey, in, ct);
             }
             try {
-                java.nio.file.Files.deleteIfExists(temp);
+                Files.deleteIfExists(temp);
             } catch (Exception ignore) {
             }
         } catch (Exception e) {
             throw new EmojiException("封面上传失败: " + e.getMessage());
         }
 
-        String url = minioUtils.presignedGetUrl(bucket, objectKey);
+        String url = ossTemplate.getPresignedUrl(bucket, objectKey, 24 * 60 * 60);
         pack.setBucket(bucket);
         pack.setObjectKey(objectKey);
         pack.setUrl(url);
@@ -346,7 +361,10 @@ public class EmojiService {
         EmojiPo emo = emojiRepository.findById(emojiId)
                 .orElseThrow(() -> new EmojiException("表情不存在"));
         if (removeObject) {
-            minioUtils.removeObject(emo.getBucket(), emo.getObjectKey());
+            try {
+                ossTemplate.deleteObject(emo.getBucket(), emo.getObjectKey());
+            } catch (Exception ignore) {
+            }
         }
         emojiRepository.deleteById(emojiId);
     }
@@ -366,5 +384,10 @@ public class EmojiService {
             return getPackCode(i);
         }
         return s;
+    }
+
+    private String getObjectName(String fileName) {
+        String prefix = fileName.substring(fileName.lastIndexOf("."));
+        return IdUtils.base62Uuid() + prefix;
     }
 }

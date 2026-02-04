@@ -1,15 +1,21 @@
 package com.xy.lucky.platform.service;
 
-import com.xy.lucky.platform.config.MinioProperties;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3Object;
+import com.xy.lucky.oss.client.OssProperties;
+import com.xy.lucky.oss.client.OssTemplate;
 import com.xy.lucky.platform.domain.po.LanguagePackPo;
 import com.xy.lucky.platform.domain.vo.LanguagePackVo;
 import com.xy.lucky.platform.exception.LanguagePackException;
 import com.xy.lucky.platform.mapper.LanguagePackVoMapper;
 import com.xy.lucky.platform.repository.LanguagePackRepository;
-import com.xy.lucky.platform.utils.MinioUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Service;
@@ -36,8 +42,8 @@ public class LanguageService {
 
     private final LanguagePackRepository repository;
     private final LanguagePackVoMapper mapper;
-    private final MinioUtils minioUtils;
-    private final MinioProperties minioProperties;
+    private final OssTemplate ossTemplate;
+    private final OssProperties ossProperties;
 
     /**
      * 新增或修改语言包元信息（不涉及文件）
@@ -94,9 +100,9 @@ public class LanguageService {
                 .description(meta.getDescription())
                 .build());
 
-        String bucket = minioProperties.getBucketName();
+        String bucket = ossProperties.getBucketName();
         String filename = Optional.of(file.filename()).filter(StringUtils::hasText).orElse(locale + ".json");
-        String objectName = minioUtils.getObjectName(filename);
+        String objectName = getObjectName(filename);
         String objectKey = String.format("i18n/%s/%s/%s",
                 po.getLocale(),
                 Optional.ofNullable(meta.getVersion()).orElse(po.getVersion()),
@@ -117,7 +123,7 @@ public class LanguageService {
 
         try {
             try (InputStream in = Files.newInputStream(temp)) {
-                minioUtils.uploadObject(bucket, objectKey, in, size, contentType);
+                ossTemplate.putObject(bucket, objectKey, in, contentType);
             }
         } catch (Exception e) {
             throw new LanguagePackException("文件上传失败: " + e.getMessage());
@@ -129,7 +135,7 @@ public class LanguageService {
             }
         }
 
-        String url = minioUtils.presignedGetUrl(bucket, objectKey, 24 * 60 * 60);
+        String url = ossTemplate.getPresignedUrl(bucket, objectKey, 24 * 60 * 60);
 
         po.setName(Optional.ofNullable(meta.getName()).orElse(po.getName()));
         po.setVersion(Optional.ofNullable(meta.getVersion()).orElse(po.getVersion()));
@@ -155,7 +161,22 @@ public class LanguageService {
             throw new LanguagePackException("语言包未上传文件");
         }
         String fileName = locale + ".json";
-        return minioUtils.streamObject(po.getBucketName(), po.getObjectKey(), fileName, po.getContentType());
+        try {
+            ObjectMetadata metadata = ossTemplate.getObjectMetadata(po.getBucketName(), po.getObjectKey());
+            S3Object s3Object = ossTemplate.getObject(po.getBucketName(), po.getObjectKey());
+            InputStreamResource resource = new InputStreamResource(s3Object.getObjectContent());
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentDisposition(ContentDisposition.attachment().filename(fileName).build());
+            headers.add(HttpHeaders.CONTENT_TYPE, metadata.getContentType());
+            headers.setContentLength(metadata.getContentLength());
+            return ResponseEntity.status(HttpStatus.OK).headers(headers).body(resource);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    private String getObjectName(String fileName) {
+        String prefix = fileName.substring(fileName.lastIndexOf("."));
+        return com.xy.lucky.utils.id.IdUtils.base62Uuid() + prefix;
     }
 }
-

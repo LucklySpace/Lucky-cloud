@@ -1,4 +1,4 @@
-# 🍀 Lucky-Cloud (IM-Server) — High-Performance IM Backend
+# 🍀 Lucky-Cloud — High-Performance IM Backend
 
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.4-green.svg)](https://spring.io/projects/spring-boot)
@@ -19,8 +19,8 @@ solution including message delivery, audio/video calls, and file transfer.
 ### 🚀 Tech Architecture
 
 - **Java 21**: Leverages the latest language features for performance and security
-- **Spring Boot 3.2.4**: Native support for JDK 21, optimized for containerized deployment
-- **Spring Cloud Alibaba**: Full microservice governance
+- **Spring Boot 3.5.9**: Native support for JDK 21, optimized for containerized deployment
+- **Spring Cloud Alibaba 2025**: Full microservice governance
 - **MyBatis Plus**: ORM framework on top of MyBatis
 - **Apache Dubbo**: RPC across microservice modules
 - **Apache Seata**: Distributed transaction management

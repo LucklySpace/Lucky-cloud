@@ -84,26 +84,6 @@
             <version>${zxing.version}</version>
         </dependency>
 
-        <!--引入Knife4j的官方start包,Spring Boot版本 > 3.0,开发者需要注意-->
-        <dependency>
-            <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
-            <version>${knife4j.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springdoc</groupId>
-                    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.8.15</version>
-        </dependency>
-
-
         <!-- Lombok，用于简化代码，如生成 getter/setter 等 -->
         <dependency>
             <groupId>org.projectlombok</groupId>

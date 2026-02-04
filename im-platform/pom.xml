@@ -82,13 +82,6 @@
             <optional>true</optional>
         </dependency>
 
-        <!--引入Knife4j的官方start包,Spring Boot版本 > 3.0,开发者需要注意-->
-        <dependency>
-            <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-openapi3-webflux-jakarta-spring-boot-starter</artifactId>
-            <version>${knife4j.version}</version>
-        </dependency>
-
         <!-- Spring aop-->
         <dependency>
             <groupId>org.springframework.boot</groupId>

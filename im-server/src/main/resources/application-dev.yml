@@ -70,13 +70,13 @@ logging:
 response:
   handler:
     exclude-paths:
-      - /swagger-resources/**
-      - /v*/api-docs/**
-      - /webjars/**
-      - /doc.html
-      - /favicon.ico
-      - /swagger-ui/**
-      - /swagger-ui.html
+      - '/swagger-resources/**'
+      - '/v*/api-docs/**'
+      - '/webjars/**'
+      - '/doc.html'
+      - '/favicon.ico'
+      - '/swagger-ui/**'
+      - '/swagger-ui.html'
 
 #springdoc相关配置
 springdoc:

@@ -1,15 +1,21 @@
 package com.xy.lucky.platform.service;
 
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3Object;
+import com.xy.lucky.oss.client.OssTemplate;
 import com.xy.lucky.platform.domain.po.AssetPo;
 import com.xy.lucky.platform.domain.po.ReleasePo;
 import com.xy.lucky.platform.domain.vo.PlatformInfoVo;
 import com.xy.lucky.platform.domain.vo.UpdaterResponseVo;
 import com.xy.lucky.platform.repository.UpdateAssetRepository;
 import com.xy.lucky.platform.repository.UpdateReleaseRepository;
-import com.xy.lucky.platform.utils.MinioUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -30,7 +36,7 @@ public class UpdaterService {
 
     private final UpdateReleaseRepository releaseRepository;
     private final UpdateAssetRepository assetRepository;
-    private final MinioUtils minioUtils;
+    private final OssTemplate ossTemplate;
 
 
     /**
@@ -81,13 +87,13 @@ public class UpdaterService {
     private String generateDownloadUrl(AssetPo asset) {
         String url = null;
 
-        // 优先使用MinIO存储
+        // 优先使用对象存储
         if (StringUtils.hasText(asset.getBucketName()) && StringUtils.hasText(asset.getObjectKey())) {
-            url = minioUtils.presignedGetUrl(
+            url = ossTemplate.getPresignedUrl(
                     asset.getBucketName(),
                     asset.getObjectKey(),
-                    24 * 60 * 60); // 24小时有效期
-            log.debug("生成MinIO预签名URL，平台={}，对象键={}", asset.getPlatform(), asset.getObjectKey());
+                    24 * 60 * 60);
+            log.debug("生成对象存储预签名URL，平台={}，对象键={}", asset.getPlatform(), asset.getObjectKey());
         }
         // 回退到显式URL
         else if (StringUtils.hasText(asset.getUrl())) {
@@ -129,11 +135,17 @@ public class UpdaterService {
         }
 
         log.info("开始流式传输文件，存储桶={}，对象键={}", asset.getBucketName(), asset.getObjectKey());
-        return minioUtils.streamObject(
-                asset.getBucketName(),
-                asset.getObjectKey(),
-                asset.getFileName(),
-                asset.getContentType()
-        );
+        try {
+            ObjectMetadata metadata = ossTemplate.getObjectMetadata(asset.getBucketName(), asset.getObjectKey());
+            S3Object s3Object = ossTemplate.getObject(asset.getBucketName(), asset.getObjectKey());
+            InputStreamResource resource = new InputStreamResource(s3Object.getObjectContent());
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentDisposition(ContentDisposition.attachment().filename(asset.getFileName()).build());
+            headers.add(HttpHeaders.CONTENT_TYPE, metadata.getContentType());
+            headers.setContentLength(metadata.getContentLength());
+            return ResponseEntity.status(HttpStatus.OK).headers(headers).body(resource);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }

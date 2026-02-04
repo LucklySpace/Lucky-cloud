@@ -20,38 +20,12 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * 对象存储服务自动配置类
- * <p>
- * 支持 Amazon S3 协议的所有对象存储服务：
- * <ul>
- *   <li>阿里云 OSS (Alibaba Cloud OSS)</li>
- *   <li>腾讯云 COS (Tencent Cloud COS)</li>
- *   <li>七牛云对象存储 (Qiniu Cloud)</li>
- *   <li>MinIO</li>
- *   <li>AWS S3</li>
- *   <li>其他 S3 兼容服务</li>
- * </ul>
- * <p>
- * 配置示例：
- * <pre>
- * oss:
- *   endpoint: https://oss-cn-hangzhou.aliyuncs.com
- *   region: oss-cn-hangzhou
- *   access-key: your-access-key
- *   secret-key: your-secret-key
- *   path-style-access: false
- * </pre>
- * <p>
- * 不同云服务商配置参考：
- * <ul>
- *   <li>阿里云 OSS: path-style-access=false, endpoint=https://oss-cn-hangzhou.aliyuncs.com</li>
- *   <li>腾讯云 COS: path-style-access=false, endpoint=https://cos.ap-guangzhou.myqcloud.com</li>
- *   <li>MinIO: path-style-access=true, endpoint=http://localhost:9000</li>
- *   <li>AWS S3: path-style-access=false, endpoint=https://s3.amazonaws.com</li>
- * </ul>
- *
- * @author Lucky Team
- * @since 1.0.0
+ * OSS 自动配置
+ * 负责注册统一的对象存储操作入口 OssTemplate。
+ * - 读取 oss.providers，按提供者构建 AmazonS3 客户端与对应实现
+ * - 通过 DelegatingOssTemplate 支持默认提供者与按桶名后缀进行路由
+ * - 仅在容器中不存在 OssTemplate Bean 时生效
+ * 使用方式：引入依赖并在配置文件填写 oss.* 属性后，可直接注入使用
  */
 @Slf4j
 @Configuration
@@ -109,6 +83,11 @@ public class OssAutoConfiguration {
         return new DelegatingOssTemplate(templates, def, route);
     }
 
+    /**
+     * 代理实现：根据提供者名称或桶名后缀自动选择具体实现
+     * - 默认提供者兜底
+     * - 支持按 bucketName 最后一个 '-' 后的 code 路由到指定提供者
+     */
     public static class DelegatingOssTemplate implements OssTemplate {
         private final Map<String, OssTemplate> templates;
         private final String defaultProvider;

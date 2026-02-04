@@ -708,3 +708,57 @@ ALTER TABLE "public"."im_user" ADD CONSTRAINT "im_user_pkey" PRIMARY KEY ("user_
 -- Primary Key structure for table im_user_data
 -- ----------------------------
 ALTER TABLE "public"."im_user_data" ADD CONSTRAINT "im_user_data_pkey" PRIMARY KEY ("user_id");
+
+-- ----------------------------
+-- Table structure for im_auth_token
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."im_auth_token";
+CREATE TABLE "public"."im_auth_token"
+(
+    "id"                  varchar(64) COLLATE "pg_catalog"."default"  NOT NULL,
+    "user_id"             varchar(50) COLLATE "pg_catalog"."default"  NOT NULL,
+    "device_id"           varchar(100) COLLATE "pg_catalog"."default",
+    "client_ip"           varchar(64) COLLATE "pg_catalog"."default",
+    "user_agent"          varchar(500) COLLATE "pg_catalog"."default",
+    "access_token_hash"   varchar(128) COLLATE "pg_catalog"."default" NOT NULL,
+    "refresh_token_hash"  varchar(128) COLLATE "pg_catalog"."default" NOT NULL,
+    "token_version"       int8,
+    "token_family_id"     varchar(64) COLLATE "pg_catalog"."default",
+    "sequence_number"     int4,
+    "issued_at"           int8,
+    "access_expires_at"   int8,
+    "absolute_expires_at" int8,
+    "used"                int2,
+    "revoked_at"          int8,
+    "revoke_reason"       varchar(255) COLLATE "pg_catalog"."default",
+    "grant_type"          varchar(50) COLLATE "pg_catalog"."default",
+    "scope"               varchar(255) COLLATE "pg_catalog"."default",
+    "create_time"         int8,
+    "update_time"         int8,
+    "del_flag"            int2,
+    "version"             int8
+);
+COMMENT
+ON TABLE "public"."im_auth_token" IS '认证令牌持久化信息';
+COMMENT
+ON COLUMN "public"."im_auth_token"."access_token_hash" IS '访问令牌哈希';
+COMMENT
+ON COLUMN "public"."im_auth_token"."refresh_token_hash" IS '刷新令牌哈希';
+COMMENT
+ON COLUMN "public"."im_auth_token"."token_family_id" IS '令牌族ID';
+COMMENT
+ON COLUMN "public"."im_auth_token"."sequence_number" IS '令牌在族中的序号';
+COMMENT
+ON COLUMN "public"."im_auth_token"."absolute_expires_at" IS '绝对过期时间';
+COMMENT
+ON COLUMN "public"."im_auth_token"."used" IS '刷新令牌是否已使用';
+COMMENT
+ON COLUMN "public"."im_auth_token"."revoked_at" IS '撤销时间';
+COMMENT
+ON COLUMN "public"."im_auth_token"."grant_type" IS '授权类型';
+ALTER TABLE "public"."im_auth_token"
+    ADD CONSTRAINT "im_auth_token_pkey" PRIMARY KEY ("id");
+CREATE UNIQUE INDEX "uniq_refresh_hash" ON "public"."im_auth_token" USING btree ("refresh_token_hash");
+CREATE INDEX "idx_access_hash" ON "public"."im_auth_token" USING btree ("access_token_hash");
+CREATE INDEX "idx_token_family" ON "public"."im_auth_token" USING btree ("token_family_id");
+CREATE INDEX "idx_user_id" ON "public"."im_auth_token" USING btree ("user_id");

@@ -1,4 +1,4 @@
-# 🍀  Lucky-Cloud  （IM-Server） - 高性能即时通讯服务端
+# 🍀 Lucky-Cloud - 高性能即时通讯服务端
 
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.4-green.svg)](https://spring.io/projects/spring-boot)
@@ -17,8 +17,8 @@ Lucky-Cloud 是一个基于 **Spring Cloud Alibaba + Spring Boot 3**
 ### 🚀 技术架构
 
 - **Java 21**: 利用最新的Java特性，提供卓越的性能和安全性
-- **Spring Boot 3.2.4**: 原生支持JDK 21，优化容器化部署
-- **Spring Cloud Alibaba**: 完整的微服务治理解决方案
+- **Spring Boot 3.5.9**: 原生支持JDK 21，优化容器化部署
+- **Spring Cloud Alibaba 2025**: 完整的微服务治理解决方案
 - **Mybatis Plus**: 基于Mybatis的ORM框架
 - **Apache Dubbo**: 微服务模块远程rpc调用
 - **Apache Seata**: 分布式事务管理

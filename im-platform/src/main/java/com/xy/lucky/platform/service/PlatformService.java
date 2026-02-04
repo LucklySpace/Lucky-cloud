@@ -1,6 +1,7 @@
 package com.xy.lucky.platform.service;
 
-import com.xy.lucky.platform.config.MinioProperties;
+import com.xy.lucky.oss.client.OssProperties;
+import com.xy.lucky.oss.client.OssTemplate;
 import com.xy.lucky.platform.domain.po.AssetPo;
 import com.xy.lucky.platform.domain.po.ReleasePo;
 import com.xy.lucky.platform.domain.vo.AssetVo;
@@ -10,7 +11,7 @@ import com.xy.lucky.platform.mapper.ReleaseAssetVoMapper;
 import com.xy.lucky.platform.repository.UpdateAssetRepository;
 import com.xy.lucky.platform.repository.UpdateReleaseRepository;
 import com.xy.lucky.platform.utils.MD5Utils;
-import com.xy.lucky.platform.utils.MinioUtils;
+import com.xy.lucky.utils.id.IdUtils;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,20 +36,20 @@ public class PlatformService {
 
     private final UpdateReleaseRepository releaseRepository;
     private final UpdateAssetRepository assetRepository;
-    private final MinioUtils minioUtils;
-    private final MinioProperties minioProperties;
+    private final OssTemplate ossTemplate;
+    private final OssProperties ossProperties;
     private final ReleaseAssetVoMapper releaseAssetVoMapper;
 
     @Autowired
     public PlatformService(UpdateReleaseRepository releaseRepository,
                            UpdateAssetRepository assetRepository,
-                           MinioUtils minioUtils,
-                           MinioProperties minioProperties,
+                           OssTemplate ossTemplate,
+                           OssProperties ossProperties,
                            ReleaseAssetVoMapper releaseAssetVoMapper) {
         this.releaseRepository = releaseRepository;
         this.assetRepository = assetRepository;
-        this.minioUtils = minioUtils;
-        this.minioProperties = minioProperties;
+        this.ossTemplate = ossTemplate;
+        this.ossProperties = ossProperties;
         this.releaseAssetVoMapper = releaseAssetVoMapper;
     }
 
@@ -141,9 +142,8 @@ public class PlatformService {
         );
 
         // 构造存储路径
-        String bucket = minioProperties.getBucketName();
-
-        String objectName = minioUtils.getObjectName(filename);
+        String bucket = ossProperties.getBucketName();
+        String objectName = getObjectName(filename);
 
         String objectKey = String.format("releases/%s/%s/%s", release.getVersion(), createAssetVo.getPlatform(), objectName);
 
@@ -156,10 +156,10 @@ public class PlatformService {
             throw new ReleaseException("计算文件大小失败: " + e.getMessage());
         }
 
-        log.info("开始上传文件到MinIO，存储桶={}，对象键={}，大小={}字节", bucket, objectKey, size);
+        log.info("开始上传文件到S3兼容存储，存储桶={}，对象键={}，大小={}字节", bucket, objectKey, size);
 
         try (java.io.InputStream in = java.nio.file.Files.newInputStream(temp)) {
-            minioUtils.uploadObject(bucket, objectKey, in, size, contentType);
+            ossTemplate.putObject(bucket, objectKey, in, contentType);
             log.debug("文件上传成功");
         } catch (Exception e) {
             log.error("文件上传失败，存储桶={}，对象键={}", bucket, objectKey, e);
@@ -179,7 +179,7 @@ public class PlatformService {
                 .bucketName(bucket)
                 .objectKey(objectKey)
                 .contentType(contentType)
-                .url(minioUtils.presignedGetUrl(bucket, objectKey, 60 * 60 * 24))
+                .url(ossTemplate.getPresignedUrl(bucket, objectKey, 60 * 60 * 24))
                 .fileSize(size)
                 .build();
 
@@ -187,5 +187,10 @@ public class PlatformService {
         log.info("资产发布完成，资产ID: {}", savedAsset.getId());
 
         return releaseAssetVoMapper.toVo(savedAsset);
+    }
+
+    private String getObjectName(String fileName) {
+        String prefix = fileName.substring(fileName.lastIndexOf("."));
+        return IdUtils.base62Uuid() + prefix;
     }
 }

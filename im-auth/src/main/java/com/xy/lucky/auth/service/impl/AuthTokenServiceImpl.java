@@ -7,11 +7,15 @@ import com.xy.lucky.auth.service.TokenVersionService;
 import com.xy.lucky.auth.utils.RedisCache;
 import com.xy.lucky.core.constants.IMConstant;
 import com.xy.lucky.core.utils.JwtUtil;
+import com.xy.lucky.domain.po.ImAuthTokenPo;
+import com.xy.lucky.dubbo.web.api.auth.ImAuthTokenDubboService;
 import com.xy.lucky.general.response.domain.ResultCode;
 import com.xy.lucky.security.SecurityAuthProperties;
 import com.xy.lucky.security.exception.AuthenticationFailException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -24,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * 令牌管理服务实现
  * <p>
- * 实现严谨的令牌签发、刷新、撤销逻辑，包含以下安全特性：
+ * 实现令牌签发、刷新、撤销逻辑
  * <ul>
  *   <li>令牌版本控制 - 支持全局踢人和设备踢人</li>
  *   <li>令牌族追踪 - 同一会话的令牌共享族ID</li>
@@ -33,7 +37,6 @@ import java.util.concurrent.TimeUnit;
  *   <li>绝对过期时间 - 防止无限刷新</li>
  * </ul>
  *
- * @author dense
  */
 @Slf4j
 @Service
@@ -67,6 +70,9 @@ public class AuthTokenServiceImpl implements AuthTokenService {
     private final RedisCache redisCache;
     private final SecurityAuthProperties authProperties;
     private final TokenVersionService tokenVersionService;
+
+    @DubboReference
+    private ImAuthTokenDubboService authTokenDubboService;
 
     // ==================== 令牌签发 ====================
 
@@ -140,6 +146,27 @@ public class AuthTokenServiceImpl implements AuthTokenService {
 
         // 存储刷新令牌元数据
         redisCache.set(REFRESH_TOKEN_KEY + refreshToken, refreshTokenMeta, refreshExpiresIn, TimeUnit.SECONDS);
+
+        // 持久化令牌信息（存储哈希，避免泄露原始令牌）
+        try {
+            ImAuthTokenPo tokenPo = new ImAuthTokenPo()
+                    .setId(UUID.randomUUID().toString().replace("-", ""))
+                    .setUserId(userId)
+                    .setDeviceId(deviceId)
+                    .setClientIp(clientIp)
+                    .setAccessTokenHash(DigestUtils.sha256Hex(accessToken))
+                    .setRefreshTokenHash(DigestUtils.sha256Hex(refreshToken))
+                    .setTokenVersion(tokenVersion)
+                    .setTokenFamilyId(tokenFamilyId)
+                    .setSequenceNumber(sequenceNumber)
+                    .setIssuedAt(now)
+                    .setAccessExpiresAt(now + TimeUnit.SECONDS.toMillis(accessExpiresIn))
+                    .setAbsoluteExpiresAt(absoluteExpiresAt)
+                    .setUsed(0);
+            authTokenDubboService.create(tokenPo);
+        } catch (Exception e) {
+            log.warn("令牌持久化失败：{}", e.getMessage());
+        }
 
         // 注册活跃设备
         if (StringUtils.hasText(deviceId)) {
@@ -283,6 +310,13 @@ public class AuthTokenServiceImpl implements AuthTokenService {
         // 同时记录到已使用令牌集合（用于快速检测）
         String usedKey = USED_REFRESH_TOKEN_KEY + refreshToken;
         redisCache.set(usedKey, System.currentTimeMillis(), ttl, TimeUnit.SECONDS);
+
+        // 数据库标记刷新令牌已使用
+        try {
+            authTokenDubboService.markUsedByRefreshHash(DigestUtils.sha256Hex(refreshToken));
+        } catch (Exception e) {
+            log.warn("标记刷新令牌已使用失败：{}", e.getMessage());
+        }
     }
 
     /**
@@ -295,6 +329,11 @@ public class AuthTokenServiceImpl implements AuthTokenService {
             // 不复用刷新令牌：将旧令牌加入黑名单并删除
             blacklistToken(oldRefreshToken, true);
             redisCache.del(refreshKey);
+            try {
+                authTokenDubboService.revokeByRefreshHash(DigestUtils.sha256Hex(oldRefreshToken), "rotation");
+            } catch (Exception e) {
+                log.warn("刷新令牌轮换撤销持久化失败：{}", e.getMessage());
+            }
         }
         // 如果配置为复用刷新令牌，则保留旧令牌（但已标记为used）
     }
@@ -325,6 +364,11 @@ public class AuthTokenServiceImpl implements AuthTokenService {
         redisCache.set(BLACKLIST_KEY + accessToken, System.currentTimeMillis(), ttlSeconds, TimeUnit.SECONDS);
         redisCache.del(ACCESS_TOKEN_KEY + accessToken);
 
+        try {
+            authTokenDubboService.revokeByAccessHash(DigestUtils.sha256Hex(accessToken), "manual_logout");
+        } catch (Exception e) {
+            log.warn("访问令牌撤销持久化失败：{}", e.getMessage());
+        }
         log.debug("访问令牌已撤销：{}", maskToken(accessToken));
     }
 
@@ -342,6 +386,11 @@ public class AuthTokenServiceImpl implements AuthTokenService {
         redisCache.set(BLACKLIST_KEY + refreshToken, System.currentTimeMillis(), ttlSeconds, TimeUnit.SECONDS);
         redisCache.del(refreshKey);
 
+        try {
+            authTokenDubboService.revokeByRefreshHash(DigestUtils.sha256Hex(refreshToken), "manual_logout");
+        } catch (Exception e) {
+            log.warn("刷新令牌撤销持久化失败：{}", e.getMessage());
+        }
         log.debug("刷新令牌已撤销：{}", maskToken(refreshToken));
     }
 

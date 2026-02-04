@@ -600,6 +600,13 @@
                 <version>${revision}</version>
             </dependency>
 
+            <!-- OSS Starter (S3 兼容) -->
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-starter-oss</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
             <!-- 非common模块-->
             <dependency>
                 <groupId>com.xy.lucky</groupId>

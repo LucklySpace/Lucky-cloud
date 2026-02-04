@@ -76,12 +76,17 @@ springdoc:
       paths-to-match: '/**'
       packages-to-scan: com.xy.lucky.platform  # 改为平台服务包名，确保文档扫描到控制器
 
-minio: # minio
-  endpoint: http://127.0.0.1:9000
-  extranet: http://127.0.0.1:9000
-  accessKey: admin
-  secretKey: admin123
+oss:
   bucketName: box-im
+  providers:
+    default:
+      name: S3
+      endpoint: http://127.0.0.1:9000
+      region: us-east-1
+      access-key: admin
+      secret-key: admin123
+      path-style-access: true
+  defaultProvider: default
 
 shortlink: # 短链接
   domain: http://127.0.0.1:8090

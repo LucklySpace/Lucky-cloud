@@ -37,7 +37,7 @@ spring: #springboot的配置
 oss:
   providers:
     default:
-      name: MinIO
+      name: minio
       endpoint: http://192.168.31.166:9000
       region: us-east-1
       access-key: admin
@@ -52,7 +52,7 @@ oss:
 
 # TODO: log settings
 logging:
-  # config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件
+  config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件
   level:
     com.xy.lucky.*: info
     org.springframework: warn

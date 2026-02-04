@@ -1,5 +1,6 @@
 package com.xy.lucky.auth.service.impl;
 
+import com.xy.lucky.auth.domain.AuthTokenPair;
 import com.xy.lucky.auth.domain.OAuth2AuthorizationCode;
 import com.xy.lucky.auth.domain.OAuth2AuthorizeResult;
 import com.xy.lucky.auth.domain.OAuth2TokenResult;
@@ -26,6 +27,9 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+/**
+ * OAuth2 授权服务实现
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -36,6 +40,7 @@ public class OAuth2ServiceImpl implements OAuth2Service {
     private final OAuth2Properties oAuth2Properties;
     private final RedisCache redisCache;
     private final AuthTokenService authTokenService;
+
 
     /**
      * 授权端点逻辑实现，支持 PKCE 校验
@@ -112,46 +117,48 @@ public class OAuth2ServiceImpl implements OAuth2Service {
                                    String redirectUri,
                                    String codeVerifier,
                                    String clientId) {
-        if (!"authorization_code".equalsIgnoreCase(grantType)) {
-            throw new AuthenticationFailException(ResultCode.BAD_REQUEST);
-        }
-
-        // 查找并验证授权码记录
-        OAuth2AuthorizationCode record = redisCache.get(AUTH_CODE_KEY_PREFIX + code);
-        if (record == null) {
-            throw new AuthenticationFailException(ResultCode.TOKEN_IS_INVALID);
-        }
-
-        OAuth2Properties.Client client = resolveClient(clientId);
-        validateRedirectUri(client, redirectUri);
-
-        if (!clientId.equals(record.getClientId())
-                || !redirectUri.equals(record.getRedirectUri())) {
-            throw new AuthenticationFailException(ResultCode.TOKEN_IS_INVALID);
-        }
-
-        // PKCE 强校验逻辑
-        boolean requirePkce = oAuth2Properties.isPkceRequired() || client.isRequirePkce();
-        if (requirePkce) {
-            validateCodeVerifier(codeVerifier);
-            if (!PkceUtils.verifyChallenge(codeVerifier, record.getCodeChallenge(), record.getCodeChallengeMethod())) {
-                log.warn("PKCE 校验失败: clientId={}, code={}", clientId, code);
-                throw new AuthenticationFailException(ResultCode.TOKEN_IS_INVALID);
-            }
-        }
-
-        // 授权码仅能使用一次
-        redisCache.del(AUTH_CODE_KEY_PREFIX + code);
-
         String clientIp = RequestContextUtil.resolveClientIp(request);
         String deviceId = RequestContextUtil.resolveDeviceId(request, clientIp);
-        var pair = authTokenService.issueTokens(record.getUserId(), deviceId, clientIp);
+        String userAgent = request.getHeader("User-Agent");
+        try {
+            if (!"authorization_code".equalsIgnoreCase(grantType)) {
+                throw new AuthenticationFailException(ResultCode.BAD_REQUEST);
+            }
 
-        return new OAuth2TokenResult()
-                .setAccessToken(pair.getAccessToken())
-                .setRefreshToken(pair.getRefreshToken())
-                .setExpiresIn(pair.getAccessExpiresIn())
-                .setScope(record.getScopes());
+            OAuth2AuthorizationCode record = redisCache.get(AUTH_CODE_KEY_PREFIX + code);
+            if (record == null) {
+                throw new AuthenticationFailException(ResultCode.TOKEN_IS_INVALID);
+            }
+
+            OAuth2Properties.Client client = resolveClient(clientId);
+            validateRedirectUri(client, redirectUri);
+
+            if (!clientId.equals(record.getClientId())
+                    || !redirectUri.equals(record.getRedirectUri())) {
+                throw new AuthenticationFailException(ResultCode.TOKEN_IS_INVALID);
+            }
+
+            boolean requirePkce = oAuth2Properties.isPkceRequired() || client.isRequirePkce();
+            if (requirePkce) {
+                validateCodeVerifier(codeVerifier);
+                if (!PkceUtils.verifyChallenge(codeVerifier, record.getCodeChallenge(), record.getCodeChallengeMethod())) {
+                    log.warn("PKCE 校验失败: clientId={}, code={}", clientId, code);
+                    throw new AuthenticationFailException(ResultCode.TOKEN_IS_INVALID);
+                }
+            }
+
+            redisCache.del(AUTH_CODE_KEY_PREFIX + code);
+
+            AuthTokenPair pair = authTokenService.issueTokens(record.getUserId(), deviceId, clientIp);
+
+            return new OAuth2TokenResult()
+                    .setAccessToken(pair.getAccessToken())
+                    .setRefreshToken(pair.getRefreshToken())
+                    .setExpiresIn(pair.getAccessExpiresIn())
+                    .setScope(record.getScopes());
+        } catch (Exception ex) {
+            throw new AuthenticationFailException(ResultCode.AUTHENTICATION_FAILED);
+        }
     }
 
     private OAuth2Properties.Client resolveClient(String clientId) {

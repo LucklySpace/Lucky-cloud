@@ -70,11 +70,10 @@
             <version>${mapstruct.version}</version>
         </dependency>
 
-        <!-- MinIO Client -->
+        <!-- OSS Starter (S3 兼容) -->
         <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-            <version>${minio.version}</version>
+            <groupId>com.xy.lucky</groupId>
+            <artifactId>im-starter-oss</artifactId>
         </dependency>
 
         <dependency>

@@ -1,7 +1,7 @@
 package com.xy.lucky.database.web.service;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xy.lucky.database.api.group.ImGroupDubboService;
+import com.xy.lucky.api.group.ImGroupDubboService;
 import com.xy.lucky.database.web.mapper.ImGroupMapper;
 import com.xy.lucky.domain.po.ImGroupPo;
 import lombok.RequiredArgsConstructor;

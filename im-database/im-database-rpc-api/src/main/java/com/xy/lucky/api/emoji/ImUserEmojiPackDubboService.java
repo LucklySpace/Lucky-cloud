@@ -1,4 +1,4 @@
-package com.xy.lucky.database.api.emoji;
+package com.xy.lucky.api.emoji;
 
 import com.xy.lucky.domain.po.ImUserEmojiPackPo;
 

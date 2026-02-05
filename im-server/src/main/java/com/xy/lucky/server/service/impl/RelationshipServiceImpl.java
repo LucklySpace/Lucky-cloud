@@ -1,12 +1,12 @@
 package com.xy.lucky.server.service.impl;
 
+import com.xy.lucky.api.friend.ImFriendshipDubboService;
+import com.xy.lucky.api.friend.ImFriendshipRequestDubboService;
+import com.xy.lucky.api.group.ImGroupDubboService;
+import com.xy.lucky.api.user.ImUserDataDubboService;
 import com.xy.lucky.core.enums.IMApproveStatus;
 import com.xy.lucky.core.enums.IMStatus;
 import com.xy.lucky.core.enums.IMessageReadStatus;
-import com.xy.lucky.database.api.friend.ImFriendshipDubboService;
-import com.xy.lucky.database.api.friend.ImFriendshipRequestDubboService;
-import com.xy.lucky.database.api.group.ImGroupDubboService;
-import com.xy.lucky.database.api.user.ImUserDataDubboService;
 import com.xy.lucky.domain.po.ImFriendshipPo;
 import com.xy.lucky.domain.po.ImFriendshipRequestPo;
 import com.xy.lucky.domain.po.ImGroupPo;

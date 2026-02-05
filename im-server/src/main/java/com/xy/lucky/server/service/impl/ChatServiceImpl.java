@@ -1,13 +1,13 @@
 package com.xy.lucky.server.service.impl;
 
+import com.xy.lucky.api.chat.ImChatDubboService;
+import com.xy.lucky.api.group.ImGroupDubboService;
+import com.xy.lucky.api.message.ImGroupMessageDubboService;
+import com.xy.lucky.api.message.ImSingleMessageDubboService;
+import com.xy.lucky.api.user.ImUserDataDubboService;
 import com.xy.lucky.core.enums.IMStatus;
 import com.xy.lucky.core.enums.IMessageReadStatus;
 import com.xy.lucky.core.enums.IMessageType;
-import com.xy.lucky.database.api.chat.ImChatDubboService;
-import com.xy.lucky.database.api.group.ImGroupDubboService;
-import com.xy.lucky.database.api.message.ImGroupMessageDubboService;
-import com.xy.lucky.database.api.message.ImSingleMessageDubboService;
-import com.xy.lucky.database.api.user.ImUserDataDubboService;
 import com.xy.lucky.domain.po.*;
 import com.xy.lucky.server.common.LockExecutor;
 import com.xy.lucky.server.domain.dto.ChatDto;

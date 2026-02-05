@@ -2,7 +2,7 @@ package com.xy.lucky.database.web.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xy.lucky.database.api.chat.ImChatDubboService;
+import com.xy.lucky.api.chat.ImChatDubboService;
 import com.xy.lucky.database.web.mapper.ImChatMapper;
 import com.xy.lucky.domain.po.ImChatPo;
 import lombok.RequiredArgsConstructor;

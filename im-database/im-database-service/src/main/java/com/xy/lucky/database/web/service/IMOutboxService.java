@@ -3,7 +3,7 @@ package com.xy.lucky.database.web.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xy.lucky.database.api.outbox.IMOutboxDubboService;
+import com.xy.lucky.api.outbox.IMOutboxDubboService;
 import com.xy.lucky.database.web.mapper.IMOutboxPoMapper;
 import com.xy.lucky.domain.po.IMOutboxPo;
 import lombok.RequiredArgsConstructor;

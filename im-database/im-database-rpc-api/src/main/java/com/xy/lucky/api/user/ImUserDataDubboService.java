@@ -1,4 +1,4 @@
-package com.xy.lucky.database.api.user;
+package com.xy.lucky.api.user;
 
 import com.xy.lucky.domain.po.ImUserDataPo;
 

@@ -3,6 +3,8 @@ package com.xy.lucky.auth.service.impl;
 
 import com.alibaba.nacos.common.utils.JacksonUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.xy.lucky.api.user.ImUserDataDubboService;
+import com.xy.lucky.api.user.ImUserDubboService;
 import com.xy.lucky.auth.domain.*;
 import com.xy.lucky.auth.domain.vo.UserVo;
 import com.xy.lucky.auth.security.config.RSAKeyProperties;
@@ -19,8 +21,6 @@ import com.xy.lucky.auth.utils.RequestContextUtil;
 import com.xy.lucky.core.constants.IMConstant;
 import com.xy.lucky.core.constants.NacosMetadataConstants;
 import com.xy.lucky.core.constants.ServiceNameConstants;
-import com.xy.lucky.database.api.user.ImUserDataDubboService;
-import com.xy.lucky.database.api.user.ImUserDubboService;
 import com.xy.lucky.general.response.domain.ResultCode;
 import com.xy.lucky.security.exception.AuthenticationFailException;
 import jakarta.annotation.Resource;

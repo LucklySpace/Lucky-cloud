@@ -15,6 +15,12 @@
 
     <dependencies>
 
+        <!-- 日志埋点服务依赖 -->
+        <dependency>
+            <groupId>com.xy.lucky</groupId>
+            <artifactId>im-starter-logging</artifactId>
+        </dependency>
+
         <!-- 通用 -->
         <dependency>
             <groupId>com.xy.lucky</groupId>
@@ -25,6 +31,21 @@
         <dependency>
             <groupId>com.xy.lucky</groupId>
             <artifactId>im-database-rpc-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xy.lucky</groupId>
+            <artifactId>im-starter-common</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
         </dependency>
 
         <!-- MyBatis-Plus -->
@@ -65,13 +86,45 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Seata分布式事务 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-seata</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
         </dependency>
+
+        <!-- SpringCloud Alibaba Nacos -->
         <dependency>
-            <groupId>com.xy.lucky</groupId>
-            <artifactId>im-starter-common</artifactId>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+        <!-- SpringCloud Alibaba Nacos Config -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
+
+        <!--使用nacos + ribbon做负载均衡时添加的loadbalancer依赖-->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+        </dependency>
+
+        <!-- 引入sentinel进行服务降级熔断 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
     </dependencies>

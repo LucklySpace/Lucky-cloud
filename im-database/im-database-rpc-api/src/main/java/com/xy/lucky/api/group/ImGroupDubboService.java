@@ -1,4 +1,4 @@
-package com.xy.lucky.database.api.group;
+package com.xy.lucky.api.group;
 
 import com.xy.lucky.domain.po.ImGroupPo;
 

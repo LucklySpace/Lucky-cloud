@@ -1,4 +1,4 @@
-package com.xy.lucky.database.api.outbox;
+package com.xy.lucky.api.outbox;
 
 import com.xy.lucky.domain.po.IMOutboxPo;
 

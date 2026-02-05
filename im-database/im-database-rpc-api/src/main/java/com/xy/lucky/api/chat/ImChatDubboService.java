@@ -1,4 +1,4 @@
-package com.xy.lucky.database.api.chat;
+package com.xy.lucky.api.chat;
 
 import com.xy.lucky.domain.po.ImChatPo;
 

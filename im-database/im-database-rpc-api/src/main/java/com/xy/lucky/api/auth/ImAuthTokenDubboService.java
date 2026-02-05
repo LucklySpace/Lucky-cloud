@@ -1,4 +1,4 @@
-package com.xy.lucky.database.api.auth;
+package com.xy.lucky.api.auth;
 
 import com.xy.lucky.domain.po.ImAuthTokenPo;
 

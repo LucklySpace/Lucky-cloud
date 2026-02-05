@@ -2,7 +2,7 @@ package com.xy.lucky.database.web.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xy.lucky.database.api.group.ImGroupMemberDubboService;
+import com.xy.lucky.api.group.ImGroupMemberDubboService;
 import com.xy.lucky.database.web.mapper.ImGroupMemberMapper;
 import com.xy.lucky.domain.po.ImGroupMemberPo;
 import lombok.RequiredArgsConstructor;

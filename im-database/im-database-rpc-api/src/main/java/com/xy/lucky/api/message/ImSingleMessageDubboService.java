@@ -1,4 +1,4 @@
-package com.xy.lucky.database.api.message;
+package com.xy.lucky.api.message;
 
 import com.xy.lucky.domain.po.ImSingleMessagePo;
 

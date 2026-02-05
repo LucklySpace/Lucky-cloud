@@ -1,4 +1,4 @@
-package com.xy.lucky.leaf.api;
+package com.xy.lucky.api;
 
 
 import com.xy.lucky.core.model.IMetaId;

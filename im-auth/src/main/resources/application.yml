@@ -36,6 +36,8 @@ spring:
         preference: @nacos.config.preference@
 
 dubbo: # dubbo
+  scan:
+    base-packages: com.xy.lucky.api
   application:
     serialize-check-status: WARN
   protocol: # dubbo协议

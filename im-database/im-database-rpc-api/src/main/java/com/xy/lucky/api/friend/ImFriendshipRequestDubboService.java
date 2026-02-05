@@ -1,4 +1,4 @@
-package com.xy.lucky.database.api.friend;
+package com.xy.lucky.api.friend;
 
 import com.xy.lucky.domain.po.ImFriendshipRequestPo;
 

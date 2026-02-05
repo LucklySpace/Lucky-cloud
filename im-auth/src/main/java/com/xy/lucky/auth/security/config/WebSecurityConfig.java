@@ -4,6 +4,9 @@ package com.xy.lucky.auth.security.config;
 import com.xy.lucky.auth.security.provider.MobileAuthenticationProvider;
 import com.xy.lucky.auth.security.provider.QrScanAuthenticationProvider;
 import com.xy.lucky.auth.security.provider.UsernamePasswordAuthenticationProvider;
+import com.xy.lucky.auth.utils.ResponseUtil;
+import com.xy.lucky.general.response.domain.Result;
+import com.xy.lucky.general.response.domain.ResultCode;
 import com.xy.lucky.security.SecurityAuthProperties;
 import com.xy.lucky.security.filter.TokenAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
@@ -89,20 +92,32 @@ public class WebSecurityConfig {
                 configurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
         );
 
-        // 配置未授权和未登录处理
-//        http.exceptionHandling(customizer ->
-//                customizer
-//                        // 处理未授权访问
-//                        .accessDeniedHandler(loginAccessDefineHandler)
-//                        // 处理未登录状态（例如 JWT 校验失败）
-//                        .authenticationEntryPoint(loginAuthenticationHandler)
-//        );
+        http.exceptionHandling(customizer ->
+                customizer
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(401);
+                            ResponseUtil.out(response, Result.failed(ResultCode.UNAUTHORIZED));
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setStatus(403);
+                            ResponseUtil.out(response, Result.failed(ResultCode.NO_PERMISSION));
+                        })
+        );
 
         // 配置 JWT 校验过滤器，在用户名密码过滤器之前执行
         http.addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         // 配置跨域支持
         http.cors(cors -> cors.configurationSource(configurationSource()));
+
+        http.headers(headers -> {
+            headers.contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'"));
+            headers.httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31536000));
+            headers.frameOptions(frame -> frame.sameOrigin());
+            headers.contentTypeOptions(withDefaults -> {
+            });
+            headers.referrerPolicy(referrer -> referrer.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER));
+        });
 
         return http.build(); // 返回构建后的安全过滤链
     }

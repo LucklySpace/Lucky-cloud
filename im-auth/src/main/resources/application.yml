@@ -54,3 +54,35 @@ dubbo: # dubbo
     group: @nacos.discovery.group@
     username: @nacos.discovery.username@
     password: @nacos.discovery.password@
+
+# seata 配置
+seata:
+  enabled: false
+  # 数据源代理模式
+  data-source-proxy-mode: AT
+  application-id: ${spring.application.name}
+  config:
+    type: nacos
+    nacos:
+      server-addr: @nacos.config.server-addr@
+      namespace: @seata.config.namespace@
+      group: @seata.config.group@
+      username: @nacos.discovery.username@
+      password: @nacos.discovery.password@
+      data-id: @seata.config.data.id@
+  # 事务组名称
+  tx-service-group: default_tx_group
+  # 注册seata
+  registry:
+    type: nacos
+    nacos:
+      server-addr: @nacos.discovery.server-addr@
+      application: seata-server
+      group: @seata.config.group@
+      namespace: @seata.config.namespace@
+      username: @nacos.discovery.username@
+      password: @nacos.discovery.password@
+  client:
+    rm:
+      # 是否上报成功状态
+      report-success-enable: true

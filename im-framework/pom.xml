@@ -19,13 +19,11 @@
     <modules>
         <module>im-spring</module>
         <module>im-starter-core</module>
-        <module>im-starter-domain</module>
         <module>im-starter-common</module>
         <module>im-starter-crypto</module>
         <module>im-starter-general</module>
         <module>im-starter-general-webflux</module>
         <module>im-starter-grpc</module>
-        <module>im-starter-dubbo</module>
         <module>im-starter-address</module>
         <module>im-starter-mq</module>
         <module>im-starter-logging</module>

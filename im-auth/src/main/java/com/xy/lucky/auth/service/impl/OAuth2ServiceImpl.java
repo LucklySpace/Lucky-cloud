@@ -61,6 +61,8 @@ public class OAuth2ServiceImpl implements OAuth2Service {
         validateRedirectUri(client, redirectUri);
         validateScope(client, scope);
 
+        enforceAuthorizeRateLimit(request, clientId);
+
         // 验证 PKCE 参数是否符合规范
         boolean requirePkce = oAuth2Properties.isPkceRequired() || client.isRequirePkce();
         if (requirePkce) {
@@ -125,6 +127,8 @@ public class OAuth2ServiceImpl implements OAuth2Service {
                 throw new AuthenticationFailException(ResultCode.BAD_REQUEST);
             }
 
+            enforceTokenRateLimit(request, clientId);
+
             OAuth2AuthorizationCode record = redisCache.get(AUTH_CODE_KEY_PREFIX + code);
             if (record == null) {
                 throw new AuthenticationFailException(ResultCode.TOKEN_IS_INVALID);
@@ -158,6 +162,36 @@ public class OAuth2ServiceImpl implements OAuth2Service {
                     .setScope(record.getScopes());
         } catch (Exception ex) {
             throw new AuthenticationFailException(ResultCode.AUTHENTICATION_FAILED);
+        }
+    }
+
+    private void enforceAuthorizeRateLimit(HttpServletRequest request, String clientId) {
+        String clientIp = RequestContextUtil.resolveClientIp(request);
+        String iKey = "IM:AUTH:RL:OA:AUTH:I:" + Optional.ofNullable(clientIp).orElse("");
+        String cKey = "IM:AUTH:RL:OA:AUTH:C:" + Optional.ofNullable(clientId).orElse("");
+        int limit = 10;
+        long windowSec = TimeUnit.MINUTES.toSeconds(5);
+        long ic = redisCache.incr(iKey, 1);
+        if (ic == 1L) redisCache.expire(iKey, windowSec);
+        long cc = redisCache.incr(cKey, 1);
+        if (cc == 1L) redisCache.expire(cKey, windowSec);
+        if (ic > limit || cc > limit) {
+            throw new AuthenticationFailException(ResultCode.TOO_MANY_REQUESTS);
+        }
+    }
+
+    private void enforceTokenRateLimit(HttpServletRequest request, String clientId) {
+        String clientIp = RequestContextUtil.resolveClientIp(request);
+        String iKey = "IM:AUTH:RL:OA:TOKEN:I:" + Optional.ofNullable(clientIp).orElse("");
+        String cKey = "IM:AUTH:RL:OA:TOKEN:C:" + Optional.ofNullable(clientId).orElse("");
+        int limit = 10;
+        long windowSec = TimeUnit.MINUTES.toSeconds(5);
+        long ic = redisCache.incr(iKey, 1);
+        if (ic == 1L) redisCache.expire(iKey, windowSec);
+        long cc = redisCache.incr(cKey, 1);
+        if (cc == 1L) redisCache.expire(cKey, windowSec);
+        if (ic > limit || cc > limit) {
+            throw new AuthenticationFailException(ResultCode.TOO_MANY_REQUESTS);
         }
     }
 

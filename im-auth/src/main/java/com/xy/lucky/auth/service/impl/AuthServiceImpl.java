@@ -19,13 +19,14 @@ import com.xy.lucky.auth.utils.RequestContextUtil;
 import com.xy.lucky.core.constants.IMConstant;
 import com.xy.lucky.core.constants.NacosMetadataConstants;
 import com.xy.lucky.core.constants.ServiceNameConstants;
-import com.xy.lucky.dubbo.web.api.database.user.ImUserDataDubboService;
-import com.xy.lucky.dubbo.web.api.database.user.ImUserDubboService;
+import com.xy.lucky.database.api.user.ImUserDataDubboService;
+import com.xy.lucky.database.api.user.ImUserDubboService;
 import com.xy.lucky.general.response.domain.ResultCode;
 import com.xy.lucky.security.exception.AuthenticationFailException;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.BeanUtils;
 import org.springframework.cloud.client.ServiceInstance;
@@ -78,6 +79,8 @@ public class AuthServiceImpl implements AuthService {
     public LoginResult login(LoginRequest req, HttpServletRequest request) {
         log.info("用户登录请求：authType={}, principal={}", req.getAuthType(), req.getPrincipal());
 
+        enforceLoginRateLimit(req, request);
+
         // 1. 核心认证逻辑
         Authentication auth = authenticate(req, request);
 
@@ -95,6 +98,22 @@ public class AuthServiceImpl implements AuthService {
         }
 
         return loginResult;
+    }
+
+    private void enforceLoginRateLimit(LoginRequest req, HttpServletRequest request) {
+        String principal = Optional.ofNullable(req.getPrincipal()).orElse("");
+        String clientIp = RequestContextUtil.resolveClientIp(request);
+        String pKey = "IM:AUTH:RL:P:" + DigestUtils.sha256Hex(principal);
+        String iKey = "IM:AUTH:RL:I:" + Optional.ofNullable(clientIp).orElse("");
+        int limit = 10;
+        long windowSec = TimeUnit.MINUTES.toSeconds(5);
+        long pc = redisCache.incr(pKey, 1);
+        if (pc == 1L) redisCache.expire(pKey, windowSec);
+        long ic = redisCache.incr(iKey, 1);
+        if (ic == 1L) redisCache.expire(iKey, windowSec);
+        if (pc > limit || ic > limit) {
+            throw new AuthenticationFailException(ResultCode.TOO_MANY_REQUESTS);
+        }
     }
 
     /**

@@ -34,12 +34,17 @@
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-starter-dubbo-web</artifactId>
+            <artifactId>im-leaf-rpc-api</artifactId>
         </dependency>
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
-            <artifactId>im-starter-domain</artifactId>
+            <artifactId>im-database-rpc-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xy.lucky</groupId>
+            <artifactId>im-database-domain</artifactId>
         </dependency>
 
         <dependency>

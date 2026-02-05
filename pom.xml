@@ -491,7 +491,7 @@
             <!-- 实体类模块 -->
             <dependency>
                 <groupId>com.xy.lucky</groupId>
-                <artifactId>im-starter-domain</artifactId>
+                <artifactId>im-database-domain</artifactId>
                 <version>${revision}</version>
             </dependency>
 
@@ -653,13 +653,19 @@
 
             <dependency>
                 <groupId>com.xy.lucky</groupId>
-                <artifactId>im-database-web</artifactId>
+                <artifactId>im-database-domain</artifactId>
                 <version>${revision}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.xy.lucky</groupId>
-                <artifactId>im-database-webflux</artifactId>
+                <artifactId>im-database-service</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-database-rpc-api</artifactId>
                 <version>${revision}</version>
             </dependency>
 
@@ -681,6 +687,24 @@
             <dependency>
                 <groupId>com.xy.lucky</groupId>
                 <artifactId>im-leaf</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-leaf-rpc-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-leaf-service</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-leaf-domain</artifactId>
                 <version>${revision}</version>
             </dependency>
 

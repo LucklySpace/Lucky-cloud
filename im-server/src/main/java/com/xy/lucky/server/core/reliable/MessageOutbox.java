@@ -1,7 +1,7 @@
 package com.xy.lucky.server.core.reliable;
 
+import com.xy.lucky.database.api.outbox.IMOutboxDubboService;
 import com.xy.lucky.domain.po.IMOutboxPo;
-import com.xy.lucky.dubbo.web.api.database.outbox.IMOutboxDubboService;
 import com.xy.lucky.server.core.reliable.domain.OutboxMessage;
 import com.xy.lucky.server.core.reliable.domain.OutboxStatus;
 import jakarta.annotation.PostConstruct;

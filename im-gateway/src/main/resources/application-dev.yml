@@ -49,13 +49,34 @@ knife4j:
         url: /service/v3/api-docs?group=default
         service-name: service
 
+      - name: Database
+        url: /database/v3/api-docs?group=default
+        service-name: database
+
       - name: Auth
         url: /auth/v3/api-docs?group=default
         service-name: auth
 
+      - name: Lbs
+        url: /lbs/v3/api-docs?group=default
+        service-name: lbs
+
+      - name: Logging
+        url: /log/v3/api-docs?group=default
+        service-name: logging
+
+      - name: Platform
+        url: /plat/v3/api-docs?group=default
+        service-name: platform
+
       - name: Leaf
         url: /gen/v3/api-docs?group=default
         service-name: leaf
+
+      - name: Oss
+        url: /oss/v3/api-docs?group=default
+        service-name: oss
+
 
 lucky:
   gateway:

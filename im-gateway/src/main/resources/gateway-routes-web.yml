@@ -22,6 +22,13 @@ spring:
           filters:
             - StripPrefix=1
 
+        - id: im-database # 数据库服务
+          uri: lb://im-database
+          predicates:
+            - Path=/database/**
+          filters:
+            - StripPrefix=1
+
         - id: im-leaf # 分布式ID服务
           uri: lb://im-leaf
           predicates:
@@ -43,9 +50,23 @@ spring:
           filters:
             - StripPrefix=1
 
+        - id: im-lbs # 定位服务
+          uri: lb://im-lbs
+          predicates:
+            - Path=/lbs/**
+          filters:
+            - StripPrefix=1
+
         - id: im-wallet # 钱包服务
           uri: lb://im-wallet
           predicates:
             - Path=/wallet/**
+          filters:
+            - StripPrefix=1
+
+        - id: im-logging # 日志服务
+          uri: lb://im-logging
+          predicates:
+            - Path=/log/**
           filters:
             - StripPrefix=1

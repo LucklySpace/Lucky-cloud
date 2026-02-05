@@ -28,8 +28,6 @@
         <module>im-quartz</module>
         <!--        <module>im-wallet</module>-->
         <module>im-lbs</module>
-        <module>im-knowledge</module>
-        <module>im-live</module>
     </modules>
 
     <properties>

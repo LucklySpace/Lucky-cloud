@@ -503,18 +503,6 @@
             </dependency>
 
             <dependency>
-                <groupId>com.xy.lucky</groupId>
-                <artifactId>im-starter-dubbo-web</artifactId>
-                <version>${revision}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xy.lucky</groupId>
-                <artifactId>im-starter-dubbo-webflux</artifactId>
-                <version>${revision}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>org.apache.shardingsphere</groupId>
                 <artifactId>shardingsphere-jdbc</artifactId>
                 <version>${shardingsphere.version}</version>

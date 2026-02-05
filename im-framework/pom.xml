@@ -22,6 +22,7 @@
         <module>im-starter-common</module>
         <module>im-starter-crypto</module>
         <module>im-starter-general</module>
+        <module>im-starter-dubbo</module>
         <module>im-starter-general-webflux</module>
         <module>im-starter-grpc</module>
         <module>im-starter-address</module>

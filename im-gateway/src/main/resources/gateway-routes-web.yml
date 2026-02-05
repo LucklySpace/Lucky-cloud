@@ -26,6 +26,8 @@ spring:
           uri: lb://im-leaf
           predicates:
             - Path=/gen/**
+          filters:
+            - StripPrefix=1
 
         - id: im-platform # 平台服务
           uri: lb://im-platform

@@ -71,6 +71,12 @@ lucky:
         capacity: 1000000
         ttl-hours: 2
 
+
+knife4j:
+  # 聚合swagger文档
+  gateway:
+    enabled: false
+
 # TODO: log settings
 logging:
   config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件

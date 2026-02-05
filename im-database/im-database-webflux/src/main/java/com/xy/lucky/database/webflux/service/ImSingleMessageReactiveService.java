@@ -79,9 +79,6 @@ public class ImSingleMessageReactiveService implements ImSingleMessageDubboServi
         if (e.getExtra() != null) {
             p.setExtra(JacksonUtils.parseObject(e.getExtra(), Object.class));
         }
-        if (e.getReplyMessage() != null) {
-            p.setReplyMessage(JacksonUtils.parseObject(e.getReplyMessage(), Object.class));
-        }
         p.setDelFlag(e.getDelFlag());
         p.setSequence(e.getSequence());
         p.setMessageRandom(e.getMessageRandom());
@@ -104,9 +101,6 @@ public class ImSingleMessageReactiveService implements ImSingleMessageDubboServi
         e.setReadStatus(p.getReadStatus());
         if (p.getExtra() != null) {
             e.setExtra(JacksonUtils.toJSONString(p.getExtra()));
-        }
-        if (p.getReplyMessage() != null) {
-            e.setReplyMessage(JacksonUtils.toJSONString(p.getReplyMessage()));
         }
         e.setDelFlag(p.getDelFlag());
         e.setSequence(p.getSequence());

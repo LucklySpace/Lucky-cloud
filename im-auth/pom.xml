@@ -64,8 +64,6 @@
             <artifactId>commons-io</artifactId>
         </dependency>
 
-        <!-- 短信服务依赖 -->
-
         <!-- JWT 加密相关依赖 -->
         <dependency>
             <groupId>commons-codec</groupId>
@@ -85,18 +83,6 @@
             <artifactId>core</artifactId>
             <version>${zxing.version}</version>
         </dependency>
-
-        <!--引入Knife4j的官方start包,Spring Boot版本 > 3.0,开发者需要注意-->
-        <dependency>
-            <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
-            <version>${knife4j.version}</version>
-        </dependency>
-
-        <!--        <dependency>-->
-        <!--            <groupId>org.springframework.boot</groupId>-->
-        <!--            <artifactId>spring-boot-starter-webflux</artifactId>-->
-        <!--        </dependency>-->
 
         <!-- Lombok，用于简化代码，如生成 getter/setter 等 -->
         <dependency>
@@ -153,6 +139,7 @@
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
         </dependency>
+
         <!--使用nacos + ribbon做负载均衡时添加的loadbalancer依赖-->
         <dependency>
             <groupId>org.springframework.cloud</groupId>

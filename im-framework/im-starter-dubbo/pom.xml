@@ -20,46 +20,4 @@
         <module>im-starter-dubbo-web</module>
         <module>im-starter-dubbo-webflux</module>
     </modules>
-
-    <dependencies>
-        <dependency>
-            <groupId>com.xy.lucky</groupId>
-            <artifactId>im-starter-domain</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.xy.lucky</groupId>
-            <artifactId>im-starter-core</artifactId>
-        </dependency>
-
-        <!--dubbo-->
-        <dependency>
-            <groupId>org.apache.dubbo</groupId>
-            <artifactId>dubbo-spring-boot-starter</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>log4j</groupId>
-                    <artifactId>log4j</artifactId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>spring-context</artifactId>
-                    <groupId>org.springframework</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.dubbo</groupId>
-            <artifactId>dubbo-nacos-spring-boot-starter</artifactId>
-            <exclusions>
-                <exclusion>
-                    <artifactId>nacos-client</artifactId>
-                    <groupId>com.alibaba.nacos</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-    </dependencies>
-
-
 </project>

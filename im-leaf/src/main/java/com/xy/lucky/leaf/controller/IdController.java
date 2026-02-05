@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import reactor.core.publisher.Mono;
+
 import java.util.List;
 
 /**
@@ -34,11 +36,11 @@ public class IdController {
     private IdService idService;
 
     /**
-     * 根据类型和业务标识异步生成单个ID
+     * 根据类型和业务标识异步生成单个ID（响应式）
      *
      * @param type 策略类型：snowflake | redis | uid | uuid
      * @param key  业务标识
-     * @return ID对象
+     * @return ID对象的Mono流
      */
     @Operation(summary = "生成单个ID", description = "根据指定策略和业务标识生成单个ID")
     @ApiResponses(value = {
@@ -47,19 +49,19 @@ public class IdController {
                             schema = @Schema(implementation = IMetaId.class)))
     })
     @GetMapping("/id")
-    public IMetaId generateId(
+    public Mono<IMetaId> generateId(
             @Parameter(description = "策略类型") @RequestParam("type") String type,
             @Parameter(description = "业务标识") @RequestParam("key") String key) {
-        return idService.generateId(type, key);
+        return Mono.fromCallable(() -> idService.generateId(type, key));
     }
 
     /**
-     * 批量获取ID
+     * 批量获取ID（响应式）
      *
      * @param type  策略类型：snowflake | redis | uid | uuid
      * @param key   业务标识
      * @param count 获取数量
-     * @return ID列表
+     * @return List ids 的Mono流
      */
     @Operation(summary = "批量生成ID", description = "根据指定策略和业务标识批量生成ID")
     @ApiResponses(value = {
@@ -68,10 +70,10 @@ public class IdController {
                             schema = @Schema(implementation = IMetaId.class)))
     })
     @GetMapping("/ids")
-    public List<IMetaId> generateBatchIds(
+    public Mono<List<IMetaId>> generateBatchIds(
             @Parameter(description = "策略类型") @RequestParam("type") String type,
             @Parameter(description = "业务标识") @RequestParam("key") String key,
             @Parameter(description = "生成数量") @RequestParam("count") @Min(1) @Max(1000) Integer count) {
-        return idService.generateIds(type, key, count);
+        return Mono.fromCallable(() -> idService.generateIds(type, key, count));
     }
 }

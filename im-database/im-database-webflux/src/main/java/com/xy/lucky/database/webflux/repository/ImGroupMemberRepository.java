@@ -19,5 +19,11 @@ public interface ImGroupMemberRepository extends ReactiveCrudRepository<ImGroupM
             ORDER BY RANDOM() LIMIT 9
             """)
     Flux<String> selectNinePeopleAvatar(String groupId);
+
+    Flux<ImGroupMemberEntity> findByGroupIdAndRole(String groupId, Integer role);
+
+    Mono<Void> deleteByGroupId(String groupId);
+
+    Mono<Long> countByGroupId(String groupId);
 }
 

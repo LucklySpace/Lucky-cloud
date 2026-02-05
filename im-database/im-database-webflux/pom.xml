@@ -39,12 +39,6 @@
             <artifactId>r2dbc-postgresql</artifactId>
         </dependency>
 
-        <!-- Swagger 文档 -->
-        <dependency>
-            <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-openapi3-webflux-jakarta-spring-boot-starter</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>

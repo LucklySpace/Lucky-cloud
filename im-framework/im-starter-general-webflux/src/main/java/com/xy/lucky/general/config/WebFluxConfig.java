@@ -3,6 +3,8 @@ package com.xy.lucky.general.config;
 import com.xy.lucky.general.response.handler.ResponseHandler;
 import com.xy.lucky.general.version.core.ApiVersionRequestMappingHandlerMapping;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -15,6 +17,7 @@ import org.springframework.web.reactive.result.method.annotation.RequestMappingH
 import org.springframework.web.reactive.result.method.annotation.ResponseBodyResultHandler;
 
 @Configuration
+@EnableConfigurationProperties(ResponseHandlerProperties.class)
 public class WebFluxConfig implements WebFluxConfigurer {
 
     @Bean("apiVersionRequestMappingHandlerMapping")
@@ -28,8 +31,15 @@ public class WebFluxConfig implements WebFluxConfigurer {
     @Primary
     public ResponseBodyResultHandler resultHandler(@Qualifier("webFluxAdapterRegistry") ReactiveAdapterRegistry reactiveAdapterRegistry,
                                                    ServerCodecConfigurer serverCodecConfigurer,
-                                                   @Qualifier("webFluxContentTypeResolver") RequestedContentTypeResolver contentTypeResolver) {
-        return new ResponseHandler(serverCodecConfigurer.getWriters(), contentTypeResolver, reactiveAdapterRegistry);
+                                                   @Qualifier("webFluxContentTypeResolver") RequestedContentTypeResolver contentTypeResolver,
+                                                   ResponseHandlerProperties properties) {
+        return new ResponseHandler(
+                serverCodecConfigurer.getWriters(),
+                contentTypeResolver,
+                reactiveAdapterRegistry,
+                properties.getExcludePaths()
+        );
     }
 
 }
+

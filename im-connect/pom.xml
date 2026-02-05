@@ -2,21 +2,27 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.xy.lucky.connect</groupId>
+
+    <groupId>com.xy.lucky</groupId>
     <artifactId>im-connect</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <name>im-connect</name>
     <description>im-connect</description>
+    <version>${revision}</version>
+    <packaging>jar</packaging>
 
     <properties>
-        <!-- 统一版本号 -->
+
+        <!-- 项目发布版本 -->
+        <revision>0.0.1-SNAPSHOT</revision>
+
+        <!--         统一版本号 -->
         <project.version>1.0-SNAPSHOT</project.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
 
         <java.version>21</java.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <netty.version>4.2.6.Final</netty.version>
         <slf4j.version>1.7.25</slf4j.version>
@@ -31,19 +37,20 @@
         <nacos.version>3.1.1</nacos.version>
         <google.protobuf.version>4.29.5</google.protobuf.version>
         <sentinel.version>1.8.8</sentinel.version>
+
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>com.xy.lucky</groupId>
             <artifactId>im-starter-core</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>${revision}</version>
         </dependency>
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
             <artifactId>im-spring</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>${revision}</version>
         </dependency>
 
         <!--  lombok-->

@@ -1,7 +1,7 @@
 package com.xy.lucky.server.service.impl;
 
-import com.xy.lucky.api.user.ImUserDataDubboService;
 import com.xy.lucky.domain.po.ImUserDataPo;
+import com.xy.lucky.rpc.api.database.user.ImUserDataDubboService;
 import com.xy.lucky.server.common.LockExecutor;
 import com.xy.lucky.server.domain.dto.UserDto;
 import com.xy.lucky.server.domain.mapper.UserDataBeanMapper;

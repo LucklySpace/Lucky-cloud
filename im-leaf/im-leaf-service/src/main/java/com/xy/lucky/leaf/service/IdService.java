@@ -1,11 +1,11 @@
 package com.xy.lucky.leaf.service;
 
-import com.xy.lucky.api.ImIdDubboService;
 import com.xy.lucky.core.model.IMetaId;
 import com.xy.lucky.leaf.core.IDGen;
 import com.xy.lucky.leaf.model.IdMetaInfo;
 import com.xy.lucky.leaf.repository.IdMetaInfoRepository;
 import com.xy.lucky.leaf.utils.StrategyContext;
+import com.xy.lucky.rpc.api.leaf.ImIdDubboService;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.hibernate.service.spi.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;

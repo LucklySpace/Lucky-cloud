@@ -1,0 +1,321 @@
+openapi: 3.0.3
+info:
+  title: Quartz Task Service API
+  description: Dubbo RPC service API for Quartz task management
+  version: 1.0.0
+  contact:
+    name: Lucky Cloud Team
+    email: support@lucky-cloud.com
+
+servers:
+  - url: dubbo://localhost:20880
+    description: Dubbo RPC endpoint
+
+tags:
+  - name: Task Management
+    description: Task CRUD operations
+  - name: Task Execution
+    description: Task execution control
+
+paths:
+  /task/add:
+    post:
+      tags:
+        - Task Management
+      summary: Add a new task
+      description: Create a new scheduled task
+      operationId: addTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskInfoDto'
+      responses:
+        '200':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                type: integer
+                format: int64
+                description: Task ID
+
+  /task/update:
+    put:
+      tags:
+        - Task Management
+      summary: Update existing task
+      description: Update task configuration
+      operationId: updateTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskInfoDto'
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                type: boolean
+
+  /task/start/{id}:
+    post:
+      tags:
+        - Task Execution
+      summary: Start task
+      description: Start a scheduled task
+      operationId: startTask
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Task started successfully
+          content:
+            application/json:
+              schema:
+                type: boolean
+
+  /task/stop/{id}:
+    post:
+      tags:
+        - Task Execution
+      summary: Stop task
+      description: Stop a running task
+      operationId: stopTask
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Task stopped successfully
+          content:
+            application/json:
+              schema:
+                type: boolean
+
+  /task/trigger/{id}:
+    post:
+      tags:
+        - Task Execution
+      summary: Trigger task immediately
+      description: Trigger task execution once immediately
+      operationId: triggerTask
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Task triggered successfully
+          content:
+            application/json:
+              schema:
+                type: boolean
+
+  /task/list:
+    get:
+      tags:
+        - Task Management
+      summary: Query all tasks
+      description: Get all tasks
+      operationId: findAll
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskInfoVo'
+
+  /task/{id}:
+    get:
+      tags:
+        - Task Management
+      summary: Get task by ID
+      description: Query task details by ID
+      operationId: findById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskInfoVo'
+
+components:
+  schemas:
+    TaskInfoDto:
+      type: object
+      required:
+        - jobName
+        - jobGroup
+        - jobClass
+        - scheduleType
+        - concurrencyStrategy
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Task ID
+        jobName:
+          type: string
+          description: Task name
+        jobGroup:
+          type: string
+          description: Task group
+        description:
+          type: string
+          description: Task description
+        jobClass:
+          type: string
+          description: Fully qualified class name or Bean name
+        cronExpression:
+          type: string
+          description: Cron expression
+        repeatInterval:
+          type: integer
+          format: int64
+          description: Repeat interval in milliseconds
+        scheduleType:
+          $ref: '#/components/schemas/ScheduleType'
+        concurrencyStrategy:
+          $ref: '#/components/schemas/ConcurrencyStrategy'
+        triggerType:
+          $ref: '#/components/schemas/TriggerType'
+        appName:
+          type: string
+          description: Target application name (Remote mode)
+        jobHandler:
+          type: string
+          description: Job handler name (Remote mode)
+        retryCount:
+          type: integer
+          default: 0
+          description: Retry count
+        retryInterval:
+          type: integer
+          default: 10
+          description: Retry interval in seconds
+        timeout:
+          type: integer
+          default: 0
+          description: Task timeout in seconds
+        alarmEmail:
+          type: string
+          description: Alarm email address
+        jobData:
+          type: string
+          description: Job parameters (JSON string)
+
+    TaskInfoVo:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        jobName:
+          type: string
+        jobGroup:
+          type: string
+        description:
+          type: string
+        jobClass:
+          type: string
+        cronExpression:
+          type: string
+        repeatInterval:
+          type: integer
+          format: int64
+        scheduleType:
+          $ref: '#/components/schemas/ScheduleType'
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        concurrencyStrategy:
+          $ref: '#/components/schemas/ConcurrencyStrategy'
+        triggerType:
+          $ref: '#/components/schemas/TriggerType'
+        appName:
+          type: string
+        jobHandler:
+          type: string
+        retryCount:
+          type: integer
+        retryInterval:
+          type: integer
+        timeout:
+          type: integer
+        alarmEmail:
+          type: string
+        jobData:
+          type: string
+        createdTime:
+          type: string
+          format: date-time
+        updatedTime:
+          type: string
+          format: date-time
+        nextFireTime:
+          type: string
+          format: date-time
+        previousFireTime:
+          type: string
+          format: date-time
+
+    TaskStatus:
+      type: integer
+      enum: [ 0, 1, 2 ]
+      description: |
+        Task status:
+        * 0 - STOPPED
+        * 1 - RUNNING
+        * 2 - PAUSED
+
+    ScheduleType:
+      type: integer
+      enum: [ 0, 1, 2 ]
+      description: |
+        Schedule type:
+        * 0 - CRON
+        * 1 - FIXED_RATE
+        * 2 - FIXED_DELAY
+
+    ConcurrencyStrategy:
+      type: integer
+      enum: [ 0, 1 ]
+      description: |
+        Concurrency strategy:
+        * 0 - SERIAL
+        * 1 - PARALLEL
+
+    TriggerType:
+      type: integer
+      enum: [ 0, 1 ]
+      description: |
+        Trigger type:
+        * 0 - LOCAL
+        * 1 - REMOTE

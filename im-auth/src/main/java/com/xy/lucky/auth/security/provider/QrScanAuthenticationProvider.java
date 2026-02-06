@@ -1,12 +1,12 @@
 package com.xy.lucky.auth.security.provider;
 
-import com.xy.lucky.api.user.ImUserDubboService;
 import com.xy.lucky.auth.domain.QRCode;
 import com.xy.lucky.auth.security.token.QrScanAuthenticationToken;
 import com.xy.lucky.auth.utils.RedisCache;
 import com.xy.lucky.core.constants.IMConstant;
 import com.xy.lucky.domain.po.ImUserPo;
 import com.xy.lucky.general.response.domain.ResultCode;
+import com.xy.lucky.rpc.api.database.user.ImUserDubboService;
 import com.xy.lucky.security.exception.AuthenticationFailException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

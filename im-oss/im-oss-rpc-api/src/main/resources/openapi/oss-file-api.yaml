@@ -1,0 +1,707 @@
+openapi: 3.0.3
+info:
+  title: OSS 文件服务 API
+  description: |
+    对象存储服务（Object Storage Service）文件管理 API
+
+    提供文件上传、下载、分片传输、断点续传等核心功能。
+
+    **主要特性：**
+    - 支持秒传（通过 MD5 判断文件是否存在）
+    - 支持大文件分片上传
+    - 支持断点续传（上传和下载）
+    - 按文件类型自动分桶存储
+
+  version: 1.0.0
+  contact:
+    name: Lucky Cloud Team
+    email: support@lucky.com
+
+servers:
+  - url: http://localhost:8087
+    description: 本地开发环境
+  - url: https://api-dev.lucky.com
+    description: 开发环境
+  - url: https://api-staging.lucky.com
+    description: 预发布环境
+  - url: https://api.lucky.com
+    description: 生产环境
+
+tags:
+  - name: file
+    description: 文件管理接口
+
+paths:
+  /api/file/multipart/check:
+    get:
+      tags:
+        - file
+      summary: 获取分片上传进度
+      description: |
+        根据文件 MD5 查询上传进度，支持断点续传。
+
+        **返回状态说明：**
+        - `isNew=1, isFinish=0`：首次上传，需要初始化分片任务
+        - `isNew=0, isFinish=0`：部分上传，使用 undoneChunkMap 继续上传
+        - `isNew=0, isFinish=1`：已完成，直接使用 path
+      operationId: getMultipartUploadProgress
+      parameters:
+        - name: identifier
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{32}$'
+            example: "d41d8cd98f00b204e9800998ecf8427e"
+          description: |
+            文件 MD5 值（32 位十六进制字符串）
+
+            用于标识文件唯一性，实现秒传和断点续传
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "查询成功"
+                  data:
+                    $ref: '#/components/schemas/FileUploadProgress'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未授权
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/file/multipart/init:
+    post:
+      tags:
+        - file
+      summary: 初始化分片上传任务
+      description: |
+        初始化一个大文件的分片上传任务，生成预签名上传 URL。
+
+        **使用流程：**
+        1. 客户端调用此接口获取分片上传 URL
+        2. 使用返回的 uploadUrl 并发上传所有分片（HTTP PUT）
+        3. 所有分片上传完成后，调用合并分片接口
+
+        **分片大小建议：**
+        - 文件 < 5MB：不分片
+        - 5MB - 100MB：1MB 分片
+        - 100MB - 1GB：5MB 分片
+        - > 1GB：10MB 分片
+      operationId: initMultiPartUpload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitUploadRequest'
+            examples:
+              largeFile:
+                summary: 大文件分片上传
+                description: 100MB 视频文件，分为 100 个分片
+                value:
+                  identifier: "a1b2c3d4e5f6789012345678901234ab"
+                  fileName: "large-video.mp4"
+                  fileSize: 104857600
+                  partNum: 100
+                  partSize: 1048576
+                  contentType: "video/mp4"
+      responses:
+        '200':
+          description: 初始化成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "初始化成功"
+                  data:
+                    $ref: '#/components/schemas/FileChunkInfo'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/file/multipart/merge:
+    get:
+      tags:
+        - file
+      summary: 完成分片上传（合并分片）
+      description: |
+        完成分片上传后，将所有分片合并为一个完整文件。
+
+        **注意事项：**
+        - 所有分片必须上传完成才能合并
+        - 合并操作会校验文件的 MD5 值
+        - 合并成功后，分片上传 ID 失效
+        - 合并过程可能需要几秒到几分钟，取决于文件大小
+      operationId: mergeMultipartUpload
+      parameters:
+        - name: identifier
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{32}$'
+            example: "a1b2c3d4e5f6789012345678901234ab"
+          description: 文件 MD5 值
+      responses:
+        '200':
+          description: 合并成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "合并成功"
+                  data:
+                    $ref: '#/components/schemas/FileInfo'
+        '400':
+          description: 请求参数错误
+        '404':
+          description: 上传任务不存在
+        '409':
+          description: 分片未全部上传完成
+
+  /api/file/multipart/isExits:
+    get:
+      tags:
+        - file
+      summary: 判断文件是否存在（秒传检查）
+      description: |
+        检查文件是否已存在，实现秒传功能。
+
+        **秒传逻辑：**
+        1. 客户端计算文件 MD5
+        2. 调用此接口检查文件是否存在
+        3. 如果存在，直接返回文件地址（秒传成功）
+        4. 如果不存在，返回 404，需要上传
+      operationId: checkFileExists
+      parameters:
+        - name: identifier
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{32}$'
+            example: "d41d8cd98f00b204e9800998ecf8427e"
+          description: 文件 MD5 值
+      responses:
+        '200':
+          description: 文件已存在（可秒传）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "文件已存在"
+                  data:
+                    $ref: '#/components/schemas/FileInfo'
+        '404':
+          description: 文件不存在（需要上传）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/file/upload:
+    post:
+      tags:
+        - file
+      summary: 上传文件（普通上传）
+      description: |
+        上传普通文件（不分片），适用于小于 5MB 的文件。
+
+        **文件大小限制：**
+        - 普通用户：100MB
+        - VIP 用户：500MB
+        - 企业用户：2GB
+
+        **支持所有文件类型，系统会根据扩展名自动分配存储桶。**
+      operationId: uploadFile
+      parameters:
+        - name: identifier
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{32}$'
+            example: "d41d8cd98f00b204e9800998ecf8427e"
+          description: 文件 MD5 值（必填）
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: 文件内容
+            encoding:
+              file:
+                contentType: application/octet-stream
+      responses:
+        '200':
+          description: 上传成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "上传成功"
+                  data:
+                    $ref: '#/components/schemas/FileInfo'
+        '400':
+          description: 请求参数错误
+        '413':
+          description: 文件大小超过限制
+        '415':
+          description: 不支持的文件类型
+
+  /api/file/download:
+    get:
+      tags:
+        - file
+      summary: 文件下载
+      description: |
+        下载文件，支持断点续传。
+
+        **断点续传使用方法：**
+        在请求头中添加 `Range` 字段：
+        ```
+        Range: bytes=0-1023       # 下载前 1KB
+        Range: bytes=1024-2047    # 下载第 2KB
+        Range: bytes=0-           # 从 0 开始下载到结尾
+        Range: bytes=-512         # 下载最后 512 字节
+        ```
+
+        **响应状态码：**
+        - `200 OK`：完整文件下载
+        - `206 Partial Content`：部分内容（断点续传）
+        - `404 Not Found`：文件不存在
+        - `416 Range Not Satisfiable`：范围无效
+      operationId: downloadFile
+      parameters:
+        - name: identifier
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{32}$'
+            example: "d41d8cd98f00b204e9800998ecf8427e"
+          description: 文件 MD5 值
+        - name: range
+          in: header
+          schema:
+            type: string
+            example: "bytes=0-1048575"
+          description: |
+            下载范围（HTTP Range 请求头）
+
+            格式：`bytes=start-end`
+            - `start`：开始位置（字节）
+            - `end`：结束位置（字节）
+          required: false
+      responses:
+        '200':
+          description: 完整文件下载
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: "application/pdf"
+              description: 文件 MIME 类型
+            Content-Length:
+              schema:
+                type: integer
+                example: 2048576
+              description: 文件大小（字节）
+            Content-Disposition:
+              schema:
+                type: string
+                example: 'attachment; filename="document.pdf"'
+              description: 下载文件名
+            Accept-Ranges:
+              schema:
+                type: string
+                example: "bytes"
+              description: 支持断点续传
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '206':
+          description: 部分内容（断点续传）
+          headers:
+            Content-Type:
+              schema:
+                type: string
+            Content-Range:
+              schema:
+                type: string
+                example: "bytes 0-1048575/10485760"
+              description: 当前返回的范围
+            Content-Length:
+              schema:
+                type: integer
+                description: 返回的内容长度
+            Accept-Ranges:
+              schema:
+                type: string
+                example: "bytes"
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: 文件不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '416':
+          description: 范围无效（Range 不合法）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/file/md5:
+    get:
+      tags:
+        - file
+      summary: 获取文件 MD5 值
+      description: |
+        计算并返回文件的 MD5 值。
+
+        **使用场景：**
+        - 客户端在分片上传前计算文件哈希值
+        - 验证文件完整性
+        - 实现秒传功能
+
+        **注意事项：**
+        - 此接口仅计算 MD5，不保存文件
+        - 大文件计算可能需要较长时间
+        - 建议客户端自行计算 MD5，减少服务器压力
+      operationId: getFileMd5
+      parameters:
+        - name: file
+          in: path
+          required: true
+          schema:
+            type: string
+            format: binary
+          description: 待计算的文件
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: 文件内容
+      responses:
+        '200':
+          description: 计算成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "计算成功"
+                  data:
+                    type: object
+                    properties:
+                      identifier:
+                        type: string
+                        example: "d41d8cd98f00b204e9800998ecf8427e"
+                        description: 文件 MD5 值
+                      name:
+                        type: string
+                        example: "document.pdf"
+                        description: 文件名
+                      size:
+                        type: integer
+                        format: int64
+                        example: 2048576
+                        description: 文件大小（字节）
+        '400':
+          description: 请求参数错误
+
+components:
+  schemas:
+    InitUploadRequest:
+      type: object
+      required:
+        - identifier
+        - fileName
+        - fileSize
+        - partNum
+      properties:
+        identifier:
+          type: string
+          pattern: '^[a-f0-9]{32}$'
+          description: 文件 MD5 值（32 位十六进制字符串）
+          example: "d41d8cd98f00b204e9800998ecf8427e"
+        fileName:
+          type: string
+          description: 文件名（包含扩展名）
+          example: "large-video.mp4"
+        fileSize:
+          type: integer
+          format: int64
+          minimum: 1
+          description: 文件大小（字节）
+          example: 104857600
+        partNum:
+          type: integer
+          minimum: 1
+          description: 分片数量
+          example: 100
+        partSize:
+          type: integer
+          format: int64
+          minimum: 1
+          description: 每个分片大小（字节）
+          example: 1048576
+        contentType:
+          type: string
+          description: 文件 MIME 类型
+          example: "video/mp4"
+        bucketName:
+          type: string
+          description: |
+            存储桶名称（可选）
+
+            不指定则根据文件扩展名自动分配：
+            - image：图片文件（jpg, png, gif 等）
+            - video：视频文件（mp4, avi, mkv 等）
+            - audio：音频文件（mp3, wav, flac 等）
+            - document：文档文件（pdf, doc, xlsx 等）
+            - package：压缩文件（zip, rar, 7z 等）
+            - installer：安装包（exe, apk, dmg 等）
+            - other：其他文件
+          example: "video"
+
+    FileUploadProgress:
+      type: object
+      description: 文件上传进度
+      properties:
+        isNew:
+          type: integer
+          description: |
+            是否为新文件（从未上传过的文件）
+
+            - 1：新文件，需要初始化分片上传
+            - 0：文件已存在但未完成上传，继续上传
+          enum: [ 0, 1 ]
+          example: 0
+        isFinish:
+          type: integer
+          description: |
+            是否已完成上传（是否已经合并分片）
+
+            - 1：已完成，可直接使用 path
+            - 0：未完成，需要继续上传
+          enum: [ 0, 1 ]
+          example: 0
+        path:
+          type: string
+          description: |
+            文件访问地址
+
+            仅在 isFinish=1 时有值
+          example: "https://cdn.example.com/videos/large-video.mp4"
+          nullable: true
+        uploadId:
+          type: string
+          description: |
+            上传任务 ID
+
+            用于标识分片上传任务，合并分片时需要
+          example: "12345678-1234-1234-1234-123456789abc"
+          nullable: true
+        undoneChunkMap:
+          type: object
+          additionalProperties:
+            type: string
+            format: uri
+          description: |
+            未完成上传的分片 Map
+
+            - Key：分片号（从 1 开始）
+            - Value：该分片的预签名上传 URL
+
+            客户端应使用此 Map 继续上传剩余分片
+          example:
+            {
+              "3": "https://oss.example.com/upload?partNumber=3&uploadId=xxx&signature=yyy",
+              "5": "https://oss.example.com/upload?partNumber=5&uploadId=xxx&signature=zzz"
+            }
+          nullable: true
+
+    FileChunkInfo:
+      type: object
+      description: 分片上传信息
+      properties:
+        uploadUrl:
+          type: object
+          additionalProperties:
+            type: string
+            format: uri
+          description: |
+            上传地址 Map（分片号 -> 上传 URL）
+
+            返回所有分片的预签名上传 URL，客户端使用 HTTP PUT 方法上传分片
+
+            **使用示例：**
+            ```bash
+            # 上传第 1 个分片
+            curl -X PUT "https://oss.example.com/file?partNumber=1&uploadId=xxx" \
+              --data-binary @chunk1.dat
+            ```
+          example:
+            {
+              "1": "https://oss.example.com/large-video.mp4?partNumber=1&uploadId=123&signature=abc",
+              "2": "https://oss.example.com/large-video.mp4?partNumber=2&uploadId=123&signature=def",
+              "3": "https://oss.example.com/large-video.mp4?partNumber=3&uploadId=123&signature=ghi"
+            }
+        uploadId:
+          type: string
+          description: |
+            分片上传唯一标识
+
+            由 OSS 服务生成，用于标识上传任务
+          example: "12345678-1234-1234-1234-123456789abc"
+
+    FileInfo:
+      type: object
+      description: 文件信息
+      properties:
+        identifier:
+          type: string
+          description: 文件 MD5 值（唯一标识）
+          example: "d41d8cd98f00b204e9800998ecf8427e"
+        name:
+          type: string
+          description: 文件名称
+          example: "photo.jpg"
+        size:
+          type: integer
+          format: int64
+          description: 文件大小（字节）
+          example: 2048576
+        type:
+          type: string
+          description: |
+            文件 MIME 类型
+
+            常见类型：
+            - image/jpeg：图片
+            - application/pdf：PDF 文档
+            - video/mp4：视频
+            - audio/mpeg：音频
+          example: "image/jpeg"
+        path:
+          type: string
+          format: uri
+          description: |
+            文件访问地址（完整 URL）
+
+            可直接用于下载或展示
+          example: "https://cdn.example.com/images/photo.jpg"
+        thumbnailPath:
+          type: string
+          format: uri
+          description: |
+            缩略图文件地址
+
+            仅图片类文件有此字段，其他类型为 null
+          example: "https://cdn.example.com/thumbnails/photo_200x200.jpg"
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      description: 错误响应
+      properties:
+        code:
+          type: integer
+          description: 错误代码
+          example: 400
+        message:
+          type: string
+          description: 错误信息
+          example: "请求参数错误"
+        data:
+          type: object
+          nullable: true
+          description: 错误详情（可选）
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT 认证
+
+        获取 Token：
+        1. 调用认证接口获取 Access Token
+        2. 在请求头中添加：`Authorization: Bearer <token>`
+
+security:
+  - BearerAuth: [ ]

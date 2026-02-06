@@ -19,7 +19,6 @@
         <module>im-oss</module>
         <module>im-analysis</module>
         <module>im-leaf</module>
-        <module>im-proxy</module>
         <module>im-platform</module>
         <module>im-logging</module>
         <module>im-meet</module>
@@ -362,6 +361,13 @@
                 <version>${springdoc.version}</version>
             </dependency>
 
+            <!-- Swagger annotations -->
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-annotations</artifactId>
+                <version>${swagger-annotations.version}</version>
+            </dependency>
+
             <!-- 引入jackson依赖包-->
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
@@ -454,7 +460,6 @@
                 <version>${mapstruct.version}</version>
             </dependency>
 
-
             <!-- Minio -->
             <dependency>
                 <groupId>io.minio</groupId>
@@ -485,13 +490,6 @@
             <dependency>
                 <groupId>com.xy.lucky</groupId>
                 <artifactId>im-starter-core</artifactId>
-                <version>${revision}</version>
-            </dependency>
-
-            <!-- 实体类模块 -->
-            <dependency>
-                <groupId>com.xy.lucky</groupId>
-                <artifactId>im-database-domain</artifactId>
                 <version>${revision}</version>
             </dependency>
 
@@ -664,6 +662,18 @@
                 <version>${revision}</version>
             </dependency>
 
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-oss-rpc-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-oss-service</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
             <!-- 网关模块 -->
             <dependency>
                 <groupId>com.xy.lucky</groupId>
@@ -696,13 +706,6 @@
                 <version>${revision}</version>
             </dependency>
 
-            <!-- 代理模块 -->
-            <dependency>
-                <groupId>com.xy.lucky</groupId>
-                <artifactId>im-proxy</artifactId>
-                <version>${revision}</version>
-            </dependency>
-
             <!-- 业务服务模块 -->
             <dependency>
                 <groupId>com.xy.lucky</groupId>
@@ -717,12 +720,76 @@
                 <version>${revision}</version>
             </dependency>
 
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-platform-rpc-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-platform-service</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
             <!-- 日志模块 -->
             <dependency>
                 <groupId>com.xy.lucky</groupId>
                 <artifactId>im-logging</artifactId>
                 <version>${revision}</version>
             </dependency>
+
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-logging-rpc-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-logging-service</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <!-- 定时任务模块 -->
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-quartz</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-quartz-rpc-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-quartz-service</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <!-- 位置服务模块 -->
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-lbs</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-lbs-rpc-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-lbs-service</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+
         </dependencies>
     </dependencyManagement>
 

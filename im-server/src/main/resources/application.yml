@@ -36,7 +36,7 @@ spring:
 
 dubbo: # dubbo
   scan:
-    base-packages: com.xy.lucky.api
+    base-packages: com.xy.lucky.rpc.api
   application:
     serialize-check-status: WARN
   protocol: # dubbo协议

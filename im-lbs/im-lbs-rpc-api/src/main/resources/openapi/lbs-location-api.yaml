@@ -1,0 +1,463 @@
+openapi: 3.0.3
+info:
+  title: LBS 位置服务 API
+  description: |
+    基于位置的服务（Location Based Service）API，提供用户位置上报、附近用户搜索等功能。
+
+    ## 主要功能
+    - 用户位置实时上报与更新
+    - 基于地理位置的附近用户搜索
+    - 支持自定义搜索半径和结果数量
+    - 不活跃用户位置数据清理
+
+    ## 坐标系说明
+    本服务使用 GCJ-02 坐标系（中国火星坐标系），如需使用其他坐标系请自行转换。
+
+    ## 认证方式
+    所有接口需要通过 Dubbo RPC 调用，请在消费者服务中配置 Dubbo 引用。
+  version: 1.0.0
+  contact:
+    name: Lucky Cloud Team
+    email: support@lucky.com
+    url: https://github.com/your-org/Lucky-cloud
+
+servers:
+  - url: http://localhost:8080
+    description: 本地开发环境
+  - url: https://api-dev.lucky.com
+    description: 开发测试环境
+  - url: https://api.lucky.com
+    description: 生产环境
+
+tags:
+  - name: location
+    description: 位置管理相关接口
+    externalDocs:
+      description: 更多信息请参考 Dubbo 接口文档
+      url: https://github.com/your-org/Lucky-cloud/tree/main/im-lbs/im-lbs-rpc-api
+
+paths:
+  /api/lbs/location/update:
+    post:
+      tags:
+        - location
+      summary: 上报用户位置
+      description: |
+        上报或更新用户的实时地理位置信息。
+
+        ## 功能说明
+        - 支持用户位置的实时更新
+        - 相同用户多次上报会覆盖旧数据
+        - 位置信息会缓存到 Redis，默认缓存时间 1 小时
+
+        ## 参数限制
+        - 经度范围：-180 到 180
+        - 纬度范围：-90 到 90
+
+        ## 使用建议
+        - 建议移动距离超过 100 米时才更新
+        - 避免过于频繁的上报（如每秒多次）
+        - 定期（如每 5 分钟）自动上报位置
+
+        ## 异常情况
+        - 经纬度超出范围会返回 400 错误
+        - Redis 连接失败会返回 500 错误
+      operationId: updateLocation
+      requestBody:
+        required: true
+        description: 用户位置信息（经纬度坐标）
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationUpdateRequest'
+            examples:
+              beijing:
+                summary: 北京天安门
+                description: 北京天安门广场坐标
+                value:
+                  longitude: 116.397128
+                  latitude: 39.916527
+              shanghai:
+                summary: 上海外滩
+                description: 上海外滩坐标
+                value:
+                  longitude: 121.490317
+                  latitude: 31.240789
+              guangzhou:
+                summary: 广州塔
+                description: 广州塔坐标
+                value:
+                  longitude: 113.319129
+                  latitude: 23.109347
+      responses:
+        '200':
+          description: 位置上报成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    description: 响应码
+                    example: 200
+                  message:
+                    type: string
+                    description: 响应消息
+                    example: "位置上报成功"
+              example:
+                code: 200
+                message: "位置上报成功"
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidLongitude:
+                  summary: 经度超出范围
+                  value:
+                    code: 400
+                    message: "经度超出有效范围(-180到180)"
+                    error: "INVALID_LONGITUDE"
+                invalidLatitude:
+                  summary: 纬度超出范围
+                  value:
+                    code: 400
+                    message: "纬度超出有效范围(-90到90)"
+                    error: "INVALID_LATITUDE"
+                missingParameter:
+                  summary: 缺少必填参数
+                  value:
+                    code: 400
+                    message: "经度和纬度为必填参数"
+                    error: "MISSING_PARAMETER"
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                redisError:
+                  summary: Redis 连接失败
+                  value:
+                    code: 500
+                    message: "Redis 服务不可用"
+                    error: "REDIS_CONNECTION_FAILED"
+                storageError:
+                  summary: 数据存储失败
+                  value:
+                    code: 500
+                    message: "位置数据存储失败"
+                    error: "STORAGE_ERROR"
+        '503':
+          description: 服务暂时不可用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 503
+                message: "服务暂时不可用，请稍后重试"
+                error: "SERVICE_UNAVAILABLE"
+
+  /api/lbs/location/nearby:
+    post:
+      tags:
+        - location
+      summary: 搜索附近用户
+      description: |
+        根据当前用户位置和指定的搜索条件，查找附近的用户列表，并按距离排序。
+
+        ## 功能说明
+        - 基于圆形范围搜索附近用户
+        - 结果按距离从近到远排序
+        - 支持分页查询
+        - 使用直线距离（球面距离）计算
+
+        ## 搜索半径说明
+        - 最小值：100 米
+        - 最大值：50000 米（50 公里）
+        - 超出范围会被自动限制在有效区间内
+
+        ## 结果数量限制
+        - 每页最少返回 1 条
+        - 每页最多返回 100 条
+        - 实际返回数量可能小于请求的数量
+
+        ## 使用建议
+        - 步行场景：500-1000 米
+        - 周边生活：1000-3000 米
+        - 同城服务：5000-10000 米
+        - 同城交友：10000-50000 米
+
+        ## 性能优化
+        - 大范围搜索建议分页进行
+        - 缓存常用区域的搜索结果
+        - 避免频繁调用同一查询
+
+        ## 数据实时性
+        - 搜索结果基于用户最后上报的位置
+        - 位置信息有延迟（取决于上报频率）
+        - 部分用户位置可能已过期
+      operationId: searchNearby
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: 当前用户ID，用于排除自己并计算与其他用户的距离
+          schema:
+            type: string
+            example: "user123456"
+      requestBody:
+        required: true
+        description: 搜索条件（半径、限制数、分页）
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NearbySearchRequest'
+            examples:
+              nearby5km:
+                summary: 搜索 5 公里内用户
+                description: 搜索 5 公里范围内的用户，最多返回 20 个结果
+                value:
+                  radius: 5000.0
+                  limit: 20
+                  page: 1
+              nearby10km:
+                summary: 搜索 10 公里内用户
+                description: 搜索 10 公里范围内的用户，最多返回 50 个结果
+                value:
+                  radius: 10000.0
+                  limit: 50
+                  page: 1
+              page2:
+                summary: 分页查询第 2 页
+                description: 获取第 2 页的结果
+                value:
+                  radius: 5000.0
+                  limit: 20
+                  page: 2
+      responses:
+        '200':
+          description: 搜索成功，返回附近用户列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LocationInfo'
+              examples:
+                success:
+                  summary: 查询成功示例
+                  description: 返回 2 个附近用户
+                  value:
+                    - userId: "user789"
+                      distance: 1234.5
+                      longitude: 116.398234
+                      latitude: 39.917123
+                    - userId: "user456"
+                      distance: 2345.6
+                      longitude: 116.395123
+                      latitude: 39.915456
+                empty:
+                  summary: 无结果
+                  description: 附近没有找到用户
+                  value: [ ]
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidRadius:
+                  summary: 搜索半径超出范围
+                  value:
+                    code: 400
+                    message: "搜索半径必须在100到50000米之间"
+                    error: "INVALID_RADIUS"
+                invalidLimit:
+                  summary: 结果数量超出范围
+                  value:
+                    code: 400
+                    message: "结果数量必须在1到100之间"
+                    error: "INVALID_LIMIT"
+                invalidPage:
+                  summary: 页码无效
+                  value:
+                    code: 400
+                    message: "页码必须大于0"
+                    error: "INVALID_PAGE"
+        '404':
+          description: 用户位置不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "用户位置不存在，请先上报位置"
+                error: "LOCATION_NOT_FOUND"
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                redisError:
+                  summary: Redis 查询失败
+                  value:
+                    code: 500
+                    message: "Redis 服务不可用"
+                    error: "REDIS_QUERY_FAILED"
+                calculationError:
+                  summary: 距离计算失败
+                  value:
+                    code: 500
+                    message: "距离计算失败"
+                    error: "CALCULATION_ERROR"
+
+components:
+  schemas:
+    LocationUpdateRequest:
+      type: object
+      required:
+        - longitude
+        - latitude
+      properties:
+        longitude:
+          type: number
+          format: double
+          description: |
+            经度坐标
+
+            - 取值范围：-180 到 180
+            - 负数表示西经
+            - 正数表示东经
+            - 中国地区经度范围：73 到 135
+          minimum: -180
+          maximum: 180
+          example: 116.397128
+        latitude:
+          type: number
+          format: double
+          description: |
+            纬度坐标
+
+            - 取值范围：-90 到 90
+            - 负数表示南纬
+            - 正数表示北纬
+            - 中国地区纬度范围：18 到 54
+          minimum: -90
+          maximum: 90
+          example: 39.916527
+
+    NearbySearchRequest:
+      type: object
+      properties:
+        radius:
+          type: number
+          format: double
+          description: |
+            搜索半径，单位为米
+
+            - 最小值：100 米
+            - 最大值：50000 米（50 公里）
+            - 默认值：5000 米（5 公里）
+            - 超出范围会被自动限制
+          minimum: 100
+          maximum: 50000
+          default: 5000
+          example: 5000
+        limit:
+          type: integer
+          description: |
+            最大返回结果数
+
+            - 最小值：1
+            - 最大值：100
+            - 默认值：20
+            - 实际返回数量可能小于该值
+          minimum: 1
+          maximum: 100
+          default: 20
+          example: 20
+        page:
+          type: integer
+          description: |
+            分页页码
+
+            - 从 1 开始
+            - 默认值：1
+            - 过大的页码会返回空列表
+          minimum: 1
+          default: 1
+          example: 1
+
+    LocationInfo:
+      type: object
+      description: 附近用户位置信息
+      properties:
+        userId:
+          type: string
+          description: 用户唯一标识
+          example: "user789"
+        distance:
+          type: number
+          format: double
+          description: |
+            与当前用户的直线距离
+
+            - 单位：米
+            - 计算精度：约 1 米
+            - 使用 Haversine 公式计算球面距离
+          minimum: 0
+          example: 1234.5
+        longitude:
+          type: number
+          format: double
+          description: 用户位置的经度
+          minimum: -180
+          maximum: 180
+          example: 116.398234
+        latitude:
+          type: number
+          format: double
+          description: 用户位置的纬度
+          minimum: -90
+          maximum: 90
+          example: 39.917123
+
+    ErrorResponse:
+      type: object
+      description: 错误响应
+      required:
+        - code
+        - message
+        - error
+      properties:
+        code:
+          type: integer
+          description: HTTP 状态码
+          example: 400
+        message:
+          type: string
+          description: 错误消息描述
+          example: "请求参数错误"
+        error:
+          type: string
+          description: 错误类型代码
+          example: "INVALID_PARAMETER"
+        timestamp:
+          type: string
+          format: date-time
+          description: 错误发生时间
+          example: "2024-01-01T12:00:00Z"
+        path:
+          type: string
+          description: 请求路径
+          example: "/api/lbs/location/update"

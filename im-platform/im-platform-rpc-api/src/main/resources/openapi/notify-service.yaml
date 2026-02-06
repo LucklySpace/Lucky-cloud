@@ -1,0 +1,155 @@
+openapi: 3.0.3
+info:
+  title: 通知服务 Dubbo API
+  description: |
+    通知服务 Dubbo 接口规范
+
+    ## 功能概述
+
+    通知服务提供邮件发送和短信发送功能，支持以下特性：
+
+    - **邮件发送**：支持 HTML 和纯文本格式
+    - **短信发送**：支持模板短信，可传入参数
+    - **异步处理**：发送请求异步处理，提升性能
+    - **失败重试**：支持发送失败自动重试
+
+    ## 应用场景
+
+    - 用户注册验证和激活
+    - 系统通知推送
+    - 营销消息发送
+    - 安全提醒和告警
+    - 密码重置和找回
+    - 验证码发送
+
+    ## 技术实现
+
+    - 邮件：基于 SMTP 协议
+    - 短信：对接第三方短信服务商
+    - 支持 HTML 邮件模板
+    - 支持短信模板和变量替换
+
+    ## 注意事项
+
+    - 邮件和短信发送可能失败，需要做好异常处理
+    - 短信使用模板可以节省成本
+    - 避免频繁发送通知，防止被标记为垃圾信息
+    - 敏感信息不要通过邮件或短信发送
+    - 建议使用消息队列异步处理发送请求
+
+  version: 1.0.0
+  contact:
+    name: Lucky Platform Team
+    email: support@lucky.com
+    url: https://lucky.com
+
+servers:
+  - url: dubbo://localhost:20880
+    description: Dubbo 服务地址
+
+tags:
+  - name: NotifyService
+    description: 通知服务
+
+paths:
+  /NotifyService/sendEmail:
+    post:
+      tags:
+        - NotifyService
+      summary: 发送邮件
+      description: 发送邮件到指定收件人
+      operationId: sendEmail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailDto'
+      responses:
+        '200':
+          description: 发送成功
+          content:
+            application/json:
+              schema:
+                type: boolean
+                example: true
+        '400':
+          description: 参数错误或服务未启用
+        '500':
+          description: 发送失败
+
+  /NotifyService/sendSms:
+    post:
+      tags:
+        - NotifyService
+      summary: 发送短信
+      description: 发送短信到指定手机号
+      operationId: sendSms
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SmsDto'
+      responses:
+        '200':
+          description: 发送成功
+          content:
+            application/json:
+              schema:
+                type: boolean
+                example: true
+        '400':
+          description: 参数错误或服务未启用
+        '500':
+          description: 发送失败
+
+components:
+  schemas:
+    EmailDto:
+      type: object
+      required:
+        - to
+        - subject
+        - content
+      properties:
+        to:
+          type: string
+          format: email
+          description: 收件人邮箱
+          example: "user@example.com"
+        subject:
+          type: string
+          maxLength: 256
+          description: 主题
+          example: "欢迎使用我们的服务"
+        content:
+          type: string
+          description: 内容
+          example: "<h1>欢迎</h1><p>感谢您注册我们的服务</p>"
+        html:
+          type: boolean
+          description: 是否 HTML 内容
+          default: true
+          example: true
+
+    SmsDto:
+      type: object
+      required:
+        - phone
+      properties:
+        phone:
+          type: string
+          pattern: "^\\+?\\d{6,18}$"
+          description: 手机号
+          example: "+8613800138000"
+        templateId:
+          type: string
+          description: 模板 ID
+          example: "12345"
+        templateParams:
+          type: array
+          description: 模板参数
+          items:
+            type: string
+          example: [ "code", "123456" ]

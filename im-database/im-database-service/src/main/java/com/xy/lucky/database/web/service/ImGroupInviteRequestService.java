@@ -3,9 +3,9 @@ package com.xy.lucky.database.web.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xy.lucky.api.group.ImGroupInviteRequestDubboService;
 import com.xy.lucky.database.web.mapper.ImGroupInviteRequestMapper;
 import com.xy.lucky.domain.po.ImGroupInviteRequestPo;
+import com.xy.lucky.rpc.api.database.group.ImGroupInviteRequestDubboService;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 

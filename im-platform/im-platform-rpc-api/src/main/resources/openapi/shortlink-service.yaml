@@ -1,0 +1,442 @@
+openapi: 3.0.3
+info:
+  title: 短链服务 Dubbo API
+  description: |
+    短链服务 Dubbo 接口规范
+
+    ## 功能概述
+
+    短链服务提供短链创建、重定向、禁用和查询功能，支持以下特性：
+
+    - **短链创建**：将长 URL 转换为易于分享的短链接
+    - **过期控制**：支持设置短链的过期时间
+    - **访问统计**：自动记录短链的访问次数
+    - **重定向服务**：根据短码快速定位原始 URL
+    - **短链禁用**：支持禁用短链以防止恶意访问
+    - **信息查询**：查询短链的详细信息
+
+    ## 应用场景
+
+    - 社交媒体分享链接缩短
+    - 营销活动链接生成
+    - 链接访问统计和分析
+    - 二维码跳转链接
+    - 短信和邮件链接优化
+
+    ## 注意事项
+
+    - 同一 URL 重复创建会返回已有的短码，不会重复生成
+    - 原始 URL 最大长度为 2048 字符
+    - 过期时间不设置表示永久有效
+    - 禁用操作不可逆，请谨慎使用
+
+  version: 1.0.0
+  contact:
+    name: Lucky Platform Team
+    email: support@lucky.com
+    url: https://lucky.com
+
+servers:
+  - url: dubbo://localhost:20880
+    description: 本地开发环境
+  - url: dubbo://production-dubbo-server:20880
+    description: 生产环境
+
+tags:
+  - name: 短链服务
+    description: 提供短链创建、重定向、禁用和查询功能
+
+paths:
+  /ShortLinkService/createShortLink:
+    post:
+      tags:
+        - 短链服务
+      summary: 创建短链
+      description: |
+        根据原始 URL 创建短链接，支持设置过期时间。
+
+        **特性说明**：
+        - 自动生成唯一短码
+        - 支持设置过期时间（秒）
+        - 相同 URL 会返回已有的短码（去重）
+        - 自动返回完整的短链 URL
+
+        **使用示例**：
+        ```java
+        ShortLinkDto request = ShortLinkDto.builder()
+            .originalUrl("https://example.com/very-long-url")
+            .expireSeconds(86400L)  // 24小时后过期
+            .build();
+        ShortLinkVo result = shortLinkService.createShortLink(request);
+        ```
+      operationId: createShortLink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShortLinkDto'
+            examples:
+              永久短链:
+                value:
+                  originalUrl: "https://example.com/docs"
+              临时短链:
+                value:
+                  originalUrl: "https://example.com/promotion/2025"
+                  expireSeconds: 604800  # 7天
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShortLinkVo'
+              examples:
+                成功响应:
+                  value:
+                    originalUrl: "https://example.com/docs"
+                    expireSeconds: null
+                    shortCode: "a1B2c3"
+                    shortUrl: "https://s.example.com/api/v1/short/r/a1B2c3"
+                    visitCount: 0
+                    expireTime: null
+                    enabled: true
+        '400':
+          description: 参数错误（URL 为空或长度超限）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "originalUrl 不能为空"
+        '500':
+          description: 服务器内部错误
+
+  /ShortLinkService/redirect:
+    post:
+      tags:
+        - 短链服务
+      summary: 短链重定向
+      description: |
+        根据短码获取原始 URL，并自动增加访问计数。
+
+        **特性说明**：
+        - 自动校验短码是否存在
+        - 检查短链是否过期或已禁用
+        - 每次调用自动增加访问计数
+        - 返回完整的短链信息
+
+        **使用场景**：
+        - 用户访问短链时获取原始 URL
+        - 实现 HTTP 302 重定向
+
+        **异常处理**：
+        - 短码不存在：返回 404
+        - 短链已过期或已禁用：返回 410
+      operationId: redirect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShortLinkRedirectDto'
+            examples:
+              正常请求:
+                value:
+                  shortCode: "a1B2c3"
+      responses:
+        '200':
+          description: 重定向成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShortLinkVo'
+              examples:
+                成功响应:
+                  value:
+                    originalUrl: "https://example.com/docs"
+                    shortCode: "a1B2c3"
+                    shortUrl: "https://s.example.com/api/v1/short/r/a1B2c3"
+                    visitCount: 10
+                    enabled: true
+        '404':
+          description: 短码不存在
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "短码不存在"
+        '410':
+          description: 短链已过期或已禁用
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 410
+                  message:
+                    type: string
+                    example: "短链已过期"
+        '500':
+          description: 服务器内部错误
+
+  /ShortLinkService/disable:
+    post:
+      tags:
+        - 短链服务
+      summary: 禁用短链
+      description: |
+        禁用指定的短链，禁用后无法再通过短码访问原始 URL。
+
+        **注意事项**：
+        - 禁用操作不可逆，请谨慎使用
+        - 禁用后的短链调用重定向接口会返回 410 状态
+        - 已禁用的短码可以再次被创建使用
+
+        **使用场景**：
+        - 发现恶意链接时紧急封禁
+        - 活动结束后关闭活动链接
+      operationId: disable
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - shortCode
+              properties:
+                shortCode:
+                  type: string
+                  description: 短码
+                  example: "a1B2c3"
+      responses:
+        '200':
+          description: 禁用成功
+        '404':
+          description: 短码不存在
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "短码不存在"
+        '500':
+          description: 服务器内部错误
+
+  /ShortLinkService/info:
+    get:
+      tags:
+        - 短链服务
+      summary: 查询短链信息
+      description: |
+        根据短码查询短链详细信息，不增加访问计数。
+
+        **与重定向接口的区别**：
+        - 本接口不增加访问计数
+        - 用于管理和监控场景
+        - 返回完整的短链信息
+
+        **使用场景**：
+        - 管理后台查看短链详情
+        - 数据统计和分析
+        - 短链状态检查
+      operationId: info
+      parameters:
+        - name: shortCode
+          in: query
+          required: true
+          description: 短码
+          schema:
+            type: string
+          example: "a1B2c3"
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShortLinkVo'
+              examples:
+                成功响应:
+                  value:
+                    originalUrl: "https://example.com/docs"
+                    expireSeconds: 86400
+                    shortCode: "a1B2c3"
+                    shortUrl: "https://s.example.com/api/v1/short/r/a1B2c3"
+                    visitCount: 25
+                    expireTime: "2025-02-07T10:30:00"
+                    enabled: true
+        '404':
+          description: 短码不存在
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "短码不存在"
+        '500':
+          description: 服务器内部错误
+
+components:
+  schemas:
+    ShortLinkDto:
+      type: object
+      required:
+        - originalUrl
+      properties:
+        originalUrl:
+          type: string
+          maxLength: 2048
+          description: |
+            原始 URL，最长 2048 字符。
+
+            **支持的格式**：
+            - HTTP: `http://example.com`
+            - HTTPS: `https://example.com`
+            - 带路径: `https://example.com/path/to/resource`
+            - 带参数: `https://example.com?param=value`
+
+            **限制**：
+            - 必须以 http:// 或 https:// 开头
+            - 最大长度 2048 字符
+          example: "https://example.com/docs/123"
+        expireSeconds:
+          type: integer
+          format: int64
+          minimum: 60
+          description: |
+            可选：过期时间（秒），默认不设置表示永久有效。
+
+            **常用值**：
+            - 3600：1 小时
+            - 86400：1 天（24 小时）
+            - 604800：1 周（7 天）
+            - 2592000：1 月（30 天）
+
+            **注意事项**：
+            - 最小值：60 秒（1 分钟）
+            - 不设置或为 null：永久有效
+          example: 86400
+
+    ShortLinkRedirectDto:
+      type: object
+      required:
+        - shortCode
+      properties:
+        shortCode:
+          type: string
+          maxLength: 64
+          minLength: 4
+          description: |
+            短码，通过创建短链接口获得。
+
+            **格式说明**：
+            - 长度：4-64 字符
+            - 字符集：大小写字母和数字
+            - 示例：a1B2c3、xyz789
+
+            **获取方式**：
+            - 调用 createShortLink 接口创建短链时返回
+          example: "a1B2c3"
+
+    ShortLinkVo:
+      type: object
+      description: 短链信息响应对象
+      properties:
+        originalUrl:
+          type: string
+          description: 原始 URL
+          example: "https://example.com/docs/123"
+        expireSeconds:
+          type: integer
+          format: int64
+          nullable: true
+          description: |
+            过期时间（秒）。
+
+            - null：永久有效
+            - 数字：从创建时刻起的秒数
+          example: 86400
+        shortCode:
+          type: string
+          description: |
+            短码。
+
+            **用途**：
+            - 用于重定向和查询接口
+            - 构建完整短链 URL 的一部分
+          example: "a1B2c3"
+        shortUrl:
+          type: string
+          description: |
+            完整短链 URL，可直接用于分享和访问。
+
+            **格式**：`https://域名/api/v1/short/r/{shortCode}`
+
+            **使用建议**：
+            - 可直接用于 HTTP 302 重定向
+            - 可嵌入二维码
+            - 可用于短信和邮件分享
+          example: "https://s.example.com/api/v1/short/r/a1B2c3"
+        visitCount:
+          type: integer
+          minimum: 0
+          description: |
+            访问次数。
+
+            **说明**：
+            - 每次调用 redirect 接口自动加 1
+            - 调用 info 接口不增加计数
+            - 初始值为 0
+          example: 10
+        expireTime:
+          type: string
+          format: date-time
+          nullable: true
+          description: |
+            过期时间（ISO 8601 格式）。
+
+            - null：永久有效
+            - 有值：具体过期时间点
+          example: "2025-02-07T10:30:00"
+        enabled:
+          type: boolean
+          description: |
+            是否启用。
+
+            - true：短链正常可用
+            - false：短链已禁用，无法访问
+          example: true
+
+  examples:
+    创建永久短链:
+      value:
+        originalUrl: "https://example.com/docs"
+    创建临时短链:
+      value:
+        originalUrl: "https://example.com/promotion/2025"
+        expireSeconds: 604800

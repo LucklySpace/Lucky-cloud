@@ -1,10 +1,5 @@
 package com.xy.lucky.server.service.impl;
 
-import com.xy.lucky.api.ImIdDubboService;
-import com.xy.lucky.api.group.ImGroupDubboService;
-import com.xy.lucky.api.group.ImGroupInviteRequestDubboService;
-import com.xy.lucky.api.group.ImGroupMemberDubboService;
-import com.xy.lucky.api.user.ImUserDataDubboService;
 import com.xy.lucky.core.constants.IMConstant;
 import com.xy.lucky.core.enums.*;
 import com.xy.lucky.core.model.IMGroupAction;
@@ -15,6 +10,11 @@ import com.xy.lucky.domain.po.ImGroupInviteRequestPo;
 import com.xy.lucky.domain.po.ImGroupMemberPo;
 import com.xy.lucky.domain.po.ImGroupPo;
 import com.xy.lucky.domain.po.ImUserDataPo;
+import com.xy.lucky.rpc.api.database.group.ImGroupDubboService;
+import com.xy.lucky.rpc.api.database.group.ImGroupInviteRequestDubboService;
+import com.xy.lucky.rpc.api.database.group.ImGroupMemberDubboService;
+import com.xy.lucky.rpc.api.database.user.ImUserDataDubboService;
+import com.xy.lucky.rpc.api.leaf.ImIdDubboService;
 import com.xy.lucky.server.common.LockExecutor;
 import com.xy.lucky.server.config.IdGeneratorConstant;
 import com.xy.lucky.server.domain.dto.GroupDto;

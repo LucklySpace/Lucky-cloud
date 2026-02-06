@@ -1,0 +1,418 @@
+openapi: 3.0.3
+info:
+  title: 表情服务 Dubbo API
+  description: |
+    表情服务 Dubbo 接口规范
+
+    ## 功能概述
+
+    表情服务提供表情包管理、表情图片上传等功能，支持以下特性：
+
+    - **表情包管理**：创建、更新、查询、启用/禁用表情包
+    - **表情上传**：支持上传表情图片到对象存储
+    - **封面管理**：为表情包设置封面图
+    - **编码生成**：自动生成唯一的表情包编码
+
+    ## 应用场景
+
+    - 即时通讯表情功能
+    - 表情包管理和分发
+    - 表情图片存储和访问
+    - 自定义表情包上传
+    - 表情包商店
+
+    ## 数据存储
+
+    - 表情包元数据存储在数据库
+    - 表情图片存储在对象存储（如 MinIO）
+    - 支持预签名 URL 下载
+
+    ## 注意事项
+
+    - 表情包编码建议使用有意义的前缀，便于管理
+    - 删除表情时根据需求选择是否删除对象存储文件
+    - 禁用的表情包不会在客户端显示
+    - 定期清理不用的表情包以节省存储空间
+
+  version: 1.0.0
+  contact:
+    name: Lucky Platform Team
+    email: support@lucky.com
+    url: https://lucky.com
+
+servers:
+  - url: dubbo://localhost:20880
+    description: Dubbo 服务地址
+
+tags:
+  - name: EmojiService
+    description: 表情服务
+
+paths:
+  /EmojiService/upsertPack:
+    post:
+      tags:
+        - EmojiService
+      summary: 创建或更新表情包
+      description: 创建新的表情包或更新已存在的表情包信息
+      operationId: upsertPack
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmojiPackDto'
+      responses:
+        '200':
+          description: 操作成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmojiPackVo'
+        '400':
+          description: 参数错误
+        '500':
+          description: 服务器错误
+
+  /EmojiService/listPacks:
+    get:
+      tags:
+        - EmojiService
+      summary: 列出所有表情包
+      description: 获取所有表情包列表，按热度降序排序
+      operationId: listPacks
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmojiPackVo'
+        '500':
+          description: 服务器错误
+
+  /EmojiService/uploadEmoji:
+    post:
+      tags:
+        - EmojiService
+      summary: 上传表情图片
+      description: 上传表情图片到指定表情包
+      operationId: uploadEmoji
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - emojiId
+              properties:
+                emojiId:
+                  type: string
+                  description: 表情 ID
+                  example: "emoji123"
+      responses:
+        '200':
+          description: 上传成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmojiVo'
+        '400':
+          description: 参数错误
+        '404':
+          description: 表情包不存在
+        '500':
+          description: 服务器错误
+
+  /EmojiService/listEmojis:
+    post:
+      tags:
+        - EmojiService
+      summary: 列出表情包中的所有表情
+      description: 获取指定表情包中的所有表情，按顺序升序排列
+      operationId: listEmojis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - packId
+              properties:
+                packId:
+                  type: string
+                  description: 表情包 ID
+                  example: "pack123"
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmojiVo'
+        '400':
+          description: 参数错误
+        '500':
+          description: 服务器错误
+
+  /EmojiService/uploadCover:
+    post:
+      tags:
+        - EmojiService
+      summary: 上传表情包封面图
+      description: 为指定表情包上传封面图
+      operationId: uploadCover
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - packId
+                - url
+              properties:
+                packId:
+                  type: string
+                  description: 表情包 ID
+                  example: "pack123"
+                url:
+                  type: string
+                  description: 封面图 URL
+                  example: "https://example.com/covers/pack123.jpg"
+      responses:
+        '200':
+          description: 上传成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmojiPackVo'
+        '400':
+          description: 参数错误
+        '404':
+          description: 表情包不存在
+        '500':
+          description: 服务器错误
+
+  /EmojiService/togglePack:
+    post:
+      tags:
+        - EmojiService
+      summary: 启用/禁用表情包
+      description: 切换表情包的启用状态
+      operationId: togglePack
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - packId
+                - enabled
+              properties:
+                packId:
+                  type: string
+                  description: 表情包 ID
+                  example: "pack123"
+                enabled:
+                  type: boolean
+                  description: 是否启用
+                  example: true
+      responses:
+        '200':
+          description: 操作成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmojiPackVo'
+        '404':
+          description: 表情包不存在
+        '500':
+          description: 服务器错误
+
+  /EmojiService/getPackId:
+    post:
+      tags:
+        - EmojiService
+      summary: 查询表情包详情
+      description: 查询指定表情包的详细信息，包括所有表情
+      operationId: getPackId
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - packId
+              properties:
+                packId:
+                  type: string
+                  description: 表情包 ID
+                  example: "pack123"
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmojiRespVo'
+        '404':
+          description: 表情包不存在
+        '500':
+          description: 服务器错误
+
+  /EmojiService/deleteEmoji:
+    post:
+      tags:
+        - EmojiService
+      summary: 删除表情
+      description: 删除指定的表情，可选择同时删除对象存储中的文件
+      operationId: deleteEmoji
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - emojiId
+                - removeObject
+              properties:
+                emojiId:
+                  type: string
+                  description: 表情 ID
+                  example: "emoji123"
+                removeObject:
+                  type: boolean
+                  description: 是否同时删除对象存储中的文件
+                  example: true
+      responses:
+        '200':
+          description: 删除成功
+        '404':
+          description: 表情不存在
+        '500':
+          description: 服务器错误
+
+  /EmojiService/generatePackCode:
+    get:
+      tags:
+        - EmojiService
+      summary: 生成表情包编码
+      description: 生成唯一的表情包编码
+      operationId: generatePackCode
+      responses:
+        '200':
+          description: 生成成功
+          content:
+            application/json:
+              schema:
+                type: string
+                example: "aB3xY9"
+        '500':
+          description: 服务器错误
+
+components:
+  schemas:
+    EmojiPackDto:
+      type: object
+      required:
+        - name
+      properties:
+        code:
+          type: string
+          description: 包编码（唯一）
+        name:
+          type: string
+          maxLength: 128
+          description: 包名称
+          example: "默认表情包"
+        description:
+          type: string
+          maxLength: 5000
+          description: 包说明
+        enabled:
+          type: boolean
+          description: 是否启用
+
+    EmojiPackVo:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 包编码（唯一）
+        name:
+          type: string
+          description: 包名称
+          example: "默认表情包"
+        description:
+          type: string
+          description: 包说明
+        packId:
+          type: string
+          description: 包 ID
+        url:
+          type: string
+          description: 封面图 URL
+        enabled:
+          type: boolean
+          description: 是否启用
+
+    EmojiVo:
+      type: object
+      properties:
+        packId:
+          type: string
+          description: 所属表情包 ID
+        name:
+          type: string
+          description: 表情名称
+          example: "smile"
+        tags:
+          type: string
+          description: 标签（逗号分隔）
+          example: "happy,funny"
+        emojiId:
+          type: string
+          description: 表情 ID
+        url:
+          type: string
+          description: 下载 URL（预签名）
+        sort:
+          type: integer
+          description: 顺序
+
+    EmojiRespVo:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 包编码（唯一）
+        name:
+          type: string
+          description: 包名称
+        description:
+          type: string
+          description: 包说明
+        packId:
+          type: string
+          description: 包 ID
+        url:
+          type: string
+          description: 封面图 URL
+        enabled:
+          type: boolean
+          description: 是否启用
+        emojis:
+          type: array
+          description: 表情列表
+          items:
+            $ref: '#/components/schemas/EmojiVo'

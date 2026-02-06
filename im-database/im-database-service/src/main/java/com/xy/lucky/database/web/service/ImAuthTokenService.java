@@ -2,9 +2,9 @@ package com.xy.lucky.database.web.service;
 
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xy.lucky.api.auth.ImAuthTokenDubboService;
 import com.xy.lucky.database.web.mapper.ImAuthTokenMapper;
 import com.xy.lucky.domain.po.ImAuthTokenPo;
+import com.xy.lucky.rpc.api.database.auth.ImAuthTokenDubboService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;

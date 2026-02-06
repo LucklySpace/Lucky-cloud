@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.xy.lucky</groupId>
+        <artifactId>im-oss</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>im-oss-rpc-api</artifactId>
+    <name>im-oss-rpc-api</name>
+    <description>OSS RPC API with Dubbo interfaces and OpenAPI specification</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.xy.lucky</groupId>
+            <artifactId>im-starter-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xy.lucky</groupId>
+            <artifactId>im-starter-common</artifactId>
+        </dependency>
+
+        <!-- Dubbo -->
+        <dependency>
+            <groupId>com.xy.lucky</groupId>
+            <artifactId>im-starter-dubbo</artifactId>
+        </dependency>
+
+        <!-- Swagger Annotations for OpenAPI -->
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-annotations</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>net.coobird</groupId>
+            <artifactId>thumbnailator</artifactId>
+            <version>0.4.20</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+    </build>
+
+</project>

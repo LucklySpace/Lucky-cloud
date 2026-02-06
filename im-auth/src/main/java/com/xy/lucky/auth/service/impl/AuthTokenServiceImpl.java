@@ -1,6 +1,5 @@
 package com.xy.lucky.auth.service.impl;
 
-import com.xy.lucky.api.auth.ImAuthTokenDubboService;
 import com.xy.lucky.auth.domain.AuthRefreshToken;
 import com.xy.lucky.auth.domain.AuthTokenPair;
 import com.xy.lucky.auth.service.AuthTokenService;
@@ -10,6 +9,7 @@ import com.xy.lucky.core.constants.IMConstant;
 import com.xy.lucky.core.utils.JwtUtil;
 import com.xy.lucky.domain.po.ImAuthTokenPo;
 import com.xy.lucky.general.response.domain.ResultCode;
+import com.xy.lucky.rpc.api.database.auth.ImAuthTokenDubboService;
 import com.xy.lucky.security.SecurityAuthProperties;
 import com.xy.lucky.security.exception.AuthenticationFailException;
 import lombok.RequiredArgsConstructor;

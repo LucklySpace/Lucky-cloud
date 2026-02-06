@@ -1,0 +1,328 @@
+openapi: 3.0.3
+info:
+  title: Logging RPC API
+  description: 日志服务 Dubbo RPC 接口定义
+  version: 1.0.0
+  contact:
+    name: Lucky Cloud Team
+
+tags:
+  - name: LogQuery
+    description: 日志查询服务
+  - name: LogIngest
+    description: 日志采集服务
+  - name: LogAnalysis
+    description: 日志分析服务
+
+paths:
+  /dubbo/logQuery/query:
+    post:
+      tags:
+        - LogQuery
+      summary: 查询日志（分页）
+      operationId: queryLogs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogQueryDto'
+      responses:
+        '200':
+          description: 成功返回分页日志结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageResult'
+
+  /dubbo/logQuery/histogram:
+    post:
+      tags:
+        - LogQuery
+      summary: 查询时间间隔内日志数量（直方图统计）
+      operationId: histogram
+      parameters:
+        - name: module
+          in: query
+          schema:
+            type: string
+        - name: start
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: end
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: level
+          in: query
+          schema:
+            $ref: '#/components/schemas/LogLevel'
+        - name: service
+          in: query
+          schema:
+            type: string
+        - name: env
+          in: query
+          schema:
+            type: string
+        - name: keyword
+          in: query
+          schema:
+            type: string
+        - name: interval
+          in: query
+          schema:
+            type: string
+            enum: [ hour, minute ]
+      responses:
+        '200':
+          description: 成功返回直方图数据
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: integer
+                  format: int64
+
+  /dubbo/logQuery/listServices:
+    get:
+      tags:
+        - LogQuery
+      summary: 获取服务列表
+      operationId: listServices
+      parameters:
+        - name: env
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功返回服务列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /dubbo/logIngest/ingest:
+    post:
+      tags:
+        - LogIngest
+      summary: 单条日志入库
+      operationId: ingestLog
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogRecordVo'
+      responses:
+        '200':
+          description: 入库成功
+
+  /dubbo/logIngest/ingestBatch:
+    post:
+      tags:
+        - LogIngest
+      summary: 批量日志入库
+      operationId: ingestLogsBatch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/LogRecordVo'
+      responses:
+        '200':
+          description: 批量入库成功
+
+  /dubbo/logAnalysis/overview:
+    get:
+      tags:
+        - LogAnalysis
+      summary: 获取日志统计概览
+      operationId: getOverview
+      responses:
+        '200':
+          description: 成功返回统计数据
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: object
+
+  /dubbo/logAnalysis/hourlySeries:
+    get:
+      tags:
+        - LogAnalysis
+      summary: 获取小时级日志序列
+      operationId: getHourlySeries
+      parameters:
+        - name: level
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/LogLevel'
+        - name: hours
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功返回时间序列数据
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: integer
+                  format: int64
+
+components:
+  schemas:
+    LogLevel:
+      type: string
+      enum:
+        - TRACE
+        - DEBUG
+        - INFO
+        - WARN
+        - ERROR
+      description: 日志级别
+
+    LogRecordVo:
+      type: object
+      description: 日志记录
+      properties:
+        id:
+          type: string
+          description: 日志ID（UUID）
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        timestamp:
+          type: string
+          format: date-time
+          description: 时间戳（ISO-8601）
+          example: "2025-12-24T08:30:15.123Z"
+        level:
+          $ref: '#/components/schemas/LogLevel'
+        module:
+          type: string
+          description: 模块名
+          example: "im-server"
+        service:
+          type: string
+          description: 服务名
+          example: "auth-service"
+        address:
+          type: string
+          description: 来源地址（实例IP:端口）
+          example: "10.0.12.34:8080"
+        env:
+          type: string
+          description: 环境
+          example: "prod"
+        traceId:
+          type: string
+          description: 分布式链路追踪ID
+          example: "0af7651916cd43dd8448eb211c80319c"
+        spanId:
+          type: string
+          description: 分布式链路追踪Span ID
+          example: "b7ad6b7169203331"
+        thread:
+          type: string
+          description: 线程名
+          example: "http-nio-8080-exec-12"
+        message:
+          type: string
+          description: 日志内容
+          example: "order create failed"
+        exception:
+          type: string
+          description: 异常信息/堆栈
+          example: "java.lang.IllegalStateException: x"
+        tags:
+          type: array
+          description: 标签
+          items:
+            type: string
+          example: [ "security", "audit" ]
+        context:
+          type: object
+          description: 上下文（结构化字段）
+          additionalProperties: true
+          example:
+            orderId: "O-10001"
+            userId: "U-1"
+
+    LogQueryDto:
+      type: object
+      description: 日志查询条件
+      properties:
+        module:
+          type: string
+          description: 模块名
+        start:
+          type: string
+          format: date-time
+          description: 开始时间
+        end:
+          type: string
+          format: date-time
+          description: 结束时间
+        level:
+          $ref: '#/components/schemas/LogLevel'
+        service:
+          type: string
+          description: 服务名
+        env:
+          type: string
+          description: 环境
+        page:
+          type: integer
+          description: 页码（从1开始）
+          minimum: 1
+          default: 1
+        size:
+          type: integer
+          description: 每页大小
+          minimum: 1
+          default: 10
+        keyword:
+          type: string
+          description: 关键字
+
+    PageResult:
+      type: object
+      description: 分页结果
+      properties:
+        content:
+          type: array
+          description: 数据列表
+          items:
+            $ref: '#/components/schemas/LogRecordVo'
+        pageNumber:
+          type: integer
+          description: 当前页码（从0开始）
+        pageSize:
+          type: integer
+          description: 每页大小
+        totalElements:
+          type: integer
+          format: int64
+          description: 总元素数
+        totalPages:
+          type: integer
+          description: 总页数
+        hasNext:
+          type: boolean
+          description: 是否有下一页
+        hasPrevious:
+          type: boolean
+          description: 是否有上一页

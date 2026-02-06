@@ -1,0 +1,508 @@
+openapi: 3.0.3
+info:
+  title: im-leaf 分布式 ID 生成服务 API
+  description: |
+    im-leaf 是一个高性能、高可用的分布式 ID 生成服务，提供多种 ID 生成策略。
+
+    ## 支持的 ID 生成策略
+
+    - **snowflake**：雪花算法，高性能分布式 ID，基于时间戳、机器 ID 和序列号
+    - **redis**：Redis 号段模式，连续 ID，支持预加载和双缓冲
+    - **uid**：自定义 UID 生成策略
+    - **uuid**：标准 UUID 生成
+
+    ## 服务特性
+
+    - 响应式编程，支持高并发
+    - 支持单个 ID 和批量 ID 生成
+    - RESTful API 和 Dubbo RPC 两种调用方式
+    - 时钟回拨处理机制
+    - 本地缓存 + Redis 双重保障
+  version: 1.0.0
+  contact:
+    name: Lucky Cloud Team
+    email: support@lucky-cloud.com
+    url: https://github.com/your-org/Lucky-cloud
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: http://localhost:8080
+    description: 本地开发环境
+  - url: http://{environment}.lucky-cloud.com
+    description: 生产环境
+    variables:
+      environment:
+        default: api
+        enum:
+          - api
+          - api-staging
+          - api-dev
+
+tags:
+  - name: ID 生成器
+    description: ID 生成相关接口
+  - name: 健康检查
+    description: 服务健康状态检查接口
+
+paths:
+  /api/generator/id:
+    get:
+      tags:
+        - ID 生成器
+      summary: 生成单个 ID
+      description: |
+        根据指定的策略和业务标识生成单个全局唯一 ID。
+
+        ## 支持的策略类型
+
+        - **snowflake**：雪花算法，生成 64 位长整型 ID，高性能
+        - **redis**：Redis 号段模式，生成连续的 ID
+        - **uid**：自定义 UID 格式
+        - **uuid**：标准 UUID v4，生成 128 位随机标识符
+
+        ## 使用示例
+
+        - 生成订单 ID：`type=snowflake&key=order`
+        - 生成用户 ID：`type=redis&key=user`
+        - 生成会话 ID：`type=uuid&key=session`
+      operationId: generateId
+      parameters:
+        - name: type
+          in: query
+          description: ID 生成策略类型
+          required: true
+          schema:
+            type: string
+            enum: [ snowflake, redis, uid, uuid ]
+            example: snowflake
+        - name: key
+          in: query
+          description: |
+            业务标识，用于区分不同的业务场景。
+
+            常用的业务标识：
+            - order：订单 ID
+            - user：用户 ID
+            - message：消息 ID
+            - session：会话 ID
+            - transaction：交易 ID
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            example: order
+      responses:
+        '200':
+          description: ID 生成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IMetaId'
+              examples:
+                snowflake:
+                  summary: Snowflake ID 示例
+                  value:
+                    metaId: 1234567890123456789
+                    stringId: "1234567890123456789"
+                    longId: 1234567890123456789
+                redis:
+                  summary: Redis Segment ID 示例
+                  value:
+                    metaId: 1001
+                    stringId: "1001"
+                    longId: 1001
+                uuid:
+                  summary: UUID 示例
+                  value:
+                    metaId: "550e8400-e29b-41d4-a716-446655440000"
+                    stringId: "550e8400-e29b-41d4-a716-446655440000"
+                    longId: null
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-rate-limit: 10000/minute
+      x-performance:
+        qps: 3000000
+        p99_latency: 1ms
+
+  /api/generator/ids:
+    get:
+      tags:
+        - ID 生成器
+      summary: 批量生成 ID
+      description: |
+        根据指定的策略和业务标识批量生成多个全局唯一 ID。
+
+        ## 使用场景
+
+        - 批量创建订单时预分配订单 ID
+        - 批量注册用户时预分配用户 ID
+        - 批量生成消息 ID
+
+        ## 性能建议
+
+        - 批量生成比多次单个生成性能更好
+        - 单次最多生成 1000 个 ID
+        - 超过 1000 个建议分批调用
+      operationId: generateBatchIds
+      parameters:
+        - name: type
+          in: query
+          description: ID 生成策略类型
+          required: true
+          schema:
+            type: string
+            enum: [ snowflake, redis, uid, uuid ]
+            example: snowflake
+        - name: key
+          in: query
+          description: 业务标识
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            example: order
+        - name: count
+          in: query
+          description: |
+            生成数量，范围 1-1000。
+
+            建议：
+            - 小批量：10-100 个
+            - 中批量：100-500 个
+            - 大批量：500-1000 个
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            example: 10
+      responses:
+        '200':
+          description: 批量 ID 生成成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IMetaId'
+              examples:
+                snowflake_batch:
+                  summary: Snowflake 批量 ID 示例（10 个）
+                  value:
+                    - metaId: 1234567890123456789
+                      stringId: "1234567890123456789"
+                      longId: 1234567890123456789
+                    - metaId: 1234567890123456790
+                      stringId: "1234567890123456790"
+                      longId: 1234567890123456790
+                    - metaId: 1234567890123456791
+                      stringId: "1234567890123456791"
+                      longId: 1234567890123456791
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-rate-limit: 1000/minute
+      x-performance:
+        qps: 100000
+        p99_latency: 100ms
+
+  /actuator/health:
+    get:
+      tags:
+        - 健康检查
+      summary: 健康检查
+      description: |
+        检查服务的健康状态。
+
+        返回信息包括：
+        - 服务整体状态
+        - 数据库连接状态
+        - Redis 连接状态
+        - Nacos 连接状态
+      operationId: healthCheck
+      responses:
+        '200':
+          description: 服务健康
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ UP, DOWN ]
+                    description: 服务状态
+                  components:
+                    type: object
+                    description: 各组件状态
+                    properties:
+                      db:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                          details:
+                            type: object
+                      redis:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                          details:
+                            type: object
+                      nacos:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                          details:
+                            type: object
+              example:
+                status: UP
+                components:
+                  db:
+                    status: UP
+                    details:
+                      database: PostgreSQL
+                      validationQuery: SELECT 1
+                  redis:
+                    status: UP
+                    details:
+                      version: 7.0
+                  nacos:
+                    status: UP
+                    details:
+                      registry: nacos://localhost:8848
+        '503':
+          description: 服务不可用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: DOWN
+                components:
+                  redis:
+                    status: DOWN
+                    details:
+                      error: Connection refused
+
+components:
+  schemas:
+    IMetaId:
+      type: object
+      description: ID 信息的通用封装对象
+      required:
+        - metaId
+      properties:
+        metaId:
+          type: object
+          description: |
+            原始 ID 对象，根据策略不同类型可能不同：
+            - snowflake/redis：Long 类型
+            - uuid：String 类型
+            - uid：自定义类型
+          example: 1234567890123456789
+        stringId:
+          type: string
+          description: 字符串格式的 ID，适用于所有策略
+          example: "1234567890123456789"
+          nullable: true
+        longId:
+          type: integer
+          format: int64
+          description: 长整型格式的 ID，仅适用于 snowflake 和 redis 策略
+          example: 1234567890123456789
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      description: 错误响应
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: 错误发生时间
+          example: "2026-02-06T10:30:00.123+08:00"
+        status:
+          type: integer
+          description: HTTP 状态码
+          example: 400
+        error:
+          type: string
+          description: 错误类型
+          example: "Bad Request"
+        message:
+          type: string
+          description: 错误详细信息
+          example: "Invalid type parameter: unknown"
+        path:
+          type: string
+          description: 请求路径
+          example: "/api/generator/id"
+
+    ValidationError:
+      type: object
+      description: 参数验证错误
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
+        - errors
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: "count"
+              message:
+                type: string
+                example: "must be between 1 and 1000"
+              rejectedValue:
+                type: string
+                example: "2000"
+
+  responses:
+    BadRequest:
+      description: 请求参数错误
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - $ref: '#/components/schemas/ValidationError'
+          examples:
+            invalid_type:
+              summary: 无效的策略类型
+              value:
+                timestamp: "2026-02-06T10:30:00.123+08:00"
+                status: 400
+                error: "Bad Request"
+                message: "Invalid type parameter: unknown. Supported types: snowflake, redis, uid, uuid"
+                path: "/api/generator/id"
+            invalid_count:
+              summary: count 参数超出范围
+              value:
+                timestamp: "2026-02-06T10:30:00.123+08:00"
+                status: 400
+                error: "Bad Request"
+                message: "generateIds.count: 必须小于或等于 1000"
+                path: "/api/generator/ids"
+                errors:
+                  - field: "count"
+                    message: "must be between 1 and 1000"
+                    rejectedValue: "2000"
+            missing_parameter:
+              summary: 缺少必需参数
+              value:
+                timestamp: "2026-02-06T10:30:00.123+08:00"
+                status: 400
+                error: "Bad Request"
+                message: "Required parameter 'type' is not present"
+                path: "/api/generator/id"
+
+    InternalServerError:
+      description: 服务器内部错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            clock_backwards:
+              summary: 时钟回拨错误
+              value:
+                timestamp: "2026-02-06T10:30:00.123+08:00"
+                status: 500
+                error: "Internal Server Error"
+                message: "Clock moved backwards by 1234 ms"
+                path: "/api/generator/id"
+            redis_error:
+              summary: Redis 连接失败
+              value:
+                timestamp: "2026-02-06T10:30:00.123+08:00"
+                status: 500
+                error: "Internal Server Error"
+                message: "Redis connection failed: Unable to connect to localhost:6379"
+                path: "/api/generator/id"
+            segment_exhausted:
+              summary: 号段耗尽
+              value:
+                timestamp: "2026-02-06T10:30:00.123+08:00"
+                status: 500
+                error: "Internal Server Error"
+                message: "Segment exhausted and new segment not ready for key=order"
+                path: "/api/generator/id"
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        API 密钥认证（可选）
+
+        生产环境建议启用认证，在请求头中添加：
+        ```
+        X-API-Key: your-api-key
+        ```
+
+security:
+  - ApiKeyAuth: [ ]
+
+x-resources:
+  - name: 官方文档
+    url: https://github.com/your-org/Lucky-cloud/tree/main/im-leaf
+    description: 完整的项目文档和使用指南
+  - name: API 文档
+    url: https://github.com/your-org/Lucky-cloud/blob/main/im-leaf/API.md
+    description: 详细的 API 接口文档
+  - name: 帮助文档
+    url: https://github.com/your-org/Lucky-cloud/blob/main/im-leaf/HELP.md
+    description: 常见问题和故障排查指南
+
+x-performance-metrics:
+  single_id:
+    qps: 3000000
+    avg_latency: 0.5ms
+    p99_latency: 1ms
+  batch_ids:
+    qps: 100000
+    avg_latency: 10ms
+    p99_latency: 100ms
+
+x-rate-limits:
+  - endpoint: /api/generator/id
+    limit: 10000/minute
+    burst: 100
+  - endpoint: /api/generator/ids
+    limit: 1000/minute
+    burst: 10

@@ -1,16 +1,16 @@
 package com.xy.lucky.server.service.impl;
 
-import com.xy.lucky.api.ImIdDubboService;
-import com.xy.lucky.api.chat.ImChatDubboService;
-import com.xy.lucky.api.group.ImGroupMemberDubboService;
-import com.xy.lucky.api.message.ImGroupMessageDubboService;
-import com.xy.lucky.api.message.ImSingleMessageDubboService;
-import com.xy.lucky.api.outbox.IMOutboxDubboService;
 import com.xy.lucky.core.constants.IMConstant;
 import com.xy.lucky.core.enums.*;
 import com.xy.lucky.core.model.*;
 import com.xy.lucky.domain.po.*;
 import com.xy.lucky.mq.rabbit.core.RabbitTemplateFactory;
+import com.xy.lucky.rpc.api.database.chat.ImChatDubboService;
+import com.xy.lucky.rpc.api.database.group.ImGroupMemberDubboService;
+import com.xy.lucky.rpc.api.database.message.ImGroupMessageDubboService;
+import com.xy.lucky.rpc.api.database.message.ImSingleMessageDubboService;
+import com.xy.lucky.rpc.api.database.outbox.IMOutboxDubboService;
+import com.xy.lucky.rpc.api.leaf.ImIdDubboService;
 import com.xy.lucky.server.common.LockExecutor;
 import com.xy.lucky.server.config.IdGeneratorConstant;
 import com.xy.lucky.server.domain.dto.ChatDto;

@@ -1,0 +1,533 @@
+openapi: 3.0.3
+info:
+  title: 地址服务 Dubbo API
+  description: |
+    地址服务 Dubbo 接口规范
+
+    ## 功能概述
+
+    地址服务提供 IP 地址查询、地区信息解析等功能，支持以下特性：
+
+    - **IP 定位**：根据 IPv4 地址查询对应的地区信息
+    - **地区查询**：根据地区编号查询地区节点信息
+    - **路径解析**：解析地区路径字符串为地区对象
+    - **格式化输出**：将地区编号格式化为完整的路径字符串
+
+    ## 应用场景
+
+    - 用户位置识别和个性化推荐
+    - 就近节点选择，提升访问速度
+    - 地区数据统计和分析
+    - 内容区域分发和访问控制
+    - 日志分析和用户行为追踪
+
+    ## 数据说明
+
+    - IP 地址库支持 IPv4 格式
+    - 地区编号遵循国家标准行政区划代码
+    - 地区路径格式：国家/省份/城市/区县
+
+    ## 注意事项
+
+    - IP 地址查询依赖 IP 地址库的准确性
+    - 建议对查询结果进行缓存，减少重复查询
+    - 地区编号查询比路径解析更高效
+
+  version: 1.0.0
+  contact:
+    name: Lucky Platform Team
+    email: support@lucky.com
+    url: https://lucky.com
+
+servers:
+  - url: dubbo://localhost:20880
+    description: 本地开发环境
+  - url: dubbo://production-dubbo-server:20880
+    description: 生产环境
+
+tags:
+  - name: 地址服务
+    description: 提供 IP 地址查询、地区信息解析等功能
+
+paths:
+  /AddressService/getAreaByIp:
+    post:
+      tags:
+        - 地址服务
+      summary: 根据 IP 查询地区信息
+      description: |
+        根据 IPv4 地址查询对应的地区信息，包括完整的地区路径。
+
+        **特性说明**：
+        - 支持 IPv4 地址格式
+        - 返回完整的地区路径信息
+        - 包含地区编号和名称
+
+        **使用示例**：
+        ```java
+        AreaVo area = addressService.getAreaByIp("8.8.8.8");
+        System.out.println("地区：" + area.getAddress());
+        ```
+
+        **返回数据结构**：
+        - code：地区编号（如 110101）
+        - name：地区名称（如"东城区"）
+        - address：完整路径（如"中国/北京/北京市/东城区"）
+      operationId: getAreaByIp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ip
+              properties:
+                ip:
+                  type: string
+                  format: ipv4
+                  description: |
+                    IPv4 地址。
+
+                    **支持的格式**：
+                    - 标准格式：`8.8.8.8`
+                    - 带段号：`192.168.1.1`
+
+                    **注意事项**：
+                    - 必须是合法的 IPv4 地址
+                    - 不支持 IPv6
+                  example: "8.8.8.8"
+            examples:
+              公网IP:
+                value:
+                  ip: "8.8.8.8"
+              内网IP:
+                value:
+                  ip: "192.168.1.1"
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AreaVo'
+              examples:
+                成功响应:
+                  value:
+                    code: 110101
+                    ip: "8.8.8.8"
+                    name: "东城区"
+                    address: "中国/北京/北京市/东城区"
+        '400':
+          description: IP 地址非法
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "IP 地址格式错误"
+        '500':
+          description: 服务器内部错误
+
+  /AddressService/getAreaIdByIp:
+    post:
+      tags:
+        - 地址服务
+      summary: 根据 IP 查询地区编号
+      description: |
+        根据 IPv4 地址查询对应的地区编号。
+
+        **特性说明**：
+        - 仅返回地区编号，性能更优
+        - 适用于需要快速获取地区 ID 的场景
+        - 地区编号遵循国家标准行政区划代码
+
+        **使用场景**：
+        - 存储用户地区信息
+        - 地区统计和分组
+        - 权限控制
+
+        **使用示例**：
+        ```java
+        Integer areaId = addressService.getAreaIdByIp("8.8.8.8");
+        System.out.println("地区编号：" + areaId);
+        ```
+      operationId: getAreaIdByIp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ip
+              properties:
+                ip:
+                  type: string
+                  format: ipv4
+                  description: IPv4 地址
+                  example: "8.8.8.8"
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                type: integer
+                format: int32
+                description: |
+                  地区编号。
+
+                  **编号规则**：
+                  - 6 位数字
+                  - 前两位：省级行政区
+                  - 中间两位：地级市
+                  - 后两位：区县
+
+                  **示例**：
+                  - 110000：北京市
+                  - 110100：北京市市辖区
+                  - 110101：东城区
+                example: 110101
+        '400':
+          description: IP 地址非法
+        '500':
+          description: 服务器内部错误
+
+  /AddressService/getAreaById:
+    post:
+      tags:
+        - 地址服务
+      summary: 根据地区编号查询节点
+      description: |
+        根据地区编号查询对应的地区节点信息。
+
+        **特性说明**：
+        - 支持任意层级的地区编号
+        - 返回该节点的完整信息
+        - 包含格式化的完整路径
+
+        **使用场景**：
+        - 根据存储的地区编号查询详情
+        - 地区信息验证
+
+        **使用示例**：
+        ```java
+        AreaVo area = addressService.getAreaById(110000);
+        System.out.println("地区名称：" + area.getName());
+        ```
+      operationId: getAreaById
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+              properties:
+                id:
+                  type: integer
+                  format: int32
+                  description: |
+                    地区编号（6 位数字）。
+
+                    **示例**：
+                    - 110000：北京市（省级）
+                    - 110100：北京市市辖区（地级）
+                    - 110101：东城区（区县级）
+                  example: 110000
+            examples:
+              省级:
+                value:
+                  id: 110000
+              地级:
+                value:
+                  id: 110100
+              区县级:
+                value:
+                  id: 110101
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AreaVo'
+              examples:
+                省级地区:
+                  value:
+                    code: 110000
+                    name: "北京市"
+                    address: "中国/北京/北京市"
+                区县级地区:
+                  value:
+                    code: 110101
+                    name: "东城区"
+                    address: "中国/北京/北京市/东城区"
+        '400':
+          description: ID 非法
+        '404':
+          description: 地区不存在
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: "地区不存在"
+        '500':
+          description: 服务器内部错误
+
+  /AddressService/parseArea:
+    post:
+      tags:
+        - 地址服务
+      summary: 解析区域路径
+      description: |
+        解析区域路径字符串（如：河南省/郑州市/金水区），返回对应的地区信息。
+
+        **特性说明**：
+        - 支持多层级的路径解析
+        - 路径分隔符：`/`
+        - 自动匹配最精确的地区节点
+
+        **使用场景**：
+        - 用户手动输入地区信息
+        - 数据导入和转换
+        - 地区名称标准化
+
+        **路径格式**：
+        - 完整路径：`河南省/郑州市/金水区`
+        - 部分路径：`河南省/郑州市`
+        - 省级：`河南省`
+
+        **使用示例**：
+        ```java
+        AreaVo area = addressService.parseArea("河南省/郑州市/金水区");
+        System.out.println("地区编号：" + area.getCode());
+        ```
+      operationId: parseArea
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - path
+              properties:
+                path:
+                  type: string
+                  description: |
+                    路径字符串，使用 `/` 作为分隔符。
+
+                    **格式说明**：
+                    - 标准格式：`省/市/区`
+                    - 最少层级：1（省级）
+                    - 最多层级：4（国家/省/市/区）
+
+                    **示例**：
+                    - `河南省`
+                    - `河南省/郑州市`
+                    - `河南省/郑州市/金水区`
+                  example: "河南省/郑州市/金水区"
+            examples:
+              完整路径:
+                value:
+                  path: "河南省/郑州市/金水区"
+              部分路径:
+                value:
+                  path: "河南省/郑州市"
+      responses:
+        '200':
+          description: 解析成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AreaVo'
+              examples:
+                成功响应:
+                  value:
+                    code: 410105
+                    name: "金水区"
+                    address: "中国/河南/郑州市/金水区"
+        '400':
+          description: 路径为空或格式错误
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                    example: "路径格式错误"
+        '404':
+          description: 地区不存在
+        '500':
+          description: 服务器内部错误
+
+  /AddressService/formatArea:
+    post:
+      tags:
+        - 地址服务
+      summary: 格式化地区编号为路径字符串
+      description: |
+        将地区编号格式化为完整的路径字符串，便于展示和存储。
+
+        **特性说明**：
+        - 自动生成完整的地区路径
+        - 包含所有上级地区信息
+        - 格式：`国家/省份/城市/区县`
+
+        **使用场景**：
+        - 地区信息展示
+        - 报表生成
+        - 数据导出
+
+        **使用示例**：
+        ```java
+        String path = addressService.formatArea(110101);
+        System.out.println("完整路径：" + path);
+        // 输出：中国/北京/北京市/东城区
+        ```
+
+        **输出格式**：
+        - 国家/省/市/区：`中国/北京/北京市/东城区`
+        - 国家/省/市：`中国/河南/郑州市`
+        - 国家/省：`中国/北京`
+      operationId: formatArea
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+              properties:
+                id:
+                  type: integer
+                  format: int32
+                  description: 地区编号（6 位数字）
+                  example: 110101
+            examples:
+              区县级:
+                value:
+                  id: 110101
+              地级:
+                value:
+                  id: 110100
+              省级:
+                value:
+                  id: 110000
+      responses:
+        '200':
+          description: 格式化成功
+          content:
+            application/json:
+              schema:
+                type: string
+                description: |
+                  格式化后的完整路径。
+
+                  **路径层级**：
+                  - 国家（固定：中国）
+                  - 省级行政区
+                  - 地级市
+                  - 区县
+
+                  **使用 `/` 分隔**
+              examples:
+                区县级:
+                  value: "中国/北京/北京市/东城区"
+                地级:
+                  value: "中国/河南/郑州市"
+                省级:
+                  value: "中国/北京"
+        '400':
+          description: ID 非法
+        '500':
+          description: 服务器内部错误
+
+components:
+  schemas:
+    AreaVo:
+      type: object
+      description: 地区信息对象
+      properties:
+        code:
+          type: integer
+          format: int32
+          description: |
+            区域编号（6 位数字）。
+
+            **编号规则**：
+            - 第 1-2 位：省级行政区
+            - 第 3-4 位：地级市
+            - 第 5-6 位：区县
+
+            **示例**：
+            - 110000：北京市
+            - 410000：河南省
+            - 410100：郑州市
+            - 410105：金水区
+          example: 110101
+        ip:
+          type: string
+          description: |
+            IP 地址。
+
+            **说明**：
+            - 仅在通过 IP 查询时有值
+            - 通过 ID 查询时为 null
+          example: "8.8.8.8"
+        name:
+          type: string
+          description: |
+            区域名称。
+
+            **对应关系**：
+            - 省级：`code % 10000 == 0`
+            - 地级：`code % 100 == 0 && code % 10000 != 0`
+            - 区县：`code % 100 != 0`
+          example: "东城区"
+        address:
+          type: string
+          description: |
+            格式化后的完整路径。
+
+            **格式**：`国家/省份/城市/区县`
+
+            **示例**：
+            - `中国/北京/北京市/东城区`
+            - `中国/河南/郑州市/金水区`
+
+            **用途**：
+            - 直接展示给用户
+            - 日志记录
+            - 数据导出
+          example: "中国/北京/北京市/东城区"
+
+  examples:
+    根据IP查询:
+      value:
+        ip: "8.8.8.8"
+    根据编号查询:
+      value:
+        id: 110101
+    解析路径:
+      value:
+        path: "河南省/郑州市/金水区"

@@ -4,10 +4,10 @@ package com.xy.lucky.database.web.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xy.lucky.api.friend.ImFriendshipRequestDubboService;
 import com.xy.lucky.core.utils.StringUtils;
 import com.xy.lucky.database.web.mapper.ImFriendshipRequestMapper;
 import com.xy.lucky.domain.po.ImFriendshipRequestPo;
+import com.xy.lucky.rpc.api.database.friend.ImFriendshipRequestDubboService;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 

@@ -1,0 +1,908 @@
+openapi: 3.0.3
+info:
+  title: LBS 行政区划服务 API
+  description: |
+    中国行政区划查询服务 API，提供全国省、市、区县、乡镇、村五级行政区划查询功能。
+
+    ## 主要功能
+    - 五级行政区划级联查询（省/市/区县/乡镇/村）
+    - 行政区划模糊搜索
+    - 逆地理编码（坐标转地址）
+    - 最近区县查找
+
+    ## 数据来源
+    行政区划数据来源于国家统计局最新发布的行政区划代码，定期同步更新。
+
+    ## 行政区划代码说明
+    - 省级：6 位代码（如 110000）
+    - 市级：6 位代码（如 110100）
+    - 区县级：6 位代码（如 110101）
+    - 乡镇级：9 位代码（如 110101001）
+    - 村级：12 位代码（如 110101001001）
+
+    ## 坐标系说明
+    本服务使用 GCJ-02 坐标系（中国火星坐标系），如需使用其他坐标系请自行转换。
+
+    ## 认证方式
+    所有接口需要通过 Dubbo RPC 调用，请在消费者服务中配置 Dubbo 引用。
+  version: 1.0.0
+  contact:
+    name: Lucky Cloud Team
+    email: support@lucky.com
+    url: https://github.com/your-org/Lucky-cloud
+
+servers:
+  - url: http://localhost:8080
+    description: 本地开发环境
+  - url: https://api-dev.lucky.com
+    description: 开发测试环境
+  - url: https://api.lucky.com
+    description: 生产环境
+
+tags:
+  - name: region
+    description: 行政区划管理相关接口
+    externalDocs:
+      description: 更多信息请参考 Dubbo 接口文档
+      url: https://github.com/your-org/Lucky-cloud/tree/main/im-lbs/im-lbs-rpc-api
+
+paths:
+  /api/lbs/region/provinces:
+    get:
+      tags:
+        - region
+      summary: 获取所有省份
+      description: |
+        获取中国所有省级行政区划列表，包括省、自治区、直辖市、特别行政区。
+
+        ## 返回数据说明
+        - 包括 34 个省级行政区
+        - 每个省份包含行政区划代码、名称、经纬度等信息
+        - 结果按行政区划代码排序
+
+        ## 使用场景
+        - 用户注册时选择所在省份
+        - 地址级联选择器的第一级
+        - 统计分析各省份用户分布
+
+        ## 数据更新
+        行政区划数据每季度同步更新，确保数据的准确性。
+      operationId: getProvinces
+      responses:
+        '200':
+          description: 查询成功，返回省份列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RegionInfo'
+              examples:
+                success:
+                  summary: 查询成功示例
+                  description: 返回部分省份数据
+                  value:
+                    - code: 110000
+                      name: "北京市"
+                      latitude: 39.9042
+                      longitude: 116.4074
+                      fullAddress: "北京市"
+                      level: 1
+                    - code: 120000
+                      name: "天津市"
+                      latitude: 39.0842
+                      longitude: 117.2009
+                      fullAddress: "天津市"
+                      level: 1
+                    - code: 130000
+                      name: "河北省"
+                      latitude: 38.0428
+                      longitude: 114.5149
+                      fullAddress: "河北省"
+                      level: 1
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                databaseError:
+                  summary: 数据库查询失败
+                  value:
+                    code: 500
+                    message: "数据库查询失败"
+                    error: "DATABASE_QUERY_FAILED"
+
+  /api/lbs/region/cities/{provinceCode}:
+    get:
+      tags:
+        - region
+      summary: 根据省份代码获取城市列表
+      description: |
+        根据省份行政区划代码，查询该省下的所有地级市。
+
+        ## 参数说明
+        - provinceCode：6 位省份行政区划代码
+        - 可通过 getProvinces 接口获取有效的省份代码
+
+        ## 返回数据说明
+        - 包括省下所有地级市
+        - 直辖市只返回一个市级（与省级同名）
+        - 结果按行政区划代码排序
+
+        ## 特殊情况
+        - 直辖市（北京、上海、天津、重庆）：只返回一个市级
+        - 省级自治区：包含所有地级市和地区
+      operationId: getCities
+      parameters:
+        - name: provinceCode
+          in: path
+          required: true
+          description: |
+            省份行政区划代码（6 位）
+
+            - 必须是有效的省份代码
+            - 可通过 getProvinces 接口获取
+            - 示例：110000（北京市）、130000（河北省）
+          schema:
+            type: integer
+            format: int64
+            example: 110000
+          examples:
+            beijing:
+              summary: 北京市
+              description: 查询北京市下的城市
+              value: 110000
+            hebei:
+              summary: 河北省
+              description: 查询河北省下的城市
+              value: 130000
+      responses:
+        '200':
+          description: 查询成功，返回城市列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RegionInfo'
+              examples:
+                beijing:
+                  summary: 北京市（直辖市）
+                  description: 直辖市只返回一个市级
+                  value:
+                    - code: 110100
+                      name: "北京市"
+                      latitude: 39.9042
+                      longitude: 116.4074
+                      fullAddress: "北京市-北京市"
+                      level: 2
+                hebei:
+                  summary: 河北省
+                  description: 河北省下的地级市
+                  value:
+                    - code: 130100
+                      name: "石家庄市"
+                      latitude: 38.0428
+                      longitude: 114.5149
+                      fullAddress: "河北省-石家庄市"
+                      level: 2
+                    - code: 130200
+                      name: "唐山市"
+                      latitude: 39.6292
+                      longitude: 118.1802
+                      fullAddress: "河北省-唐山市"
+                      level: 2
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidCode:
+                  summary: 省份代码格式错误
+                  value:
+                    code: 400
+                    message: "省份代码必须是6位数字"
+                    error: "INVALID_PROVINCE_CODE"
+                provinceNotFound:
+                  summary: 省份不存在
+                  value:
+                    code: 404
+                    message: "省份代码不存在"
+                    error: "PROVINCE_NOT_FOUND"
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/lbs/region/counties/{cityCode}:
+    get:
+      tags:
+        - region
+      summary: 根据城市代码获取区县列表
+      description: |
+        根据城市行政区划代码，查询该市下的所有区县。
+
+        ## 参数说明
+        - cityCode：6 位城市行政区划代码
+        - 可通过 getCities 接口获取有效的城市代码
+
+        ## 返回数据说明
+        - 包括市下所有区县
+        - 包括市辖区、县级市、县、自治县等
+        - 结果按行政区划代码排序
+
+        ## 使用场景
+        - 用户选择所在区县
+        - 地址级联选择器的第三级
+        - 区域统计分析
+      operationId: getCounties
+      parameters:
+        - name: cityCode
+          in: path
+          required: true
+          description: |
+            城市行政区划代码（6 位）
+
+            - 必须是有效的城市代码
+            - 可通过 getCities 接口获取
+            - 示例：110100（北京市）、130100（石家庄市）
+          schema:
+            type: integer
+            format: int64
+            example: 110100
+      responses:
+        '200':
+          description: 查询成功，返回区县列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RegionInfo'
+              examples:
+                beijing:
+                  summary: 北京市市辖区
+                  description: 北京市下的区县
+                  value:
+                    - code: 110101
+                      name: "东城区"
+                      latitude: 39.9165
+                      longitude: 116.4158
+                      fullAddress: "北京市-北京市-东城区"
+                      level: 3
+                    - code: 110102
+                      name: "西城区"
+                      latitude: 39.9137
+                      longitude: 116.3661
+                      fullAddress: "北京市-北京市-西城区"
+                      level: 3
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidCode:
+                  summary: 城市代码格式错误
+                  value:
+                    code: 400
+                    message: "城市代码必须是6位数字"
+                    error: "INVALID_CITY_CODE"
+        '404':
+          description: 城市不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "城市代码不存在"
+                error: "CITY_NOT_FOUND"
+
+  /api/lbs/region/towns/{countyCode}:
+    get:
+      tags:
+        - region
+      summary: 根据区县代码获取乡镇列表
+      description: |
+        根据区县行政区划代码，查询该区县下的所有乡镇、街道。
+
+        ## 参数说明
+        - countyCode：6 位区县行政区划代码
+        - 可通过 getCounties 接口获取有效的区县代码
+
+        ## 返回数据说明
+        - 包括区县下所有乡镇、街道
+        - 结果按行政区划代码排序
+      operationId: getTowns
+      parameters:
+        - name: countyCode
+          in: path
+          required: true
+          description: |
+            区县行政区划代码（6 位）
+
+            - 必须是有效的区县代码
+            - 可通过 getCounties 接口获取
+            - 示例：110101（东城区）
+          schema:
+            type: integer
+            format: int64
+            example: 110101
+      responses:
+        '200':
+          description: 查询成功，返回乡镇列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RegionInfo'
+              examples:
+                success:
+                  summary: 查询成功示例
+                  value:
+                    - code: 110101001
+                      name: "东华门街道"
+                      latitude: 39.9165
+                      longitude: 116.4074
+                      fullAddress: "北京市-北京市-东城区-东华门街道"
+                      level: 4
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/lbs/region/villages/{townCode}:
+    get:
+      tags:
+        - region
+      summary: 根据乡镇代码获取村列表
+      description: |
+        根据乡镇行政区划代码，查询该乡镇下的所有村、社区。
+
+        ## 参数说明
+        - townCode：9 位乡镇行政区划代码
+        - 可通过 getTowns 接口获取有效的乡镇代码
+
+        ## 返回数据说明
+        - 包括乡镇下所有村、社区
+        - 结果按行政区划代码排序
+      operationId: getVillages
+      parameters:
+        - name: townCode
+          in: path
+          required: true
+          description: |
+            乡镇行政区划代码（9 位）
+
+            - 必须是有效的乡镇代码
+            - 可通过 getTowns 接口获取
+            - 示例：110101001（东华门街道）
+          schema:
+            type: integer
+            format: int64
+            example: 110101001
+      responses:
+        '200':
+          description: 查询成功，返回村列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RegionInfo'
+              examples:
+                success:
+                  summary: 查询成功示例
+                  value:
+                    - code: 110101001001
+                      name: "东华门社区"
+                      latitude: 39.9165
+                      longitude: 116.4074
+                      fullAddress: "北京市-北京市-东城区-东华门街道-东华门社区"
+                      level: 5
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/lbs/region/search:
+    get:
+      tags:
+        - region
+      summary: 模糊搜索行政区划
+      description: |
+        根据关键词模糊搜索行政区划，支持省、市、区县、乡镇、村所有级别。
+
+        ## 搜索范围
+        - 搜索所有级别的行政区划
+        - 包括省、市、区县、乡镇、村
+        - 最多返回 100 条结果
+
+        ## 搜索规则
+        - 支持名称模糊匹配
+        - 支持拼音搜索（如果实现）
+        - 结果按匹配度和行政区划代码排序
+
+        ## 使用场景
+        - 地址自动补全
+        - 快速查找行政区划
+        - 地址搜索建议
+      operationId: searchRegions
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          description: |
+            搜索关键词
+
+            - 最小长度：2 个字符
+            - 支持中文名称
+            - 示例："朝阳"、"东城区"
+          schema:
+            type: string
+            minLength: 2
+            example: "朝阳"
+      responses:
+        '200':
+          description: 搜索成功，返回匹配的行政区划列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RegionInfo'
+              examples:
+                success:
+                  summary: 搜索"朝阳"
+                  description: 返回包含"朝阳"的行政区划
+                  value:
+                    - code: 110105
+                      name: "朝阳区"
+                      latitude: 39.9432
+                      longitude: 116.4429
+                      fullAddress: "北京市-北京市-朝阳区"
+                      level: 3
+                    - code: 220104
+                      name: "朝阳区"
+                      latitude: 43.8168
+                      longitude: 125.3235
+                      fullAddress: "吉林省-长春市-朝阳区"
+                      level: 3
+                empty:
+                  summary: 无结果
+                  description: 没有匹配的行政区划
+                  value: [ ]
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                keywordTooShort:
+                  summary: 关键词太短
+                  value:
+                    code: 400
+                    message: "搜索关键词至少需要2个字符"
+                    error: "KEYWORD_TOO_SHORT"
+                missingKeyword:
+                  summary: 缺少关键词
+                  value:
+                    code: 400
+                    message: "搜索关键词不能为空"
+                    error: "MISSING_KEYWORD"
+
+  /api/lbs/region/nearest:
+    get:
+      tags:
+        - region
+      summary: 查找最近的区县
+      description: |
+        根据经纬度坐标，查找距离该坐标最近的区县级行政区划。
+
+        ## 功能说明
+        - 计算坐标到各个区县的距离
+        - 返回距离最近的区县
+        - 适用于定位用户所在区县
+
+        ## 使用场景
+        - 根据用户位置确定所在区县
+        - 位置打卡时的区域判断
+        - 基于位置的服务推荐
+
+        ## 注意事项
+        - 返回的是区县级（level=3）
+        - 使用直线距离计算
+        - 海洋等无行政区划区域可能返回 null
+      operationId: findNearestCounty
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          description: |
+            纬度坐标
+
+            - 取值范围：-90 到 90
+            - 中国地区纬度范围：18 到 54
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+            example: 39.916527
+        - name: lng
+          in: query
+          required: true
+          description: |
+            经度坐标
+
+            - 取值范围：-180 到 180
+            - 中国地区经度范围：73 到 135
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+            example: 116.397128
+      responses:
+        '200':
+          description: 查询成功，返回最近的区县
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegionInfo'
+              examples:
+                success:
+                  summary: 查询成功示例
+                  value:
+                    code: 110101
+                    name: "东城区"
+                    latitude: 39.9165
+                    longitude: 116.4158
+                    fullAddress: "北京市-北京市-东城区"
+                    level: 3
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidCoordinate:
+                  summary: 坐标超出范围
+                  value:
+                    code: 400
+                    message: "经纬度超出有效范围"
+                    error: "INVALID_COORDINATE"
+        '404':
+          description: 无法定位到区县
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "无法定位到区县，坐标可能在海洋等无行政区划区域"
+                error: "COUNTY_NOT_FOUND"
+
+  /api/lbs/region/reverse-geocoding:
+    get:
+      tags:
+        - region
+      summary: 逆地理编码
+      description: |
+        将经纬度坐标转换为结构化的详细地址信息，包括省、市、区县、乡镇、村等完整信息。
+
+        ## 功能说明
+        - 将坐标转换为完整的地址结构
+        - 包括省、市、区县、乡镇、村五级信息
+        - 返回完整地址字符串和最细粒度行政区划代码
+
+        ## 使用场景
+        - 用户打卡时获取详细地址
+        - 地图选点后的地址展示
+        - 位置分享和记录
+        - 地址自动填写
+
+        ## 数据精度
+        - 根据坐标定位到最细粒度的行政区划
+        - 城市区域通常能定位到街道/社区级别
+        - 农村地区可能只能定位到乡镇级别
+
+        ## 注意事项
+        - 坐标系必须匹配（GCJ-02）
+        - 海洋等无行政区划区域可能返回部分信息
+        - 坐标精度影响地址准确性
+      operationId: reverseGeocoding
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          description: |
+            纬度坐标
+
+            - 取值范围：-90 到 90
+            - 中国地区纬度范围：18 到 54
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+            example: 39.916527
+        - name: lng
+          in: query
+          required: true
+          description: |
+            经度坐标
+
+            - 取值范围：-180 到 180
+            - 中国地区经度范围：73 到 135
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+            example: 116.397128
+      responses:
+        '200':
+          description: 查询成功，返回详细地址信息
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddressInfo'
+              examples:
+                beijing:
+                  summary: 北京市东城区
+                  description: 北京天安门附近的地址
+                  value:
+                    province: "北京市"
+                    city: "北京市"
+                    district: "东城区"
+                    town: "东华门街道"
+                    village: "东华门社区"
+                    fullAddress: "北京市北京市东城区东华门街道东华门社区"
+                    adCode: 110101
+                    longitude: 116.397128
+                    latitude: 39.916527
+                shanghai:
+                  summary: 上海市黄浦区
+                  description: 上海外滩附近的地址
+                  value:
+                    province: "上海市"
+                    city: "上海市"
+                    district: "黄浦区"
+                    town: "外滩街道"
+                    village: "外滩社区"
+                    fullAddress: "上海市上海市黄浦区外滩街道外滩社区"
+                    adCode: 310101
+                    longitude: 121.490317
+                    latitude: 31.240789
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidCoordinate:
+                  summary: 坐标超出范围
+                  value:
+                    code: 400
+                    message: "经纬度超出有效范围"
+                    error: "INVALID_COORDINATE"
+        '404':
+          description: 无法定位到地址
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "无法定位到地址，坐标可能在海洋或无行政区划区域"
+                error: "ADDRESS_NOT_FOUND"
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    RegionInfo:
+      type: object
+      description: 行政区划信息
+      required:
+        - code
+        - name
+        - level
+      properties:
+        code:
+          type: integer
+          format: int64
+          description: |
+            行政区划代码
+
+            - 省级：6 位代码
+            - 市级：6 位代码
+            - 区县级：6 位代码
+            - 乡镇级：9 位代码
+            - 村级：12 位代码
+          example: 110000
+        name:
+          type: string
+          description: 行政区划名称
+          example: "北京市"
+        latitude:
+          type: number
+          format: double
+          description: |
+            纬度（中心点坐标）
+
+            - 用于地图展示
+            - 用于距离计算
+          minimum: -90
+          maximum: 90
+          example: 39.9042
+        longitude:
+          type: number
+          format: double
+          description: |
+            经度（中心点坐标）
+
+            - 用于地图展示
+            - 用于距离计算
+          minimum: -180
+          maximum: 180
+          example: 116.4074
+        fullAddress:
+          type: string
+          description: |
+            完整地址
+
+            - 格式：省-市-区县-乡镇-村
+            - 根据级别拼接
+            - 用于地址展示
+          example: "北京市-北京市-东城区"
+        level:
+          type: integer
+          description: |
+            行政级别
+
+            - 1：省级（省、直辖市、自治区）
+            - 2：市级（地级市、市辖区）
+            - 3：区县级（县、县级市、市辖区）
+            - 4：乡镇级（乡、镇、街道）
+            - 5：村级（村、社区）
+          enum: [ 1, 2, 3, 4, 5 ]
+          example: 1
+
+    AddressInfo:
+      type: object
+      description: 完整地址信息（逆地理编码结果）
+      required:
+        - province
+        - city
+        - fullAddress
+        - adCode
+      properties:
+        province:
+          type: string
+          description: |
+            省份名称
+
+            - 可能包含"省"、"市"等后缀
+          example: "北京市"
+        city:
+          type: string
+          description: |
+            城市名称
+
+            - 地级市名称
+            - 直辖市与省份同名
+          example: "北京市"
+        district:
+          type: string
+          description: |
+            区县名称
+
+            - 市辖区、县、县级市
+            - 可能为空（如果无法定位到区县级别）
+          example: "东城区"
+        town:
+          type: string
+          description: |
+            乡镇名称
+
+            - 乡、镇、街道
+            - 可能为空（如果无法定位到乡镇级别）
+          example: "东华门街道"
+        village:
+          type: string
+          description: |
+            村/社区名称
+
+            - 村、社区
+            - 可能为空（如果无法定位到村级）
+          example: "东华门社区"
+        fullAddress:
+          type: string
+          description: |
+            完整地址字符串
+
+            - 格式：省+市+区县+乡镇+村
+            - 无分隔符，直接拼接
+            - 用于地址展示
+          example: "北京市北京市东城区东华门街道东华门社区"
+        adCode:
+          type: integer
+          format: int64
+          description: |
+            最细粒度行政区划代码
+
+            - 通常为区县级代码（6 位）
+            - 用于数据库查询和统计分析
+          example: 110101
+        longitude:
+          type: number
+          format: double
+          description: |
+            经度坐标
+
+            - 原始输入坐标
+          minimum: -180
+          maximum: 180
+          example: 116.397128
+        latitude:
+          type: number
+          format: double
+          description: |
+            纬度坐标
+
+            - 原始输入坐标
+          minimum: -90
+          maximum: 90
+          example: 39.916527
+
+    ErrorResponse:
+      type: object
+      description: 错误响应
+      required:
+        - code
+        - message
+        - error
+      properties:
+        code:
+          type: integer
+          description: HTTP 状态码
+          example: 400
+        message:
+          type: string
+          description: 错误消息描述
+          example: "请求参数错误"
+        error:
+          type: string
+          description: 错误类型代码
+          example: "INVALID_PARAMETER"
+        timestamp:
+          type: string
+          format: date-time
+          description: 错误发生时间
+          example: "2024-01-01T12:00:00Z"
+        path:
+          type: string
+          description: 请求路径
+          example: "/api/lbs/region/provinces"

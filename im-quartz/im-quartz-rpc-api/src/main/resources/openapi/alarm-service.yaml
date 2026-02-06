@@ -1,0 +1,177 @@
+openapi: 3.0.3
+info:
+  title: Quartz Alarm Service API
+  description: Dubbo RPC service API for Quartz alarm notifications
+  version: 1.0.0
+  contact:
+    name: Lucky Cloud Team
+    email: support@lucky-cloud.com
+
+servers:
+  - url: dubbo://localhost:20880
+    description: Dubbo RPC endpoint
+
+tags:
+  - name: Alarm Management
+    description: Alarm notification operations
+
+paths:
+  /alarm/send:
+    post:
+      tags:
+        - Alarm Management
+      summary: Send alarm
+      description: Send a single alarm notification
+      operationId: sendAlarm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlarmSendDto'
+      responses:
+        '200':
+          description: Alarm sent successfully
+          content:
+            application/json:
+              schema:
+                type: boolean
+
+  /alarm/batch:
+    post:
+      tags:
+        - Alarm Management
+      summary: Batch send alarms
+      description: Send alarm notifications to multiple recipients
+      operationId: batchSendAlarm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - emails
+                - subject
+                - content
+              properties:
+                emails:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+                  description: Recipient email addresses
+                subject:
+                  type: string
+                  description: Email subject
+                content:
+                  type: string
+                  description: Email content
+      responses:
+        '200':
+          description: Number of successful sends
+          content:
+            application/json:
+              schema:
+                type: integer
+
+  /alarm/task-failure:
+    post:
+      tags:
+        - Alarm Management
+      summary: Send task failure alarm
+      description: Send alarm when task execution fails
+      operationId: sendTaskFailureAlarm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - taskName
+                - errorMsg
+                - emails
+              properties:
+                taskName:
+                  type: string
+                  description: Task name
+                errorMsg:
+                  type: string
+                  description: Error message
+                emails:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+                  description: Recipient email addresses
+      responses:
+        '200':
+          description: Alarm sent successfully
+          content:
+            application/json:
+              schema:
+                type: boolean
+
+  /alarm/task-timeout:
+    post:
+      tags:
+        - Alarm Management
+      summary: Send task timeout alarm
+      description: Send alarm when task execution times out
+      operationId: sendTaskTimeoutAlarm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - taskName
+                - timeoutSeconds
+                - emails
+              properties:
+                taskName:
+                  type: string
+                  description: Task name
+                timeoutSeconds:
+                  type: integer
+                  format: int64
+                  description: Timeout duration in seconds
+                emails:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+                  description: Recipient email addresses
+      responses:
+        '200':
+          description: Alarm sent successfully
+          content:
+            application/json:
+              schema:
+                type: boolean
+
+components:
+  schemas:
+    AlarmSendDto:
+      type: object
+      required:
+        - email
+        - subject
+        - content
+      properties:
+        email:
+          type: string
+          format: email
+          description: Recipient email address
+        subject:
+          type: string
+          description: Email subject
+        content:
+          type: string
+          description: Email content
+        isHtml:
+          type: boolean
+          default: false
+          description: Whether content is HTML format

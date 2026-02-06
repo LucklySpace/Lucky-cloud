@@ -1,0 +1,595 @@
+openapi: 3.0.3
+info:
+  title: OSS 媒体服务 API
+  description: |
+    对象存储服务（Object Storage Service）媒体文件管理 API
+
+    提供图片、头像等媒体文件的上传和处理功能。
+
+    **主要特性：**
+    - 图片自动压缩和格式转换
+    - 自动生成缩略图
+    - 头像裁剪和优化
+    - 清除图片 EXIF 信息（保护隐私）
+    - 支持多种图片格式
+
+  version: 1.0.0
+  contact:
+    name: Lucky Cloud Team
+    email: support@lucky.com
+
+servers:
+  - url: http://localhost:8087
+    description: 本地开发环境
+  - url: https://api-dev.lucky.com
+    description: 开发环境
+  - url: https://api-staging.lucky.com
+    description: 预发布环境
+  - url: https://api.lucky.com
+    description: 生产环境
+
+tags:
+  - name: media
+    description: 媒体文件管理接口
+
+paths:
+  /api/media/image/upload:
+    post:
+      tags:
+        - media
+      summary: 上传图片文件
+      description: |
+        上传图片文件，支持自动压缩和缩略图生成。
+
+        **支持的图片格式：**
+        - JPEG (.jpg, .jpeg)
+        - PNG (.png)
+        - GIF (.gif)
+        - WebP (.webp)
+        - BMP (.bmp)
+        - SVG (.svg)
+        - TIFF (.tiff, .tif)
+        - HEIC (.heic)
+        - AVIF (.avif)
+
+        **自动处理：**
+        1. **格式转换**：非 JPEG/PNG 格式转换为 JPEG（兼容性更好）
+        2. **压缩优化**：自动压缩至合适大小（最大 2MB）
+        3. **缩略图生成**：自动生成 200x200 缩略图
+        4. **元数据清除**：清除 EXIF 等敏感信息（保护隐私）
+        5. **质量调整**：保持视觉质量的同时减小文件大小
+
+        **文件大小限制：**
+        - 普通用户：10MB
+        - VIP 用户：50MB
+        - 企业用户：100MB
+      operationId: uploadImage
+      parameters:
+        - name: identifier
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{32}$'
+            example: "d41d8cd98f00b204e9800998ecf8427e"
+          description: |
+            文件 MD5 值（32 位十六进制字符串）
+
+            用于标识文件唯一性，实现秒传和去重
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: |
+                    图片文件内容
+
+                    支持的格式：
+                    - JPEG, PNG, GIF, WebP, BMP, SVG, TIFF, HEIC, AVIF
+            encoding:
+              file:
+                contentType: image/*
+      responses:
+        '200':
+          description: 上传成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "上传成功"
+                  data:
+                    $ref: '#/components/schemas/MediaFileInfo'
+              examples:
+                jpegImage:
+                  summary: JPEG 图片
+                  value:
+                    code: 200
+                    message: "上传成功"
+                    data:
+                      identifier: "a1b2c3d4e5f6789012345678901234ab"
+                      name: "photo.jpg"
+                      size: 524288
+                      type: "image/jpeg"
+                      path: "https://cdn.example.com/images/photo.jpg"
+                      thumbnailPath: "https://cdn.example.com/thumbnails/photo_200x200.jpg"
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 400
+                message: "请求参数错误"
+                data: null
+        '413':
+          description: 文件大小超过限制
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 413
+                message: "文件大小超过 10MB 限制"
+                data: null
+        '415':
+          description: 不支持的媒体类型
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 415
+                message: "不支持的文件类型，请上传图片文件"
+                data: null
+
+  /api/media/avatar/upload:
+    post:
+      tags:
+        - media
+      summary: 上传头像文件
+      description: |
+        上传用户头像，支持自动裁剪和压缩。
+
+        **头像规格：**
+        - **尺寸**：正方形（推荐 500x500）
+        - **格式**：JPEG / PNG
+        - **大小**：最大 5MB
+        - **内容**：不得包含违规内容（系统会自动检测）
+
+        **自动处理：**
+        1. **居中裁剪**：自动裁剪为正方形
+        2. **多尺寸生成**：
+           - 原图（保持质量）
+           - 大图：200x200（用于个人主页）
+           - 中图：100x100（用于评论）
+           - 小图：50x50（用于列表）
+        3. **质量优化**：压缩至合适大小
+        4. **CDN 缓存**：自动上传至 CDN 加速
+
+        **使用场景：**
+        - 用户头像上传
+        - 群组头像上传
+        - 企业 Logo 上传
+      operationId: uploadAvatar
+      parameters:
+        - name: identifier
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{32}$'
+            example: "d41d8cd98f00b204e9800998ecf8427e"
+          description: 文件 MD5 值
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: |
+                    头像文件内容
+
+                    建议：
+                    - 尺寸：500x500 或更大
+                    - 格式：JPEG 或 PNG
+                    - 大小：不超过 5MB
+            encoding:
+              file:
+                contentType: image/*
+      responses:
+        '200':
+          description: 上传成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "上传成功"
+                  data:
+                    $ref: '#/components/schemas/MediaFileInfo'
+              examples:
+                avatarSuccess:
+                  summary: 头像上传成功
+                  value:
+                    code: 200
+                    message: "上传成功"
+                    data:
+                      identifier: "b2c3d4e5f6789012345678901234abcd"
+                      name: "avatar.jpg"
+                      size: 102400
+                      type: "image/jpeg"
+                      path: "https://cdn.example.com/avatars/user123/avatar.jpg"
+                      thumbnailPath: "https://cdn.example.com/avatars/user123/avatar_100x100.jpg"
+        '400':
+          description: 请求参数错误或图片尺寸不符合要求
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '413':
+          description: 文件大小超过 5MB 限制
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '415':
+          description: 不支持的媒体类型
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/media/image/process:
+    post:
+      tags:
+        - media
+      summary: 图片处理（裁剪、缩放、水印等）
+      description: |
+        对已上传的图片进行处理，支持裁剪、缩放、水印等操作。
+
+        **支持的操作：**
+        1. **缩放**：调整图片尺寸
+        2. **裁剪**：裁剪到指定尺寸
+        3. **水印**：添加图片水印
+        4. **格式转换**：转换图片格式
+        5. **质量调整**：调整图片质量
+
+        **水印位置：**
+        - TOP_LEFT：左上角
+        - TOP_CENTER：顶部居中
+        - TOP_RIGHT：右上角
+        - CENTER：正中心
+        - BOTTOM_LEFT：左下角
+        - BOTTOM_CENTER：底部居中
+        - BOTTOM_RIGHT：右下角（默认）
+
+        **处理流程：**
+        1. 根据 identifier 查找原图
+        2. 应用指定的处理操作
+        3. 保存处理后的图片
+        4. 返回新图片的访问地址
+
+        **注意事项：**
+        - 原图不会被修改
+        - 处理后的图片会生成新的 MD5
+        - 大图片处理可能需要几秒钟
+      operationId: processImage
+      parameters:
+        - name: identifier
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{32}$'
+            example: "d41d8cd98f00b204e9800998ecf8427e"
+          description: |
+            原图的 MD5 值
+
+            处理后的图片会基于原图进行操作
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessImageRequest'
+            examples:
+              resize:
+                summary: 调整尺寸
+                description: 将图片调整为 800x600
+                value:
+                  width: 800
+                  height: 600
+                  format: "jpeg"
+
+              watermark:
+                summary: 添加水印
+                description: 在右下角添加水印
+                value:
+                  watermarkPath: "/watermarks/logo.png"
+                  watermarkPosition: "BOTTOM_RIGHT"
+                  opacity: 0.5
+                  ratio: 0.3
+
+              complex:
+                summary: 组合操作
+                description: 同时调整尺寸和添加水印
+                value:
+                  width: 1200
+                  height: 800
+                  watermarkPath: "/watermarks/logo.png"
+                  watermarkPosition: "BOTTOM_RIGHT"
+                  opacity: 0.5
+                  ratio: 0.3
+                  format: "jpeg"
+      responses:
+        '200':
+          description: 处理成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: "处理成功"
+                  data:
+                    $ref: '#/components/schemas/MediaFileInfo'
+        '400':
+          description: 请求参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 文件不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: 404
+                message: "文件不存在，请先上传图片"
+                data: null
+
+components:
+  schemas:
+    ProcessImageRequest:
+      type: object
+      description: 图片处理请求参数
+      properties:
+        width:
+          type: integer
+          minimum: 1
+          maximum: 4096
+          description: |
+            目标宽度（像素）
+
+            - 范围：1-4096
+            - 不指定则保持原比例
+            - 与 height 同时指定时强制调整尺寸
+          example: 800
+        height:
+          type: integer
+          minimum: 1
+          maximum: 4096
+          description: |
+            目标高度（像素）
+
+            - 范围：1-4096
+            - 不指定则保持原比例
+            - 与 width 同时指定时强制调整尺寸
+          example: 600
+        watermarkPath:
+          type: string
+          format: uri
+          description: |
+            水印图片地址
+
+            必须是已上传到 OSS 的图片路径
+
+            示例：`/watermarks/logo.png`
+          example: "/watermarks/logo.png"
+        watermarkPosition:
+          type: string
+          enum:
+            - TOP_LEFT
+            - TOP_CENTER
+            - TOP_RIGHT
+            - CENTER
+            - BOTTOM_LEFT
+            - BOTTOM_CENTER
+            - BOTTOM_RIGHT
+          default: "BOTTOM_RIGHT"
+          description: |
+            水印位置
+
+            使用 Positions 枚举值：
+            - TOP_LEFT：左上角
+            - TOP_CENTER：顶部居中
+            - TOP_RIGHT：右上角
+            - CENTER：正中心
+            - BOTTOM_LEFT：左下角
+            - BOTTOM_CENTER：底部居中
+            - BOTTOM_RIGHT：右下角（默认）
+          example: "BOTTOM_RIGHT"
+        opacity:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          default: 0.5
+          description: |
+            水印透明度
+
+            - 范围：0.0-1.0
+            - 0.0：完全透明
+            - 1.0：完全不透明
+            - 默认：0.5（50% 透明度）
+          example: 0.5
+        scale:
+          type: number
+          format: double
+          minimum: 0.1
+          maximum: 2.0
+          default: 0.5
+          description: |
+            水印放大倍数
+
+            - 范围：0.1-2.0
+            - 0.5：水印为原始尺寸的 50%
+            - 1.0：水印保持原始尺寸
+            - 默认：0.5
+          example: 0.5
+        ratio:
+          type: number
+          format: double
+          minimum: 0.05
+          maximum: 1.0
+          default: 0.3
+          description: |
+            水印占图片的比例
+
+            - 范围：0.05-1.0（5%-100%）
+            - 0.3：水印占图片的 30%
+            - 默认：0.3
+          example: 0.3
+        format:
+          type: string
+          enum:
+            - jpeg
+            - jpg
+            - png
+            - webp
+          default: "png"
+          description: |
+            输出格式
+
+            支持的格式：
+            - jpeg/jpg：JPEG 格式（有损压缩，体积小）
+            - png：PNG 格式（无损压缩，支持透明）
+            - webp：WebP 格式（现代格式，体积最小）
+
+            默认：png
+          example: "jpeg"
+
+    MediaFileInfo:
+      type: object
+      description: 媒体文件信息
+      properties:
+        identifier:
+          type: string
+          description: |
+            文件 MD5 值（唯一标识）
+
+            用于标识文件唯一性
+          example: "d41d8cd98f00b204e9800998ecf8427e"
+        name:
+          type: string
+          description: |
+            文件名称
+
+            原始文件名或处理后的文件名
+          example: "photo.jpg"
+        size:
+          type: integer
+          format: int64
+          description: |
+            文件大小（字节）
+
+            处理后的文件大小可能与原图不同
+          example: 524288
+        type:
+          type: string
+          description: |
+            文件 MIME 类型
+
+            常见类型：
+            - image/jpeg：JPEG 图片
+            - image/png：PNG 图片
+            - image/webp：WebP 图片
+            - image/gif：GIF 动图
+          example: "image/jpeg"
+        path:
+          type: string
+          format: uri
+          description: |
+            文件访问地址（完整 URL）
+
+            可直接用于下载或展示
+
+            示例：
+            - 原图：`https://cdn.example.com/images/photo.jpg`
+            - 头像：`https://cdn.example.com/avatars/user123/avatar.jpg`
+            - 处理后：`https://cdn.example.com/processed/photo_800x600.jpg`
+          example: "https://cdn.example.com/images/photo.jpg"
+        thumbnailPath:
+          type: string
+          format: uri
+          description: |
+            缩略图文件地址
+
+            自动生成的缩略图（200x200）
+
+            仅图片类文件有此字段
+          example: "https://cdn.example.com/thumbnails/photo_200x200.jpg"
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      description: 错误响应
+      properties:
+        code:
+          type: integer
+          description: 错误代码
+          example: 400
+        message:
+          type: string
+          description: 错误信息
+          example: "请求参数错误"
+        data:
+          type: object
+          nullable: true
+          description: 错误详情（可选）
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT 认证
+
+        获取 Token：
+        1. 调用认证接口获取 Access Token
+        2. 在请求头中添加：`Authorization: Bearer <token>`
+
+security:
+  - BearerAuth: [ ]

@@ -1,7 +1,7 @@
 package com.xy.lucky.logging.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.xy.lucky.logging.domain.vo.LogRecordVo;
+import com.xy.lucky.rpc.api.logging.vo.LogRecordVo;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping;

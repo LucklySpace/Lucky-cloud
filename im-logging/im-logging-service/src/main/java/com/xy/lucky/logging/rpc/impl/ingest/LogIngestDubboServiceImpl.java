@@ -1,8 +1,9 @@
 package com.xy.lucky.logging.rpc.impl.ingest;
 
-import com.xy.lucky.logging.domain.vo.LogRecordVo;
 import com.xy.lucky.logging.service.LogIngestService;
+import com.xy.lucky.rpc.api.logging.enums.LogLevel;
 import com.xy.lucky.rpc.api.logging.ingest.LogIngestDubboService;
+import com.xy.lucky.rpc.api.logging.vo.LogRecordVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;
@@ -22,27 +23,27 @@ public class LogIngestDubboServiceImpl implements LogIngestDubboService {
     private final LogIngestService logIngestService;
 
     @Override
-    public void ingest(RpcLogRecordVo record) {
+    public void ingest(LogRecordVo record) {
         LogRecordVo vo = toVo(record);
         logIngestService.ingest(vo);
     }
 
     @Override
-    public void ingestBatch(List<RpcLogRecordVo> records) {
+    public void ingestBatch(List<LogRecordVo> records) {
         List<LogRecordVo> vos = records.stream()
                 .map(this::toVo)
                 .toList();
         logIngestService.ingestBatch(vos);
     }
 
-    private LogRecordVo toVo(RpcLogRecordVo rpcVo) {
+    private LogRecordVo toVo(LogRecordVo rpcVo) {
         if (rpcVo == null) {
             return null;
         }
 
-        com.xy.lucky.logging.domain.LogLevel level = null;
+        LogLevel level = null;
         if (rpcVo.getLevel() != null) {
-            level = com.xy.lucky.logging.domain.LogLevel.valueOf(rpcVo.getLevel().name());
+            level = LogLevel.valueOf(rpcVo.getLevel().name());
         }
 
         return LogRecordVo.builder()

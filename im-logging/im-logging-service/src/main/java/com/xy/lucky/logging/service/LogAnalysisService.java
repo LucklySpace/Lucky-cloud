@@ -1,6 +1,6 @@
 package com.xy.lucky.logging.service;
 
-import com.xy.lucky.logging.domain.vo.LogRecordVo;
+import com.xy.lucky.rpc.api.logging.vo.LogRecordVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;

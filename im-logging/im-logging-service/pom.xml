@@ -22,11 +22,6 @@
             <version>${revision}</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.xy.lucky</groupId>
-            <artifactId>im-starter-general-webflux</artifactId>
-        </dependency>
-
         <!-- MapStruct -->
         <dependency>
             <groupId>org.mapstruct</groupId>

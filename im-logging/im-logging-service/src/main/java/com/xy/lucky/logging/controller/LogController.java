@@ -1,10 +1,10 @@
 package com.xy.lucky.logging.controller;
 
-import com.xy.lucky.logging.domain.LogLevel;
-import com.xy.lucky.logging.domain.vo.LogRecordVo;
 import com.xy.lucky.logging.service.LogAnalysisService;
 import com.xy.lucky.logging.service.LogIngestService;
 import com.xy.lucky.logging.service.LogQueryService;
+import com.xy.lucky.rpc.api.logging.enums.LogLevel;
+import com.xy.lucky.rpc.api.logging.vo.LogRecordVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;

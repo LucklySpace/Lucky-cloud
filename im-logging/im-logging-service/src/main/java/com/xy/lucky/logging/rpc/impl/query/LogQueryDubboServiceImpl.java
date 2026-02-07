@@ -1,12 +1,13 @@
 package com.xy.lucky.logging.rpc.impl.query;
 
 import com.xy.lucky.logging.domain.po.LogPo;
-import com.xy.lucky.logging.domain.vo.LogRecordVo;
 import com.xy.lucky.logging.mapper.LogMapper;
 import com.xy.lucky.logging.repository.LogRepository;
 import com.xy.lucky.rpc.api.logging.dto.LogQueryDto;
 import com.xy.lucky.rpc.api.logging.dto.PageResult;
+import com.xy.lucky.rpc.api.logging.enums.LogLevel;
 import com.xy.lucky.rpc.api.logging.query.LogQueryDubboService;
+import com.xy.lucky.rpc.api.logging.vo.LogRecordVo;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,9 +34,9 @@ public class LogQueryDubboServiceImpl implements LogQueryDubboService {
     private final LogMapper logMapper;
 
     @Override
-    public PageResult<RpcLogRecordVo> query(String module, LocalDateTime start, LocalDateTime end,
-                                            RpcLogLevel level, String service, String env,
-                                            int page, int size, String keyword) {
+    public PageResult<LogRecordVo> query(String module, LocalDateTime start, LocalDateTime end,
+                                         LogLevel level, String service, String env,
+                                         int page, int size, String keyword) {
         log.info("执行日志查询: module={} service={} env={} level={} keyword={}", module, service, env, level, keyword);
         LocalDateTime actualStart = start != null ? start : LocalDateTime.of(1970, 1, 1, 0, 0);
         LocalDateTime actualEnd = end != null ? end : LocalDateTime.now();
@@ -65,12 +66,12 @@ public class LogQueryDubboServiceImpl implements LogQueryDubboService {
                     PageRequest.of(actualPage - 1, actualSize, Sort.by(Sort.Direction.DESC, "ts"))
             );
 
-            List<RpcLogRecordVo> list = pageData.getContent().stream()
+            List<LogRecordVo> list = pageData.getContent().stream()
                     .map(logMapper::toVo)
                     .map(this::toRpcVo)
                     .collect(Collectors.toList());
 
-            return PageResult.<RpcLogRecordVo>builder()
+            return PageResult.<LogRecordVo>builder()
                     .content(list)
                     .pageNumber(pageData.getPageable().getPageNumber())
                     .pageSize(pageData.getPageable().getPageSize())
@@ -81,7 +82,7 @@ public class LogQueryDubboServiceImpl implements LogQueryDubboService {
                     .build();
         } catch (Exception ex) {
             log.warn("查询日志失败，返回空列表: {}", ex.getMessage());
-            return PageResult.<RpcLogRecordVo>builder()
+            return PageResult.<LogRecordVo>builder()
                     .content(List.of())
                     .pageNumber(page - 1)
                     .pageSize(size)
@@ -94,9 +95,9 @@ public class LogQueryDubboServiceImpl implements LogQueryDubboService {
     }
 
     @Override
-    public PageResult<RpcLogRecordVo> query(LogQueryDto queryDto) {
+    public PageResult<LogRecordVo> query(LogQueryDto queryDto) {
         if (queryDto == null) {
-            return PageResult.<RpcLogRecordVo>builder()
+            return PageResult.<LogRecordVo>builder()
                     .content(List.of())
                     .pageNumber(0)
                     .pageSize(10)
@@ -122,7 +123,7 @@ public class LogQueryDubboServiceImpl implements LogQueryDubboService {
 
     @Override
     public Map<String, Long> histogram(String module, LocalDateTime start, LocalDateTime end,
-                                       RpcLogLevel level, String service, String env,
+                                       LogLevel level, String service, String env,
                                        String keyword, String interval) {
         LocalDateTime actualStart = start != null ? start : LocalDateTime.of(1970, 1, 1, 0, 0);
         LocalDateTime actualEnd = end != null ? end : LocalDateTime.now();
@@ -259,14 +260,14 @@ public class LogQueryDubboServiceImpl implements LogQueryDubboService {
         return t.isEmpty() ? null : t;
     }
 
-    private RpcLogRecordVo toRpcVo(LogRecordVo vo) {
+    private LogRecordVo toRpcVo(LogRecordVo vo) {
         if (vo == null) {
             return null;
         }
-        return RpcLogRecordVo.builder()
+        return LogRecordVo.builder()
                 .id(vo.getId())
                 .timestamp(vo.getTimestamp())
-                .level(vo.getLevel() != null ? RpcLogLevel.valueOf(vo.getLevel().name()) : null)
+                .level(vo.getLevel() != null ? LogLevel.valueOf(vo.getLevel().name()) : null)
                 .module(vo.getModule())
                 .service(vo.getService())
                 .address(vo.getAddress())

@@ -21,6 +21,12 @@
             <artifactId>im-starter-core</artifactId>
         </dependency>
 
+
+        <dependency>
+            <groupId>com.xy.lucky</groupId>
+            <artifactId>im-starter-general-webflux</artifactId>
+        </dependency>
+
         <!-- dubbo模块 -->
         <dependency>
             <groupId>com.xy.lucky</groupId>

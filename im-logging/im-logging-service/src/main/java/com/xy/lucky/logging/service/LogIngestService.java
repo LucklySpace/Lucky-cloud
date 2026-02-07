@@ -1,9 +1,9 @@
 package com.xy.lucky.logging.service;
 
 import com.xy.lucky.logging.domain.po.LogPo;
-import com.xy.lucky.logging.domain.vo.LogRecordVo;
 import com.xy.lucky.logging.mapper.LogMapper;
 import com.xy.lucky.logging.repository.LogRepository;
+import com.xy.lucky.rpc.api.logging.vo.LogRecordVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -1,8 +1,9 @@
 package com.xy.lucky.database.web.service;
 
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.core.utils.StringUtils;
 import com.xy.lucky.database.web.mapper.ImFriendshipRequestMapper;
@@ -23,24 +24,24 @@ public class ImFriendshipRequestService extends ServiceImpl<ImFriendshipRequestM
 
     @Override
     public List<ImFriendshipRequestPo> queryList(String userId) {
-        QueryWrapper<ImFriendshipRequestPo> imFriendshipRequestQuery = new QueryWrapper<>();
-        imFriendshipRequestQuery.eq("to_id", userId);
-        return super.list(imFriendshipRequestQuery);
+        Wrapper<ImFriendshipRequestPo> queryWrapper = Wrappers.<ImFriendshipRequestPo>lambdaQuery()
+                .eq(ImFriendshipRequestPo::getToId, userId);
+        return super.list(queryWrapper);
     }
 
     @Override
     public ImFriendshipRequestPo queryOne(ImFriendshipRequestPo requestPo) {
 
-        QueryWrapper<ImFriendshipRequestPo> imFriendshipRequestQuery = new QueryWrapper<>();
+        LambdaQueryWrapper<ImFriendshipRequestPo> queryWrapper = Wrappers.lambdaQuery();
 
         if (StringUtils.hasText(requestPo.getId())) {
-            imFriendshipRequestQuery.eq("id", requestPo.getId());
+            queryWrapper = queryWrapper.eq(ImFriendshipRequestPo::getId, requestPo.getId());
         }
         if (StringUtils.hasText(requestPo.getFromId()) && StringUtils.hasText(requestPo.getToId())) {
-            imFriendshipRequestQuery.eq("from_id", requestPo.getFromId()).and(wrapper -> wrapper.eq("to_id", requestPo.getToId()));
+            queryWrapper = queryWrapper.eq(ImFriendshipRequestPo::getFromId, requestPo.getFromId())
+                    .and(wrapper -> wrapper.eq(ImFriendshipRequestPo::getToId, requestPo.getToId()));
         }
-
-        return super.getOne(imFriendshipRequestQuery);
+        return super.getOne(queryWrapper);
     }
 
     @Override
@@ -55,8 +56,9 @@ public class ImFriendshipRequestService extends ServiceImpl<ImFriendshipRequestM
 
     @Override
     public Boolean modifyStatus(String requestId, Integer status) {
-        UpdateWrapper<ImFriendshipRequestPo> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.eq("id", requestId).set("approve_status", status);
+        Wrapper<ImFriendshipRequestPo> updateWrapper = Wrappers.<ImFriendshipRequestPo>lambdaUpdate()
+                .eq(ImFriendshipRequestPo::getId, requestId)
+                .set(ImFriendshipRequestPo::getApproveStatus, status);
         return super.update(null, updateWrapper);
     }
 

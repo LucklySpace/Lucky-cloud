@@ -1,7 +1,8 @@
 package com.xy.lucky.database.web.service;
 
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.web.mapper.ImGroupInviteRequestMapper;
 import com.xy.lucky.domain.po.ImGroupInviteRequestPo;
@@ -19,9 +20,9 @@ public class ImGroupInviteRequestService extends ServiceImpl<ImGroupInviteReques
 
     @Override
     public List<ImGroupInviteRequestPo> queryList(String userId) {
-        QueryWrapper<ImGroupInviteRequestPo> groupInviteRequestPoQueryWrapper = new QueryWrapper<>();
-        groupInviteRequestPoQueryWrapper.eq("to_id", userId);
-        return super.list(groupInviteRequestPoQueryWrapper);
+        Wrapper<ImGroupInviteRequestPo> queryWrapper = Wrappers.<ImGroupInviteRequestPo>lambdaQuery()
+                .eq(ImGroupInviteRequestPo::getToId, userId);
+        return super.list(queryWrapper);
     }
 
     @Override

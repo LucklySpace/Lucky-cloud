@@ -1,6 +1,5 @@
 package com.xy.lucky.alysis.controller;
 
-
 import com.hankcs.hanlp.corpus.dependency.CoNll.CoNLLSentence;
 import com.hankcs.hanlp.seg.common.Term;
 import com.xy.lucky.alysis.service.HanLPService;

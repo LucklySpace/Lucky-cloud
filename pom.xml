@@ -14,7 +14,6 @@
         <module>im-gateway</module>
         <module>im-auth</module>
         <module>im-framework</module>
-        <module>im-server</module>
         <module>im-database</module>
         <module>im-oss</module>
         <module>im-analysis</module>
@@ -27,6 +26,7 @@
         <module>im-quartz</module>
         <!--        <module>im-wallet</module>-->
         <module>im-lbs</module>
+        <module>im-chat</module>
     </modules>
 
     <properties>
@@ -709,7 +709,7 @@
             <!-- 业务服务模块 -->
             <dependency>
                 <groupId>com.xy.lucky</groupId>
-                <artifactId>im-server</artifactId>
+                <artifactId>im-chat</artifactId>
                 <version>${revision}</version>
             </dependency>
 
@@ -914,7 +914,7 @@
 
                 <!-- 服务端口配置 -->
                 <im-auth.server.port>8084</im-auth.server.port>
-                <im-service.server.port>8085</im-service.server.port>
+                <im-chat.server.port>8085</im-chat.server.port>
                 <im-leaf.server.port>8086</im-leaf.server.port>
                 <im-oss.server.port>8087</im-oss.server.port>
                 <im-ai.server.port>8088</im-ai.server.port>
@@ -964,7 +964,7 @@
 
                 <!-- 服务端口配置 -->
                 <im-auth.server.port>8084</im-auth.server.port>
-                <im-service.server.port>8085</im-service.server.port>
+                <im-chat.server.port>8085</im-chat.server.port>
                 <im-leaf.server.port>8086</im-leaf.server.port>
                 <im-oss.server.port>8087</im-oss.server.port>
                 <im-ai.server.port>8088</im-ai.server.port>
@@ -1015,7 +1015,7 @@
 
                 <!-- 服务端口配置 -->
                 <im-auth.server.port>8084</im-auth.server.port>
-                <im-service.server.port>8085</im-service.server.port>
+                <im-chat.server.port>8085</im-chat.server.port>
                 <im-leaf.server.port>8086</im-leaf.server.port>
                 <im-oss.server.port>8087</im-oss.server.port>
                 <im-ai.server.port>8088</im-ai.server.port>

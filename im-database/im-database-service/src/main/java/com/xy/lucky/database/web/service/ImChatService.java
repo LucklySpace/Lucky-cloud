@@ -1,6 +1,7 @@
 package com.xy.lucky.database.web.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.web.mapper.ImChatMapper;
 import com.xy.lucky.domain.po.ImChatPo;
@@ -28,13 +29,13 @@ public class ImChatService extends ServiceImpl<ImChatMapper, ImChatPo>
 
     @Override
     public ImChatPo queryOne(String ownerId, String toId, Integer chatType) {
-        QueryWrapper<ImChatPo> query = new QueryWrapper<>();
-        query.eq("owner_id", ownerId)
-                .eq("to_id", toId);
+        LambdaQueryWrapper<ImChatPo> wrapper = Wrappers.<ImChatPo>lambdaQuery()
+                .eq(ImChatPo::getOwnerId, ownerId)
+                .eq(ImChatPo::getToId, toId);
         if (Objects.nonNull(chatType)) {
-            query.eq("chat_type", chatType);
+            wrapper = wrapper.eq(ImChatPo::getChatType, chatType);
         }
-        return super.getOne(query);
+        return super.getOne(wrapper);
     }
 
     @Override

@@ -1,8 +1,11 @@
 package com.xy.lucky.database.web.service;
 
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.web.mapper.ImAuthTokenMapper;
+import com.xy.lucky.domain.BasePo;
 import com.xy.lucky.domain.po.ImAuthTokenPo;
 import com.xy.lucky.rpc.api.database.auth.ImAuthTokenDubboService;
 import lombok.RequiredArgsConstructor;
@@ -26,11 +29,12 @@ public class ImAuthTokenService extends ServiceImpl<ImAuthTokenMapper, ImAuthTok
         if (!StringUtils.hasText(refreshTokenHash)) {
             return Boolean.FALSE;
         }
-        UpdateWrapper<ImAuthTokenPo> uw = new UpdateWrapper<>();
-        uw.eq("refresh_token_hash", refreshTokenHash)
-                .set("used", 1)
-                .set("update_time", System.currentTimeMillis());
-        return super.update(uw);
+
+        Wrapper<ImAuthTokenPo> updateWrapper = Wrappers.<ImAuthTokenPo>lambdaUpdate()
+                .eq(ImAuthTokenPo::getRefreshTokenHash, refreshTokenHash)
+                .set(ImAuthTokenPo::getUsed, 1)
+                .set(BasePo::getUpdateTime, System.currentTimeMillis());
+        return super.update(updateWrapper);
     }
 
     @Override

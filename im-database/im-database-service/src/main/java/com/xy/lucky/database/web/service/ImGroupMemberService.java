@@ -1,6 +1,7 @@
 package com.xy.lucky.database.web.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.web.mapper.ImGroupMemberMapper;
 import com.xy.lucky.domain.po.ImGroupMemberPo;
@@ -24,25 +25,25 @@ public class ImGroupMemberService extends ServiceImpl<ImGroupMemberMapper, ImGro
 
     @Override
     public List<ImGroupMemberPo> queryList(String groupId) {
-        QueryWrapper<ImGroupMemberPo> wrapper = new QueryWrapper<>();
-        wrapper.eq("group_id", groupId);
-        return super.list(wrapper);
+        Wrapper<ImGroupMemberPo> queryWrapper = Wrappers.<ImGroupMemberPo>lambdaQuery()
+                .eq(ImGroupMemberPo::getGroupId, groupId);
+        return super.list(queryWrapper);
     }
 
     @Override
     public ImGroupMemberPo queryOne(String groupId, String memberId) {
-        QueryWrapper<ImGroupMemberPo> wrapper = new QueryWrapper<>();
-        wrapper.eq("group_id", groupId);
-        wrapper.eq("member_id", memberId);
-        return super.getOne(wrapper);
+        Wrapper<ImGroupMemberPo> queryWrapper = Wrappers.<ImGroupMemberPo>lambdaQuery()
+                .eq(ImGroupMemberPo::getGroupId, groupId)
+                .eq(ImGroupMemberPo::getMemberId, memberId);
+        return super.getOne(queryWrapper);
     }
 
     @Override
     public List<ImGroupMemberPo> queryByRole(String groupId, Integer role) {
-        QueryWrapper<ImGroupMemberPo> wrapper = new QueryWrapper<>();
-        wrapper.eq("group_id", groupId);
-        wrapper.eq("role", role);
-        return super.list(wrapper);
+        Wrapper<ImGroupMemberPo> queryWrapper = Wrappers.<ImGroupMemberPo>lambdaQuery()
+                .eq(ImGroupMemberPo::getGroupId, groupId)
+                .eq(ImGroupMemberPo::getRole, role);
+        return super.list(queryWrapper);
     }
 
     @Override
@@ -77,15 +78,15 @@ public class ImGroupMemberService extends ServiceImpl<ImGroupMemberMapper, ImGro
 
     @Override
     public Boolean removeByGroupId(String groupId) {
-        QueryWrapper<ImGroupMemberPo> wrapper = new QueryWrapper<>();
-        wrapper.eq("group_id", groupId);
-        return super.remove(wrapper);
+        Wrapper<ImGroupMemberPo> queryWrapper = Wrappers.<ImGroupMemberPo>lambdaQuery()
+                .eq(ImGroupMemberPo::getGroupId, groupId);
+        return super.remove(queryWrapper);
     }
 
     @Override
     public Long countByGroupId(String groupId) {
-        QueryWrapper<ImGroupMemberPo> wrapper = new QueryWrapper<>();
-        wrapper.eq("group_id", groupId);
-        return super.count(wrapper);
+        Wrapper<ImGroupMemberPo> queryWrapper = Wrappers.<ImGroupMemberPo>lambdaQuery()
+                .eq(ImGroupMemberPo::getGroupId, groupId);
+        return super.count(queryWrapper);
     }
 }

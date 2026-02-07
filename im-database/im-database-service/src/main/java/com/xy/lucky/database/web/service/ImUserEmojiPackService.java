@@ -1,10 +1,11 @@
 package com.xy.lucky.database.web.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.web.mapper.ImUserEmojiPackMapper;
 import com.xy.lucky.database.web.utils.MybatisBatchExecutor;
+import com.xy.lucky.domain.BasePo;
 import com.xy.lucky.domain.po.ImUserEmojiPackPo;
 import com.xy.lucky.rpc.api.database.emoji.ImUserEmojiPackDubboService;
 import lombok.RequiredArgsConstructor;
@@ -37,13 +38,18 @@ public class ImUserEmojiPackService extends ServiceImpl<ImUserEmojiPackMapper, I
         if (userId == null || packCode == null) {
             return false;
         }
-        QueryWrapper<ImUserEmojiPackPo> wrapper = new QueryWrapper<>();
-        wrapper.eq("user_id", userId).eq("pack_id", packCode);
-        ImUserEmojiPackPo exist = super.getOne(wrapper);
+
+        Wrapper<ImUserEmojiPackPo> queryWrapper = Wrappers.<ImUserEmojiPackPo>lambdaQuery()
+                .eq(ImUserEmojiPackPo::getUserId, userId)
+                .eq(ImUserEmojiPackPo::getPackId, packCode);
+        ImUserEmojiPackPo exist = super.getOne(queryWrapper);
+
         if (exist != null) {
-            UpdateWrapper<ImUserEmojiPackPo> uw = new UpdateWrapper<>();
-            uw.eq("user_id", userId).eq("pack_id", packCode).set("del_flag", 1);
-            return super.update(uw);
+            Wrapper<ImUserEmojiPackPo> updateWrapper = Wrappers.<ImUserEmojiPackPo>lambdaUpdate()
+                    .eq(ImUserEmojiPackPo::getUserId, userId)
+                    .eq(ImUserEmojiPackPo::getPackId, packCode)
+                    .set(BasePo::getDelFlag, 1);
+            return super.update(updateWrapper);
         }
         ImUserEmojiPackPo po = new ImUserEmojiPackPo();
         po.setId(userId + ":" + packCode);
@@ -77,9 +83,11 @@ public class ImUserEmojiPackService extends ServiceImpl<ImUserEmojiPackMapper, I
         if (userId == null || packCode == null) {
             return false;
         }
-        UpdateWrapper<ImUserEmojiPackPo> uw = new UpdateWrapper<>();
-        uw.eq("user_id", userId).eq("pack_id", packCode).set("del_flag", 0);
-        return super.update(uw);
+        Wrapper<ImUserEmojiPackPo> updateWrapper = Wrappers.<ImUserEmojiPackPo>lambdaUpdate()
+                .eq(ImUserEmojiPackPo::getUserId, userId)
+                .eq(ImUserEmojiPackPo::getPackId, packCode)
+                .set(BasePo::getDelFlag, 0);
+        return super.update(updateWrapper);
     }
 }
 

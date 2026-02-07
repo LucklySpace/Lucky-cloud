@@ -1,7 +1,7 @@
 package com.xy.lucky.logging.mapper;
 
 import com.xy.lucky.logging.domain.po.LogPo;
-import com.xy.lucky.logging.domain.vo.LogRecordVo;
+import com.xy.lucky.rpc.api.logging.vo.LogRecordVo;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

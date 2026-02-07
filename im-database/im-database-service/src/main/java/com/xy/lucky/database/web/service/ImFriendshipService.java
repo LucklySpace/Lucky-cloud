@@ -1,9 +1,10 @@
 package com.xy.lucky.database.web.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.web.mapper.ImFriendshipMapper;
+import com.xy.lucky.domain.BasePo;
 import com.xy.lucky.domain.po.ImFriendshipPo;
 import com.xy.lucky.rpc.api.database.friend.ImFriendshipDubboService;
 import com.xy.lucky.utils.time.DateTimeUtils;
@@ -26,17 +27,18 @@ public class ImFriendshipService extends ServiceImpl<ImFriendshipMapper, ImFrien
 
     @Override
     public List<ImFriendshipPo> queryListByIds(String ownerId, List<String> ids) {
-        QueryWrapper<ImFriendshipPo> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("owner_id", ownerId).in("to_id", ids);
+        Wrapper<ImFriendshipPo> queryWrapper = Wrappers.<ImFriendshipPo>lambdaQuery()
+                .eq(ImFriendshipPo::getOwnerId, ownerId)
+                .in(ImFriendshipPo::getToId, ids);
         return super.list(queryWrapper);
     }
 
     @Override
     public ImFriendshipPo queryOne(String ownerId, String toId) {
-        QueryWrapper<ImFriendshipPo> query = new QueryWrapper<>();
-        query.eq("owner_id", ownerId)
-                .eq("to_id", toId);
-        return super.getOne(query);
+        Wrapper<ImFriendshipPo> queryWrapper = Wrappers.<ImFriendshipPo>lambdaQuery()
+                .eq(ImFriendshipPo::getOwnerId, ownerId)
+                .eq(ImFriendshipPo::getToId, toId);
+        return super.getOne(queryWrapper);
     }
 
     @Override
@@ -51,10 +53,11 @@ public class ImFriendshipService extends ServiceImpl<ImFriendshipMapper, ImFrien
 
     @Override
     public Boolean removeOne(String ownerId, String friendId) {
-        UpdateWrapper<ImFriendshipPo> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.eq("owner_id", ownerId).eq("to_id", friendId);
-        updateWrapper.set("sequence", DateTimeUtils.getCurrentUTCTimestamp());
-        updateWrapper.set("del_flag", 0);
+        Wrapper<ImFriendshipPo> updateWrapper = Wrappers.<ImFriendshipPo>lambdaUpdate()
+                .eq(ImFriendshipPo::getOwnerId, ownerId)
+                .eq(ImFriendshipPo::getToId, friendId)
+                .set(ImFriendshipPo::getSequence, DateTimeUtils.getCurrentUTCTimestamp())
+                .set(BasePo::getDelFlag, 0);
         return super.update(updateWrapper);
     }
 }

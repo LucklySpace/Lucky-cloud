@@ -1,8 +1,8 @@
 package com.xy.lucky.logging.rpc.impl.analysis;
 
-import com.xy.lucky.logging.domain.vo.LogRecordVo;
 import com.xy.lucky.logging.service.LogAnalysisService;
 import com.xy.lucky.rpc.api.logging.analysis.LogAnalysisDubboService;
+import com.xy.lucky.rpc.api.logging.vo.LogRecordVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboService;

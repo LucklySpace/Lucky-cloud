@@ -8,10 +8,10 @@ spring:
           predicates:
             - Path=/im/**
 
-        - id: im-service # 业务服务
-          uri: lb://im-service
+        - id: im-chat # 业务服务
+          uri: lb://im-chat
           predicates:
-            - Path=/service/**
+            - Path=/chat/**
           filters:
             - StripPrefix=1
 

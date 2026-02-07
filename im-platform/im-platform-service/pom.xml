@@ -41,6 +41,13 @@
             </exclusions>
         </dependency>
 
+        <!-- 引入Forest -->
+        <dependency>
+            <groupId>com.dtflys.forest</groupId>
+            <artifactId>forest-spring-boot-starter</artifactId>
+            <version>${forest.version}</version>
+        </dependency>
+
         <!-- Google Guava -->
         <dependency>
             <groupId>com.google.guava</groupId>

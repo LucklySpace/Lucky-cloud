@@ -5,7 +5,7 @@ server:
 
 spring:
   application:
-    name: im-service
+    name: im-chat
   profiles:
     active: @app.profiles.active@
   jackson:

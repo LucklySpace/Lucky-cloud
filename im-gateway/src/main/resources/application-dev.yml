@@ -44,10 +44,10 @@ knife4j:
   gateway:
     enabled: true
     routes:
-      - name: Service
+      - name: Chat
         # 真实子服务访问url地址-提供OpenAPI的文档
-        url: /service/v3/api-docs?group=default
-        service-name: service
+        url: /chat/v3/api-docs?group=default
+        service-name: chat
 
       - name: Database
         url: /database/v3/api-docs?group=default

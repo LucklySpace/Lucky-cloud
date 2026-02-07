@@ -101,6 +101,7 @@
 
         <!-- 网络 / 底层 -->
         <netty.version>4.2.9.Final</netty.version>
+        <forest.version>1.6.4</forest.version>
 
         <!-- 分布式 / 缓存 -->
         <redis.version>4.2.3</redis.version>
@@ -366,6 +367,13 @@
                 <groupId>io.swagger.core.v3</groupId>
                 <artifactId>swagger-annotations</artifactId>
                 <version>${swagger-annotations.version}</version>
+            </dependency>
+
+            <!-- 引入Forest -->
+            <dependency>
+                <groupId>com.dtflys.forest</groupId>
+                <artifactId>forest-spring-boot-starter</artifactId>
+                <version>${forest.version}</version>
             </dependency>
 
             <!-- 引入jackson依赖包-->

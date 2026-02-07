@@ -1,6 +1,7 @@
 package com.xy.lucky.database.web.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.web.mapper.ImUserDataMapper;
 import com.xy.lucky.domain.po.ImUserDataPo;
@@ -28,9 +29,10 @@ public class ImUserDataService extends ServiceImpl<ImUserDataMapper, ImUserDataP
 
     @Override
     public List<ImUserDataPo> queryByKeyword(String keyword) {
-        QueryWrapper<ImUserDataPo> wrapper = new QueryWrapper<>();
-        wrapper.select("user_id", "name", "avatar", "gender", "birthday", "location", "extra");
-        wrapper.eq("user_id", keyword);
+        Wrapper<ImUserDataPo> wrapper = Wrappers.<ImUserDataPo>lambdaQuery()
+                .select(ImUserDataPo::getUserId, ImUserDataPo::getName, ImUserDataPo::getAvatar, ImUserDataPo::getGender,
+                        ImUserDataPo::getBirthday, ImUserDataPo::getLocation, ImUserDataPo::getExtra)
+                .eq(ImUserDataPo::getUserId, keyword);
         return super.list(wrapper);
     }
 

@@ -1,6 +1,7 @@
 package com.xy.lucky.database.web.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.web.mapper.ImUserMapper;
 import com.xy.lucky.domain.po.ImUserPo;
@@ -44,9 +45,9 @@ public class ImUserService extends ServiceImpl<ImUserMapper, ImUserPo>
 
     @Override
     public ImUserPo queryOneByMobile(String phoneNumber) {
-        QueryWrapper<ImUserPo> userPoQueryWrapper = new QueryWrapper<>();
-        userPoQueryWrapper.eq("mobile", phoneNumber);
-        return super.getOne(userPoQueryWrapper);
+        Wrapper<ImUserPo> queryWrapper = Wrappers.<ImUserPo>lambdaQuery()
+                .eq(ImUserPo::getMobile, phoneNumber);
+        return super.getOne(queryWrapper);
     }
 
     @Override

@@ -30,7 +30,6 @@
             <groupId>com.xy.lucky</groupId>
             <artifactId>im-starter-dubbo</artifactId>
         </dependency>
-
     </dependencies>
 
 </project>

@@ -195,19 +195,14 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <executable>true</executable>
-                    <layout>ZIP</layout>
-                    <!--这里是填写需要包含进去的jar，
-                         必须项目中的某些模块，会经常变动，那么就应该将其坐标写进来
-                         如果没有则nothing ，表示不打包依赖 -->
-                    <includes>
-                        <include>
-                            <groupId>nothing</groupId>
-                            <artifactId>nothing</artifactId>
-                        </include>
-                    </includes>
-                </configuration>
+                <version>${spring-boot.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
             <!--拷贝依赖到jar外面的lib目录-->

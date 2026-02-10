@@ -147,7 +147,7 @@
 
 
     <build>
-
+        <finalName>im-connect</finalName>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
@@ -156,28 +156,10 @@
         </resources>
 
         <plugins>
-            <!-- 原生编译支持 -->
-            <!--            <plugin>-->
-            <!--                <groupId>org.graalvm.buildtools</groupId>-->
-            <!--                <artifactId>native-maven-plugin</artifactId>-->
-            <!--            </plugin>-->
-
-            <!-- Spring Boot Maven 插件 -->
-            <!--            <plugin>-->
-            <!--                <groupId>org.springframework.boot</groupId>-->
-            <!--                <artifactId>spring-boot-maven-plugin</artifactId>-->
-            <!--                <executions>-->
-            <!--                    <execution>-->
-            <!--                        <goals>-->
-            <!--                            <goal>repackage</goal>-->
-            <!--                        </goals>-->
-            <!--                    </execution>-->
-            <!--                </executions>-->
-            <!--            </plugin>-->
-
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
+                    <appendAssemblyId>false</appendAssemblyId>
                     <archive>
                         <manifest>
                             <mainClass>com.xy.lucky.connect.ImConnectApplication</mainClass>
@@ -189,26 +171,14 @@
                 </configuration>
                 <executions>
                     <execution>
-                        <id>make-assembly</id> <!-- this is used for inheritance merges -->
-                        <phase>package</phase> <!-- bind to the packaging phase -->
+                        <id>make-assembly</id>
+                        <phase>package</phase>
                         <goals>
                             <goal>single</goal>
                         </goals>
                     </execution>
                 </executions>
             </plugin>
-
-            <!-- jar 索引  -->
-            <!--            <plugin>-->
-            <!--                <groupId>org.apache.maven.plugins</groupId>-->
-            <!--                <artifactId>maven-jar-plugin</artifactId>-->
-            <!--                <configuration>-->
-            <!--                    <archive>-->
-            <!--                        <index>true</index>-->
-            <!--                    </archive>-->
-            <!--                </configuration>-->
-            <!--            </plugin>-->
-
         </plugins>
     </build>
 

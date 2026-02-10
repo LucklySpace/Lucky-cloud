@@ -160,6 +160,7 @@
     </dependencies>
 
     <build>
+        <finalName>im-leaf</finalName>
         <plugins>
             <!-- 原生编译支持 -->
             <plugin>
@@ -188,6 +189,9 @@
                     <archive>
                         <index>true</index>
                     </archive>
+                    <classesDirectory/>
+                    <outputDirectory/>
+                    <testClassesDirectory/>
                 </configuration>
             </plugin>
         </plugins>

@@ -27,12 +27,6 @@
                 <artifactId>im-logging-rpc-api</artifactId>
                 <version>${revision}</version>
             </dependency>
-
         </dependencies>
     </dependencyManagement>
-
-    <dependencies>
-
-    </dependencies>
-
 </project>

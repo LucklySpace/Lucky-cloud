@@ -156,11 +156,10 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
-
     </dependencies>
 
-
     <build>
+        <finalName>im-oss</finalName>
         <plugins>
             <!-- 原生编译支持 -->
             <plugin>
@@ -172,6 +171,27 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- jar 索引  -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <index>true</index>
+                    </archive>
+                    <classesDirectory/>
+                    <outputDirectory/>
+                    <testClassesDirectory/>
+                </configuration>
             </plugin>
 
             <!-- Compiler plugin with MapStruct processors -->
@@ -206,19 +226,7 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
-
-            <!-- jar 索引  -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <configuration>
-                    <archive>
-                        <index>true</index>
-                    </archive>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
-
 
 </project>

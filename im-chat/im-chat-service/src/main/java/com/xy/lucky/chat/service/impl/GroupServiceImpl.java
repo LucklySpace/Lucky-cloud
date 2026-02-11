@@ -1,5 +1,16 @@
 package com.xy.lucky.chat.service.impl;
 
+import com.xy.lucky.chat.common.LockExecutor;
+import com.xy.lucky.chat.config.IdGeneratorConstant;
+import com.xy.lucky.chat.domain.dto.GroupDto;
+import com.xy.lucky.chat.domain.dto.GroupInviteDto;
+import com.xy.lucky.chat.domain.dto.GroupMemberDto;
+import com.xy.lucky.chat.domain.mapper.GroupMemberBeanMapper;
+import com.xy.lucky.chat.domain.vo.GroupMemberVo;
+import com.xy.lucky.chat.exception.GroupException;
+import com.xy.lucky.chat.service.GroupService;
+import com.xy.lucky.chat.service.MessageService;
+import com.xy.lucky.chat.service.MuteService;
 import com.xy.lucky.core.constants.IMConstant;
 import com.xy.lucky.core.enums.*;
 import com.xy.lucky.core.model.IMGroupAction;
@@ -15,19 +26,8 @@ import com.xy.lucky.rpc.api.database.group.ImGroupInviteRequestDubboService;
 import com.xy.lucky.rpc.api.database.group.ImGroupMemberDubboService;
 import com.xy.lucky.rpc.api.database.user.ImUserDataDubboService;
 import com.xy.lucky.rpc.api.leaf.ImIdDubboService;
-import com.xy.lucky.chat.common.LockExecutor;
-import com.xy.lucky.chat.config.IdGeneratorConstant;
-import com.xy.lucky.chat.domain.dto.GroupDto;
-import com.xy.lucky.chat.domain.dto.GroupInviteDto;
-import com.xy.lucky.chat.domain.dto.GroupMemberDto;
-import com.xy.lucky.chat.domain.mapper.GroupMemberBeanMapper;
-import com.xy.lucky.chat.domain.vo.FileVo;
-import com.xy.lucky.chat.domain.vo.GroupMemberVo;
-import com.xy.lucky.chat.exception.GroupException;
-import com.xy.lucky.chat.service.FileService;
-import com.xy.lucky.chat.service.GroupService;
-import com.xy.lucky.chat.service.MessageService;
-import com.xy.lucky.chat.service.MuteService;
+import com.xy.lucky.rpc.api.oss.media.MediaDubboService;
+import com.xy.lucky.rpc.api.oss.vo.FileVo;
 import com.xy.lucky.utils.id.IdUtils;
 import com.xy.lucky.utils.image.GroupHeadImageUtils;
 import com.xy.lucky.utils.time.DateTimeUtils;
@@ -40,6 +40,8 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -70,11 +72,12 @@ public class GroupServiceImpl implements GroupService {
     private ImGroupInviteRequestDubboService groupInviteRequestDubboService;
     @DubboReference
     private ImIdDubboService idDubboService;
+    @DubboReference
+    private MediaDubboService mediaDubboService;
 
     @Resource
     private MessageService messageService;
-    @Resource
-    private FileService fileService;
+
     private final LockExecutor lockExecutor;
     @Resource
     private MuteService muteService;
@@ -409,7 +412,8 @@ public class GroupServiceImpl implements GroupService {
         try {
             List<String> avatars = groupMemberDubboService.queryNinePeopleAvatar(groupId);
             File headFile = groupHeadImageUtils.getCombinationOfhead(avatars, "defaultGroupHead" + groupId);
-        FileVo fileVo = fileService.uploadFile(headFile);
+            InputStream fileInputStream = new FileInputStream(headFile);
+            FileVo fileVo = mediaDubboService.uploadAvatar("group-" + groupId + ".png", "image/png", fileInputStream.readAllBytes());
         if (fileVo == null || !StringUtils.hasText(fileVo.getPath())) {
             return;
         }

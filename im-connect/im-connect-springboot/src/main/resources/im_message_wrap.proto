@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package im.connect;
+option java_package = "com.xy.connect.domain.proto";
+option java_outer_classname = "IMessageProto";
+
+import "google/protobuf/any.proto";
+
+// 生成命令: W
+message IMessageWrap {
+
+  int32 code = 1;
+
+  string token = 2;
+
+  // 3. 泛型 payload（推荐方式：Any）
+  // 任意 protobuf message 都可以被 pack 成一个 Any 放到这里
+  google.protobuf.Any data = 3;
+
+  // 可选元数据（路由/版本/平台等）
+  map<string, string> metadata = 4;
+
+  // 信息
+  string message = 5;
+
+  // 请求 ID（链路追踪）
+  string request_id = 6;
+
+  // 时间戳（毫秒）
+  int64 timestamp = 7;
+
+  // 客户端信息
+  string client_ip = 8;
+  string user_agent = 9;
+  string device_name = 10;
+  string device_type = 11;
+}

@@ -32,3 +32,23 @@ spring:
         group: @nacos.config.group@
         file-extension: @nacos.config.file-extension@
         preference: @nacos.config.preference@
+
+dubbo: # dubbo
+  application:
+    serialize-check-status: WARN
+  protocol: # dubbo协议
+    name: dubbo
+    port: -1
+  consumer:
+    retries: 2
+    check: true
+    timeout: 5000
+  provider:
+    delay: -1
+    timeout: 5000
+  registry: # 注册到nacos
+    address: nacos://@nacos.config.server-addr@
+    register-mode: instance
+    group: @nacos.discovery.group@
+    username: @nacos.discovery.username@
+    password: @nacos.discovery.password@

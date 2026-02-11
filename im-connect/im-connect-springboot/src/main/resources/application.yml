@@ -1,0 +1,35 @@
+server:
+  http2:
+    enabled: true
+  port: ${SERVER_PORT:@im-connect.server.port@}
+
+spring:
+  application:
+    name: im-connect
+  profiles:
+    active: @app.profiles.active@
+  jackson:
+    default-property-inclusion: non_null
+  config:
+    import:
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yml
+      - optional:nacos:im-lazy-init-config.yml
+  cloud: # nacos
+    sentinel:
+      eager: true
+      transport:
+        dashboard: @sentinel.dashboard.url@
+    nacos:
+      discovery: # 服务注册发现
+        server-addr: @nacos.config.server-addr@
+        username: @nacos.discovery.username@
+        password: @nacos.discovery.password@
+        namespace: @nacos.discovery.namespace@
+        group: @nacos.discovery.group@
+      config: # 配置中心
+        enabled: true
+        server-addr: @nacos.config.server-addr@
+        namespace: @nacos.config.namespace@
+        group: @nacos.config.group@
+        file-extension: @nacos.config.file-extension@
+        preference: @nacos.config.preference@

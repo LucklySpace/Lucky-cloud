@@ -1,0 +1,82 @@
+
+app:
+  name: im-connect
+
+spring:
+  banner:
+    location: classpath:banner.txt
+  profiles:
+    active: dev
+
+rabbitmq:
+  address: 124.220.10.188
+  port: 5672
+  username: guest
+  password: qsczse111
+  virtual: /
+  exchange: IM-SERVER
+  routingKeyPrefix: IM-
+  errorQueue: im.error
+  connectionTimeout: 60000
+  automaticRecovery: true
+
+
+nacos:
+  enable: true
+  config:
+    name: im-connect
+    address: 124.220.10.188
+    port: 8848
+    group: DEFAULT_GROUP
+    username: nacos
+    password: Lucky20251001
+    version: 1.0.0
+    namespace: ""
+
+netty:
+  config:
+    # 序列化协议: json 或 proto
+    protocol: proto
+    # 心跳超时时间（毫秒）
+    heartBeatTime: 30000
+    # 是否允许多设备登录
+    multiDeviceEnabled: true
+    # Boss 线程池大小
+    bossThreadSize: 4
+    # Worker 线程池大小
+    workThreadSize: 16
+    # TCP 配置
+    tcp:
+      enable: true
+      port:
+        - 9000
+        - 9001
+        - 9002
+    # WebSocket 配置
+    websocket:
+      enable: true
+      path: /im
+      port:
+        - 19000
+        - 19001
+        - 19002
+
+# ===========================================
+# Redis 配置
+# 对应配置类: RedisProperties
+# ===========================================
+redis:
+  host: 124.220.10.188
+  port: 6379
+  password: Lucky20251001
+  timeout: 10000
+  database: 0
+  maxTotal: 8
+  maxIdle: 8
+  minIdle: 0
+
+# ===========================================
+# 认证配置
+# ===========================================
+auth:
+  tokenExpired: 3

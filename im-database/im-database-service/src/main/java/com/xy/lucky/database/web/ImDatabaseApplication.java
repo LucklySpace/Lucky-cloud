@@ -13,7 +13,6 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableDubbo(scanBasePackages = "com.xy.lucky.database.web")
 @EnableTransactionManagement  //开启事务管理
 @SpringBootApplication(exclude = {SecurityAutoConfiguration.class})
-//去除不必要的组件
 public class ImDatabaseApplication {
 
     public static void main(String[] args) {

@@ -3,15 +3,25 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.xy.lucky</groupId>
+    <parent>
+        <groupId>com.xy.lucky</groupId>
+        <artifactId>Lucky-cloud</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
     <artifactId>im-connect</artifactId>
     <name>im-connect</name>
     <description>im-connect</description>
     <version>${revision}</version>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>im-connect-core</module>
+        <module>im-connect-springboot</module>
+    </modules>
 
     <properties>
-
         <!-- 项目发布版本 -->
         <revision>0.0.1-SNAPSHOT</revision>
 
@@ -33,153 +43,9 @@
         <jedis.version>4.4.0</jedis.version>
         <lombok.version>1.18.42</lombok.version>
         <snakeyaml.version>2.2</snakeyaml.version>
-        <logback.version>1.1.11</logback.version>
         <nacos.version>3.1.1</nacos.version>
         <google.protobuf.version>4.29.5</google.protobuf.version>
         <sentinel.version>1.8.8</sentinel.version>
-
     </properties>
-
-    <dependencies>
-        <dependency>
-            <groupId>com.xy.lucky</groupId>
-            <artifactId>im-starter-core</artifactId>
-            <version>${revision}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.xy.lucky</groupId>
-            <artifactId>im-spring</artifactId>
-            <version>${revision}</version>
-        </dependency>
-
-        <!--  lombok-->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>${lombok.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>redis.clients</groupId>
-            <artifactId>jedis</artifactId>
-            <version>${jedis.version}</version>
-        </dependency>
-
-        <!--rabbitmq依赖引用-->
-        <dependency>
-            <groupId>com.rabbitmq</groupId>
-            <artifactId>amqp-client</artifactId>
-            <version>${rabbitmq.version}</version>
-        </dependency>
-
-        <!-- 引入jackson依赖包-->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-
-        <!-- netty -->
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId>
-            <version>${netty.version}</version>
-        </dependency>
-
-        <!--  slf4j-->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.alibaba.nacos</groupId>
-            <artifactId>nacos-client</artifactId>
-            <version>${nacos.version}</version>
-            <exclusions>
-                <!--排除snakeyaml依赖-->
-                <exclusion>
-                    <groupId>org.yaml</groupId>
-                    <artifactId>snakeyaml</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>com.alibaba.csp</groupId>
-            <artifactId>sentinel-core</artifactId>
-            <version>${sentinel.version}</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.protobuf</groupId>
-            <artifactId>protobuf-java</artifactId>
-            <version>${google.protobuf.version}</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.protobuf</groupId>
-            <artifactId>protobuf-java-util</artifactId>
-            <version>${google.protobuf.version}</version>
-        </dependency>
-    </dependencies>
-
-
-    <build>
-        <finalName>im-connect</finalName>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>true</filtering>
-            </resource>
-        </resources>
-
-        <plugins>
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <appendAssemblyId>false</appendAssemblyId>
-                    <archive>
-                        <manifest>
-                            <mainClass>com.xy.lucky.connect.ImConnectApplication</mainClass>
-                        </manifest>
-                    </archive>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make-assembly</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
 
 </project>

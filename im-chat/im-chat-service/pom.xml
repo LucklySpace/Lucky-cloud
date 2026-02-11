@@ -20,6 +20,11 @@
 
         <dependency>
             <groupId>com.xy.lucky</groupId>
+            <artifactId>im-oss-rpc-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xy.lucky</groupId>
             <artifactId>im-starter-mq-rabbit</artifactId>
         </dependency>
 
@@ -218,6 +223,8 @@
                             <version>${lombok-mapstruct-binding.version}</version>
                         </path>
                     </annotationProcessorPaths>
+                    <source>21</source>
+                    <target>21</target>
                 </configuration>
             </plugin>
 

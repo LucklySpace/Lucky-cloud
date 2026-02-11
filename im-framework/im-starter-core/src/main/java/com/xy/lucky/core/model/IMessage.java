@@ -98,6 +98,7 @@ public abstract class IMessage implements Serializable {
             @JsonSubTypes.Type(value = GroupInviteMessageBody.class, name = "401"),// 群组邀请
             @JsonSubTypes.Type(value = RecallMessageBody.class, name = "453"),// 撤回消息
             @JsonSubTypes.Type(value = EditMessageBody.class, name = "451"),// 编辑消息
+            @JsonSubTypes.Type(value = MergeMessageBody.class, name = "459"),// 合并消息
             @JsonSubTypes.Type(value = ComplexMessageBody.class, name = "500"),// 混合消息
     })
     private MessageBody messageBody;
@@ -576,5 +577,15 @@ public abstract class IMessage implements Serializable {
          * 可选：会话类型（0 单聊 1 群聊 等）
          */
         private Integer chatType;
+    }
+
+    @Getter
+    public static class MergeMessageBody extends MessageBody implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+
+        @NotBlank(message = "合并消息的 messageIds 不能为空")
+        private List<String> messageIds;
+
     }
 }

@@ -10,5 +10,6 @@
 
     <artifactId>im-auth-rpc-api</artifactId>
     <name>im-auth-rpc-api</name>
+    <packaging>jar</packaging>
 
 </project>

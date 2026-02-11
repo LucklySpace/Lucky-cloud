@@ -76,6 +76,7 @@ public class OssFileImageServiceS3Impl implements OssFileImageService {
     @Override
     public FileVo uploadImage(String identifier, MultipartFile file) {
         String originalFilename = file.getOriginalFilename();
+
         if (file == null || file.isEmpty() || !StringUtils.hasText(identifier)) {
             throw new FileException("文件或文件md5不能为空");
         }

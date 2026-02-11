@@ -87,6 +87,7 @@ public enum IMessageContentType {
     MARK_READ(456, "已读回执"),
     TYPING(457, "正在输入"),
     MESSAGE_QUOTE(458, "引用消息"),
+    MERGE_MESSAGE(459, "合并消息"),
 
 
     /**

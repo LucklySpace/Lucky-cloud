@@ -88,9 +88,9 @@ springdoc:
     enabled: true
     path: /v3/api-docs
   group-configs:
-    - group: 'server'
+    - group: 'chat'
       paths-to-match: '/**'
-      packages-to-scan: com.xy.lucky.server  #改成你自己的包名，一般到启动类的包名
+      packages-to-scan: com.xy.lucky.chat  #改成你自己的包名，一般到启动类的包名
 
 # TODO: knife4j相关配置 可以不用改
 knife4j:
@@ -99,12 +99,3 @@ knife4j:
   setting:
     language: zh_cn   # 默认中文
     swagger-model-name: 实体类
-
-
-minio:
-  endpoint: http://127.0.0.1:9000 #内网地址
-  public: http://127.0.0.1:9000  #外网访问地址
-  #public: http://dns.kizhou.cn:11144  #外网访问地址
-  accesskey: admin
-  secretkey: admin123
-  bucketName: box-im

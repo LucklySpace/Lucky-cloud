@@ -9,8 +9,8 @@ spring:
   jackson:
     default-property-inclusion: non_null
   config:
-    location: gateway-routes-web.yml
     import:
+      - classpath:gateway-routes-web.yml
       - optional:nacos:${spring.application.name}-${spring.profiles.active}.yml
       - optional:nacos:im-lazy-init-config.yml
   cloud: # nacos
@@ -32,3 +32,8 @@ spring:
         group: @nacos.config.group@
         file-extension: @nacos.config.file-extension@
         preference: @nacos.config.preference@
+
+lucky:
+  gateway:
+    route-cache:
+      data-id: gateway-routes-web.yml

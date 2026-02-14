@@ -21,7 +21,7 @@ spring:
       server:
         webflux:
           httpclient:
-            response-timeout: 5s
+            response-timeout: 10s
             compression: true
           #跨域设置
           globalcors:
@@ -99,7 +99,7 @@ lucky:
         enabled: false
     route-cache:
       cache-key: routes
-      data-id: ${spring.config.location}
+      data-id: gateway-routes-web.yml
       group: ${spring.cloud.nacos.config.group}
       timeout-ms: 5000
     ip-guard:

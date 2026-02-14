@@ -160,7 +160,7 @@ public class CachedRouteRepository implements RouteDefinitionRepository {
                 return Collections.emptyList();
             }
 
-            Map<String, Object> routesParent = getNestedMap(root, "spring", "cloud", "gateway");
+            Map<String, Object> routesParent = getNestedMap(root, "spring", "cloud", "gateway", "server", "webflux");
             if (routesParent == null) {
                 log.warn("路由配置未包含 spring.cloud.gateway 节点");
                 return Collections.emptyList();

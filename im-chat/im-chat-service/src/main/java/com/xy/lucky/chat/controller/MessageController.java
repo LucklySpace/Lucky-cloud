@@ -1,12 +1,14 @@
 package com.xy.lucky.chat.controller;
 
+import com.xy.lucky.chat.domain.dto.ChatDto;
+import com.xy.lucky.chat.domain.dto.validation.ValidationGroups;
+import com.xy.lucky.chat.service.MessageService;
 import com.xy.lucky.core.model.IMGroupMessage;
 import com.xy.lucky.core.model.IMSingleMessage;
 import com.xy.lucky.core.model.IMVideoMessage;
 import com.xy.lucky.core.model.IMessageAction;
-import com.xy.lucky.chat.domain.dto.ChatDto;
-import com.xy.lucky.chat.domain.dto.validation.ValidationGroups;
-import com.xy.lucky.chat.service.MessageService;
+import com.xy.lucky.domain.po.ImGroupMessagePo;
+import com.xy.lucky.domain.po.ImSingleMessagePo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
@@ -29,7 +31,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
-import java.util.Map;
+import java.util.List;
 import java.util.concurrent.Executor;
 
 @Slf4j
@@ -104,13 +106,25 @@ public class MessageController {
                 .then();
     }
 
-    @PostMapping("/list")
-    @Operation(summary = "拉取消息列表", description = "根据序列号增量拉取消息")
+    @PostMapping("/single/list")
+    @Operation(summary = "拉取私聊消息列表", description = "根据序列号增量拉取私聊消息")
     @Parameters({
             @Parameter(name = "chatDto", description = "查询条件", required = true, in = ParameterIn.DEFAULT)
     })
-    public Mono<Map<Integer, Object>> list(@RequestBody @Validated(ValidationGroups.Query.class) ChatDto chatDto) {
-        return Mono.fromCallable(() -> messageService.list(chatDto))
+    public Mono<List<ImSingleMessagePo>> singleList(@RequestBody @Validated(ValidationGroups.Query.class) ChatDto chatDto) {
+        return Mono.fromCallable(() -> messageService.singleList(chatDto))
                 .subscribeOn(getScheduler());
     }
+
+    @PostMapping("/group/list")
+    @Operation(summary = "拉取群聊消息列表", description = "根据序列号增量拉取群聊消息")
+    @Parameters({
+            @Parameter(name = "chatDto", description = "查询条件", required = true, in = ParameterIn.DEFAULT)
+    })
+    public Mono<List<ImGroupMessagePo>> groupList(@RequestBody @Validated(ValidationGroups.Query.class) ChatDto chatDto) {
+        return Mono.fromCallable(() -> messageService.groupList(chatDto))
+                .subscribeOn(getScheduler());
+    }
+
+
 }

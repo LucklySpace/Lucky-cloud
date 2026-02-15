@@ -1,10 +1,12 @@
 package com.xy.lucky.chat.service;
 
 
-import com.xy.lucky.core.model.*;
 import com.xy.lucky.chat.domain.dto.ChatDto;
+import com.xy.lucky.core.model.*;
+import com.xy.lucky.domain.po.ImGroupMessagePo;
+import com.xy.lucky.domain.po.ImSingleMessagePo;
 
-import java.util.Map;
+import java.util.List;
 
 public interface MessageService {
 
@@ -18,6 +20,7 @@ public interface MessageService {
 
     void sendGroupAction(IMGroupAction groupActionDto);
 
-    Map<Integer, Object> list(ChatDto chatDto);
+    List<ImSingleMessagePo> singleList(ChatDto chatDto);
 
+    List<ImGroupMessagePo> groupList(ChatDto chatDto);
 }

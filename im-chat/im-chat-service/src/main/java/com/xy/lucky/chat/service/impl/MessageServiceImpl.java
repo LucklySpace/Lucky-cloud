@@ -1,5 +1,13 @@
 package com.xy.lucky.chat.service.impl;
 
+import com.xy.lucky.chat.common.LockExecutor;
+import com.xy.lucky.chat.config.IdGeneratorConstant;
+import com.xy.lucky.chat.domain.dto.ChatDto;
+import com.xy.lucky.chat.domain.mapper.MessageBeanMapper;
+import com.xy.lucky.chat.exception.MessageException;
+import com.xy.lucky.chat.service.MessageService;
+import com.xy.lucky.chat.service.MuteService;
+import com.xy.lucky.chat.utils.RedisUtil;
 import com.xy.lucky.core.constants.IMConstant;
 import com.xy.lucky.core.enums.*;
 import com.xy.lucky.core.model.*;
@@ -11,14 +19,6 @@ import com.xy.lucky.rpc.api.database.message.ImGroupMessageDubboService;
 import com.xy.lucky.rpc.api.database.message.ImSingleMessageDubboService;
 import com.xy.lucky.rpc.api.database.outbox.IMOutboxDubboService;
 import com.xy.lucky.rpc.api.leaf.ImIdDubboService;
-import com.xy.lucky.chat.common.LockExecutor;
-import com.xy.lucky.chat.config.IdGeneratorConstant;
-import com.xy.lucky.chat.domain.dto.ChatDto;
-import com.xy.lucky.chat.domain.mapper.MessageBeanMapper;
-import com.xy.lucky.chat.exception.MessageException;
-import com.xy.lucky.chat.service.MessageService;
-import com.xy.lucky.chat.service.MuteService;
-import com.xy.lucky.chat.utils.RedisUtil;
 import com.xy.lucky.utils.id.IdUtils;
 import com.xy.lucky.utils.json.JacksonUtils;
 import com.xy.lucky.utils.time.DateTimeUtils;
@@ -254,26 +254,25 @@ public class MessageServiceImpl implements MessageService {
     }
 
     /**
-     * 查询消息列表
+     * 查询私聊消息列表
      *
      * @param dto 查询条件（已在 Controller 层校验）
      * @return 消息列表（按类型分组）
      */
     @Override
-    public Map<Integer, Object> list(ChatDto dto) {
-        Map<Integer, Object> result = new HashMap<>();
+    public List<ImSingleMessagePo> singleList(ChatDto dto) {
+        return singleMessageDubboService.queryList(dto.getFromId(), dto.getSequence());
+    }
 
-        List<ImSingleMessagePo> singleMessages = singleMessageDubboService.queryList(dto.getFromId(), dto.getSequence());
-        if (!CollectionUtils.isEmpty(singleMessages)) {
-            result.put(IMessageType.SINGLE_MESSAGE.getCode(), singleMessages);
-        }
-
-        List<ImGroupMessagePo> groupMessages = groupMessageDubboService.queryList(dto.getFromId(), dto.getSequence());
-        if (!CollectionUtils.isEmpty(groupMessages)) {
-            result.put(IMessageType.GROUP_MESSAGE.getCode(), groupMessages);
-        }
-
-        return result;
+    /**
+     * 查询群聊消息列表
+     *
+     * @param dto 查询条件（已在 Controller 层校验）
+     * @return 消息列表（按类型分组）
+     */
+    @Override
+    public List<ImGroupMessagePo> groupList(ChatDto dto) {
+        return groupMessageDubboService.queryList(dto.getFromId(), dto.getSequence());
     }
 
     // ==================== 私有方法 ====================
@@ -321,14 +320,18 @@ public class MessageServiceImpl implements MessageService {
      * 发送消息给在线用户
      */
     private void sendToOnlineUser(IMSingleMessage dto, String messageId) {
-        IMRegisterUser receiver = getOnlineUser(dto.getToId());
-        if (receiver == null) {
-            log.debug("接收者不在线: toId={}", dto.getToId());
-            return;
-        }
 
-        IMessageWrap<Object> wrapper = buildMessageWrapper(IMessageType.SINGLE_MESSAGE.getCode(), dto, List.of(dto.getToId()));
-        publishToBroker(receiver.getBrokerId(), wrapper, messageId);
+        List<String> ids = List.of(dto.getFromId(), dto.getToId());
+
+        for (String id : ids) {
+            IMRegisterUser receiver = getOnlineUser(id);
+            if (receiver == null) {
+                log.debug("接收者不在线: toId={}", dto.getToId());
+                return;
+            }
+            IMessageWrap<Object> wrapper = buildMessageWrapper(IMessageType.SINGLE_MESSAGE.getCode(), dto, List.of(id));
+            publishToBroker(receiver.getBrokerId(), wrapper, messageId);
+        }
     }
 
     /**

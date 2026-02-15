@@ -24,7 +24,6 @@
         <module>im-starter-general</module>
         <module>im-starter-dubbo</module>
         <module>im-starter-general-webflux</module>
-        <module>im-starter-grpc</module>
         <module>im-starter-address</module>
         <module>im-starter-mq</module>
         <module>im-starter-logging</module>

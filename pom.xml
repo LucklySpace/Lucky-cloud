@@ -533,34 +533,6 @@
                 <version>${revision}</version>
             </dependency>
 
-            <!-- grpc模块 -->
-            <dependency>
-                <groupId>com.xy.lucky</groupId>
-                <artifactId>im-grpc-all</artifactId>
-                <version>${revision}</version>
-            </dependency>
-
-            <!-- grpc模块 -->
-            <dependency>
-                <groupId>com.xy.lucky</groupId>
-                <artifactId>im-grpc-client</artifactId>
-                <version>${revision}</version>
-            </dependency>
-
-            <!-- grpc模块 -->
-            <dependency>
-                <groupId>com.xy.lucky</groupId>
-                <artifactId>im-grpc-core</artifactId>
-                <version>${revision}</version>
-            </dependency>
-
-            <!-- grpc模块 -->
-            <dependency>
-                <groupId>com.xy.lucky</groupId>
-                <artifactId>im-grpc-server</artifactId>
-                <version>${revision}</version>
-            </dependency>
-
             <!-- 接口加解密模块 -->
             <dependency>
                 <groupId>com.xy.lucky</groupId>

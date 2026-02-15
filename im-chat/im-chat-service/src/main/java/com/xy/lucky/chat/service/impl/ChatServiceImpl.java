@@ -1,5 +1,11 @@
 package com.xy.lucky.chat.service.impl;
 
+import com.xy.lucky.chat.common.LockExecutor;
+import com.xy.lucky.chat.domain.dto.ChatDto;
+import com.xy.lucky.chat.domain.mapper.ChatBeanMapper;
+import com.xy.lucky.chat.domain.vo.ChatVo;
+import com.xy.lucky.chat.exception.ChatException;
+import com.xy.lucky.chat.service.ChatService;
 import com.xy.lucky.core.enums.IMStatus;
 import com.xy.lucky.core.enums.IMessageReadStatus;
 import com.xy.lucky.core.enums.IMessageType;
@@ -9,12 +15,6 @@ import com.xy.lucky.rpc.api.database.group.ImGroupDubboService;
 import com.xy.lucky.rpc.api.database.message.ImGroupMessageDubboService;
 import com.xy.lucky.rpc.api.database.message.ImSingleMessageDubboService;
 import com.xy.lucky.rpc.api.database.user.ImUserDataDubboService;
-import com.xy.lucky.chat.common.LockExecutor;
-import com.xy.lucky.chat.domain.dto.ChatDto;
-import com.xy.lucky.chat.domain.mapper.ChatBeanMapper;
-import com.xy.lucky.chat.domain.vo.ChatVo;
-import com.xy.lucky.chat.exception.ChatException;
-import com.xy.lucky.chat.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -269,7 +269,7 @@ public class ChatServiceImpl implements ChatService {
                 .setReadStatus(IMessageReadStatus.ALREADY_READ.getCode())
                 .setFromId(dto.getFromId())
                 .setToId(dto.getToId());
-        singleMessageDubboService.modify(updatePo);
+        singleMessageDubboService.modifyReadStatus(updatePo);
     }
 
     /**
@@ -280,6 +280,6 @@ public class ChatServiceImpl implements ChatService {
                 .setReadStatus(IMessageReadStatus.ALREADY_READ.getCode())
                 .setGroupId(dto.getFromId())
                 .setToId(dto.getToId());
-        groupMessageDubboService.creatBatch(List.of(updatePo));
+        groupMessageDubboService.modifyReadStatus(updatePo);
     }
 }

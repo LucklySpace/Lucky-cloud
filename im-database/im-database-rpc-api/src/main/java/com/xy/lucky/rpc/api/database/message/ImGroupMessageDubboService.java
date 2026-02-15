@@ -48,6 +48,15 @@ public interface ImGroupMessageDubboService {
      */
     boolean modify(ImGroupMessagePo groupMessagePo);
 
+
+    /**
+     * 批量更新群组消息
+     *
+     * @param imGroupMessageStatusPo 群组消息状态
+     * @return 是否成功
+     */
+    boolean modifyReadStatus(ImGroupMessageStatusPo imGroupMessageStatusPo);
+
     /**
      * 删除群组消息
      *

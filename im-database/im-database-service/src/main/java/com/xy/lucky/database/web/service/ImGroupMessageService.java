@@ -1,12 +1,12 @@
 package com.xy.lucky.database.web.service;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.web.mapper.ImGroupMessageMapper;
 import com.xy.lucky.database.web.mapper.ImGroupMessageStatusMapper;
 import com.xy.lucky.domain.po.ImGroupMessagePo;
 import com.xy.lucky.domain.po.ImGroupMessageStatusPo;
 import com.xy.lucky.rpc.api.database.message.ImGroupMessageDubboService;
-import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 
@@ -19,9 +19,7 @@ public class ImGroupMessageService extends ServiceImpl<ImGroupMessageMapper, ImG
 
     private final ImGroupMessageMapper imGroupMessageMapper;
 
-    @Resource
-    private ImGroupMessageStatusMapper imGroupMessageStatusMapper;
-
+    private final ImGroupMessageStatusMapper imGroupMessageStatusMapper;
 
     @Override
     public List<ImGroupMessagePo> queryList(String userId, Long sequence) {
@@ -46,6 +44,15 @@ public class ImGroupMessageService extends ServiceImpl<ImGroupMessageMapper, ImG
     @Override
     public boolean modify(ImGroupMessagePo groupMessagePo) {
         return super.updateById(groupMessagePo);
+    }
+
+    @Override
+    public boolean modifyReadStatus(ImGroupMessageStatusPo imGroupMessageStatusPo) {
+        LambdaUpdateWrapper<ImGroupMessageStatusPo> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(ImGroupMessageStatusPo::getGroupId, imGroupMessageStatusPo.getGroupId())
+                .eq(ImGroupMessageStatusPo::getToId, imGroupMessageStatusPo.getToId())
+                .set(ImGroupMessageStatusPo::getReadStatus, imGroupMessageStatusPo.getReadStatus());
+        return imGroupMessageStatusMapper.update(updateWrapper) > 0;
     }
 
     @Override

@@ -47,6 +47,15 @@ public interface ImSingleMessageDubboService {
      */
     Boolean modify(ImSingleMessagePo singleMessagePo);
 
+
+    /**
+     * 修改单聊消息已读状态
+     *
+     * @param singleMessagePo 单聊消息
+     * @return 修改结果
+     */
+    Boolean modifyReadStatus(ImSingleMessagePo singleMessagePo);
+
     /**
      * 删除单聊消息
      *

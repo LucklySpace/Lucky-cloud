@@ -1,5 +1,6 @@
 package com.xy.lucky.database.web.service;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.web.mapper.ImSingleMessageMapper;
 import com.xy.lucky.domain.po.ImSingleMessagePo;
@@ -40,6 +41,18 @@ public class ImSingleMessageService extends ServiceImpl<ImSingleMessageMapper, I
     @Override
     public Boolean modify(ImSingleMessagePo singleMessagePo) {
         return super.updateById(singleMessagePo);
+    }
+
+    @Override
+    public Boolean modifyReadStatus(ImSingleMessagePo singleMessagePo) {
+        LambdaUpdateWrapper<ImSingleMessagePo> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(ImSingleMessagePo::getFromId, singleMessagePo.getFromId())
+                .eq(ImSingleMessagePo::getToId, singleMessagePo.getToId()).or(
+                        wrapper -> wrapper.eq(ImSingleMessagePo::getFromId, singleMessagePo.getToId())
+                                .eq(ImSingleMessagePo::getToId, singleMessagePo.getFromId())
+                )
+                .set(ImSingleMessagePo::getReadStatus, singleMessagePo.getReadStatus());
+        return super.update(updateWrapper);
     }
 
     @Override

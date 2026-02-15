@@ -38,7 +38,7 @@ public class ImUserDataService extends ServiceImpl<ImUserDataMapper, ImUserDataP
 
     @Override
     public List<ImUserDataPo> queryListByIds(List<String> userIdList) {
-        return super.listByIds(userIdList);
+        return imUserDataMapper.selectByIds(userIdList);
     }
 
 

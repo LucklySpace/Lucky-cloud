@@ -327,7 +327,7 @@ public class MessageServiceImpl implements MessageService {
             IMRegisterUser receiver = getOnlineUser(id);
             if (receiver == null) {
                 log.debug("接收者不在线: toId={}", dto.getToId());
-                return;
+                continue;
             }
             IMessageWrap<Object> wrapper = buildMessageWrapper(IMessageType.SINGLE_MESSAGE.getCode(), dto, List.of(id));
             publishToBroker(receiver.getBrokerId(), wrapper, messageId);

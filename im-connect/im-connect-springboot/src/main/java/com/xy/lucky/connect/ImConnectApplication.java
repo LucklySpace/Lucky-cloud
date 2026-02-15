@@ -17,7 +17,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 @Slf4j
 @SpringBootApplication
 @EnableConfigurationProperties({NettyProperties.class})
-public class ImConnectSpringBootApplication {
+public class ImConnectApplication {
 
     public static void main(String[] args) throws Exception {
         // 获取机器码
@@ -30,7 +30,7 @@ public class ImConnectSpringBootApplication {
         initializeLogger();
 
         // 启动 Spring Boot
-        SpringApplication.run(ImConnectSpringBootApplication.class, args);
+        SpringApplication.run(ImConnectApplication.class, args);
 
         log.info("IM连接服务启动成功，监听地址：{}", IPAddressUtil.getLocalIp4Address());
     }

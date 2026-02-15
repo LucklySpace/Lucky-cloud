@@ -166,7 +166,7 @@
     <!--开发环境:打印控制台-->
     <springProfile name="dev">
         <!--可以输出项目中的debug日志，包括mybatis的sql日志-->
-        <logger name="com.xy.lucky" level="INFO"/>
+        <logger name="com.xy.lucky" level="ERROR"/>
 
         <!--
             root节点是必选节点，用来指定最基础的日志输出级别，只有一个level属性

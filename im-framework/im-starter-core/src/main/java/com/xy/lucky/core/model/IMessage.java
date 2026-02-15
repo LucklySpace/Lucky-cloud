@@ -2,6 +2,7 @@ package com.xy.lucky.core.model;
 
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.xy.lucky.core.enums.IMessageReadStatus;
@@ -145,12 +146,27 @@ public abstract class IMessage implements Serializable {
         /**
          * 被 @ 的用户 ID 列表
          */
+
         private List<String> mentionedUserIds = Collections.emptyList();
 
         /**
          * 是否 @ 所有人
          */
         private Boolean mentionAll = false;
+
+        /**
+         * 当 mentionAll == false 且 mentionedUserIds 为空时返回 null
+         */
+        @JsonProperty("mentionedUserIds")
+        public List<String> getMentionedUserIds() {
+            if (Boolean.FALSE.equals(this.mentionAll)) {
+                if (this.mentionedUserIds == null || this.mentionedUserIds.isEmpty()) {
+                    return null; // 将触发 NON_NULL 忽略，从而不序列化字段
+                }
+            }
+            return this.mentionedUserIds;
+        }
+
     }
 
     /**

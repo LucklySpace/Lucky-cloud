@@ -600,8 +600,8 @@ public abstract class IMessage implements Serializable {
 
         private static final long serialVersionUID = 1L;
 
-        @NotBlank(message = "合并消息的 messageIds 不能为空")
-        private List<String> messageIds;
+        @NotBlank(message = "合并消息的 messages 不能为空")
+        private List<MessageBody> messages;
 
     }
 }

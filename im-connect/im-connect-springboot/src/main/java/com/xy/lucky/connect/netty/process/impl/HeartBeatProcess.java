@@ -19,6 +19,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Slf4j(topic = LogConstant.HeartBeat)
 @Component
 public class HeartBeatProcess implements WebsocketProcess {
@@ -64,9 +67,9 @@ public class HeartBeatProcess implements WebsocketProcess {
             } catch (Exception ignored) {
             }
         }
-        java.util.Map<String, String> metadata = new java.util.HashMap<>();
-        metadata.put("平台", deviceType.getGroup().name());
-        metadata.put("设备类型", deviceType.getType());
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("platform", deviceType.getGroup().name());
+        metadata.put("deviceType", deviceType.getType());
         if (StringUtils.hasText(brokerId)) {
             metadata.put("brokerId", brokerId);
         }

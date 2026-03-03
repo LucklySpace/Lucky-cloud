@@ -3,11 +3,11 @@ package com.xy.lucky.database.web.service;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xy.lucky.database.web.mapper.ImUserEmojiPackMapper;
+import com.xy.lucky.database.web.mapper.ImUserStickerPackMapper;
 import com.xy.lucky.database.web.utils.MybatisBatchExecutor;
 import com.xy.lucky.domain.BasePo;
-import com.xy.lucky.domain.po.ImUserEmojiPackPo;
-import com.xy.lucky.rpc.api.database.emoji.ImUserEmojiPackDubboService;
+import com.xy.lucky.domain.po.ImUserStickerPackPo;
+import com.xy.lucky.rpc.api.database.sticker.ImUserStickerPackDubboService;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.util.CollectionUtils;
@@ -17,14 +17,14 @@ import java.util.List;
 
 @DubboService
 @RequiredArgsConstructor
-public class ImUserEmojiPackService extends ServiceImpl<ImUserEmojiPackMapper, ImUserEmojiPackPo>
-        implements ImUserEmojiPackDubboService {
+public class ImUserStickerPackService extends ServiceImpl<ImUserStickerPackMapper, ImUserStickerPackPo>
+        implements ImUserStickerPackDubboService {
 
-    private final ImUserEmojiPackMapper mapper;
+    private final ImUserStickerPackMapper mapper;
     private final MybatisBatchExecutor batchExecutor;
 
     @Override
-    public List<ImUserEmojiPackPo> listByUserId(String userId) {
+    public List<ImUserStickerPackPo> listByUserId(String userId) {
         return mapper.selectByUserId(userId);
     }
 
@@ -39,19 +39,19 @@ public class ImUserEmojiPackService extends ServiceImpl<ImUserEmojiPackMapper, I
             return false;
         }
 
-        Wrapper<ImUserEmojiPackPo> queryWrapper = Wrappers.<ImUserEmojiPackPo>lambdaQuery()
-                .eq(ImUserEmojiPackPo::getUserId, userId)
-                .eq(ImUserEmojiPackPo::getPackId, packCode);
-        ImUserEmojiPackPo exist = super.getOne(queryWrapper);
+        Wrapper<ImUserStickerPackPo> queryWrapper = Wrappers.<ImUserStickerPackPo>lambdaQuery()
+                .eq(ImUserStickerPackPo::getUserId, userId)
+                .eq(ImUserStickerPackPo::getPackId, packCode);
+        ImUserStickerPackPo exist = super.getOne(queryWrapper);
 
         if (exist != null) {
-            Wrapper<ImUserEmojiPackPo> updateWrapper = Wrappers.<ImUserEmojiPackPo>lambdaUpdate()
-                    .eq(ImUserEmojiPackPo::getUserId, userId)
-                    .eq(ImUserEmojiPackPo::getPackId, packCode)
+            Wrapper<ImUserStickerPackPo> updateWrapper = Wrappers.<ImUserStickerPackPo>lambdaUpdate()
+                    .eq(ImUserStickerPackPo::getUserId, userId)
+                    .eq(ImUserStickerPackPo::getPackId, packCode)
                     .set(BasePo::getDelFlag, 1);
             return super.update(updateWrapper);
         }
-        ImUserEmojiPackPo po = new ImUserEmojiPackPo();
+        ImUserStickerPackPo po = new ImUserStickerPackPo();
         po.setId(userId + ":" + packCode);
         po.setUserId(userId);
         po.setPackId(packCode);
@@ -64,17 +64,17 @@ public class ImUserEmojiPackService extends ServiceImpl<ImUserEmojiPackMapper, I
         if (userId == null || CollectionUtils.isEmpty(packCodes)) {
             return false;
         }
-        List<ImUserEmojiPackPo> list = new ArrayList<>();
+        List<ImUserStickerPackPo> list = new ArrayList<>();
         for (String code : packCodes) {
             if (code == null) continue;
-            ImUserEmojiPackPo po = new ImUserEmojiPackPo();
+            ImUserStickerPackPo po = new ImUserStickerPackPo();
             po.setId(userId + ":" + code);
             po.setUserId(userId);
             po.setPackId(code);
             po.setDelFlag(1);
             list.add(po);
         }
-        batchExecutor.batchSave(list, ImUserEmojiPackMapper.class, ImUserEmojiPackMapper::insert);
+        batchExecutor.batchSave(list, ImUserStickerPackMapper.class, ImUserStickerPackMapper::insert);
         return true;
     }
 
@@ -83,9 +83,9 @@ public class ImUserEmojiPackService extends ServiceImpl<ImUserEmojiPackMapper, I
         if (userId == null || packCode == null) {
             return false;
         }
-        Wrapper<ImUserEmojiPackPo> updateWrapper = Wrappers.<ImUserEmojiPackPo>lambdaUpdate()
-                .eq(ImUserEmojiPackPo::getUserId, userId)
-                .eq(ImUserEmojiPackPo::getPackId, packCode)
+        Wrapper<ImUserStickerPackPo> updateWrapper = Wrappers.<ImUserStickerPackPo>lambdaUpdate()
+                .eq(ImUserStickerPackPo::getUserId, userId)
+                .eq(ImUserStickerPackPo::getPackId, packCode)
                 .set(BasePo::getDelFlag, 0);
         return super.update(updateWrapper);
     }

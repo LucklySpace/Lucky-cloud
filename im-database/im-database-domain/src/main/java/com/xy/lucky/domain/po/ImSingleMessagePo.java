@@ -13,9 +13,6 @@ import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 
-/**
- * @TableName im_srivate_message
- */
 @Data
 @Accessors(chain = true)
 @NoArgsConstructor

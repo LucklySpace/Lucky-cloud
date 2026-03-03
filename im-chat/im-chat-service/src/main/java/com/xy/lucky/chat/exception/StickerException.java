@@ -1,10 +1,10 @@
-package com.xy.lucky.platform.exception;
+package com.xy.lucky.chat.exception;
 
 import com.xy.lucky.general.exception.GlobalException;
 import com.xy.lucky.general.response.domain.ResultCode;
 
 /**
- * 表情包业务异常
+ * 表情包异常
  */
 public class StickerException extends GlobalException {
 

@@ -1,12 +1,12 @@
-package com.xy.lucky.rpc.api.database.emoji;
+package com.xy.lucky.rpc.api.database.sticker;
 
-import com.xy.lucky.domain.po.ImUserEmojiPackPo;
+import com.xy.lucky.domain.po.ImUserStickerPackPo;
 
 import java.util.List;
 
-public interface ImUserEmojiPackDubboService {
+public interface ImUserStickerPackDubboService {
 
-    List<ImUserEmojiPackPo> listByUserId(String userId);
+    List<ImUserStickerPackPo> listByUserId(String userId);
 
     List<String> listPackIds(String userId);
 

@@ -1,13 +1,13 @@
 package com.xy.lucky.chat.service.impl;
 
-import com.xy.lucky.domain.po.ImUserDataPo;
-import com.xy.lucky.rpc.api.database.user.ImUserDataDubboService;
 import com.xy.lucky.chat.common.LockExecutor;
 import com.xy.lucky.chat.domain.dto.UserDto;
 import com.xy.lucky.chat.domain.mapper.UserDataBeanMapper;
 import com.xy.lucky.chat.domain.vo.UserVo;
 import com.xy.lucky.chat.exception.MessageException;
 import com.xy.lucky.chat.service.UserService;
+import com.xy.lucky.domain.po.ImUserDataPo;
+import com.xy.lucky.rpc.api.database.user.ImUserDataDubboService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -36,6 +36,8 @@ public class UserServiceImpl implements UserService {
     @DubboReference
     private ImUserDataDubboService userDataDubboService;
 
+    private final UserDataBeanMapper userDataBeanMapper;
+
     /**
      * 查询用户列表
      *
@@ -49,7 +51,7 @@ public class UserServiceImpl implements UserService {
         }
 
         return Optional.ofNullable(userDataDubboService.queryOne(dto.getUserId()))
-                .map(po -> List.of(UserDataBeanMapper.INSTANCE.toUserVo(po)))
+                .map(po -> List.of(userDataBeanMapper.toUserVo(po)))
                 .orElse(Collections.emptyList());
     }
 
@@ -62,8 +64,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserVo one(String userId) {
         return lockExecutor.execute(LOCK_PREFIX + "one:" + userId, () -> {
-            ImUserDataPo po = userDataDubboService.queryOne(userId);
-            return po != null ? UserDataBeanMapper.INSTANCE.toUserVo(po) : new UserVo();
+            return Optional.ofNullable(userDataDubboService.queryOne(userId))
+                    .map(userDataBeanMapper::toUserVo)
+                    .orElseGet(UserVo::new);
         });
     }
 
@@ -75,14 +78,14 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     public UserVo create(UserDto dto) {
-        ImUserDataPo po = UserDataBeanMapper.INSTANCE.toImUserDataPo(dto);
+        ImUserDataPo po = userDataBeanMapper.toImUserDataPo(dto);
 
         if (!userDataDubboService.creat(po)) {
             throw new MessageException("创建用户失败");
         }
 
         log.info("创建用户成功: userId={}", dto.getUserId());
-                return UserDataBeanMapper.INSTANCE.toUserVo(po);
+        return userDataBeanMapper.toUserVo(po);
     }
 
     /**
@@ -94,7 +97,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public Boolean update(UserDto dto) {
         return lockExecutor.execute(LOCK_PREFIX + "update:" + dto.getUserId(), () -> {
-            ImUserDataPo po = UserDataBeanMapper.INSTANCE.toImUserDataPo(dto);
+            ImUserDataPo po = userDataBeanMapper.toImUserDataPo(dto);
 
             if (!userDataDubboService.modify(po)) {
                 throw new MessageException("更新用户失败");

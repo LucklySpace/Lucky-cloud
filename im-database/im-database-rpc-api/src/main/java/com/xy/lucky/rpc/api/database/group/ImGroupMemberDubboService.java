@@ -81,7 +81,7 @@ public interface ImGroupMemberDubboService {
      * @param groupMemberList 群成员信息
      * @return 是否成功
      */
-    Boolean creatBatch(List<ImGroupMemberPo> groupMemberList);
+    Boolean creatOrModifyBatch(List<ImGroupMemberPo> groupMemberList);
 
     /**
      * 随机获取9个用户头像，用于生成九宫格头像

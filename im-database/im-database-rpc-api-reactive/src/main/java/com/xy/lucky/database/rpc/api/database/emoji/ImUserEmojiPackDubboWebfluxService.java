@@ -1,14 +1,14 @@
-package com.xy.lucky.database.rpc.api.database.emoji;
+package com.xy.lucky.database.rpc.api.database.sticker;
 
-import com.xy.lucky.domain.po.ImUserEmojiPackPo;
+import com.xy.lucky.domain.po.ImUserStickerPackPo;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-public interface ImUserEmojiPackDubboWebfluxService {
+public interface ImUserStickerPackDubboWebfluxService {
 
-    Flux<ImUserEmojiPackPo> listByUserId(String userId);
+    Flux<ImUserStickerPackPo> listByUserId(String userId);
 
     Flux<String> listPackIds(String userId);
 

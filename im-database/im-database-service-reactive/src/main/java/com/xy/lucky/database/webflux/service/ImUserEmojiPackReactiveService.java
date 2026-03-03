@@ -1,9 +1,9 @@
 package com.xy.lucky.database.webflux.service;
 
-import com.xy.lucky.database.webflux.entity.ImUserEmojiPackEntity;
-import com.xy.lucky.database.webflux.repository.ImUserEmojiPackRepository;
-import com.xy.lucky.domain.po.ImUserEmojiPackPo;
-import com.xy.lucky.database.rpc.api.database.emoji.ImUserEmojiPackDubboWebfluxService;
+import com.xy.lucky.database.webflux.entity.ImUserStickerPackEntity;
+import com.xy.lucky.database.webflux.repository.ImUserStickerPackRepository;
+import com.xy.lucky.domain.po.ImUserStickerPackPo;
+import com.xy.lucky.database.rpc.api.database.sticker.ImUserStickerPackDubboWebfluxService;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.stereotype.Service;
@@ -16,18 +16,18 @@ import java.util.UUID;
 @Service
 @DubboService
 @RequiredArgsConstructor
-public class ImUserEmojiPackReactiveService implements ImUserEmojiPackDubboWebfluxService {
+public class ImUserStickerPackReactiveService implements ImUserStickerPackDubboWebfluxService {
 
-    private final ImUserEmojiPackRepository repository;
+    private final ImUserStickerPackRepository repository;
 
     @Override
-    public Flux<ImUserEmojiPackPo> listByUserId(String userId) {
+    public Flux<ImUserStickerPackPo> listByUserId(String userId) {
         return repository.findByUserId(userId).map(this::toPo);
     }
 
     @Override
     public Flux<String> listPackIds(String userId) {
-        return repository.findByUserId(userId).map(ImUserEmojiPackEntity::getPackId);
+        return repository.findByUserId(userId).map(ImUserStickerPackEntity::getPackId);
     }
 
     @Override
@@ -38,7 +38,7 @@ public class ImUserEmojiPackReactiveService implements ImUserEmojiPackDubboWebfl
                     if (exists) {
                         return Mono.just(true);
                     }
-                    ImUserEmojiPackEntity entity = new ImUserEmojiPackEntity();
+                    ImUserStickerPackEntity entity = new ImUserStickerPackEntity();
                     entity.setId(UUID.randomUUID().toString());
                     entity.setUserId(userId);
                     entity.setPackId(packId);
@@ -69,8 +69,8 @@ public class ImUserEmojiPackReactiveService implements ImUserEmojiPackDubboWebfl
                 .defaultIfEmpty(true); // If not found, considered unbound
     }
 
-    private ImUserEmojiPackPo toPo(ImUserEmojiPackEntity e) {
-        ImUserEmojiPackPo p = new ImUserEmojiPackPo();
+    private ImUserStickerPackPo toPo(ImUserStickerPackEntity e) {
+        ImUserStickerPackPo p = new ImUserStickerPackPo();
         p.setId(e.getId());
         p.setUserId(e.getUserId());
         p.setPackId(e.getPackId());

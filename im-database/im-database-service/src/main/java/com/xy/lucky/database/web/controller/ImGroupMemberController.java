@@ -95,7 +95,7 @@ public class ImGroupMemberController {
             @ApiResponse(responseCode = "200", description = "创建成功")
     })
     public Mono<Boolean> createGroupMembersBatch(@RequestBody @NotEmpty List<@Valid ImGroupMemberPo> groupMemberList) {
-        return Mono.fromCallable(() -> imGroupMemberService.creatBatch(groupMemberList)).subscribeOn(Schedulers.boundedElastic());
+        return Mono.fromCallable(() -> imGroupMemberService.creatOrModifyBatch(groupMemberList)).subscribeOn(Schedulers.boundedElastic());
     }
 
     /**

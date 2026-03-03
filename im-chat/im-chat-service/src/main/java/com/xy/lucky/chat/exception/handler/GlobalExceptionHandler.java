@@ -2,6 +2,7 @@ package com.xy.lucky.chat.exception.handler;
 
 import com.xy.lucky.general.exception.BusinessException;
 import com.xy.lucky.general.exception.ForbiddenException;
+import com.xy.lucky.general.exception.GlobalException;
 import com.xy.lucky.general.response.domain.Result;
 import com.xy.lucky.general.response.domain.ResultCode;
 import jakarta.validation.ConstraintViolationException;
@@ -33,6 +34,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public Result<?> handle(BusinessException ex) {
         log.error("BusinessException: {}", ex.getMessage(), ex);
+        return Result.failed(ex.getCode(), ex.getMessage());
+    }
+
+    @ExceptionHandler(GlobalException.class)
+    public Result<?> handle(GlobalException ex) {
+        log.error("GlobalException: {}", ex.getMessage(), ex);
         return Result.failed(ex.getCode(), ex.getMessage());
     }
 

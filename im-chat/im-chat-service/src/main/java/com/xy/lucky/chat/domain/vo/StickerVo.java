@@ -1,4 +1,4 @@
-package com.xy.lucky.platform.domain.vo;
+package com.xy.lucky.chat.domain.vo;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -11,9 +11,9 @@ import org.springframework.http.codec.multipart.FilePart;
  * 表情条目请求/响应对象
  */
 @Data
-@Schema(name = "EmojiVo", description = "表情条目：包含名称、所属包、对象存储信息")
+@Schema(name = "StickerVo", description = "表情条目：包含名称、所属包、对象存储信息")
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class EmojiVo {
+public class StickerVo {
 
     @Schema(description = "所属表情包ID")
     @NotBlank(message = "packId 不能为空")
@@ -30,7 +30,7 @@ public class EmojiVo {
     private String tags;
 
     @Schema(description = "表情ID")
-    private String emojiId;
+    private String stickerId;
 
     @Schema(description = "下载URL（预签名）")
     private String url;

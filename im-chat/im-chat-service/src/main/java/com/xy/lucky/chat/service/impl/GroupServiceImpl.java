@@ -31,7 +31,6 @@ import com.xy.lucky.rpc.api.oss.vo.FileVo;
 import com.xy.lucky.utils.id.IdUtils;
 import com.xy.lucky.utils.image.GroupHeadImageUtils;
 import com.xy.lucky.utils.time.DateTimeUtils;
-import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -75,12 +74,13 @@ public class GroupServiceImpl implements GroupService {
     @DubboReference
     private MediaDubboService mediaDubboService;
 
-    @Resource
-    private MessageService messageService;
+    private final MessageService messageService;
 
     private final LockExecutor lockExecutor;
-    @Resource
-    private MuteService muteService;
+
+    private final MuteService muteService;
+
+    private final GroupMemberBeanMapper groupMemberBeanMapper;
 
     /**
      * 获取群成员列表
@@ -200,8 +200,8 @@ public class GroupServiceImpl implements GroupService {
      */
     @Override
     public ImGroupPo groupInfo(GroupDto dto) {
-        ImGroupPo group = groupDubboService.queryOne(dto.getGroupId());
-        return group != null ? group : new ImGroupPo();
+        return Optional.ofNullable(groupDubboService.queryOne(dto.getGroupId()))
+                .orElseGet(ImGroupPo::new);
     }
 
     /**
@@ -212,10 +212,8 @@ public class GroupServiceImpl implements GroupService {
      */
     @Override
     public Boolean updateGroupInfo(GroupDto dto) {
-        ImGroupPo existing = groupDubboService.queryOne(dto.getGroupId());
-        if (existing == null) {
-            throw new GroupException("群组不存在");
-        }
+        Optional.ofNullable(groupDubboService.queryOne(dto.getGroupId()))
+                .orElseThrow(() -> new GroupException("群组不存在"));
 
         ImGroupPo update = new ImGroupPo().setGroupId(dto.getGroupId());
         if (StringUtils.hasText(dto.getGroupName())) {
@@ -247,10 +245,8 @@ public class GroupServiceImpl implements GroupService {
      */
     @Override
     public Boolean updateGroupMember(GroupMemberDto dto) {
-        ImGroupMemberPo member = groupMemberDubboService.queryOne(dto.getGroupId(), dto.getUserId());
-        if (member == null) {
-            throw new GroupException("用户不在群聊中");
-        }
+        ImGroupMemberPo member = Optional.ofNullable(groupMemberDubboService.queryOne(dto.getGroupId(), dto.getUserId()))
+                .orElseThrow(() -> new GroupException("用户不在群聊中"));
 
         ImGroupMemberPo update = new ImGroupMemberPo().setGroupMemberId(member.getGroupMemberId());
         if (StringUtils.hasText(dto.getAlias())) {
@@ -288,7 +284,7 @@ public class GroupServiceImpl implements GroupService {
         dto.getMemberIds().forEach(id -> members.add(buildMemberPo(groupId, id, IMemberStatus.NORMAL, now)));
 
         // 批量插入成员
-        if (!Boolean.TRUE.equals(groupMemberDubboService.creatBatch(members))) {
+        if (!Boolean.TRUE.equals(groupMemberDubboService.creatOrModifyBatch(members))) {
             throw new GroupException("群成员创建失败");
         }
 
@@ -351,7 +347,9 @@ public class GroupServiceImpl implements GroupService {
             long now = DateTimeUtils.getCurrentUTCTimestamp();
             long expireTime = now + 7L * 24 * 3600;
             ImGroupPo group = groupDubboService.queryOne(groupId);
-            String verifierId = group != null ? group.getOwnerId() : dto.getUserId();
+            String verifierId = Optional.ofNullable(group)
+                    .map(ImGroupPo::getOwnerId)
+                    .orElse(dto.getUserId());
 
             List<ImGroupInviteRequestPo> requests = newInvitees.stream()
                     .map(toId -> buildInviteRequest(groupId, dto.getUserId(), toId, verifierId, dto.getMessage(), dto.getAddSource(), expireTime))
@@ -375,22 +373,21 @@ public class GroupServiceImpl implements GroupService {
     private String processDirectJoin(String groupId, String userId, String inviterId) {
         String lockKey = LOCK_PREFIX + "join:" + groupId + ":" + userId;
         return lockExecutor.execute(lockKey, () -> {
-            ImGroupMemberPo member = groupMemberDubboService.queryOne(groupId, userId);
-            if (member != null && IMemberStatus.NORMAL.getCode().equals(member.getRole())) {
-                return "用户已加入群聊";
-            }
+            return Optional.ofNullable(groupMemberDubboService.queryOne(groupId, userId))
+                    .filter(m -> IMemberStatus.NORMAL.getCode().equals(m.getRole()))
+                    .map(m -> "用户已加入群聊")
+                    .orElseGet(() -> {
+                        long now = DateTimeUtils.getCurrentUTCTimestamp();
+                        ImGroupMemberPo newMember = buildMemberPo(groupId, userId, IMemberStatus.NORMAL, now);
+                        if (!Boolean.TRUE.equals(groupMemberDubboService.creatOrModifyBatch(List.of(newMember)))) {
+                            throw new GroupException("加入群聊失败");
+                        }
 
-            long now = DateTimeUtils.getCurrentUTCTimestamp();
-            ImGroupMemberPo newMember = buildMemberPo(groupId, userId, IMemberStatus.NORMAL, now);
-            if (!Boolean.TRUE.equals(groupMemberDubboService.creatBatch(List.of(newMember)))) {
-                throw new GroupException("加入群聊失败");
-            }
+                        updateGroupInfoAndNotify(groupId, inviterId, userId);
 
-            // 更新群信息并通知
-            updateGroupInfoAndNotify(groupId, inviterId, userId);
-
-            log.info("用户加入群聊成功: groupId={}, userId={}", groupId, userId);
-            return "成功加入群聊";
+                        log.info("用户加入群聊成功: groupId={}, userId={}", groupId, userId);
+                        return "成功加入群聊";
+                    });
         });
     }
 
@@ -399,7 +396,7 @@ public class GroupServiceImpl implements GroupService {
      */
     private void updateGroupInfoAndNotify(String groupId, String inviterId, String userId) {
         List<ImGroupMemberPo> members = groupMemberDubboService.queryList(groupId);
-        if (members != null && members.size() < 10) {
+        if (Optional.ofNullable(members).map(List::size).orElse(0) < 10) {
             generateGroupAvatar(groupId);
         }
         sendJoinNotification(groupId, inviterId, userId);
@@ -412,14 +409,13 @@ public class GroupServiceImpl implements GroupService {
         try {
             List<String> avatars = groupMemberDubboService.queryNinePeopleAvatar(groupId);
             File headFile = groupHeadImageUtils.getCombinationOfhead(avatars, "defaultGroupHead" + groupId);
-            InputStream fileInputStream = new FileInputStream(headFile);
-            FileVo fileVo = mediaDubboService.uploadAvatar("group-" + groupId + ".png", "image/png", fileInputStream.readAllBytes());
-        if (fileVo == null || !StringUtils.hasText(fileVo.getPath())) {
-            return;
-        }
-
-        String avatarUrl = fileVo.getPath();
-            groupDubboService.modify(new ImGroupPo().setGroupId(groupId).setAvatar(avatarUrl));
+            try (InputStream fileInputStream = new FileInputStream(headFile)) {
+                FileVo fileVo = mediaDubboService.uploadAvatar("group-" + groupId + ".png", "image/png", fileInputStream.readAllBytes());
+                Optional.ofNullable(fileVo)
+                        .map(FileVo::getPath)
+                        .filter(StringUtils::hasText)
+                        .ifPresent(path -> groupDubboService.modify(new ImGroupPo().setGroupId(groupId).setAvatar(path)));
+            }
         } catch (Exception e) {
             log.error("生成群头像失败: groupId={}", groupId, e);
         }
@@ -439,7 +435,7 @@ public class GroupServiceImpl implements GroupService {
      * 构建群成员 VO
      */
     private GroupMemberVo buildGroupMemberVo(ImGroupMemberPo member, ImUserDataPo user) {
-        GroupMemberVo vo = GroupMemberBeanMapper.INSTANCE.toGroupMemberVo(member);
+        GroupMemberVo vo = groupMemberBeanMapper.toGroupMemberVo(member);
         vo.setName(user.getName());
         vo.setAvatar(user.getAvatar());
         vo.setGender(user.getGender());
@@ -457,13 +453,21 @@ public class GroupServiceImpl implements GroupService {
      * 构建成员 PO
      */
     private ImGroupMemberPo buildMemberPo(String groupId, String memberId, IMemberStatus role, long joinTime) {
-        return new ImGroupMemberPo()
-                .setGroupId(groupId)
-                .setGroupMemberId(IdUtils.snowflakeIdStr())
-                .setMemberId(memberId)
-                .setRole(role.getCode())
-                .setMute(IMStatus.YES.getCode()) // 默认不禁言
-                .setJoinTime(joinTime);
+
+        ImGroupMemberPo build = ImGroupMemberPo
+                .builder()
+                .groupId(groupId)
+                .groupMemberId(IdUtils.snowflakeIdStr())
+                .memberId(memberId)
+                .role(role.getCode())
+                // 默认不禁言
+                .mute(IMStatus.YES.getCode())
+                .joinTime(joinTime)
+                .build();
+
+        // 默认不删除
+        build.setDelFlag(IMStatus.YES.getCode());
+        return build;
     }
 
     /**

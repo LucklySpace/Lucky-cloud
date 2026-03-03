@@ -1,20 +1,17 @@
 package com.xy.lucky.chat.domain.mapper;
 
-import com.xy.lucky.domain.po.ImChatPo;
 import com.xy.lucky.chat.domain.dto.ChatDto;
 import com.xy.lucky.chat.domain.vo.ChatVo;
+import com.xy.lucky.domain.po.ImChatPo;
 import org.mapstruct.Mapper;
-import org.mapstruct.factory.Mappers;
 
 import java.util.List;
 
 /**
  * 聊天会话相关实体映射
  */
-@Mapper
+@Mapper(componentModel = "spring")
 public interface ChatBeanMapper {
-
-    ChatBeanMapper INSTANCE = Mappers.getMapper(ChatBeanMapper.class);
 
     /**
      * ImChatPo -> ChatVo

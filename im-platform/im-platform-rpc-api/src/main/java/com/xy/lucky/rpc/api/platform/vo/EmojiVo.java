@@ -18,8 +18,8 @@ import java.io.Serializable;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "EmojiVo", description = "表情条目：包含名称、所属包、对象存储信息")
-public class EmojiVo implements Serializable {
+@Schema(name = "StickerVo", description = "表情条目：包含名称、所属包、对象存储信息")
+public class StickerVo implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -33,7 +33,7 @@ public class EmojiVo implements Serializable {
     private String tags;
 
     @Schema(description = "表情ID")
-    private String emojiId;
+    private String stickerId;
 
     @Schema(description = "下载URL（预签名）")
     private String url;

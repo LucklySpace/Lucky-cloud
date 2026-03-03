@@ -9,7 +9,10 @@ import com.xy.lucky.chat.service.ChatService;
 import com.xy.lucky.core.enums.IMStatus;
 import com.xy.lucky.core.enums.IMessageReadStatus;
 import com.xy.lucky.core.enums.IMessageType;
-import com.xy.lucky.domain.po.*;
+import com.xy.lucky.domain.po.ImChatPo;
+import com.xy.lucky.domain.po.ImGroupMessagePo;
+import com.xy.lucky.domain.po.ImGroupMessageStatusPo;
+import com.xy.lucky.domain.po.ImSingleMessagePo;
 import com.xy.lucky.rpc.api.database.chat.ImChatDubboService;
 import com.xy.lucky.rpc.api.database.group.ImGroupDubboService;
 import com.xy.lucky.rpc.api.database.message.ImGroupMessageDubboService;
@@ -23,6 +26,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -50,6 +54,8 @@ public class ChatServiceImpl implements ChatService {
     private ImSingleMessageDubboService singleMessageDubboService;
     @DubboReference
     private ImGroupMessageDubboService groupMessageDubboService;
+
+    private final ChatBeanMapper chatBeanMapper;
 
     /**
      * 标记消息已读
@@ -83,9 +89,8 @@ public class ChatServiceImpl implements ChatService {
     public ChatVo create(ChatDto dto) {
         String lockKey = LOCK_PREFIX + "create:" + dto.getFromId() + ":" + dto.getToId() + ":" + dto.getChatType();
         return lockExecutor.execute(lockKey, () -> {
-            // 查询是否已存在
-            ImChatPo existingChat = chatDubboService.queryOne(dto.getFromId(), dto.getToId(), dto.getChatType());
-            ImChatPo chatPo = existingChat != null ? existingChat : createNewChat(dto);
+            ImChatPo chatPo = Optional.ofNullable(chatDubboService.queryOne(dto.getFromId(), dto.getToId(), dto.getChatType()))
+                    .orElseGet(() -> createNewChat(dto));
             return enrichChatVo(chatPo, dto.getChatType());
         });
     }
@@ -101,8 +106,9 @@ public class ChatServiceImpl implements ChatService {
     public ChatVo one(String ownerId, String toId) {
         String lockKey = LOCK_PREFIX + "one:" + ownerId + ":" + toId;
         return lockExecutor.execute(lockKey, () -> {
-            ImChatPo chatPo = chatDubboService.queryOne(ownerId, toId, null);
-            return chatPo != null ? buildChatVo(chatPo) : new ChatVo();
+            return Optional.ofNullable(chatDubboService.queryOne(ownerId, toId, null))
+                    .map(this::buildChatVo)
+                    .orElseGet(ChatVo::new);
         });
     }
 
@@ -154,52 +160,47 @@ public class ChatServiceImpl implements ChatService {
      * 构建会话 VO（根据类型选择策略）
      */
     private ChatVo buildChatVo(ImChatPo chatPo) {
-        if (chatPo == null) {
-            return new ChatVo();
-        }
-
-        IMessageType type = IMessageType.getByCode(chatPo.getChatType());
-        if (type == null) {
-            return new ChatVo();
-        }
-
-        return switch (type) {
-            case SINGLE_MESSAGE -> buildSingleChatVo(chatPo);
-            case GROUP_MESSAGE -> buildGroupChatVo(chatPo);
-            default -> new ChatVo();
-        };
+        return Optional.ofNullable(chatPo)
+                .map(po -> Optional.ofNullable(IMessageType.getByCode(po.getChatType()))
+                        .map(type -> switch (type) {
+                            case SINGLE_MESSAGE -> buildSingleChatVo(po);
+                            case GROUP_MESSAGE -> buildGroupChatVo(po);
+                            default -> new ChatVo();
+                        })
+                        .orElseGet(ChatVo::new))
+                .orElseGet(ChatVo::new);
     }
 
     /**
      * 构建单聊会话 VO
      */
     private ChatVo buildSingleChatVo(ImChatPo chatPo) {
-        ChatVo vo = ChatBeanMapper.INSTANCE.toChatVo(chatPo);
+        ChatVo vo = chatBeanMapper.toChatVo(chatPo);
         String ownerId = vo.getOwnerId();
         String toId = vo.getToId();
 
         // 获取最后一条消息
         ImSingleMessagePo lastMsg = singleMessageDubboService.queryLast(ownerId, toId);
-        if (lastMsg != null && lastMsg.getMessageId() != null) {
-            vo.setMessage(lastMsg.getMessageBody());
-            vo.setMessageContentType(lastMsg.getMessageContentType());
-            vo.setMessageTime(lastMsg.getMessageTime());
-        } else {
-            vo.setMessageTime(0L);
-        }
+        Optional.ofNullable(lastMsg)
+                .map(ImSingleMessagePo::getMessageId)
+                .ifPresentOrElse(messageId -> {
+                    vo.setMessage(lastMsg.getMessageBody());
+                    vo.setMessageContentType(lastMsg.getMessageContentType());
+                    vo.setMessageTime(lastMsg.getMessageTime());
+                }, () -> vo.setMessageTime(0L));
 
         // 获取未读数
         Integer unread = singleMessageDubboService.queryReadStatus(toId, ownerId, IMessageReadStatus.UNREAD.getCode());
-        vo.setUnread(unread != null ? unread : 0);
+        vo.setUnread(Optional.ofNullable(unread).orElse(0));
 
         // 获取用户信息
         String targetUserId = ownerId.equals(toId) ? ownerId : toId;
-        ImUserDataPo user = userDataDubboService.queryOne(targetUserId);
-        if (user != null) {
-            vo.setId(user.getUserId());
-            vo.setName(user.getName());
-            vo.setAvatar(user.getAvatar());
-        }
+        Optional.ofNullable(userDataDubboService.queryOne(targetUserId))
+                .ifPresent(user -> {
+                    vo.setId(user.getUserId());
+                    vo.setName(user.getName());
+                    vo.setAvatar(user.getAvatar());
+                });
 
         return vo;
     }
@@ -208,30 +209,30 @@ public class ChatServiceImpl implements ChatService {
      * 构建群聊会话 VO
      */
     private ChatVo buildGroupChatVo(ImChatPo chatPo) {
-        ChatVo vo = ChatBeanMapper.INSTANCE.toChatVo(chatPo);
+        ChatVo vo = chatBeanMapper.toChatVo(chatPo);
         String ownerId = vo.getOwnerId();
         String groupId = vo.getToId();
 
         // 获取最后一条消息
         ImGroupMessagePo lastMsg = groupMessageDubboService.queryLast(ownerId, groupId);
-        if (lastMsg != null && lastMsg.getMessageId() != null) {
-            vo.setMessage(lastMsg.getMessageBody());
-            vo.setMessageTime(lastMsg.getMessageTime());
-        } else {
-            vo.setMessageTime(0L);
-        }
+        Optional.ofNullable(lastMsg)
+                .map(ImGroupMessagePo::getMessageId)
+                .ifPresentOrElse(messageId -> {
+                    vo.setMessage(lastMsg.getMessageBody());
+                    vo.setMessageTime(lastMsg.getMessageTime());
+                }, () -> vo.setMessageTime(0L));
 
         // 获取未读数
         Integer unread = groupMessageDubboService.queryReadStatus(groupId, ownerId, IMessageReadStatus.UNREAD.getCode());
-        vo.setUnread(unread != null ? unread : 0);
+        vo.setUnread(Optional.ofNullable(unread).orElse(0));
 
         // 获取群信息
-        ImGroupPo group = groupDubboService.queryOne(groupId);
-        if (group != null) {
-            vo.setId(group.getGroupId());
-            vo.setName(group.getGroupName());
-            vo.setAvatar(group.getAvatar());
-        }
+        Optional.ofNullable(groupDubboService.queryOne(groupId))
+                .ifPresent(group -> {
+                    vo.setId(group.getGroupId());
+                    vo.setName(group.getGroupName());
+                    vo.setAvatar(group.getAvatar());
+                });
 
         return vo;
     }
@@ -240,22 +241,22 @@ public class ChatServiceImpl implements ChatService {
      * 丰富会话 VO（用于创建会话后返回）
      */
     private ChatVo enrichChatVo(ImChatPo chatPo, Integer chatType) {
-        ChatVo vo = ChatBeanMapper.INSTANCE.toChatVo(chatPo);
+        ChatVo vo = chatBeanMapper.toChatVo(chatPo);
 
         if (IMessageType.SINGLE_MESSAGE.getCode().equals(chatType)) {
-            ImUserDataPo user = userDataDubboService.queryOne(vo.getToId());
-            if (user != null) {
-                vo.setId(user.getUserId());
-                vo.setName(user.getName());
-                vo.setAvatar(user.getAvatar());
-            }
+            Optional.ofNullable(userDataDubboService.queryOne(vo.getToId()))
+                    .ifPresent(user -> {
+                        vo.setId(user.getUserId());
+                        vo.setName(user.getName());
+                        vo.setAvatar(user.getAvatar());
+                    });
         } else if (IMessageType.GROUP_MESSAGE.getCode().equals(chatType)) {
-            ImGroupPo group = groupDubboService.queryOne(vo.getToId());
-            if (group != null) {
-                vo.setId(group.getGroupId());
-                vo.setName(group.getGroupName());
-                vo.setAvatar(group.getAvatar());
-            }
+            Optional.ofNullable(groupDubboService.queryOne(vo.getToId()))
+                    .ifPresent(group -> {
+                        vo.setId(group.getGroupId());
+                        vo.setName(group.getGroupName());
+                        vo.setAvatar(group.getAvatar());
+                    });
         }
 
         return vo;

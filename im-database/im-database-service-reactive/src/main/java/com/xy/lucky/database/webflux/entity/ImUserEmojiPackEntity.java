@@ -13,9 +13,9 @@ import org.springframework.data.relational.core.mapping.Table;
 @Accessors(chain = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("im_user_emoji_pack")
+@Table("im_user_sticker_pack")
 @Schema(description = "用户表情包关联表")
-public class ImUserEmojiPackEntity {
+public class ImUserStickerPackEntity {
 
     @Id
     @Schema(description = "ID")

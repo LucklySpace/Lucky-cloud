@@ -60,7 +60,7 @@
 - 就近节点选择
 - 地区数据统计
 
-### 3. 表情服务（EmojiDubboService）
+### 3. 表情服务（StickerDubboService）
 
 提供表情包管理、表情图片上传等功能。
 

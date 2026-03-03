@@ -45,14 +45,14 @@ servers:
     description: Dubbo 服务地址
 
 tags:
-  - name: EmojiService
+  - name: StickerService
     description: 表情服务
 
 paths:
-  /EmojiService/upsertPack:
+  /StickerService/upsertPack:
     post:
       tags:
-        - EmojiService
+        - StickerService
       summary: 创建或更新表情包
       description: 创建新的表情包或更新已存在的表情包信息
       operationId: upsertPack
@@ -61,23 +61,23 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EmojiPackDto'
+              $ref: '#/components/schemas/StickerPackDto'
       responses:
         '200':
           description: 操作成功
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EmojiPackVo'
+                $ref: '#/components/schemas/StickerPackVo'
         '400':
           description: 参数错误
         '500':
           description: 服务器错误
 
-  /EmojiService/listPacks:
+  /StickerService/listPacks:
     get:
       tags:
-        - EmojiService
+        - StickerService
       summary: 列出所有表情包
       description: 获取所有表情包列表，按热度降序排序
       operationId: listPacks

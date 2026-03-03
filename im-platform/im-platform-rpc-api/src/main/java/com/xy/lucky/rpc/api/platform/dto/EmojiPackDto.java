@@ -20,8 +20,8 @@ import java.io.Serializable;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "EmojiPackDto", description = "表情包创建请求")
-public class EmojiPackDto implements Serializable {
+@Schema(name = "StickerPackDto", description = "表情包创建请求")
+public class StickerPackDto implements Serializable {
 
     private static final long serialVersionUID = 1L;
 

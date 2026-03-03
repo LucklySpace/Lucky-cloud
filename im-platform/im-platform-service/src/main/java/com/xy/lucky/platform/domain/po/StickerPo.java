@@ -21,14 +21,14 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Schema(description = "表情条目")
 @Entity
-@Table(name = "im_platform_emoji",
+@Table(name = "im_sticker",
         indexes = {
-                @Index(name = "idx_emoji_pack", columnList = "pack_id"),
-                @Index(name = "idx_emoji_name", columnList = "name"),
-                @Index(name = "idx_emoji_pack_sort", columnList = "pack_id, sort")
+                @Index(name = "idx_sticker_pack", columnList = "pack_id"),
+                @Index(name = "idx_sticker_name", columnList = "name"),
+                @Index(name = "idx_sticker_pack_sort", columnList = "pack_id, sort")
         }
 )
-public class EmojiPo {
+public class StickerPo {
 
     @Schema(description = "主键")
     @Id
@@ -37,7 +37,7 @@ public class EmojiPo {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pack_id", nullable = false)
-    private EmojiPackPo pack;
+    private StickerPackPo pack;
 
     @Schema(description = "表情名称", example = "smile")
     @Column(name = "name", length = 128, nullable = false)

@@ -1,9 +1,9 @@
-package com.xy.lucky.rpc.api.platform.emoji;
+package com.xy.lucky.rpc.api.platform.sticker;
 
-import com.xy.lucky.rpc.api.platform.dto.EmojiPackDto;
-import com.xy.lucky.rpc.api.platform.vo.EmojiPackVo;
-import com.xy.lucky.rpc.api.platform.vo.EmojiRespVo;
-import com.xy.lucky.rpc.api.platform.vo.EmojiVo;
+import com.xy.lucky.rpc.api.platform.dto.StickerPackDto;
+import com.xy.lucky.rpc.api.platform.vo.StickerPackVo;
+import com.xy.lucky.rpc.api.platform.vo.StickerRespVo;
+import com.xy.lucky.rpc.api.platform.vo.StickerVo;
 
 import java.util.List;
 
@@ -13,7 +13,7 @@ import java.util.List;
  * @author Lucky Platform
  * @since 1.0.0
  */
-public interface EmojiDubboService {
+public interface StickerDubboService {
 
     /**
      * 创建或更新表情包
@@ -21,22 +21,22 @@ public interface EmojiDubboService {
      * @param request 表情包信息
      * @return 表情包信息
      */
-    EmojiPackVo upsertPack(EmojiPackDto request);
+    StickerPackVo upsertPack(StickerPackDto request);
 
     /**
      * 列出所有表情包
      *
      * @return 表情包列表
      */
-    List<EmojiPackVo> listPacks();
+    List<StickerPackVo> listPacks();
 
     /**
      * 上传表情图片到指定表情包
      *
-     * @param emojiId 表情ID
+     * @param stickerId 表情ID
      * @return 表情信息
      */
-    EmojiVo uploadEmoji(String emojiId);
+    StickerVo uploadSticker(String stickerId);
 
     /**
      * 列出指定表情包中的所有表情
@@ -44,7 +44,7 @@ public interface EmojiDubboService {
      * @param packId 表情包ID
      * @return 表情列表
      */
-    List<EmojiVo> listEmojis(String packId);
+    List<StickerVo> listStickers(String packId);
 
     /**
      * 上传表情包封面图
@@ -53,7 +53,7 @@ public interface EmojiDubboService {
      * @param url    封面图URL
      * @return 表情包信息
      */
-    EmojiPackVo uploadCover(String packId, String url);
+    StickerPackVo uploadCover(String packId, String url);
 
     /**
      * 启用/禁用表情包
@@ -62,7 +62,7 @@ public interface EmojiDubboService {
      * @param enabled 是否启用
      * @return 表情包信息
      */
-    EmojiPackVo togglePack(String packId, boolean enabled);
+    StickerPackVo togglePack(String packId, boolean enabled);
 
     /**
      * 查询表情包详情
@@ -70,15 +70,15 @@ public interface EmojiDubboService {
      * @param packId 表情包ID
      * @return 表情包详情
      */
-    EmojiRespVo getPackId(String packId);
+    StickerRespVo getPackId(String packId);
 
     /**
      * 删除表情
      *
-     * @param emojiId      表情ID
+     * @param stickerId      表情ID
      * @param removeObject 是否同时删除对象存储
      */
-    void deleteEmoji(String emojiId, boolean removeObject);
+    void deleteSticker(String stickerId, boolean removeObject);
 
     /**
      * 生成表情包编码

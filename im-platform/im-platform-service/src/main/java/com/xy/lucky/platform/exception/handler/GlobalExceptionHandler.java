@@ -81,9 +81,9 @@ public class GlobalExceptionHandler {
     /**
      * 处理表情包异常
      */
-    @ExceptionHandler(EmojiException.class)
-    public Result<?> handle(EmojiException ex) {
-        log.error("EmojiException: {}", ex.getMessage(), ex);
+    @ExceptionHandler(StickerException.class)
+    public Result<?> handle(StickerException ex) {
+        log.error("StickerException: {}", ex.getMessage(), ex);
         return Result.failed(ex.getCode(), ex.getMessage());
     }
 

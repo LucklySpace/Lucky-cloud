@@ -19,8 +19,8 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "EmojiRespVo", description = "表情包详情响应")
-public class EmojiRespVo implements Serializable {
+@Schema(name = "StickerRespVo", description = "表情包详情响应")
+public class StickerRespVo implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -43,5 +43,5 @@ public class EmojiRespVo implements Serializable {
     private Boolean enabled;
 
     @Schema(description = "表情列表")
-    private List<EmojiVo> emojis;
+    private List<StickerVo> stickers;
 }

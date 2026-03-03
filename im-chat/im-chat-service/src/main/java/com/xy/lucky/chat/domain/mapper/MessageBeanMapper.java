@@ -13,7 +13,6 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Mappings;
 import org.mapstruct.Named;
-import org.mapstruct.factory.Mappers;
 
 import java.util.Map;
 
@@ -21,10 +20,8 @@ import java.util.Map;
  * 消息相关实体映射
  * 处理IMessage及其子类与数据库PO类之间的转换
  */
-@Mapper
+@Mapper(componentModel = "spring")
 public interface MessageBeanMapper {
-
-    MessageBeanMapper INSTANCE = Mappers.getMapper(MessageBeanMapper.class);
 
     ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 

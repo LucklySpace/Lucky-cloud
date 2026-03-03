@@ -4,15 +4,15 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 import com.xy.lucky.oss.client.OssProperties;
 import com.xy.lucky.oss.client.OssTemplate;
-import com.xy.lucky.platform.domain.po.EmojiPackPo;
-import com.xy.lucky.platform.domain.po.EmojiPo;
-import com.xy.lucky.platform.domain.vo.EmojiPackVo;
-import com.xy.lucky.platform.domain.vo.EmojiRespVo;
-import com.xy.lucky.platform.domain.vo.EmojiVo;
-import com.xy.lucky.platform.exception.EmojiException;
-import com.xy.lucky.platform.mapper.EmojiVoMapper;
-import com.xy.lucky.platform.repository.EmojiPackRepository;
-import com.xy.lucky.platform.repository.EmojiRepository;
+import com.xy.lucky.platform.domain.po.StickerPackPo;
+import com.xy.lucky.platform.domain.po.StickerPo;
+import com.xy.lucky.platform.domain.vo.StickerPackVo;
+import com.xy.lucky.platform.domain.vo.StickerRespVo;
+import com.xy.lucky.platform.domain.vo.StickerVo;
+import com.xy.lucky.platform.exception.StickerException;
+import com.xy.lucky.platform.mapper.StickerVoMapper;
+import com.xy.lucky.platform.repository.StickerPackRepository;
+import com.xy.lucky.platform.repository.StickerRepository;
 import com.xy.lucky.utils.id.IdUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,11 +44,11 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class EmojiService {
+public class StickerService {
 
-    private final EmojiPackRepository packRepository;
-    private final EmojiRepository emojiRepository;
-    private final EmojiVoMapper emojiVoMapper;
+    private final StickerPackRepository packRepository;
+    private final StickerRepository stickerRepository;
+    private final StickerVoMapper stickerVoMapper;
     private final OssTemplate ossTemplate;
     private final OssProperties ossProperties;
 
@@ -56,28 +56,28 @@ public class EmojiService {
      * 创建或更新表情包
      */
     @Transactional
-    public EmojiPackVo upsertPack(EmojiPackVo request) {
+    public StickerPackVo upsertPack(StickerPackVo request) {
 
         String code = Optional.ofNullable(request.getCode()).map(String::trim)
-                .orElseThrow(() -> new EmojiException("code 不能为空"));
+                .orElseThrow(() -> new StickerException("code 不能为空"));
 
         String name = Optional.ofNullable(request.getName()).map(String::trim)
-                .orElseThrow(() -> new EmojiException("name 不能为空"));
+                .orElseThrow(() -> new StickerException("name 不能为空"));
 
-        EmojiPackPo po = packRepository.findByCode(code).orElse(EmojiPackPo.builder().code(code).build());
+        StickerPackPo po = packRepository.findByCode(code).orElse(StickerPackPo.builder().code(code).build());
         po.setName(name);
         po.setDescription(request.getDescription());
         po.setEnabled(Optional.ofNullable(request.getEnabled()).orElse(Boolean.TRUE));
-        EmojiPackPo saved = packRepository.save(po);
-        return emojiVoMapper.toVo(saved);
+        StickerPackPo saved = packRepository.save(po);
+        return stickerVoMapper.toVo(saved);
     }
 
     /**
      * 列出所有表情包
      */
-    public List<EmojiPackVo> listPacks() {
+    public List<StickerPackVo> listPacks() {
         return packRepository.findAllByOrderByHeatDesc().stream()
-                .map(emojiVoMapper::toVo)
+                .map(stickerVoMapper::toVo)
                 .collect(Collectors.toList());
     }
 
@@ -85,45 +85,45 @@ public class EmojiService {
      * 上传表情图片到指定表情包
      */
     @Transactional
-    public EmojiVo uploadEmoji(EmojiVo meta) {
+    public StickerVo uploadSticker(StickerVo meta) {
         String packId = Optional.ofNullable(meta.getPackId()).map(String::trim)
-                .orElseThrow(() -> new EmojiException("packId 不能为空"));
+                .orElseThrow(() -> new StickerException("packId 不能为空"));
         String name = Optional.ofNullable(meta.getName()).map(String::trim)
-                .orElseThrow(() -> new EmojiException("name 不能为空"));
+                .orElseThrow(() -> new StickerException("name 不能为空"));
 
         FilePart file = meta.getFile();
 
         if (file == null || !StringUtils.hasText(file.filename())) {
-            throw new EmojiException("文件不能为空");
+            throw new StickerException("文件不能为空");
         }
 
-        EmojiPackPo pack = packRepository.findById(packId)
-                .orElseThrow(() -> new EmojiException("表情包不存在"));
+        StickerPackPo pack = packRepository.findById(packId)
+                .orElseThrow(() -> new StickerException("表情包不存在"));
 
-        emojiRepository.findByPackIdAndName(packId, name).ifPresent(e -> {
-            throw new EmojiException("已存在同名表情");
+        stickerRepository.findByPackIdAndName(packId, name).ifPresent(e -> {
+            throw new StickerException("已存在同名表情");
         });
 
         String bucket = Optional.ofNullable(ossProperties.getBucketName())
                 .filter(StringUtils::hasText)
-                .orElseThrow(() -> new EmojiException("bucket 不能为空"));
+                .orElseThrow(() -> new StickerException("bucket 不能为空"));
         String filename = Optional.of(file.filename())
                 .filter(StringUtils::hasText).orElse(name);
 
         // 获取对象名称
         String objectName = getObjectName(filename);
 
-        String objectKey = String.format("emoji/%s/%s", pack.getId(), objectName);
+        String objectKey = String.format("sticker/%s/%s", pack.getId(), objectName);
         String contentType = file.headers().getContentType() != null
                 ? String.valueOf(file.headers().getContentType()) : null;
         Path temp;
         long size;
         try {
-            temp = Files.createTempFile("emoji-", "-" + filename);
+            temp = Files.createTempFile("sticker-", "-" + filename);
             file.transferTo(temp.toFile()).block();
             size = Files.size(temp);
         } catch (Exception e) {
-            throw new EmojiException("文件接收失败: " + e.getMessage());
+            throw new StickerException("文件接收失败: " + e.getMessage());
         }
 
         // 上传文件 并删除临时文件
@@ -132,7 +132,7 @@ public class EmojiService {
                 ossTemplate.putObject(bucket, objectKey, in, contentType);
             }
         } catch (Exception e) {
-            throw new EmojiException("文件上传失败: " + e.getMessage());
+            throw new StickerException("文件上传失败: " + e.getMessage());
         } finally {
             try {
                 Files.deleteIfExists(temp);
@@ -144,9 +144,9 @@ public class EmojiService {
 
         String url = ossTemplate.getPresignedUrl(bucket, objectKey, 24 * 60 * 60);
 
-        int sort = Optional.ofNullable(meta.getSort()).orElseGet(() -> emojiRepository.findMaxSortByPackId(packId) + 1);
+        int sort = Optional.ofNullable(meta.getSort()).orElseGet(() -> stickerRepository.findMaxSortByPackId(packId) + 1);
 
-        EmojiPo emo = EmojiPo.builder()
+        StickerPo emo = StickerPo.builder()
                 .pack(pack)
                 .name(name)
                 .tags(meta.getTags())
@@ -158,16 +158,16 @@ public class EmojiService {
                 .fileSize(size)
                 .build();
 
-        EmojiPo saved = emojiRepository.save(emo);
-        return emojiVoMapper.toVo(saved);
+        StickerPo saved = stickerRepository.save(emo);
+        return stickerVoMapper.toVo(saved);
     }
 
     /**
      * 列出指定表情包中的所有表情
      */
-    public List<EmojiVo> listEmojis(String packId) {
-        return emojiRepository.findByPackIdOrderBySortAsc(packId).stream()
-                .map(emojiVoMapper::toVo)
+    public List<StickerVo> listStickers(String packId) {
+        return stickerRepository.findByPackIdOrderBySortAsc(packId).stream()
+                .map(stickerVoMapper::toVo)
                 .collect(Collectors.toList());
     }
 
@@ -177,41 +177,41 @@ public class EmojiService {
      * - 发现同名表情则跳过该文件
      */
     @Transactional
-    public List<EmojiVo> uploadEmojiBatch(String packId, List<FilePart> files, String tags) {
+    public List<StickerVo> uploadStickerBatch(String packId, List<FilePart> files, String tags) {
         if (!StringUtils.hasText(packId)) {
-            throw new EmojiException("packId 不能为空");
+            throw new StickerException("packId 不能为空");
         }
         if (files == null || files.isEmpty()) {
-            throw new EmojiException("文件列表不能为空");
+            throw new StickerException("文件列表不能为空");
         }
-        EmojiPackPo pack = packRepository.findById(packId)
-                .orElseThrow(() -> new EmojiException("表情包不存在"));
+        StickerPackPo pack = packRepository.findById(packId)
+                .orElseThrow(() -> new StickerException("表情包不存在"));
 
         String bucket = Optional.ofNullable(ossProperties.getBucketName())
                 .filter(StringUtils::hasText)
-                .orElseThrow(() -> new EmojiException("bucket 不能为空"));
-        List<EmojiVo> result = new ArrayList<>();
+                .orElseThrow(() -> new StickerException("bucket 不能为空"));
+        List<StickerVo> result = new ArrayList<>();
 
-        int baseSort = emojiRepository.findMaxSortByPackId(packId);
+        int baseSort = stickerRepository.findMaxSortByPackId(packId);
         for (FilePart file : files) {
             if (file == null || !StringUtils.hasText(file.filename())) {
                 continue;
             }
             String filename = Optional.of(file.filename()).filter(StringUtils::hasText)
-                    .orElse("emoji.png");
+                    .orElse("sticker.png");
 
             // 获取对象名称
             String objectName = getObjectName(filename);
 
-            if (emojiRepository.findByPackIdAndName(packId, filename).isPresent()) {
+            if (stickerRepository.findByPackIdAndName(packId, filename).isPresent()) {
                 log.warn("跳过已存在同名表情 name={}", filename);
                 continue;
             }
 
-            String objectKey = String.format("emoji/%s/items/%s", pack.getId(), objectName);
+            String objectKey = String.format("sticker/%s/items/%s", pack.getId(), objectName);
 
             try {
-                Path temp = Files.createTempFile("emoji-batch-", "-" + filename);
+                Path temp = Files.createTempFile("sticker-batch-", "-" + filename);
                 file.transferTo(temp.toFile()).block();
                 long size = Files.size(temp);
                 String ct = file.headers().getContentType() != null
@@ -229,7 +229,7 @@ public class EmojiService {
 
                 baseSort += 1;
 
-                EmojiPo emo = EmojiPo.builder()
+                StickerPo emo = StickerPo.builder()
                         .pack(pack)
                         .name(filename)
                         .tags(tags)
@@ -241,7 +241,7 @@ public class EmojiService {
                         .fileSize(size)
                         .build();
 
-                result.add(emojiVoMapper.toVo(emojiRepository.save(emo)));
+                result.add(stickerVoMapper.toVo(stickerRepository.save(emo)));
             } catch (Exception e) {
                 log.error("上传失败 name={} err={}", objectName, e.getMessage());
             }
@@ -253,9 +253,9 @@ public class EmojiService {
      * 下载表情文件（流式传输）
      */
     @Transactional
-    public ResponseEntity<Resource> downloadEmoji(String emojiId) {
-        EmojiPo emo = emojiRepository.findById(emojiId)
-                .orElseThrow(() -> new EmojiException("表情不存在"));
+    public ResponseEntity<Resource> downloadSticker(String emojiId) {
+        StickerPo emo = stickerRepository.findById(emojiId)
+                .orElseThrow(() -> new StickerException("表情不存在"));
         try {
             packRepository.incrementHeatById(emo.getPack().getId(), 1L);
         } catch (Exception e) {
@@ -279,16 +279,16 @@ public class EmojiService {
      * 上传表情包封面图
      */
     @Transactional
-    public EmojiPackVo uploadCover(String packId, FilePart file) {
+    public StickerPackVo uploadCover(String packId, FilePart file) {
         if (file == null || !StringUtils.hasText(file.filename())) {
-            throw new EmojiException("封面文件不能为空");
+            throw new StickerException("封面文件不能为空");
         }
-        EmojiPackPo pack = packRepository.findById(packId)
-                .orElseThrow(() -> new EmojiException("表情包不存在"));
+        StickerPackPo pack = packRepository.findById(packId)
+                .orElseThrow(() -> new StickerException("表情包不存在"));
 
         String bucket = Optional.ofNullable(ossProperties.getBucketName())
                 .filter(StringUtils::hasText)
-                .orElseThrow(() -> new EmojiException("bucket 不能为空"));
+                .orElseThrow(() -> new StickerException("bucket 不能为空"));
         String filename = Optional.of(file.filename()).filter(StringUtils::hasText)
                 .orElse("cover.png");
 
@@ -309,7 +309,7 @@ public class EmojiService {
             } catch (Exception ignore) {
             }
         } catch (Exception e) {
-            throw new EmojiException("封面上传失败: " + e.getMessage());
+            throw new StickerException("封面上传失败: " + e.getMessage());
         }
 
         String url = ossTemplate.getPresignedUrl(bucket, objectKey, 24 * 60 * 60);
@@ -317,37 +317,37 @@ public class EmojiService {
         pack.setObjectKey(objectKey);
         pack.setUrl(url);
 
-        EmojiPackPo saved = packRepository.save(pack);
-        return emojiVoMapper.toVo(saved);
+        StickerPackPo saved = packRepository.save(pack);
+        return stickerVoMapper.toVo(saved);
     }
 
     /**
      * 启用/禁用表情包（按 packId）
      */
     @Transactional
-    public EmojiPackVo togglePack(String packId, boolean enabled) {
-        EmojiPackPo pack = packRepository.findById(packId)
-                .orElseThrow(() -> new EmojiException("表情包不存在"));
+    public StickerPackVo togglePack(String packId, boolean enabled) {
+        StickerPackPo pack = packRepository.findById(packId)
+                .orElseThrow(() -> new StickerException("表情包不存在"));
         pack.setEnabled(enabled);
-        EmojiPackPo saved = packRepository.save(pack);
-        return emojiVoMapper.toVo(saved);
+        StickerPackPo saved = packRepository.save(pack);
+        return stickerVoMapper.toVo(saved);
     }
 
     /**
      * 查询表情包详情（按 packId）
      */
-    public EmojiRespVo getPackId(String packId) {
+    public StickerRespVo getPackId(String packId) {
 
-        EmojiPackPo pack = packRepository.findById(packId)
-                .orElseThrow(() -> new EmojiException("表情包不存在"));
+        StickerPackPo pack = packRepository.findById(packId)
+                .orElseThrow(() -> new StickerException("表情包不存在"));
 
-        EmojiRespVo vo = emojiVoMapper.toRespVo(pack);
+        StickerRespVo vo = stickerVoMapper.toRespVo(pack);
 
-        List<EmojiVo> list = emojiRepository.findByPackIdOrderBySort(packId)
-                .stream().map(emojiVoMapper::toVo).toList();
+        List<StickerVo> list = stickerRepository.findByPackIdOrderBySort(packId)
+                .stream().map(stickerVoMapper::toVo).toList();
 
         if (!list.isEmpty()) {
-            vo.setEmojis(list);
+            vo.setStickers(list);
         }
 
         return vo;
@@ -357,16 +357,16 @@ public class EmojiService {
      * 删除表情（可选同时删除对象存储）
      */
     @Transactional
-    public void deleteEmoji(String emojiId, boolean removeObject) {
-        EmojiPo emo = emojiRepository.findById(emojiId)
-                .orElseThrow(() -> new EmojiException("表情不存在"));
+    public void deleteSticker(String emojiId, boolean removeObject) {
+        StickerPo emo = stickerRepository.findById(emojiId)
+                .orElseThrow(() -> new StickerException("表情不存在"));
         if (removeObject) {
             try {
                 ossTemplate.deleteObject(emo.getBucket(), emo.getObjectKey());
             } catch (Exception ignore) {
             }
         }
-        emojiRepository.deleteById(emojiId);
+        stickerRepository.deleteById(emojiId);
     }
 
     /**
@@ -374,7 +374,7 @@ public class EmojiService {
      */
     public String getPackCode(int i) {
         if (i % 5 > 0) {
-            throw new EmojiException("生成表情包编码异常");
+            throw new StickerException("生成表情包编码异常");
         }
         String s = IdUtils.base62Uuid();
         log.info("生成表情包编码: {}", s);

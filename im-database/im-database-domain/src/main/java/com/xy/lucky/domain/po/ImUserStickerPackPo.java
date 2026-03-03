@@ -15,8 +15,8 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "用户-表情包关联信息")
-@TableName(value = "im_user_emoji_pack")
-public class ImUserEmojiPackPo extends BasePo {
+@TableName(value = "im_user_sticker_pack")
+public class ImUserStickerPackPo extends BasePo {
 
     @TableId(value = "id")
     private String id;

@@ -1,22 +1,19 @@
 package com.xy.lucky.chat.domain.mapper;
 
-import com.xy.lucky.domain.po.ImFriendshipPo;
 import com.xy.lucky.chat.domain.dto.FriendDto;
 import com.xy.lucky.chat.domain.vo.FriendVo;
+import com.xy.lucky.domain.po.ImFriendshipPo;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Mappings;
-import org.mapstruct.factory.Mappers;
 
 import java.util.List;
 
 /**
  * 好友相关实体映射
  */
-@Mapper
+@Mapper(componentModel = "spring")
 public interface FriendBeanMapper {
-
-    FriendBeanMapper INSTANCE = Mappers.getMapper(FriendBeanMapper.class);
 
     /**
      * ImFriendshipPo -> FriendVo

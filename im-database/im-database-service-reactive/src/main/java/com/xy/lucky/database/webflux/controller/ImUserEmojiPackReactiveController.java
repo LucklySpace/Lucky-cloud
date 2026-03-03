@@ -1,7 +1,7 @@
 package com.xy.lucky.database.webflux.controller;
 
-import com.xy.lucky.database.webflux.service.ImUserEmojiPackReactiveService;
-import com.xy.lucky.domain.po.ImUserEmojiPackPo;
+import com.xy.lucky.database.webflux.service.ImUserStickerPackReactiveService;
+import com.xy.lucky.domain.po.ImUserStickerPackPo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -10,12 +10,12 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/api/{version}/database/emoji/user-pack")
-@Tag(name = "ImUserEmojiPack", description = "用户-表情包关联数据库接口")
+@RequestMapping("/api/{version}/database/sticker/user-pack")
+@Tag(name = "ImUserStickerPack", description = "用户-表情包关联数据库接口")
 @RequiredArgsConstructor
-public class ImUserEmojiPackReactiveController {
+public class ImUserStickerPackReactiveController {
 
-    private final ImUserEmojiPackReactiveService service;
+    private final ImUserStickerPackReactiveService service;
 
     @GetMapping("/list")
     @Operation(summary = "查询用户已关联的表情包编码列表")
@@ -25,7 +25,7 @@ public class ImUserEmojiPackReactiveController {
 
     @GetMapping("/listDetails")
     @Operation(summary = "查询用户已关联的表情包详情")
-    public Flux<ImUserEmojiPackPo> listDetails(@RequestParam("userId") String userId) {
+    public Flux<ImUserStickerPackPo> listDetails(@RequestParam("userId") String userId) {
         return service.listByUserId(userId);
     }
 

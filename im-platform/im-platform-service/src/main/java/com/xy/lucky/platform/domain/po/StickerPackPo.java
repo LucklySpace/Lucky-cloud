@@ -12,7 +12,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 /**
- * 表情包（Emoji Pack）实体
+ * 表情包（Sticker Pack）实体
  * - 代表一个可被 IM 应用使用的表情包集合
  * - 支持启用/禁用、封面图、说明等元信息
  */
@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Schema(description = "表情包信息")
 @Entity
-@Table(name = "im_platform_emoji_pack",
+@Table(name = "im_sticker_pack",
         indexes = {
                 @Index(name = "idx_pack_code", columnList = "code"),
                 @Index(name = "idx_pack_name", columnList = "name"),
@@ -32,7 +32,7 @@ import java.time.LocalDateTime;
                 @UniqueConstraint(name = "uk_pack_code", columnNames = {"code"})
         }
 )
-public class EmojiPackPo {
+public class StickerPackPo {
 
     @Schema(description = "主键")
     @Id

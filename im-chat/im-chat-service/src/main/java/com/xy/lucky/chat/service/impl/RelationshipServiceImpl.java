@@ -1,5 +1,15 @@
 package com.xy.lucky.chat.service.impl;
 
+import com.xy.lucky.chat.common.LockExecutor;
+import com.xy.lucky.chat.domain.dto.FriendDto;
+import com.xy.lucky.chat.domain.dto.FriendRequestDto;
+import com.xy.lucky.chat.domain.mapper.FriendRequestBeanMapper;
+import com.xy.lucky.chat.domain.mapper.GroupBeanMapper;
+import com.xy.lucky.chat.domain.mapper.UserDataBeanMapper;
+import com.xy.lucky.chat.domain.vo.FriendVo;
+import com.xy.lucky.chat.domain.vo.FriendshipRequestVo;
+import com.xy.lucky.chat.exception.MessageException;
+import com.xy.lucky.chat.service.RelationshipService;
 import com.xy.lucky.core.enums.IMApproveStatus;
 import com.xy.lucky.core.enums.IMStatus;
 import com.xy.lucky.core.enums.IMessageReadStatus;
@@ -11,16 +21,6 @@ import com.xy.lucky.rpc.api.database.friend.ImFriendshipDubboService;
 import com.xy.lucky.rpc.api.database.friend.ImFriendshipRequestDubboService;
 import com.xy.lucky.rpc.api.database.group.ImGroupDubboService;
 import com.xy.lucky.rpc.api.database.user.ImUserDataDubboService;
-import com.xy.lucky.chat.common.LockExecutor;
-import com.xy.lucky.chat.domain.dto.FriendDto;
-import com.xy.lucky.chat.domain.dto.FriendRequestDto;
-import com.xy.lucky.chat.domain.mapper.FriendRequestBeanMapper;
-import com.xy.lucky.chat.domain.mapper.GroupBeanMapper;
-import com.xy.lucky.chat.domain.mapper.UserDataBeanMapper;
-import com.xy.lucky.chat.domain.vo.FriendVo;
-import com.xy.lucky.chat.domain.vo.FriendshipRequestVo;
-import com.xy.lucky.chat.exception.MessageException;
-import com.xy.lucky.chat.service.RelationshipService;
 import com.xy.lucky.utils.time.DateTimeUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,6 +60,12 @@ public class RelationshipServiceImpl implements RelationshipService {
     private ImUserDataDubboService userDataDubboService;
     @DubboReference
     private ImGroupDubboService groupDubboService;
+
+    private final UserDataBeanMapper userDataBeanMapper;
+
+    private final FriendRequestBeanMapper friendRequestBeanMapper;
+
+    private final GroupBeanMapper groupBeanMapper;
 
     /**
      * 获取联系人列表
@@ -111,7 +117,7 @@ public class RelationshipServiceImpl implements RelationshipService {
 
             return groups.stream()
                     .filter(Objects::nonNull)
-                    .map(GroupBeanMapper.INSTANCE::toGroupVo)
+                    .map(groupBeanMapper::toGroupVo)
                     .toList();
         });
     }
@@ -160,7 +166,7 @@ public class RelationshipServiceImpl implements RelationshipService {
             throw new MessageException("用户不存在");
         }
 
-        FriendVo vo = UserDataBeanMapper.INSTANCE.toFriendVo(userData);
+        FriendVo vo = userDataBeanMapper.toFriendVo(userData);
         vo.setUserId(ownerId).setFriendId(userData.getUserId());
 
         ImFriendshipPo friendship = friendshipDubboService.queryOne(ownerId, toId);
@@ -227,19 +233,21 @@ public class RelationshipServiceImpl implements RelationshipService {
             ImFriendshipRequestPo existing = friendshipRequestDubboService.queryOne(
                     new ImFriendshipRequestPo().setFromId(dto.getFromId()).setToId(dto.getToId()));
 
-            if (existing == null) {
-                ImFriendshipRequestPo request = buildFriendRequest(dto);
-                friendshipRequestDubboService.creat(request);
-                log.info("创建好友请求: from={}, to={}", dto.getFromId(), dto.getToId());
-            } else {
-                existing.setMessage(dto.getMessage());
-                existing.setRemark(dto.getRemark());
-                existing.setUpdateTime(DateTimeUtils.getCurrentUTCTimestamp());
-                friendshipRequestDubboService.modify(existing);
-                log.debug("更新好友请求: from={}, to={}", dto.getFromId(), dto.getToId());
-            }
-
-            return "添加好友请求成功";
+            return Optional.ofNullable(existing)
+                    .map(request -> {
+                        request.setMessage(dto.getMessage());
+                        request.setRemark(dto.getRemark());
+                        request.setUpdateTime(DateTimeUtils.getCurrentUTCTimestamp());
+                        friendshipRequestDubboService.modify(request);
+                        log.debug("更新好友请求: from={}, to={}", dto.getFromId(), dto.getToId());
+                        return "添加好友请求成功";
+                    })
+                    .orElseGet(() -> {
+                        ImFriendshipRequestPo request = buildFriendRequest(dto);
+                        friendshipRequestDubboService.creat(request);
+                        log.info("创建好友请求: from={}, to={}", dto.getFromId(), dto.getToId());
+                        return "添加好友请求成功";
+                    });
         });
     }
 
@@ -252,12 +260,9 @@ public class RelationshipServiceImpl implements RelationshipService {
     public void approveFriend(FriendRequestDto dto) {
         String lockKey = LOCK_PREFIX + "approve:" + dto.getId();
         lockExecutor.execute(lockKey, () -> {
-            ImFriendshipRequestPo request = friendshipRequestDubboService.queryOne(
-                    new ImFriendshipRequestPo().setId(dto.getId()));
-
-            if (request == null) {
-                throw new MessageException("好友请求不存在");
-            }
+            ImFriendshipRequestPo request = Optional.ofNullable(friendshipRequestDubboService.queryOne(
+                            new ImFriendshipRequestPo().setId(dto.getId())))
+                    .orElseThrow(() -> new MessageException("好友请求不存在"));
 
             if (IMApproveStatus.APPROVED.getCode().equals(dto.getApproveStatus())) {
                 createBidirectionalFriendship(request.getFromId(), request.getToId(), dto.getRemark());
@@ -292,10 +297,8 @@ public class RelationshipServiceImpl implements RelationshipService {
     public Boolean updateFriendRemark(FriendDto dto) {
         String lockKey = LOCK_PREFIX + "remark:" + dto.getFromId() + ":" + dto.getToId();
         return lockExecutor.execute(lockKey, () -> {
-            ImFriendshipPo friendship = friendshipDubboService.queryOne(dto.getFromId(), dto.getToId());
-            if (friendship == null) {
-                throw new MessageException("好友关系不存在");
-            }
+            ImFriendshipPo friendship = Optional.ofNullable(friendshipDubboService.queryOne(dto.getFromId(), dto.getToId()))
+                    .orElseThrow(() -> new MessageException("好友关系不存在"));
 
             friendship.setRemark(dto.getRemark());
             friendship.setSequence(DateTimeUtils.getCurrentUTCTimestamp());
@@ -343,16 +346,15 @@ public class RelationshipServiceImpl implements RelationshipService {
      */
     private Map<String, ImUserDataPo> queryUserMap(List<String> userIds) {
         List<ImUserDataPo> users = userDataDubboService.queryListByIds(userIds);
-        if (CollectionUtils.isEmpty(users)) {
-            return Collections.emptyMap();
-        }
-
-        return users.stream()
-                .filter(Objects::nonNull)
-                .collect(Collectors.toMap(
-                        ImUserDataPo::getUserId,
-                        Function.identity(),
-                        (existing, replacement) -> existing));
+        return Optional.ofNullable(users)
+                .filter(list -> !CollectionUtils.isEmpty(list))
+                .map(list -> list.stream()
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toMap(
+                                ImUserDataPo::getUserId,
+                                Function.identity(),
+                                (existing, replacement) -> existing)))
+                .orElse(Collections.emptyMap());
     }
 
     /**
@@ -363,13 +365,11 @@ public class RelationshipServiceImpl implements RelationshipService {
 
         try {
             List<ImFriendshipPo> friendships = friendshipDubboService.queryListByIds(ownerId, userIds);
-            if (friendships != null) {
-                for (ImFriendshipPo f : friendships) {
-                    if (f != null && f.getToId() != null) {
-                        result.put(f.getToId(), f);
-                    }
-                }
-            }
+            Optional.ofNullable(friendships)
+                    .orElse(Collections.emptyList())
+                    .stream()
+                    .filter(f -> f != null && f.getToId() != null)
+                    .forEach(f -> result.put(f.getToId(), f));
         } catch (Exception e) {
             log.warn("批量查询好友关系失败，使用单条查询: ownerId={}", ownerId, e);
         }
@@ -380,10 +380,8 @@ public class RelationshipServiceImpl implements RelationshipService {
 
         for (String friendId : missingIds) {
             try {
-                ImFriendshipPo friendship = friendshipDubboService.queryOne(ownerId, friendId);
-                if (friendship != null) {
-                    result.put(friendId, friendship);
-                }
+                Optional.ofNullable(friendshipDubboService.queryOne(ownerId, friendId))
+                        .ifPresent(friendship -> result.put(friendId, friendship));
             } catch (Exception e) {
                 log.debug("查询单个好友关系失败: ownerId={}, friendId={}", ownerId, friendId);
             }
@@ -404,7 +402,7 @@ public class RelationshipServiceImpl implements RelationshipService {
                         return null;
                     }
 
-                    FriendVo vo = UserDataBeanMapper.INSTANCE.toFriendVo(user);
+                    FriendVo vo = userDataBeanMapper.toFriendVo(user);
                     vo.setUserId(ownerId)
                             .setFriendId(user.getUserId())
                             .setBlack(friendship.getBlack())
@@ -423,7 +421,7 @@ public class RelationshipServiceImpl implements RelationshipService {
                                                                    Map<String, ImUserDataPo> userMap) {
         return requests.stream()
                 .map(request -> {
-                    FriendshipRequestVo vo = FriendRequestBeanMapper.INSTANCE.toFriendshipRequestVo(request);
+                    FriendshipRequestVo vo = friendRequestBeanMapper.toFriendshipRequestVo(request);
                     ImUserDataPo user = userMap.get(request.getFromId());
                     if (user != null) {
                         vo.setName(user.getName());
@@ -441,7 +439,7 @@ public class RelationshipServiceImpl implements RelationshipService {
                                                    Map<String, ImFriendshipPo> friendshipMap, String ownerId) {
         return users.stream()
                 .map(user -> {
-                    FriendVo vo = UserDataBeanMapper.INSTANCE.toFriendVo(user);
+                    FriendVo vo = userDataBeanMapper.toFriendVo(user);
                     vo.setUserId(ownerId);
                     vo.setFriendId(user.getUserId());
 

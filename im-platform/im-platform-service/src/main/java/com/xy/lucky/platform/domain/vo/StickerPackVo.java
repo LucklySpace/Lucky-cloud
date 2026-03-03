@@ -10,9 +10,9 @@ import lombok.Data;
  * 表情包请求/响应对象
  */
 @Data
-@Schema(name = "EmojiPackVo", description = "表情包元信息")
+@Schema(name = "StickerPackVo", description = "表情包元信息")
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class EmojiPackVo {
+public class StickerPackVo {
 
     @Schema(description = "包编码（唯一）")
     private String code;

@@ -1,22 +1,19 @@
 package com.xy.lucky.chat.domain.mapper;
 
-import com.xy.lucky.domain.po.ImGroupMemberPo;
 import com.xy.lucky.chat.domain.dto.GroupMemberDto;
 import com.xy.lucky.chat.domain.vo.GroupMemberVo;
+import com.xy.lucky.domain.po.ImGroupMemberPo;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Mappings;
-import org.mapstruct.factory.Mappers;
 
 import java.util.List;
 
 /**
  * 群成员相关实体映射
  */
-@Mapper
+@Mapper(componentModel = "spring")
 public interface GroupMemberBeanMapper {
-
-    GroupMemberBeanMapper INSTANCE = Mappers.getMapper(GroupMemberBeanMapper.class);
 
     /**
      * ImGroupMemberPo -> GroupMemberVo

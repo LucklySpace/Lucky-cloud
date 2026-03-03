@@ -67,8 +67,8 @@ public class ImGroupMemberService extends ServiceImpl<ImGroupMemberMapper, ImGro
     }
 
     @Override
-    public Boolean creatBatch(List<ImGroupMemberPo> groupMemberList) {
-        return super.saveBatch(groupMemberList);
+    public Boolean creatOrModifyBatch(List<ImGroupMemberPo> groupMemberList) {
+        return super.saveOrUpdateBatch(groupMemberList);
     }
 
     @Override

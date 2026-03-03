@@ -1,4 +1,4 @@
-package com.xy.lucky.platform.domain.vo;
+package com.xy.lucky.chat.domain.vo;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -7,9 +7,9 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-@Schema(name = "EmojiRespVo", description = "表情包")
+@Schema(name = "StickerVo", description = "表情包")
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class EmojiRespVo {
+public class StickerRespVo {
 
     @Schema(description = "包名称", example = "默认表情包")
     private String name;
@@ -24,5 +24,5 @@ public class EmojiRespVo {
     private String url;
 
     @Schema(description = "表情列表")
-    private List<EmojiVo> emojis;
+    private List<StickerVo> stickers;
 }

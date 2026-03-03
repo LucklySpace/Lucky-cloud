@@ -1,15 +1,12 @@
 package com.xy.lucky.chat.domain.mapper;
 
 import org.mapstruct.Mapper;
-import org.mapstruct.factory.Mappers;
 
 /**
  * 群邀请相关实体映射
  */
-@Mapper
+@Mapper(componentModel = "spring")
 public interface GroupInviteBeanMapper {
-
-    GroupInviteBeanMapper INSTANCE = Mappers.getMapper(GroupInviteBeanMapper.class);
 
     /**
      * GroupInviteDto -> ImGroupInviteRequestPo

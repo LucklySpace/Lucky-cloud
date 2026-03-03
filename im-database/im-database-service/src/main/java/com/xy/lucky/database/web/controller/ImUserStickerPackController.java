@@ -1,8 +1,8 @@
 package com.xy.lucky.database.web.controller;
 
 import com.xy.lucky.database.web.security.SecurityInner;
-import com.xy.lucky.database.web.service.ImUserEmojiPackService;
-import com.xy.lucky.domain.po.ImUserEmojiPackPo;
+import com.xy.lucky.database.web.service.ImUserStickerPackService;
+import com.xy.lucky.domain.po.ImUserStickerPackPo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -23,13 +23,13 @@ import java.util.List;
 @Slf4j
 @SecurityInner
 @RestController
-@RequestMapping("/api/{version}/database/emoji/user-pack")
-@Tag(name = "ImUserEmojiPack", description = "用户-表情包关联数据库接口")
+@RequestMapping("/api/{version}/database/sticker/user-pack")
+@Tag(name = "ImUserStickerPack", description = "用户-表情包关联数据库接口")
 @Validated
-public class ImUserEmojiPackController {
+public class ImUserStickerPackController {
 
     @Resource
-    private ImUserEmojiPackService service;
+    private ImUserStickerPackService service;
 
     @GetMapping("/list")
     @Operation(summary = "查询用户已关联的表情包编码列表", description = "返回指定用户ID的表情包编码列表")
@@ -47,9 +47,9 @@ public class ImUserEmojiPackController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "成功",
                     content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ImUserEmojiPackPo.class)))
+                            schema = @Schema(implementation = ImUserStickerPackPo.class)))
     })
-    public Mono<List<ImUserEmojiPackPo>> listDetails(@RequestParam("userId") @NotBlank @Size(max = 64) String userId) {
+    public Mono<List<ImUserStickerPackPo>> listDetails(@RequestParam("userId") @NotBlank @Size(max = 64) String userId) {
         return Mono.fromCallable(() -> service.listByUserId(userId)).subscribeOn(Schedulers.boundedElastic());
     }
 

@@ -1,6 +1,7 @@
 package com.xy.lucky.chat.controller;
 
-import com.xy.lucky.chat.service.UserEmojiService;
+import com.xy.lucky.chat.domain.vo.StickerRespVo;
+import com.xy.lucky.chat.service.UserStickerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
@@ -22,13 +23,13 @@ import java.util.concurrent.Executor;
 
 @Slf4j
 @RestController
-@RequestMapping({"/api/emoji", "/api/{version}/emoji"})
-@Tag(name = "emoji-user", description = "用户与表情包关联接口")
+@RequestMapping({"/api/sticker", "/api/{version}/sticker"})
+@Tag(name = "sticker-user", description = "用户与表情包关联接口")
 @Validated
-public class UserEmojiController {
+public class UserStickerController {
 
     @Resource
-    private UserEmojiService userEmojiService;
+    private UserStickerService userStickerService;
 
     @Resource
     @Qualifier("virtualThreadExecutor")
@@ -39,36 +40,42 @@ public class UserEmojiController {
     }
 
     @GetMapping("/list")
-    @Operation(summary = "查询用户已关联的表情包编码列表", tags = {"emoji-user"}, description = "通过用户ID查询其已绑定的表情包编码列表")
+    @Operation(summary = "查询用户已关联的表情包编码列表", tags = {"sticker-user"}, description = "通过用户ID查询其已绑定的表情包编码列表")
     @Parameters({
             @Parameter(name = "userId", description = "用户ID", required = true, in = ParameterIn.QUERY)
     })
     public Mono<List<String>> list(@RequestParam("userId") @NotBlank @Size(max = 64) String userId) {
-        return Mono.fromCallable(() -> userEmojiService.listPackIds(userId))
+        return Mono.fromCallable(() -> userStickerService.listPackIds(userId))
                 .subscribeOn(getScheduler());
     }
 
+    @Operation(summary = "查询表情包详情", description = "按 packId 查询表情包")
+    @GetMapping("/pack/{packId}")
+    public Mono<StickerRespVo> getPackId(@Parameter(description = "包编码", required = true) @PathVariable("packId") String packId) {
+        return Mono.fromCallable(() -> userStickerService.getPackId(packId)).subscribeOn(Schedulers.boundedElastic());
+    }
+
     @PostMapping("/bind")
-    @Operation(summary = "绑定用户与表情包", tags = {"emoji-user"}, description = "为指定用户绑定一个表情包编码")
+    @Operation(summary = "绑定用户与表情包", tags = {"sticker-user"}, description = "为指定用户绑定一个表情包编码")
     @Parameters({
             @Parameter(name = "userId", description = "用户ID", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "packId", description = "表情包编码", required = true, in = ParameterIn.QUERY)
     })
     public Mono<Boolean> bind(@RequestParam("userId") @NotBlank @Size(max = 64) String userId,
                               @RequestParam("packId") @NotBlank @Size(max = 64) String packId) {
-        return Mono.fromCallable(() -> userEmojiService.bindPack(userId, packId))
+        return Mono.fromCallable(() -> userStickerService.bindPack(userId, packId))
                 .subscribeOn(getScheduler());
     }
 
     @DeleteMapping("/unbind")
-    @Operation(summary = "解绑用户与表情包", tags = {"emoji-user"}, description = "为指定用户解绑一个表情包编码")
+    @Operation(summary = "解绑用户与表情包", tags = {"sticker-user"}, description = "为指定用户解绑一个表情包编码")
     @Parameters({
             @Parameter(name = "userId", description = "用户ID", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "packId", description = "表情包编码", required = true, in = ParameterIn.QUERY)
     })
     public Mono<Boolean> unbind(@RequestParam("userId") @NotBlank @Size(max = 64) String userId,
                                 @RequestParam("packId") @NotBlank @Size(max = 64) String packId) {
-        return Mono.fromCallable(() -> userEmojiService.unbindPack(userId, packId))
+        return Mono.fromCallable(() -> userStickerService.unbindPack(userId, packId))
                 .subscribeOn(getScheduler());
     }
 }

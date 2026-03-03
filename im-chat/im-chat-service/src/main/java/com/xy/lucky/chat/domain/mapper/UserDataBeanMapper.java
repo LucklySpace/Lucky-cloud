@@ -1,21 +1,18 @@
 package com.xy.lucky.chat.domain.mapper;
 
-import com.xy.lucky.domain.po.ImUserDataPo;
 import com.xy.lucky.chat.domain.dto.UserDto;
 import com.xy.lucky.chat.domain.vo.FriendVo;
 import com.xy.lucky.chat.domain.vo.UserVo;
+import com.xy.lucky.domain.po.ImUserDataPo;
 import org.mapstruct.Mapper;
-import org.mapstruct.factory.Mappers;
 
 import java.util.List;
 
 /**
  * 用户数据相关实体映射
  */
-@Mapper
+@Mapper(componentModel = "spring")
 public interface UserDataBeanMapper {
-
-    UserDataBeanMapper INSTANCE = Mappers.getMapper(UserDataBeanMapper.class);
 
     /**
      * ImUserDataPo -> UserVo

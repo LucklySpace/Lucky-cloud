@@ -2,9 +2,9 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.xy.lucky.database.web.mapper.ImUserEmojiPackMapper">
+<mapper namespace="com.xy.lucky.database.web.mapper.ImUserStickerPackMapper">
 
-    <resultMap id="BaseResultMap" type="com.xy.lucky.domain.po.ImUserEmojiPackPo">
+    <resultMap id="BaseResultMap" type="com.xy.lucky.domain.po.ImUserStickerPackPo">
         <id property="id" column="id"/>
         <result property="userId" column="user_id"/>
         <result property="packId" column="pack_id"/>
@@ -16,14 +16,14 @@
 
     <select id="selectByUserId" resultMap="BaseResultMap">
         select id, user_id, pack_id, create_time, update_time, del_flag, version
-        from im_user_emoji_pack
+        from im_user_sticker_pack
         where user_id = #{userId}
           and del_flag = 1
     </select>
 
     <select id="selectPackIdsByUserId" resultType="java.lang.String">
         select pack_id
-        from im_user_emoji_pack
+        from im_user_sticker_pack
         where user_id = #{userId}
           and del_flag = 1
     </select>

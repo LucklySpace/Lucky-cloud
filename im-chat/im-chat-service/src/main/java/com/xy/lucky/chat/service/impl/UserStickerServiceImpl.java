@@ -6,6 +6,7 @@ import com.xy.lucky.chat.domain.vo.StickerVo;
 import com.xy.lucky.chat.exception.StickerException;
 import com.xy.lucky.chat.service.UserStickerService;
 import com.xy.lucky.domain.po.ImStickerPackPo;
+import com.xy.lucky.domain.po.ImStickerPo;
 import com.xy.lucky.rpc.api.database.sticker.ImUserStickerPackDubboService;
 import com.xy.lucky.rpc.api.database.sticker.StickerDubboService;
 import com.xy.lucky.rpc.api.database.sticker.StickerPackDubboService;
@@ -62,6 +63,19 @@ public class UserStickerServiceImpl implements UserStickerService {
         Optional.of(list).ifPresent(vo::setStickers);
 
         return vo;
+    }
+
+
+    /**
+     * 查询表情包详情（按 stickerId）
+     */
+    @Override
+    public StickerVo getStickerId(String stickerId) {
+
+        ImStickerPo imStickerPo = Optional.of(stickerDubboService.queryOne(stickerId))
+                .orElseThrow(() -> new StickerException("表情不存在"));
+
+        return stickerBeanMapper.toVo(imStickerPo);
     }
 }
 

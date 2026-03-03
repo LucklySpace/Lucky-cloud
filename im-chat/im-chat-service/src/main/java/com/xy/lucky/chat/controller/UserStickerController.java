@@ -1,6 +1,7 @@
 package com.xy.lucky.chat.controller;
 
 import com.xy.lucky.chat.domain.vo.StickerRespVo;
+import com.xy.lucky.chat.domain.vo.StickerVo;
 import com.xy.lucky.chat.service.UserStickerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -49,10 +50,16 @@ public class UserStickerController {
                 .subscribeOn(getScheduler());
     }
 
+    @Operation(summary = "查询表情详情", description = "按 stickerId 获取表情包详情")
+    @GetMapping("/{stickerId}")
+    public Mono<StickerVo> getStickerId(@Parameter(description = "表情编码", required = true) @PathVariable("stickerId") String stickerId) {
+        return Mono.fromCallable(() -> userStickerService.getStickerId(stickerId)).subscribeOn(getScheduler());
+    }
+
     @Operation(summary = "查询表情包详情", description = "按 packId 查询表情包")
     @GetMapping("/pack/{packId}")
     public Mono<StickerRespVo> getPackId(@Parameter(description = "包编码", required = true) @PathVariable("packId") String packId) {
-        return Mono.fromCallable(() -> userStickerService.getPackId(packId)).subscribeOn(Schedulers.boundedElastic());
+        return Mono.fromCallable(() -> userStickerService.getPackId(packId)).subscribeOn(getScheduler());
     }
 
     @PostMapping("/bind")

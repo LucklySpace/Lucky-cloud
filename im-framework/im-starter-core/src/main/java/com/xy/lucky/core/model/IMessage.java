@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.xy.lucky.core.enums.IMessageReadStatus;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -92,7 +93,7 @@ public abstract class IMessage implements Serializable {
             @JsonSubTypes.Type(value = ImageMessageBody.class, name = "100"),// 图片消息
             @JsonSubTypes.Type(value = VideoMessageBody.class, name = "110"),// 视频消息
             @JsonSubTypes.Type(value = AudioMessageBody.class, name = "120"),// 语音消息
-            @JsonSubTypes.Type(value = ImageMessageBody.class, name = "130"), // 表情消息
+            @JsonSubTypes.Type(value = StickerMessageBody.class, name = "130"), // 表情消息
             @JsonSubTypes.Type(value = FileMessageBody.class, name = "200"),// 文件消息
             @JsonSubTypes.Type(value = LocationMessageBody.class, name = "300"),// 位置消息
             @JsonSubTypes.Type(value = GroupOperationMessageBody.class, name = "400"),// 群组操作
@@ -136,6 +137,7 @@ public abstract class IMessage implements Serializable {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class TextMessageBody extends MessageBody implements Serializable {
         @NotBlank(message = "消息内容不能为空")
+        @Max(value = 20000, message = "消息内容不能超过 20000 字符")
         private String text;
 
         /**
@@ -184,6 +186,26 @@ public abstract class IMessage implements Serializable {
         private String path;
         private String name;
         private Integer size;
+
+        /**
+         * 引用的消息（被回复的消息）
+         */
+        private ReplyMessageInfo replyMessage;
+    }
+
+    /**
+     * 贴图消息体
+     */
+    @Getter
+    @Setter
+    @ToString(callSuper = true)
+    @Accessors(chain = true)
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class StickerMessageBody extends MessageBody implements Serializable {
+        @NotBlank(message = "贴图id 不能为空")
+        private String id;
 
         /**
          * 引用的消息（被回复的消息）

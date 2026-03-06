@@ -33,6 +33,7 @@ public class LoginHandler extends SimpleChannelInboundHandler<IMessageWrap<Objec
     protected void channelRead0(ChannelHandlerContext ctx, IMessageWrap<Object> message) {
         int code = message.getCode();
 
+        // 注册
         if (code == IMessageType.REGISTER.getCode()) {
             try {
                 loginProcess.process(ctx, message);

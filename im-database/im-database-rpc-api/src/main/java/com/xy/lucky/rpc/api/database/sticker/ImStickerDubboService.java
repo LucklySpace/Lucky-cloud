@@ -4,7 +4,7 @@ import com.xy.lucky.domain.po.ImStickerPo;
 
 import java.util.List;
 
-public interface StickerDubboService {
+public interface ImStickerDubboService {
 
     ImStickerPo queryOne(String stickerId);
 

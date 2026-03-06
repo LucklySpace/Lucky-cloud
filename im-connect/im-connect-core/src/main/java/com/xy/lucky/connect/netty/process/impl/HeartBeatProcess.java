@@ -33,7 +33,7 @@ public class HeartBeatProcess implements WebsocketProcess {
     @Autowired
     private NettyProperties nettyProperties;
 
-    @Value("${auth.tokenExpired:3}")
+    @Value("${auth.tokenExpired:2}")
     private Integer tokenExpired;
 
     @Autowired
@@ -70,6 +70,7 @@ public class HeartBeatProcess implements WebsocketProcess {
                 }
             } catch (Exception ignored) {
                 // Token 解析失败或过期由网关或 AuthHandler 拦截，心跳此处不做强校验
+                log.warn("心跳处理失败：Token 解析失败或已过期");
             }
         }
 

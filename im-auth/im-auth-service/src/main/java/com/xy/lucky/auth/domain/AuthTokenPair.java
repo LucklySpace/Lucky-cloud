@@ -29,9 +29,9 @@ public class AuthTokenPair implements Serializable {
     private String refreshToken;
 
     @Schema(description = "访问令牌有效期(秒)")
-    private long accessExpiresIn;
+    private Long accessExpiresIn;
 
     @Schema(description = "刷新令牌有效期(秒)")
-    private long refreshExpiresIn;
+    private Long refreshExpiresIn;
 }
 

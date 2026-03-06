@@ -41,10 +41,10 @@ public class LoginResult implements Serializable {
     private String tokenType = IMConstant.BEARER_PREFIX;
 
     @Schema(description = "accessToken  过期时间(单位：秒)", example = "604800")
-    private Integer accessExpiration;
+    private Long accessExpiration;
 
     @Schema(description = "refreshToken 过期时间(单位：秒)", example = "604800")
-    private Integer refreshExpiration;
+    private Long refreshExpiration;
 
     @Schema(description = "token版本")
     private String version;

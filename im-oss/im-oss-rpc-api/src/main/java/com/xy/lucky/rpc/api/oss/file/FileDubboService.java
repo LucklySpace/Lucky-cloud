@@ -71,4 +71,14 @@ public interface FileDubboService {
      * @return 文件md5
      */
     FileVo getFileMd5(byte[] fileBytes, String fileName);
+
+    /**
+     * 获取文件上传签名
+     *
+     * @param bucketName 存储桶名称
+     * @param objectName 对象名称
+     * @param expires    过期时间
+     * @return 文件上传签名
+     */
+    String getPresignedPutUrl(String bucketName, String objectName, int expires);
 }

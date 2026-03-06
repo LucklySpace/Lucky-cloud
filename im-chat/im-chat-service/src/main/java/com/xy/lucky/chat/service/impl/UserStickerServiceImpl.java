@@ -7,9 +7,10 @@ import com.xy.lucky.chat.exception.StickerException;
 import com.xy.lucky.chat.service.UserStickerService;
 import com.xy.lucky.domain.po.ImStickerPackPo;
 import com.xy.lucky.domain.po.ImStickerPo;
+import com.xy.lucky.rpc.api.database.sticker.ImStickerDubboService;
+import com.xy.lucky.rpc.api.database.sticker.ImStickerPackDubboService;
 import com.xy.lucky.rpc.api.database.sticker.ImUserStickerPackDubboService;
-import com.xy.lucky.rpc.api.database.sticker.StickerDubboService;
-import com.xy.lucky.rpc.api.database.sticker.StickerPackDubboService;
+import com.xy.lucky.rpc.api.oss.file.FileDubboService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -27,9 +28,11 @@ public class UserStickerServiceImpl implements UserStickerService {
     @DubboReference
     private ImUserStickerPackDubboService dubboService;
     @DubboReference
-    private StickerDubboService stickerDubboService;
+    private ImStickerDubboService imStickerDubboService;
     @DubboReference
-    private StickerPackDubboService stickerPackDubboService;
+    private ImStickerPackDubboService imStickerPackDubboService;
+    @DubboReference
+    private FileDubboService fileDubboService;
 
     @Override
     public List<String> listPackIds(String userId) {
@@ -52,19 +55,20 @@ public class UserStickerServiceImpl implements UserStickerService {
     @Override
     public StickerRespVo getPackId(String packId) {
 
-        ImStickerPackPo imStickerPackPo = Optional.of(stickerPackDubboService.queryOne(packId))
+        ImStickerPackPo imStickerPackPo = Optional.of(imStickerPackDubboService.queryOne(packId))
                 .orElseThrow(() -> new StickerException("表情包不存在"));
 
         StickerRespVo vo = stickerBeanMapper.toRespVo(imStickerPackPo);
 
-        List<StickerVo> list = stickerDubboService.queryListByPackId(packId)
-                .stream().map(stickerBeanMapper::toVo).toList();
+        List<ImStickerPo> imStickerPos = imStickerDubboService.queryListByPackId(packId);
 
-        Optional.of(list).ifPresent(vo::setStickers);
+        // 获取表情包图片的预签名URL
+        imStickerPos.forEach(imStickerPo -> imStickerPo.setUrl(fileDubboService.getPresignedPutUrl(imStickerPo.getBucket(), imStickerPo.getObjectKey(), 60 * 10 * 1000)));
+
+        vo.setStickers(imStickerPos.stream().map(stickerBeanMapper::toVo).toList());
 
         return vo;
     }
-
 
     /**
      * 查询表情包详情（按 stickerId）
@@ -72,7 +76,7 @@ public class UserStickerServiceImpl implements UserStickerService {
     @Override
     public StickerVo getStickerId(String stickerId) {
 
-        ImStickerPo imStickerPo = Optional.of(stickerDubboService.queryOne(stickerId))
+        ImStickerPo imStickerPo = Optional.of(imStickerDubboService.queryOne(stickerId))
                 .orElseThrow(() -> new StickerException("表情不存在"));
 
         return stickerBeanMapper.toVo(imStickerPo);

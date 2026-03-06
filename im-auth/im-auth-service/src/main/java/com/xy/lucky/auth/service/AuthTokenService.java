@@ -29,6 +29,8 @@ public interface AuthTokenService {
      */
     AuthTokenPair refreshTokens(String refreshToken, String clientIp, String deviceId);
 
+    boolean isAccessTokenValid(String accessToken);
+
     /**
      * 撤销指定的令牌（将其加入黑名单并从缓存移除）
      *

@@ -1,4 +1,4 @@
-package com.xy.lucky.oss.mapper;
+package com.xy.lucky.oss.domain.mapper;
 
 
 import com.xy.lucky.oss.domain.OssFileUploadProgress;
@@ -6,6 +6,7 @@ import com.xy.lucky.oss.domain.po.OssFileImagePo;
 import com.xy.lucky.oss.domain.po.OssFilePo;
 import com.xy.lucky.oss.domain.vo.FileUploadProgressVo;
 import com.xy.lucky.oss.domain.vo.FileVo;
+import com.xy.lucky.oss.domain.vo.ImageVo;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -13,17 +14,17 @@ import org.mapstruct.Mapping;
 public interface FileVoMapper {
 
     @Mapping(target = "name", source = "fileName")
-    @Mapping(target = "path", source = "path")
+    @Mapping(target = "key", source = "identifier")
     @Mapping(target = "type", source = "fileType")
     @Mapping(target = "size", source = "fileSize")
     FileVo toVo(OssFilePo entity);
 
     @Mapping(target = "name", source = "fileName")
-    @Mapping(target = "path", source = "path")
+    @Mapping(target = "key", source = "identifier")
     @Mapping(target = "type", source = "fileType")
     @Mapping(target = "size", source = "fileSize")
-    @Mapping(target = "thumbnailPath", source = "thumbnailPath")
-    FileVo toVo(OssFileImagePo entity);
+    @Mapping(target = "suffix", source = "suffix")
+    ImageVo toVo(OssFileImagePo entity);
 
 
     FileUploadProgressVo toVo(OssFileUploadProgress entity);

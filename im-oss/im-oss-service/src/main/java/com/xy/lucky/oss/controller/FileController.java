@@ -94,4 +94,15 @@ public class FileController {
     public FileVo getFileMd5(@RequestParam("file") MultipartFile file) {
         return ossFileService.getFileMd5(file);
     }
+
+
+    @GetMapping("/getPresignedPutUrl")
+    @Operation(summary = "获取文件url", tags = {"file"})
+    @Parameters({
+            @Parameter(name = "file", description = "文件", required = true, in = ParameterIn.DEFAULT)
+    })
+    public FileVo getPresignedPutUrl(@NotBlank(message = "请输入文件md5值") @RequestParam("identifier") String identifier) {
+        return ossFileService.getPresignedPutUrl(identifier);
+    }
+
 }

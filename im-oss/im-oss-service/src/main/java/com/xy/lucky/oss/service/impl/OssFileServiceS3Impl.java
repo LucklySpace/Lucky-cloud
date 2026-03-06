@@ -1,6 +1,8 @@
 package com.xy.lucky.oss.service.impl;
 
+import com.xy.lucky.oss.client.OssProperties;
 import com.xy.lucky.oss.domain.OssFileUploadProgress;
+import com.xy.lucky.oss.domain.mapper.FileVoMapper;
 import com.xy.lucky.oss.domain.po.OssFilePo;
 import com.xy.lucky.oss.domain.vo.FileChunkVo;
 import com.xy.lucky.oss.domain.vo.FileUploadProgressVo;
@@ -8,14 +10,12 @@ import com.xy.lucky.oss.domain.vo.FileVo;
 import com.xy.lucky.oss.enums.BoolEnum;
 import com.xy.lucky.oss.enums.StorageBucketEnum;
 import com.xy.lucky.oss.exception.FileException;
-import com.xy.lucky.oss.mapper.FileVoMapper;
 import com.xy.lucky.oss.repository.OssFileRepository;
 import com.xy.lucky.oss.service.OssFileService;
 import com.xy.lucky.oss.util.MD5Utils;
 import com.xy.lucky.oss.util.OssUtils;
 import com.xy.lucky.oss.util.RedisUtils;
 import com.xy.lucky.utils.id.IdUtils;
-import com.xy.lucky.utils.json.JacksonUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +25,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -43,6 +43,9 @@ public class OssFileServiceS3Impl implements OssFileService {
     @Resource
     private FileVoMapper fileVoMapper;
 
+    @Resource
+    private OssProperties ossProperties;
+
     @Override
     public FileUploadProgressVo getMultipartUploadProgress(String identifier) {
         log.info("查询文件上传进度 - identifier:{}", identifier);
@@ -58,7 +61,7 @@ public class OssFileServiceS3Impl implements OssFileService {
         uploadProgress.setIsFinish(isFinish);
 
         if (BoolEnum.YES.equals(isFinish)) {
-            String filePath = ossUtils.getFilePath(ossFilePo.getBucketName(), ossFilePo.getObjectKey());
+            String filePath = ossUtils.getPresignedGetUrl(ossFilePo.getBucketName(), ossFilePo.getObjectKey());
             uploadProgress.setPath(filePath);
             return fileVoMapper.toVo(uploadProgress);
         }
@@ -97,10 +100,10 @@ public class OssFileServiceS3Impl implements OssFileService {
             throw new FileException("文件已完成合并，identifier=" + identifier);
         }
 
-        String path = ossUtils.mergeOssFileUpload(ossFilePo);
+        ossUtils.mergeOssFileUpload(ossFilePo);
         ossFilePo.setIsFinish(BoolEnum.YES);
         saveOssFileToRedis(ossFilePo);
-        tryPersist(ossFilePo, path);
+        tryPersist(ossFilePo);
         return fileVoMapper.toVo(ossFilePo);
     }
 
@@ -108,8 +111,6 @@ public class OssFileServiceS3Impl implements OssFileService {
     public FileVo isExits(String identifier) {
         OssFilePo ossFilePo = getOssFileByIdentifier(identifier);
         if (ossFilePo != null && ossUtils.checkObjectExists(ossFilePo)) {
-            String filePath = ossUtils.getFilePath(ossFilePo.getBucketName(), ossFilePo.getObjectKey());
-            ossFilePo.setPath(filePath);
             return fileVoMapper.toVo(ossFilePo);
         }
         throw new FileException("文件不存在");
@@ -152,10 +153,10 @@ public class OssFileServiceS3Impl implements OssFileService {
                     .fileSize(file.getSize())
                     .partNum(1)
                     .isFinish(BoolEnum.YES)
-                    .path(ossUtils.getFilePath(bucketName, objectName)).build();
+                    .build();
 
             saveOssFileToRedis(ossFilePo);
-            tryPersist(ossFilePo, ossFilePo.getPath());
+            tryPersist(ossFilePo);
             return fileVoMapper.toVo(ossFilePo);
         } catch (Exception e) {
             throw new FileException("文件上传失败");
@@ -176,30 +177,35 @@ public class OssFileServiceS3Impl implements OssFileService {
 
     @Override
     public FileVo getFileMd5(MultipartFile file) {
-        return FileVo.builder().identifier(MD5Utils.getMD5(file)).build();
+        return FileVo.builder().key(MD5Utils.getMD5(file)).build();
     }
 
+    @Override
+    public FileVo getPresignedPutUrl(String identifier) {
+        OssFilePo file = getOssFileByIdentifier(identifier);
+        return FileVo.builder()
+                .key(identifier)
+                .path(ossUtils.getPresignedUrl(file.getBucketName(), file.getObjectKey(), ossProperties.getPresignedUrlExpiry()))
+                .build();
+    }
+
+    /**
+     * 获取文件
+     */
     private OssFilePo getOssFileByIdentifier(String identifier) {
-        String objStr = redisUtils.get(identifier);
-        if (!StringUtils.hasText(objStr)) {
-            return findFromDb(identifier);
-        }
-        return JacksonUtils.parseObject(objStr, OssFilePo.class);
+        return Optional.ofNullable((OssFilePo) redisUtils.get(identifier)).orElse(findFromDb(identifier));
     }
 
     private void saveOssFileToRedis(OssFilePo ossFilePo) {
-        redisUtils.saveTimeout(ossFilePo.getIdentifier(), JacksonUtils.toJSONString(ossFilePo), 30, TimeUnit.MINUTES);
+        redisUtils.set(ossFilePo.getIdentifier(), ossFilePo, 30 * 60);
     }
 
     private OssFilePo findFromDb(String identifier) {
-        return ossFileRepository.findByIdentifier(identifier).orElse(null);
+        return ossFileRepository.findByIdentifier(identifier).orElseThrow(() -> new FileException("文件不存在"));
     }
 
-    private void tryPersist(OssFilePo ossFilePo, String path) {
+    private void tryPersist(OssFilePo ossFilePo) {
         try {
-            if (path != null) {
-                ossFilePo.setPath(path);
-            }
             ossFileRepository.findByIdentifier(ossFilePo.getIdentifier())
                     .ifPresentOrElse(existing -> {
                         ossFilePo.setId(existing.getId());

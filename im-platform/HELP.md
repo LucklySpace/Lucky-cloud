@@ -59,7 +59,7 @@ im-platform/
 - 解析地区路径字符串
 - 格式化地区编号为完整路径
 
-### 3. 表情服务（EmojiDubboService）
+### 3. 表情服务（StickerDubboService）
 
 提供表情包管理、表情图片上传等功能。
 

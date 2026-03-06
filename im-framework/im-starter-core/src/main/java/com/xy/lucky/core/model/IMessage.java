@@ -182,8 +182,8 @@ public abstract class IMessage implements Serializable {
     @AllArgsConstructor
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ImageMessageBody extends MessageBody implements Serializable {
-        @NotBlank(message = "图片 path 不能为空")
-        private String path;
+        @NotBlank(message = "图片 key 不能为空")
+        private String key;
         private String name;
         private Integer size;
 
@@ -225,8 +225,8 @@ public abstract class IMessage implements Serializable {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class VideoMessageBody extends MessageBody implements Serializable {
 
-        @NotBlank(message = "视频 URL 不能为空")
-        private String path;
+        @NotBlank(message = "视频 key 不能为空")
+        private String key;
         private String name;
         // 单位：秒
         private Integer duration;
@@ -251,9 +251,8 @@ public abstract class IMessage implements Serializable {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AudioMessageBody extends MessageBody implements Serializable {
 
-        @NotBlank(message = "视频 URL 不能为空")
-        private String path;
-
+        @NotBlank(message = "音频频 key 不能为空")
+        private String key;
         // 单位：秒
         private Integer duration;
 
@@ -277,8 +276,8 @@ public abstract class IMessage implements Serializable {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class FileMessageBody extends MessageBody implements Serializable {
 
-        @NotBlank(message = "视频 URL 不能为空")
-        private String path;
+        @NotBlank(message = "文件 key 不能为空")
+        private String key;
         private String name;
         private String suffix;
         private Integer size;

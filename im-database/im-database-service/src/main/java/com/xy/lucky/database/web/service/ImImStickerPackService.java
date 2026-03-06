@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xy.lucky.database.web.mapper.ImStickerPackMapper;
 import com.xy.lucky.domain.po.ImStickerPackPo;
-import com.xy.lucky.rpc.api.database.sticker.StickerPackDubboService;
+import com.xy.lucky.rpc.api.database.sticker.ImStickerPackDubboService;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 
@@ -12,8 +12,8 @@ import java.util.List;
 
 @DubboService
 @RequiredArgsConstructor
-public class ImStickerPackService extends ServiceImpl<ImStickerPackMapper, ImStickerPackPo>
-        implements StickerPackDubboService {
+public class ImImStickerPackService extends ServiceImpl<ImStickerPackMapper, ImStickerPackPo>
+        implements ImStickerPackDubboService {
 
     @Override
     public ImStickerPackPo queryOne(String packId) {

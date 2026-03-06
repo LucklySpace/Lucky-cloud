@@ -54,7 +54,7 @@ public interface OssTemplate {
 
     String getPresignedPutUrl(String bucketName, String objectName, int expires);
 
-    String getPublicUrl(String bucketName, String objectName);
+    String getPresignedPutUrl(String bucketName, String objectName);
 
     ObjectMetadata getObjectMetadata(String bucketName, String objectName);
 }

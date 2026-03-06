@@ -232,20 +232,16 @@ public class AuthServiceImpl implements AuthService {
 
         String clientIp = RequestContextUtil.resolveClientIp(request);
         String deviceId = RequestContextUtil.resolveDeviceId(request, clientIp);
-        String userAgent = request.getHeader("User-Agent");
+        AuthTokenPair pair = authTokenService.refreshTokens(refreshToken, clientIp, deviceId);
+        log.info("Token 刷新成功");
 
-        try {
-            AuthTokenPair pair = authTokenService.refreshTokens(refreshToken, clientIp, deviceId);
-            if (pair == null) {
-                throw new AuthenticationFailException(ResultCode.TOKEN_IS_INVALID);
-            }
-            log.info("Token 刷新成功");
-
-            return AuthRefreshTokenResult.builder().accessToken(pair.getAccessToken()).build();
-        } catch (Exception e) {
-            log.error("Token 刷新失败: {}", e.getMessage());
-            throw new AuthenticationFailException(ResultCode.AUTHENTICATION_FAILED);
-        }
+        return AuthRefreshTokenResult.builder()
+                .userId(pair.getUserId())
+                .accessToken(pair.getAccessToken())
+                .refreshToken(pair.getRefreshToken())
+                .accessExpiration(pair.getAccessExpiresIn())
+                .refreshExpiration(pair.getRefreshExpiresIn())
+                .build();
     }
 
     @Override
@@ -350,8 +346,8 @@ public class AuthServiceImpl implements AuthService {
                 .setUserId(userId)
                 .setAccessToken(pair.getAccessToken())
                 .setRefreshToken(pair.getRefreshToken())
-                .setAccessExpiration((int) pair.getAccessExpiresIn())
-                .setRefreshExpiration((int) pair.getRefreshExpiresIn());
+                .setAccessExpiration(pair.getAccessExpiresIn())
+                .setRefreshExpiration(pair.getRefreshExpiresIn());
     }
 
     /**

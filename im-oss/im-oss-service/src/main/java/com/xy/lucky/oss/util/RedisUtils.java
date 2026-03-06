@@ -1,40 +1,74 @@
 package com.xy.lucky.oss.util;
 
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.BoundValueOperations;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import jakarta.annotation.Resource;
+import org.springframework.data.redis.core.RedisCallback;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.TimeUnit;
-
+import java.time.Duration;
+import java.util.List;
 
 @Component
 public class RedisUtils {
 
-    @Autowired
-    private StringRedisTemplate redisTemplate;
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
 
-    public String get(String key) {
-        BoundValueOperations<String, String> ops = redisTemplate.boundValueOps(key);
-        return ops.get();
+    /**
+     * 获取
+     *
+     * @param key 键
+     */
+    @SuppressWarnings("unchecked")
+    public Object get(String key) {
+        return redisTemplate.opsForValue().get(key);
     }
 
-    public void save(String key, String str) {
-        BoundValueOperations<String, String> ops = redisTemplate.boundValueOps(key);
-        ops.set(str);
+    /**
+     * 批量获取
+     *
+     * @param keys 键集合
+     * @return 值
+     */
+    public List<Object> batchGet(List<String> keys) {
+        return redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+            for (String key : keys) {
+                connection.get(key.getBytes());
+            }
+            return null;
+        });
     }
 
-    public void saveTimeout(String key, String value, long timeout, TimeUnit unit) {
-        delete(key);
-        redisTemplate.boundValueOps(key).setIfAbsent(value, timeout, unit);
+    /**
+     * 设置键值并指定过期时间
+     *
+     * @param key           键
+     * @param value         值
+     * @param expireSeconds 过期时间（秒）
+     */
+    public void set(String key, Object value, long expireSeconds) {
+        redisTemplate.opsForValue().set(key, value, Duration.ofSeconds(expireSeconds));
     }
 
-    public void delete(String key) {
+    /**
+     * 删除键
+     *
+     * @param key 键
+     */
+    public void del(String key) {
         redisTemplate.delete(key);
     }
 
-    public long expire(String key) {
-        return redisTemplate.opsForValue().getOperations().getExpire(key);
+    /**
+     * 如果不存在则设置，并指定过期时间
+     *
+     * @param key           键
+     * @param value         值
+     * @param expireSeconds 过期时间（秒）
+     * @return 是否设置成功
+     */
+    public boolean setIfAbsent(String key, Object value, long expireSeconds) {
+        Boolean result = redisTemplate.opsForValue().setIfAbsent(key, value, Duration.ofSeconds(expireSeconds));
+        return result != null && result;
     }
 }

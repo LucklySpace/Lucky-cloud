@@ -75,7 +75,7 @@ public class OAuth2ServiceImpl implements OAuth2Service {
                         request.getParameter(IMConstant.ACCESS_TOKEN_PARAM))
                 .orElse(null);
 
-        if (!StringUtils.hasText(accessToken) || !JwtUtil.validate(accessToken)) {
+        if (!StringUtils.hasText(accessToken) || !authTokenService.isAccessTokenValid(accessToken)) {
             throw new AuthenticationFailException(ResultCode.UNAUTHORIZED);
         }
 

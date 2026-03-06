@@ -209,8 +209,8 @@ public class OssAutoConfiguration {
         }
 
         @Override
-        public String getPublicUrl(String bucketName, String objectName) {
-            return selectByBucket(bucketName).getPublicUrl(bucketName, objectName);
+        public String getPresignedPutUrl(String bucketName, String objectName) {
+            return selectByBucket(bucketName).getPresignedPutUrl(bucketName, objectName);
         }
 
         @Override

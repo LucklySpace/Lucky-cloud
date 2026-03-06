@@ -1,14 +1,15 @@
 package com.xy.lucky.oss.controller;
 
 import com.xy.lucky.oss.domain.vo.FileVo;
+import com.xy.lucky.oss.domain.vo.ImageVo;
 import com.xy.lucky.oss.service.OssFileImageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.annotation.Resource;
 import jakarta.validation.constraints.NotBlank;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -20,10 +21,10 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping({"/api/media", "/api/{version}/media"})
 @Tag(name = "media", description = "媒体文件管理（S3）")
 @CrossOrigin(origins = "*", maxAge = 3600)
+@RequiredArgsConstructor
 public class MediaController {
 
-    @Resource
-    private OssFileImageService ossImageFileService;
+    private final OssFileImageService ossImageFileService;
 
     @PostMapping("/image/upload")
     @Operation(summary = "上传图片文件", tags = {"media"})
@@ -31,7 +32,7 @@ public class MediaController {
             @Parameter(name = "identifier", description = "文件md5值", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "file", description = "图片文件", required = true, in = ParameterIn.DEFAULT)
     })
-    public FileVo uploadImage(@NotBlank(message = "请输入文件md5值") @RequestParam("identifier") String identifier, @RequestParam("file") MultipartFile file) {
+    public ImageVo uploadImage(@NotBlank(message = "请输入文件md5值") @RequestParam("identifier") String identifier, @RequestParam("file") MultipartFile file) {
         return ossImageFileService.uploadImage(identifier, file);
     }
 
@@ -41,7 +42,26 @@ public class MediaController {
             @Parameter(name = "identifier", description = "文件md5值", required = true, in = ParameterIn.QUERY),
             @Parameter(name = "file", description = "头像文件", required = true, in = ParameterIn.DEFAULT)
     })
-    public FileVo uploadAvatar(@NotBlank(message = "请输入文件md5值") @RequestParam("identifier") String identifier, @RequestParam("file") MultipartFile file) {
+    public ImageVo uploadAvatar(@NotBlank(message = "请输入文件md5值") @RequestParam("identifier") String identifier, @RequestParam("file") MultipartFile file) {
         return ossImageFileService.uploadAvatar(identifier, file);
+    }
+
+    @GetMapping("/getPresignedPutUrl")
+    @Operation(summary = "获取文件url", tags = {"file"})
+    @Parameters({
+            @Parameter(name = "file", description = "文件", required = true, in = ParameterIn.DEFAULT)
+    })
+    public ImageVo getPresignedPutUrl(@NotBlank(message = "请输入文件md5值") @RequestParam("identifier") String identifier) {
+        return ossImageFileService.getPresignedPutUrl(identifier);
+    }
+
+    @PostMapping("/audio/upload")
+    @Operation(summary = "上传音频文件", tags = {"media"})
+    @Parameters({
+            @Parameter(name = "identifier", description = "文件md5值", required = true, in = ParameterIn.QUERY),
+            @Parameter(name = "file", description = "音频文件", required = true, in = ParameterIn.DEFAULT)
+    })
+    public FileVo uploadAudio(@NotBlank(message = "请输入文件md5值") @RequestParam("identifier") String identifier, @RequestParam("file") MultipartFile file) {
+        return ossImageFileService.uploadAudio(identifier, file);
     }
 }

@@ -40,11 +40,12 @@ public class CompressStrategy implements ImageProcessingStrategy {
         int height = image.getHeight();
 
         // 创建新的 BufferedImage，用于无损压缩
-        BufferedImage compressedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        int type = image.getType() == 0 ? BufferedImage.TYPE_INT_RGB : image.getType();
+        BufferedImage compressedImage = new BufferedImage(width, height, type);
         Graphics2D g2d = compressedImage.createGraphics();
 
         // 绘制原图到新的 BufferedImage
-        g2d.drawImage(image.getScaledInstance(width, height, Image.SCALE_SMOOTH), 0, 0, null);
+        g2d.drawImage(image, 0, 0, width, height, null);
         g2d.dispose();
 
         // 将压缩后的图片写入 ByteArrayOutputStream

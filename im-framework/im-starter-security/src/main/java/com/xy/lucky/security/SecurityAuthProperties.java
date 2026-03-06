@@ -36,7 +36,7 @@ public class SecurityAuthProperties {
     /**
      * 是否复用刷新令牌
      */
-    private Boolean reuseRefreshTokens = Boolean.FALSE;
+    private Boolean reuseRefreshTokens = Boolean.TRUE;
 
 }
 

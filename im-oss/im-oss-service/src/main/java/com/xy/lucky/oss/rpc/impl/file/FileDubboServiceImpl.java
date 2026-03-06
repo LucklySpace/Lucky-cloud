@@ -100,6 +100,11 @@ public class FileDubboServiceImpl implements FileDubboService {
         return convertToRpcVo(serviceVo);
     }
 
+    @Override
+    public String getPresignedPutUrl(String bucketName, String objectName, int expires) {
+        return ossUtils.getPresignedUrl(bucketName, objectName, expires);
+    }
+
     /**
      * 将 OssFileDto 转换为 OssFilePo
      */

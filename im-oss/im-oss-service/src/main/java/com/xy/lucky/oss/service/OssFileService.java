@@ -71,4 +71,12 @@ public interface OssFileService {
      * @return 文件md5
      */
     FileVo getFileMd5(MultipartFile file);
+
+    /**
+     * 获取文件url
+     *
+     * @param identifier 文件md5
+     * @return 文件url
+     */
+    FileVo getPresignedPutUrl(String identifier);
 }

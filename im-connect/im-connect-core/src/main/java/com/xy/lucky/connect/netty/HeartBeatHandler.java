@@ -36,6 +36,7 @@ public class HeartBeatHandler extends SimpleChannelInboundHandler<IMessageWrap<O
     protected void channelRead0(ChannelHandlerContext ctx, IMessageWrap<Object> message) {
         int code = message.getCode();
 
+        // 心跳消息
         if (code == IMessageType.HEART_BEAT.getCode()) {
             try {
                 heartBeatProcess.process(ctx, message);

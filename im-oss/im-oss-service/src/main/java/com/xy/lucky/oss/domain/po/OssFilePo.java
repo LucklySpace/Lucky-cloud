@@ -60,6 +60,10 @@ public class OssFilePo {
     @Column(name = "content_type", length = 128)
     private String contentType;
 
+    @Schema(description = "文件后缀")
+    @Column(name = "suffix", length = 10)
+    private String suffix;
+
     @Schema(description = "文件大小")
     @Column(name = "file_size")
     private Long fileSize;
@@ -78,10 +82,6 @@ public class OssFilePo {
     @Column(name = "is_finish")
     @ColumnDefault("0")
     private Integer isFinish;
-
-    @Schema(description = "文件地址")
-    @Column(name = "path", length = 1024)
-    private String path;
 
     @Schema(description = "创建时间（插入时自动填充）")
     @CreationTimestamp

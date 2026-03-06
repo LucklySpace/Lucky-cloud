@@ -50,14 +50,15 @@ import java.util.UUID;
  *   <li>优雅降级：异常统一处理和日志记录</li>
  * </ul>
  *
- * @author Lucky Team
- * @since 1.0.0
  */
 @Slf4j
 @Component
 public class OssUtils {
 
     public static final String AVATAR_BUCKET_NAME = "avatar";
+    public static final String AUDIO_BUCKET_NAME = "audio";
+    public static final String IMAGE_BUCKET_NAME = "image";
+
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd");
     private static final int PRESIGNED_EXPIRE_DAYS = 1;
     private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
@@ -88,7 +89,7 @@ public class OssUtils {
             log.info("初始化单文件上传 bucket={} object={}", bucket, object);
 
             // 生成预签名 PUT URL
-            String url = ossTemplate.getPresignedPutUrl(bucket, object, PRESIGNED_EXPIRE_DAYS * 24 * 60 * 60);
+            String url = ossTemplate.getPresignedPutUrl(bucket, object, ossProperties.getPresignedUrlExpiry());
 
             return FileChunkVo.builder()
                     .uploadUrl(Map.of("chunk_0", url))
@@ -128,7 +129,7 @@ public class OssUtils {
                 // 注意：这里简化了实现，实际 S3 分片上传需要使用 initiateMultipartUpload
                 // 为兼容性考虑，这里生成带有 partNumber 标记的 URL
                 String partObject = object + ".part" + (i + 1);
-                String url = ossTemplate.getPresignedPutUrl(bucket, partObject, PRESIGNED_EXPIRE_DAYS * 24 * 60 * 60);
+                String url = ossTemplate.getPresignedPutUrl(bucket, partObject, ossProperties.getPresignedUrlExpiry());
                 urls.put("chunk_" + i, url);
             }
 
@@ -161,14 +162,14 @@ public class OssUtils {
 
             // 简化实现：如果只有一个分片，直接返回
             if (req.getPartNum() == 1) {
-                String path = getFilePath(bucket, object);
+                String path = getPresignedGetUrl(bucket, object);
                 log.info("单文件上传完成 bucket={} object={} path={}", bucket, object, path);
                 return path;
             }
 
             // 多分片场景：这里假设分片已经通过客户端合并
             // 实际生产环境建议使用 AWS SDK 的 multipart upload API
-            String path = getFilePath(bucket, object);
+            String path = getPresignedGetUrl(bucket, object);
             log.info("合并完成 bucket={} object={} path={}", bucket, object, path);
             return path;
 
@@ -203,7 +204,7 @@ public class OssUtils {
                 String partObject = object + ".part" + (i + 1);
                 if (!ossTemplate.doesObjectExist(bucket, partObject)) {
                     // 分片未上传，生成预签名 URL
-                    String url = ossTemplate.getPresignedPutUrl(bucket, partObject, PRESIGNED_EXPIRE_DAYS * 24 * 60 * 60);
+                    String url = ossTemplate.getPresignedPutUrl(bucket, partObject, ossProperties.getPresignedUrlExpiry());
                     undone.put("chunk_" + i, url);
                 }
             }
@@ -362,7 +363,7 @@ public class OssUtils {
      * @param objectName 对象名称
      * @return 预签名 URL
      */
-    public String getFilePath(String bucketName, String objectName) {
+    public String getPresignedGetUrl(String bucketName, String objectName) {
         try {
             return ossTemplate.getPresignedUrl(bucketName, objectName, ossProperties.getPresignedUrlExpiry());
         } catch (Exception e) {
@@ -372,49 +373,15 @@ public class OssUtils {
     }
 
     /**
-     * 生成对象公开访问路径（不带签名）
+     * 获取对象公开访问路径（带签名）
      *
      * @param bucketName 存储桶名称
      * @param objectName 对象名称
-     * @return 公开 URL
+     * @param expires  过期时间
+     * @return 签名 URL
      */
-    public String getPublicFilePath(String bucketName, String objectName) {
-        return ossTemplate.getPublicUrl(bucketName, objectName);
-    }
-
-    /**
-     * 获取对象分享链接（GET 方法，带签名）
-     *
-     * @param bucketName    存储桶名称
-     * @param expirySeconds 过期时间（秒）
-     * @param path          对象路径
-     * @param filename      文件名
-     * @return 预签名 URL
-     */
-    public String getObjectShareUrl(String bucketName, int expirySeconds, String path, String filename) {
-        if (expirySeconds <= 0) {
-            expirySeconds = 7 * 24 * 60 * 60; // 默认 7 天
-        }
-        try {
-            return ossTemplate.getPresignedUrl(bucketName, getObjectName(path, filename), expirySeconds);
-        } catch (Exception e) {
-            log.error("获取分享链接失败 bucket={} path={} filename={}", bucketName, path, filename, e);
-            throw new FileException("获取分享链接失败");
-        }
-    }
-
-    /**
-     * 生成预签名分片上传 URL
-     *
-     * @param uploadId   上传 ID
-     * @param bucketName 存储桶名称
-     * @param objectName 对象名称
-     * @param partNumber 分片编号
-     * @return 预签名 URL
-     */
-    public String getPresignedPartUploadUrl(String uploadId, String bucketName, String objectName, Integer partNumber) {
-        String partObject = objectName + ".part" + partNumber;
-        return ossTemplate.getPresignedPutUrl(bucketName, partObject, PRESIGNED_EXPIRE_DAYS * 24 * 60 * 60);
+    public String getPresignedUrl(String bucketName, String objectName, Integer expires) {
+        return ossTemplate.getPresignedUrl(bucketName, objectName, expires);
     }
 
     // ==================== 工具方法 ====================
@@ -494,16 +461,54 @@ public class OssUtils {
     }
 
     /**
-     * 根据文件名选择或创建头像存储桶
+     * 创建头像存储桶
      * <p>
      * 存储桶命名规则：{year}-avatar
      *
      * @return 存储桶名称
      */
     public String getOrCreateBucketByAvatar() {
-        String year = String.valueOf(LocalDate.now().getYear());
-        String bucket = createBucket(year + "-" + AVATAR_BUCKET_NAME);
-        setBucketPublic(bucket);
+
+        String bucket = createBucket(LocalDate.now().getYear() + "-" + LocalDate.now().getMonthValue() + "-" + AVATAR_BUCKET_NAME);
+
         return bucket;
+    }
+
+    /**
+     * 创建语音存储桶
+     * <p>
+     * 存储桶命名规则：{year}-{month}-audio
+     *
+     * @return 存储桶名称
+     */
+    public String getOrCreateBucketByAudio() {
+
+        return createBucket(LocalDate.now().getYear() + "-" + LocalDate.now().getMonthValue() + "-" + AUDIO_BUCKET_NAME);
+    }
+
+    /**
+     * 创建图片存储桶
+     * <p>
+     * 存储桶命名规则：{year}-{month}-image
+     *
+     * @return 存储桶名称
+     */
+    public String getOrCreateBucketByImage() {
+
+        return createBucket(LocalDate.now().getYear() + "-" + LocalDate.now().getMonthValue() + "-" + IMAGE_BUCKET_NAME);
+    }
+
+    /**
+     * 获取文件后缀
+     *
+     * @param fileName 文件名
+     * @return 文件后缀
+     */
+    public String getFileSuffix(String fileName) {
+        if (StringUtils.isBlank(fileName)) {
+            return null;
+        }
+        int index = fileName.lastIndexOf(".");
+        return index > 0 ? fileName.substring(index + 1) : null;
     }
 }

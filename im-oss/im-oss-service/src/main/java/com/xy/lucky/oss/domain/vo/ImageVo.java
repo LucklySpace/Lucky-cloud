@@ -15,7 +15,7 @@ import lombok.experimental.Accessors;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(description = "文件")
-public class FileVo {
+public class ImageVo {
 
     @Schema(description = "文件md5")
     private String key;
@@ -34,5 +34,8 @@ public class FileVo {
 
     @Schema(description = "文件地址")
     private String path;
+
+    @Schema(description = "缩略图文件地址")
+    private String thumbPath;
 
 }

@@ -54,17 +54,17 @@ public class OssFileImagePo {
     @Column(name = "content_type", length = 128)
     private String contentType;
 
+    @Schema(description = "文件后缀")
+    @Column(name = "suffix", length = 10)
+    private String suffix;
+
     @Schema(description = "文件大小（byte）")
     @Column(name = "file_size")
     private Long fileSize;
 
-    @Schema(description = "文件地址")
-    @Column(name = "path", length = 1024)
-    private String path;
-
-    @Schema(description = "缩略图文件地址")
-    @Column(name = "thumbnail_path", length = 1024)
-    private String thumbnailPath;
+    @Schema(description = "是否缩略图")
+    @Column(name = "has_thumbnail")
+    private Boolean hasThumbnail;
 
     @Schema(description = "创建时间（插入时自动填充）")
     @CreationTimestamp

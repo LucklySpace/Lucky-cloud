@@ -4,7 +4,7 @@ import com.xy.lucky.domain.po.ImStickerPackPo;
 
 import java.util.List;
 
-public interface StickerPackDubboService {
+public interface ImStickerPackDubboService {
 
     /**
      * 查询单个

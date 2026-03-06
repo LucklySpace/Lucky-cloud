@@ -241,7 +241,7 @@ public class OssTemplateImpl implements OssTemplate {
     }
 
     @Override
-    public String getPublicUrl(String bucketName, String objectName) {
+    public String getPresignedPutUrl(String bucketName, String objectName) {
         validateBucketAndObject(bucketName, objectName);
         String endpoint = ossProperties.getEndpoint();
         if (Boolean.TRUE.equals(ossProperties.getPathStyleAccess())) {

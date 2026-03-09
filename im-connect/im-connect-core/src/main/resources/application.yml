@@ -9,10 +9,10 @@ spring:
     active: dev
 
 rabbitmq:
-  address: 124.220.10.188
+  address: localhost
   port: 5672
   username: guest
-  password: qsczse111
+  password: guest
   virtual: /
   exchange: IM-SERVER
   routingKeyPrefix: IM-
@@ -25,11 +25,11 @@ nacos:
   enable: true
   config:
     name: im-connect
-    address: 124.220.10.188
+    address: localhost
     port: 8848
     group: DEFAULT_GROUP
     username: nacos
-    password: Lucky20251001
+    password: nacos
     version: 1.0.0
     namespace: ""
 
@@ -66,9 +66,9 @@ netty:
 # 对应配置类: RedisProperties
 # ===========================================
 redis:
-  host: 124.220.10.188
+  host: localhost
   port: 6379
-  password: Lucky20251001
+  password: 1111
   timeout: 10000
   database: 0
   maxTotal: 8

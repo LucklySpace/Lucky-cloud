@@ -49,6 +49,10 @@ knife4j:
         url: /chat/v3/api-docs?group=default
         service-name: chat
 
+      - name: Message
+        url: /message/v3/api-docs?group=default
+        service-name: message
+
       - name: Database
         url: /database/v3/api-docs?group=default
         service-name: database

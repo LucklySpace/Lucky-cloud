@@ -9,10 +9,17 @@ spring:
               predicates:
                 - Path=/im/**
 
-            - id: im-chat # 业务服务
-              uri: lb://im-chat
+            - id: im-message # 消息服务
+              uri: lb://im-message
               predicates:
-                - Path=/chat/**
+                - Path=/message/**
+              filters:
+                - StripPrefix=1
+
+            - id: im-business # 业务服务
+              uri: lb://im-business
+              predicates:
+                - Path=/business/**
               filters:
                 - StripPrefix=1
 

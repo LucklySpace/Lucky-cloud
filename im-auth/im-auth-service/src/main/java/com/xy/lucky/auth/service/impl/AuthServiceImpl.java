@@ -7,18 +7,22 @@ import com.xy.lucky.auth.domain.*;
 import com.xy.lucky.auth.domain.vo.UserVo;
 import com.xy.lucky.auth.security.config.RSAKeyProperties;
 import com.xy.lucky.auth.security.domain.AuthRequestContext;
+import com.xy.lucky.auth.security.helper.CryptoHelper;
 import com.xy.lucky.auth.security.token.MobileAuthenticationToken;
 import com.xy.lucky.auth.security.token.QrScanAuthenticationToken;
 import com.xy.lucky.auth.security.token.UserAuthenticationToken;
 import com.xy.lucky.auth.service.AuthService;
 import com.xy.lucky.auth.service.AuthTokenService;
 import com.xy.lucky.auth.service.SmsService;
+import com.xy.lucky.auth.service.TokenVersionService;
 import com.xy.lucky.auth.utils.QRCodeUtil;
 import com.xy.lucky.auth.utils.RedisCache;
 import com.xy.lucky.auth.utils.RequestContextUtil;
 import com.xy.lucky.core.constants.IMConstant;
 import com.xy.lucky.core.constants.NacosMetadataConstants;
 import com.xy.lucky.core.constants.ServiceNameConstants;
+import com.xy.lucky.core.utils.JwtUtil;
+import com.xy.lucky.domain.po.ImUserPo;
 import com.xy.lucky.general.response.domain.ResultCode;
 import com.xy.lucky.rpc.api.database.user.ImUserDataDubboService;
 import com.xy.lucky.rpc.api.database.user.ImUserDubboService;
@@ -33,6 +37,7 @@ import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
@@ -67,6 +72,12 @@ public class AuthServiceImpl implements AuthService {
     private DiscoveryClient discoveryClient;
     @Resource
     private SmsService smsService;
+    @Resource
+    private CryptoHelper cryptoHelper;
+    @Resource
+    private PasswordEncoder passwordEncoder;
+    @Resource
+    private TokenVersionService tokenVersionService;
 
     // --------------------------------------------------
     // 1. 统一登录接口
@@ -348,6 +359,59 @@ public class AuthServiceImpl implements AuthService {
                 .setRefreshToken(pair.getRefreshToken())
                 .setAccessExpiration(pair.getAccessExpiresIn())
                 .setRefreshExpiration(pair.getRefreshExpiresIn());
+    }
+
+    @Override
+    public Boolean changePassword(ChangePasswordRequest request, HttpServletRequest httpServletRequest) {
+        String userId = Optional.ofNullable(request.getUserId()).map(String::trim).orElse("");
+        if (!StringUtils.hasText(userId)) {
+            throw new AuthenticationFailException(ResultCode.BAD_REQUEST);
+        }
+
+        String requesterUserId = resolveRequesterUserId(httpServletRequest);
+        if (StringUtils.hasText(requesterUserId) && !userId.equals(requesterUserId)) {
+            throw new AuthenticationFailException(ResultCode.NO_PERMISSION);
+        }
+
+        ImUserPo user = Optional.ofNullable(imUserDubboService.queryOne(userId))
+                .orElseThrow(() -> new AuthenticationFailException(ResultCode.ACCOUNT_NOT_FOUND));
+
+        String oldPassword = cryptoHelper.decrypt(request.getOldPassword());
+        String newPassword = cryptoHelper.decrypt(request.getNewPassword());
+        if (!StringUtils.hasText(oldPassword) || !StringUtils.hasText(newPassword) || oldPassword.equals(newPassword)) {
+            throw new AuthenticationFailException(ResultCode.BAD_REQUEST);
+        }
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new AuthenticationFailException(ResultCode.INVALID_CREDENTIALS);
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        if (!Boolean.TRUE.equals(imUserDubboService.modify(user))) {
+            throw new AuthenticationFailException(ResultCode.FAIL);
+        }
+
+        tokenVersionService.incrementVersion(userId);
+
+        String accessHeader = httpServletRequest.getHeader(IMConstant.AUTH_TOKEN_HEADER);
+        String accessParam = httpServletRequest.getParameter(IMConstant.ACCESS_TOKEN_PARAM);
+        String refreshHeader = httpServletRequest.getHeader("X-Refresh-Token");
+        String refreshParam = httpServletRequest.getParameter(IMConstant.REFRESH_TOKEN_PARAM);
+        String accessToken = authTokenService.resolveAccessToken(accessHeader, accessParam).orElse(null);
+        String refreshToken = authTokenService.resolveRefreshToken(refreshHeader, refreshParam).orElse(null);
+        authTokenService.revokeTokens(accessToken, refreshToken);
+
+        log.info("用户密码修改成功：userId={}", userId);
+        return Boolean.TRUE;
+    }
+
+    private String resolveRequesterUserId(HttpServletRequest request) {
+        String accessHeader = request.getHeader(IMConstant.AUTH_TOKEN_HEADER);
+        String accessParam = request.getParameter(IMConstant.ACCESS_TOKEN_PARAM);
+        String accessToken = authTokenService.resolveAccessToken(accessHeader, accessParam).orElse(null);
+        if (!StringUtils.hasText(accessToken) || !authTokenService.isAccessTokenValid(accessToken)) {
+            return null;
+        }
+        return JwtUtil.getUsername(accessToken);
     }
 
     /**

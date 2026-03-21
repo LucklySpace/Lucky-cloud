@@ -26,7 +26,8 @@
         <module>im-quartz</module>
         <!--        <module>im-wallet</module>-->
         <module>im-lbs</module>
-        <module>im-chat</module>
+        <module>im-business</module>
+        <module>im-message</module>
     </modules>
 
     <properties>
@@ -695,7 +696,13 @@
             <!-- 业务服务模块 -->
             <dependency>
                 <groupId>com.xy.lucky</groupId>
-                <artifactId>im-chat</artifactId>
+                <artifactId>im-business</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xy.lucky</groupId>
+                <artifactId>im-message-rpc-api</artifactId>
                 <version>${revision}</version>
             </dependency>
 
@@ -887,8 +894,9 @@
                 <description>开发环境</description>
 
                 <!-- 服务端口配置 -->
+                <im-message.server.port>8083</im-message.server.port>
                 <im-auth.server.port>8084</im-auth.server.port>
-                <im-chat.server.port>8085</im-chat.server.port>
+                <im-business.server.port>8085</im-business.server.port>
                 <im-leaf.server.port>8086</im-leaf.server.port>
                 <im-oss.server.port>8087</im-oss.server.port>
                 <im-ai.server.port>8088</im-ai.server.port>
@@ -937,8 +945,9 @@
                 <description>测试环境</description>
 
                 <!-- 服务端口配置 -->
+                <im-message.server.port>8083</im-message.server.port>
                 <im-auth.server.port>8084</im-auth.server.port>
-                <im-chat.server.port>8085</im-chat.server.port>
+                <im-business.server.port>8085</im-business.server.port>
                 <im-leaf.server.port>8086</im-leaf.server.port>
                 <im-oss.server.port>8087</im-oss.server.port>
                 <im-ai.server.port>8088</im-ai.server.port>
@@ -988,8 +997,9 @@
                 <description>生产环境</description>
 
                 <!-- 服务端口配置 -->
+                <im-message.server.port>8083</im-message.server.port>
                 <im-auth.server.port>8084</im-auth.server.port>
-                <im-chat.server.port>8085</im-chat.server.port>
+                <im-business.server.port>8085</im-business.server.port>
                 <im-leaf.server.port>8086</im-leaf.server.port>
                 <im-oss.server.port>8087</im-oss.server.port>
                 <im-ai.server.port>8088</im-ai.server.port>

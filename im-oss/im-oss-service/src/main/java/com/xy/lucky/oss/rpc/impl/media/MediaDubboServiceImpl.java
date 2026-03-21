@@ -1,6 +1,6 @@
 package com.xy.lucky.oss.rpc.impl.media;
 
-import com.xy.lucky.oss.service.OssFileImageService;
+import com.xy.lucky.oss.service.OssFileMediaService;
 import com.xy.lucky.rpc.api.oss.media.MediaDubboService;
 import com.xy.lucky.rpc.api.oss.vo.FileVo;
 import jakarta.annotation.Resource;
@@ -20,7 +20,7 @@ import java.io.InputStream;
 public class MediaDubboServiceImpl implements MediaDubboService {
 
     @Resource
-    private OssFileImageService ossFileImageService;
+    private OssFileMediaService ossFileImageService;
 
     @Override
     public FileVo uploadImage(String fileName, String contentType, byte[] fileBytes) {

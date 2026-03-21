@@ -56,10 +56,17 @@ public class HeartBeatProcess implements WebsocketProcess {
             return;
         }
 
+        if(!redisTemplate.exists(IMConstant.USER_CACHE_PREFIX + userId)){
+            log.warn("心跳处理失败：未识别的用户身份");
+            ctx.channel().writeAndFlush(IMessageWrap.builder().code(IMessageType.LOGOUT.getCode()));
+            ctx.close();
+            return;
+        }
+
         IMDeviceType deviceType = IMDeviceType.ofOrDefault(deviceTypeStr, IMDeviceType.WEB);
 
         // 2. Token 有效期检查与提醒
-        Integer code = IMessageType.HEART_BEAT_SUCCESS.getCode();
+        Integer code = IMessageType.HEART_BEAT_PONG.getCode();
         String message = "心跳成功";
         if (StringUtils.hasText(token) && tokenExpired != null && tokenExpired > 0) {
             try {

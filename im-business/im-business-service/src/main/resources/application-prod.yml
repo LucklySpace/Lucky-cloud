@@ -1,0 +1,67 @@
+server:
+  compression:
+    # http响应的gzip压缩
+    enabled: true
+    # 压缩所需的最小长度，响应长度大于等于该值就会压缩，默认2KB
+    min-response-size: 2048
+    # 需要压缩的响应的Content-type
+    mime-types:
+      - image/png
+      - image/jpeg
+      - image/jpg
+      - text/html
+      - application/javascript
+      - text/css
+      - application/octet-stream
+      - application/json
+
+spring:
+  jackson:
+    time-zone: UTC
+  banner:
+    location: classpath:banner.txt
+  threads:
+    virtual:
+      enabled: true  # 开启虚拟线程
+  # WebFlux configuration
+  webflux:
+    multipart:
+      max-in-memory-size: 256KB
+  codec:
+    max-in-memory-size: 10MB # Set default codec limit
+  #  servlet:
+  #    multipart:
+  #      max-file-size: 10MB
+  data:
+    redis:
+      redisson:
+        address: redis://127.0.0.1:6379
+#      redisson:
+#        address: redisson-cluster.yml
+      host: localhost
+      port: 6379
+      password:
+      username:
+      database: 0      # 数据库索引（默认为0）
+      timeout: 1800000 # 连接超时时间（毫秒）
+      lettuce:
+        pool:
+          max-active: 20  # 连接池最大连接数
+          max-wait: -1    # 最大阻塞等待时间（负数表示无限制）
+          max-idle: 5     # 最大空闲连接数
+          min-idle: 0     # 最小空闲连接数
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtualHost: /
+    publisher-returns: true #设置publisher-returns消息成功则会向发布者发送成功，失败时不会将消息丢弃，而是返回给发布者，发布者根据需求处理
+    publisher-confirm-type: correlated #开启发布确认模式，具体有三个值，具体的可以去百度
+
+# TODO: log settings
+logging:
+  config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件
+  level:
+    com.xy.lucky.*: info
+    org.springframework: warn

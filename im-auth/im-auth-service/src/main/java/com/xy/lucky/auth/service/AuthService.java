@@ -2,6 +2,7 @@ package com.xy.lucky.auth.service;
 
 
 import com.xy.lucky.auth.domain.AuthRefreshTokenResult;
+import com.xy.lucky.auth.domain.ChangePasswordRequest;
 import com.xy.lucky.auth.domain.LoginRequest;
 import com.xy.lucky.auth.domain.LoginResult;
 import com.xy.lucky.auth.domain.QRCodeResult;
@@ -84,6 +85,8 @@ public interface AuthService {
      * @return 响应结果
      */
     Boolean sendSms(String phone, String clientIp, String deviceId);
+
+    Boolean changePassword(ChangePasswordRequest request, HttpServletRequest httpServletRequest);
 
     /**
      * 退出登录，撤销当前会话的所有令牌

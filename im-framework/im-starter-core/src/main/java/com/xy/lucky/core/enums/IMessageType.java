@@ -31,11 +31,17 @@ public enum IMessageType {
     DUPLICATE_LOGIN(203, "异地登录"),
     PRESENCE_UPDATE(204, "在线状态更新"),
     LAST_SEEN_UPDATE(205, "最后在线时间更新"),
-    HEART_BEAT(206, "心跳"),
-    HEART_BEAT_SUCCESS(207, "心跳成功"),
+    HEART_BEAT_PING(206, "心跳"),
+    HEART_BEAT_PONG(207, "心跳响应"),
     HEART_BEAT_FAILED(208, "心跳失败"),
     REGISTER_SUCCESS(209, "注册成功"),
     REGISTER_FAILED(210, "注册失败"),
+
+    /* Message operations (300 - 399) */
+    ACK (300, "确认"),
+    ACK_RESP (301, "确认响应"),
+    CHAT (302, "聊天"),
+    CHAT_RESP (303, "聊天响应"),
 
     /* Reactions (470 - 479) */
     REACTION_ADD(400, "添加表情反应"),

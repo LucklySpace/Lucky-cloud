@@ -81,7 +81,7 @@ Lucky-Cloud 是一个基于 **Spring Cloud Alibaba + Spring Boot 3**
 - 支持多实例部署，自动负载均衡
 - 增加连接限流与消息速率限制、监控与日志、虚拟线程优化
 
-### 4. im-server - 业务服务 (端口: 8085)
+### 4. im-chat - 业务服务 (端口: 8085)
 
 **功能**: 核心业务逻辑处理
 
@@ -93,7 +93,7 @@ Lucky-Cloud 是一个基于 **Spring Cloud Alibaba + Spring Boot 3**
 ### 5. 模块总览
 
 - `im-ai`（端口: 8088）: AI 服务（对话、嵌入、Prompt 管理、工具调用）
-- `im-file`（端口: 8087）: MinIO 文件服务，支持分片上传、断点续传、图像压缩/缩略图/水印、nsfw图片审查
+- `im-oss`（端口: 8087）: MinIO 文件服务，支持分片上传、断点续传、图像压缩/缩略图/水印、nsfw图片审查
 - `im-platform`（端口: 8090）: 应用更新与短链服务（应用更新与短链），支持版本检查与预签名下载、Bloom去重 + Caffeine LRU +
   Redis短链缓存
 - `im-leaf`（端口: 8086）: 分布式ID服务（Segment、Snowflake、UID、UUID），支持Nacos工作ID分配
@@ -107,9 +107,9 @@ Lucky-Cloud 是一个基于 **Spring Cloud Alibaba + Spring Boot 3**
 
 ```
 用户发送消息流程:
-1. 客户端 → im-gateway → im-server
-2. im-server 处理业务逻辑
-3. im-server → RabbitMQ → im-connect
+1. 客户端 → im-gateway → im-chat
+2. im-chat 处理业务逻辑
+3. im-chat → RabbitMQ → im-connect
 4. im-connect → 用户长连接 → 客户端
 
 长连接管理流程:
@@ -121,9 +121,9 @@ Lucky-Cloud 是一个基于 **Spring Cloud Alibaba + Spring Boot 3**
 
 ## 🔄 端到端消息流程（详细步骤）
 
-客户端 → im-gateway → im-server → RabbitMQ → im-connect → 客户端
+客户端 → im-gateway → im-chat → RabbitMQ → im-connect → 客户端
 
-### 发送方（im-server）
+### 发送方（im-chat）
 
 1. **构造消息 DTO**（含 `messageId` — 全局唯一，建议 Snowflake 或 UUID；`messageTempId` 仅客户端使用）。
 2. **持久化消息 + 写 outbox（同一事务）**：
@@ -152,7 +152,7 @@ Lucky-Cloud 是一个基于 **Spring Cloud Alibaba + Spring Boot 3**
 3. **路由到客户端**：找到用户对应的 WebSocket 连接（从 Redis 注册表），将消息发送到客户端
 4. **等待客户端 ACK（可选但强烈建议）**：
     - 客户端收到后返回 `DELIVERY_ACK(messageId)` 给 im-connect
-    - im-connect 更新 DB（或通过 RPC/HTTP 回调 im-server）把消息状态标为 `DELIVERED`
+    - im-connect 更新 DB（或通过 RPC/HTTP 回调 im-chat）把消息状态标为 `DELIVERED`
     - 若客户端未 ACK，im-connect 可重试若干次后将状态设为 `UNDELIVERED` 并进入重试策略/告警
 
 ### 客户端
@@ -164,8 +164,8 @@ Lucky-Cloud 是一个基于 **Spring Cloud Alibaba + Spring Boot 3**
 ### 后端技术
 
 - **Java 21**: 运行时环境
-- **Spring Boot 3.2.0**: 应用框架
-- **Spring Cloud Alibaba 2023.0.0.0-RC1**: 微服务框架
+- **Spring Boot 3.5.9**: 应用框架
+- **Spring Cloud Alibaba 2025.0.0.0**: 微服务框架
 - **Spring WebFlux**: 响应式Web框架
 - **MyBatis Plus**: 数据持久层框架
 - **Netty**: 服务端长连接网络框架
@@ -202,7 +202,7 @@ Lucky-Cloud 是一个基于 **Spring Cloud Alibaba + Spring Boot 3**
 docker run --name redis -p 6379:6379 -v /root/redis/conf/redis.conf:/usr/local/etc/redis/redis.conf -d redis --appendonly yes
 
 # 启动 Nacos
-docker run -itd --name nacos --env PREFER_HOST_MODE=hostname --env MODE=standalone --env NACOS_AUTH_IDENTITY_KEY=serverIdentity --env NACOS_AUTH_IDENTITY_VALUE=security --env NACOS_AUTH_TOKEN=SecretKey012345678901234567890123456789012345678901234567890123456789 -p 8848:8848 -p 9848:9848 -p 9849:9849 nacos/nacos-server:v2.2.1
+docker run -itd --name nacos --env PREFER_HOST_MODE=hostname --env MODE=standalone --env NACOS_AUTH_IDENTITY_KEY=${NACOS_AUTH_IDENTITY_KEY} --env NACOS_AUTH_IDENTITY_VALUE=${NACOS_AUTH_IDENTITY_VALUE} --env NACOS_AUTH_TOKEN=${NACOS_AUTH_TOKEN} -p 8848:8848 -p 9848:9848 -p 9849:9849 nacos/nacos-server:v2.2.1
 
 # 启动 RabbitMQ
 docker run -d --hostname my-rabbit --name rabbit -p 15672:15672 -p 5671-5672:5671-5672 rabbitmq
@@ -210,13 +210,13 @@ docker exec -it rabbit /bin/bash
 rabbitmq-plugins enable rabbitmq_management
 
 # 启动 MinIO
-docker run -p 9000:9000 -p 9090:9090 --name minio -d --restart=always -e "MINIO_ACCESS_KEY=minioadmin" -e "MINIO_SECRET_KEY=minioadmin" -v /root/minio/data:/data -v /root/minio/config:/root/.minio minio/minio server /data --console-address ":9090" --address ":9000"
+docker run -p 9000:9000 -p 9090:9090 --name minio -d --restart=always -e "MINIO_ROOT_USER=${MINIO_ROOT_USER}" -e "MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}" -v /root/minio/data:/data -v /root/minio/config:/root/.minio minio/minio server /data --console-address ":9090" --address ":9000"
 
 # 启动 SRS (注意: CANDIDATE必须设置为物理机IP)
 docker run -it -p 1935:1935 -p 1985:1985 -p 8080:8080 -p 1990:1990 -p 8088:8088 --env CANDIDATE=192.168.1.9 -p 8000:8000/udp registry.cn-hangzhou.aliyuncs.com/ossrs/srs:6.0-d2
 
 # 启动 PostgreSQL
-docker run -d --name postgres -p 35432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres -v D:/Docker-vm/postgresql/vectordata:/var/lib/postgresql/data ankane/pgvector
+docker run -d --name postgres -p 35432:5432 -e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} -e POSTGRES_DB=${POSTGRES_DB} -v D:/Docker-vm/postgresql/vectordata:/var/lib/postgresql/data ankane/pgvector
 ```
 
 ### 2. 配置应用
@@ -239,14 +239,14 @@ spring:
   rabbitmq:
     host: localhost
     port: 5672
-    username: guest
-    password: guest
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
 
 # 文件存储配置
 minio:
   endpoint: localhost:9000
-  accessKey: minioadmin
-  secretKey: minioadmin
+  accessKey: ${MINIO_ACCESS_KEY}
+  secretKey: ${MINIO_SECRET_KEY}
   bucket: im-files
 
 # SRS配置
@@ -264,10 +264,13 @@ srs:
 ```bash
 1. im-database (端口：8086)
 2. im-auth (端口: 8084)
-3. im-server (端口: 8085)
+3. im-chat (端口: 8085)
 4. im-connect (端口: 19000-19002)
 5. im-gateway (端口: 9191)
-6. im-leaf (端口：)
+6. im-oss (端口: 8087)
+7. im-platform (端口: 8090)
+8. im-ai (端口: 8088)
+9. im-analysis (端口: 8089)
 ```
 
 **方式二：使用构建脚本一键启动**
@@ -283,8 +286,8 @@ deploy-all.bat
 
 - **网关服务**: http://localhost:9191
 - **认证服务**: http://localhost:8084
-- **业务服务**: http://localhost:8085
-- **文件服务**: http://localhost:8087
+- **业务服务（im-chat）**: http://localhost:8085
+- **文件服务（im-oss）**: http://localhost:8087
 - **ID服务**: http://localhost:8086
 - **AI服务**: http://localhost:8088
 - **文本分析**: http://localhost:8089
@@ -302,14 +305,20 @@ deploy-all.bat
 ### 项目结构
 
 ```
-├── im-server/			     # 业务服务
 ├── im-gateway/          # 网关服务
 ├── im-auth/             # 认证服务
 ├── im-connect/          # 长连接连接服务
-├── im-server/           # 业务服务
+├── im-chat/             # 业务服务
 ├── im-leaf/             # ID生成服务
-├── im-file/             # 文件管理服务
+├── im-oss/              # 文件管理服务
 ├── im-platform/         # 平台服务
+├── im-ai/               # AI 服务
+├── im-analysis/         # 文本分析服务
+├── im-database/         # 数据库服务
+├── im-meet/             # 实时会话服务
+├── im-logging/          # 日志服务
+├── im-lbs/              # 地理位置服务
+├── im-quartz/           # 定时任务服务
 ├── im-framework/        # 公共模块
 │   ├── im-core/         # 核心工具
 │   ├── im-domain/       # 领域模型
@@ -379,7 +388,7 @@ docker-compose up -d
 ## 📝 更新日志（概览）
 
 - 新增模块
-    - `im-file`: 增加图像处理（压缩、缩略图、水印），支持分片/断点续传与MD5校验，支持nfsw图片审查
+    - `im-oss`: 增加图像处理（压缩、缩略图、水印），支持分片/断点续传与MD5校验，支持nfsw图片审查
     - `im-platform`: 增加应用更新与短链接服务（Bloom 去重、Caffeine LRU、Redis 缓存、访问计数分层归并）
     - `im-leaf`: 集成多策略ID生成与Nacos工作ID分配
     - `im-ai`: 接入 Spring AI（对话/嵌入/工具），完善Prompt与Session管理
@@ -391,9 +400,9 @@ docker-compose up -d
 - 连接服务增强
     - 引入连接/消息限流、监控服务与虚拟线程优化；完善消息处理管线（见 `im-connect` 目录）
 - 业务服务优化
-    - 基于Redisson的并发锁与Redis热点缓存；完善群聊/好友等操作的幂等与性能日志（见 `im-server` 目录）
+    - 基于Redisson的并发锁与Redis热点缓存；完善群聊/好友等操作的幂等与性能日志（见 `im-chat` 目录）
 - 文件服务修复
-    - 修复 MinIO 客户端签名问题并增强稳定性（见 `im-file` 中 `PearlMinioClient.java`）
+    - 修复 MinIO 客户端签名问题并增强稳定性（见 `im-oss` 中 `PearlMinioClient.java`）
 
 ## 🙏 致谢
 

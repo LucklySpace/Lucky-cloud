@@ -2,7 +2,7 @@ package com.xy.lucky.connect.netty;
 
 import com.xy.lucky.connect.config.LogConstant;
 import com.xy.lucky.connect.netty.process.impl.HeartBeatProcess;
-import com.xy.lucky.connect.netty.service.ChannelCleanupHelper;
+import com.xy.lucky.connect.netty.service.HeartbeatTimeoutWheel;
 import com.xy.lucky.core.enums.IMessageType;
 import com.xy.lucky.core.model.IMessageWrap;
 import com.xy.lucky.spring.annotations.core.Autowired;
@@ -10,15 +10,13 @@ import com.xy.lucky.spring.annotations.core.Component;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.timeout.IdleState;
-import io.netty.handler.timeout.IdleStateEvent;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * 心跳消息处理器
  * <p>
  * - 处理 HEART_BEAT 类型的心跳消息
- * - 处理空闲超时事件，清理超时连接
+ * - 收到消息后续期时间轮任务，避免每连接定时器开销
  * - 非心跳消息传递给下一个 Handler
  */
 @Slf4j(topic = LogConstant.HeartBeat)
@@ -30,14 +28,15 @@ public class HeartBeatHandler extends SimpleChannelInboundHandler<IMessageWrap<O
     private HeartBeatProcess heartBeatProcess;
 
     @Autowired
-    private ChannelCleanupHelper cleanupHelper;
+    private HeartbeatTimeoutWheel heartbeatTimeoutWheel;
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, IMessageWrap<Object> message) {
+        heartbeatTimeoutWheel.renew(ctx.channel());
         int code = message.getCode();
 
         // 心跳消息
-        if (code == IMessageType.HEART_BEAT.getCode()) {
+        if (code == IMessageType.HEART_BEAT_PING.getCode()) {
             try {
                 heartBeatProcess.process(ctx, message);
                 // 心跳消息已处理，不再传递
@@ -48,33 +47,5 @@ public class HeartBeatHandler extends SimpleChannelInboundHandler<IMessageWrap<O
             // 非心跳消息，传递给下一个 Handler
             ctx.fireChannelRead(message);
         }
-    }
-
-    @Override
-    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        if (evt instanceof IdleStateEvent ise && ise.state() == IdleState.ALL_IDLE) {
-            handleIdleTimeout(ctx);
-        } else {
-            super.userEventTriggered(ctx, evt);
-        }
-    }
-
-    /**
-     * 处理空闲超时
-     */
-    private void handleIdleTimeout(ChannelHandlerContext ctx) {
-        String userId = cleanupHelper.getUserId(ctx);
-        String channelId = ctx.channel().id().asShortText();
-
-        if (userId == null) {
-            log.warn("心跳超时但无绑定用户, channelId={}", channelId);
-            ctx.close();
-            return;
-        }
-
-        log.warn("心跳超时，断开连接: userId={}, channelId={}", userId, channelId);
-
-        // 统一清理资源并关闭连接
-        cleanupHelper.cleanup(ctx, "heartbeat_timeout", true);
     }
 }

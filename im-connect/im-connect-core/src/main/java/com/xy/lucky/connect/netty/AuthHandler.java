@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.xy.lucky.connect.config.LogConstant;
 import com.xy.lucky.connect.domain.proto.IMessageProto;
+import com.xy.lucky.connect.netty.service.HeartbeatTimeoutWheel;
 import com.xy.lucky.core.constants.IMConstant;
 import com.xy.lucky.core.model.IMessageWrap;
 import com.xy.lucky.core.utils.JwtUtil;
@@ -20,7 +21,6 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.http.cookie.ClientCookieDecoder;
 import io.netty.handler.codec.http.cookie.Cookie;
-import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.AttributeKey;
 import io.netty.util.ReferenceCountUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +28,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 高性能鉴权处理器
@@ -50,9 +49,6 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final String BEARER_PREFIX = "bearer ";
 
-    @Value("${netty.config.heartBeatTime}")
-    private Integer heartBeatTime;
-
     @Value("${netty.config.protocol:json}")
     private String protocolType;
 
@@ -61,6 +57,9 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
 
     @Autowired
     private HeartBeatHandler heartBeatHandler;
+
+    @Autowired
+    private HeartbeatTimeoutWheel heartbeatTimeoutWheel;
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
@@ -395,10 +394,10 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
         ChannelPipeline pipeline = ctx.pipeline();
 
         if (pipeline.get(LoginHandler.class) == null) {
-            pipeline.addLast("idle", new IdleStateHandler(0, 0, heartBeatTime, TimeUnit.MILLISECONDS));
             pipeline.addLast("heartBeat", heartBeatHandler);
             pipeline.addLast("login", loginHandler);
         }
+        heartbeatTimeoutWheel.register(ctx.channel());
 
         // 移除鉴权 Handler (已完成使命)
         try {

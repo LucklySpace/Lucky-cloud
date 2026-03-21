@@ -11,7 +11,7 @@ services:
       - "8088:8088"
       - "8000:8000/udp"
     environment:
-      - CANDIDATE=192.168.1.9
+      - CANDIDATE=${SRS_CANDIDATE}
     tty: true
 
   redis:
@@ -28,8 +28,8 @@ services:
       - "9000:9000"
       - "9090:9090"
     environment:
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       - /root/minio/data:/data
       - /root/minio/config:/root/.minio
@@ -44,9 +44,9 @@ services:
     environment:
       PREFER_HOST_MODE: hostname
       MODE: standalone
-      NACOS_AUTH_IDENTITY_KEY: serverIdentity
-      NACOS_AUTH_IDENTITY_VALUE: security
-      NACOS_AUTH_TOKEN: SecretKey012345678901234567890123456789012345678901234567890123456789
+      NACOS_AUTH_IDENTITY_KEY: ${NACOS_AUTH_IDENTITY_KEY}
+      NACOS_AUTH_IDENTITY_VALUE: ${NACOS_AUTH_IDENTITY_VALUE}
+      NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN}
     tty: true
 
   rabbitmq:
@@ -57,8 +57,8 @@ services:
       - "5671:5671"
       - "5672:5672"
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     tty: true
     command: rabbitmq-server
 
@@ -67,9 +67,9 @@ services:
     ports:
       - "35432:5432"
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - /root/postgresql/vectordata:/var/lib/postgresql/data
 
@@ -77,7 +77,7 @@ services:
   im-database:
     build: ./im-database
     ports:
-      - "8086:8086"
+      - "8100:8100"
     depends_on:
       - redis
       - postgres
@@ -119,8 +119,8 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
 
   # 业务服务
-  im-server:
-    build: ./im-server
+  im-business:
+    build: ./im-business
     ports:
       - "8085:8085"
     depends_on:
@@ -131,11 +131,24 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=docker
 
-  # 文件服务
-  im-file:
-    build: ./im-file
+  # 消息服务
+  im-message:
+    build: ./im-message
     ports:
-      - "8083:8083"
+      - "8086:8086"
+    depends_on:
+      - nacos
+      - redis
+      - rabbitmq
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  # 文件服务
+  im-oss:
+    build: ./im-oss
+    ports:
+      - "8087:8087"
     depends_on:
       - nacos
       - minio
@@ -146,7 +159,7 @@ services:
   im-ai:
     build: ./im-ai
     ports:
-      - "3210:3210"
+      - "8088:8088"
     depends_on:
       - nacos
     environment:
@@ -156,20 +169,19 @@ services:
   im-analysis:
     build: ./im-analysis
     ports:
-      - "8082:8082"
+      - "8089:8089"
     depends_on:
       - nacos
     environment:
       - SPRING_PROFILES_ACTIVE=docker
 
-  # 代码生成服务
-  im-generator:
-    build: ./im-generator
+  # 平台服务
+  im-platform:
+    build: ./im-platform
     ports:
-      - "9999:9999"
+      - "8090:8090"
     depends_on:
       - nacos
-      - postgres
     environment:
       - SPRING_PROFILES_ACTIVE=docker
 
@@ -181,16 +193,6 @@ services:
     depends_on:
       - nacos
       - srs
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-
-  # 更新服务
-  im-update:
-    build: ./im-update
-    ports:
-      - "10000:10000"
-    depends_on:
-      - nacos
     environment:
       - SPRING_PROFILES_ACTIVE=docker
 

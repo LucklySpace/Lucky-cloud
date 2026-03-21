@@ -2,7 +2,7 @@ package com.xy.lucky.oss.controller;
 
 import com.xy.lucky.oss.domain.vo.FileVo;
 import com.xy.lucky.oss.domain.vo.ImageVo;
-import com.xy.lucky.oss.service.OssFileImageService;
+import com.xy.lucky.oss.service.OssFileMediaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
@@ -24,7 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class MediaController {
 
-    private final OssFileImageService ossImageFileService;
+    private final OssFileMediaService ossImageFileService;
 
     @PostMapping("/image/upload")
     @Operation(summary = "上传图片文件", tags = {"media"})
@@ -46,13 +46,22 @@ public class MediaController {
         return ossImageFileService.uploadAvatar(identifier, file);
     }
 
-    @GetMapping("/getPresignedPutUrl")
+    @GetMapping("/image-url")
     @Operation(summary = "获取文件url", tags = {"file"})
     @Parameters({
             @Parameter(name = "file", description = "文件", required = true, in = ParameterIn.DEFAULT)
     })
-    public ImageVo getPresignedPutUrl(@NotBlank(message = "请输入文件md5值") @RequestParam("identifier") String identifier) {
-        return ossImageFileService.getPresignedPutUrl(identifier);
+    public ImageVo getImagePresignedPutUrl(@NotBlank(message = "请输入文件md5值") @RequestParam("identifier") String identifier) {
+        return ossImageFileService.getImagePresignedPutUrl(identifier);
+    }
+
+    @GetMapping("/audio-url")
+    @Operation(summary = "获取文件url", tags = {"file"})
+    @Parameters({
+            @Parameter(name = "file", description = "文件", required = true, in = ParameterIn.DEFAULT)
+    })
+    public FileVo getAudioPresignedPutUrl(@NotBlank(message = "请输入文件md5值") @RequestParam("identifier") String identifier) {
+        return ossImageFileService.getAudioPresignedPutUrl(identifier);
     }
 
     @PostMapping("/audio/upload")

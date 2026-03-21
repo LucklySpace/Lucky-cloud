@@ -6,9 +6,8 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * 优化的Netty虚拟线程工厂
+ * Netty虚拟线程工厂
  * <p>
- * 优化要点：
  * - 支持回退到平台线程（如果JVM不支持虚拟线程，如JDK<21），确保兼容性。
  * - 使用AtomicLong实现线程名全局唯一计数，避免并发冲突，提高可靠性。
  * - 可配置线程前缀、是否daemon、优先级，增加灵活性。

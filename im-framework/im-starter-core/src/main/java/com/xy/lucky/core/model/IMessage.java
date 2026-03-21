@@ -251,8 +251,9 @@ public abstract class IMessage implements Serializable {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AudioMessageBody extends MessageBody implements Serializable {
 
-        @NotBlank(message = "音频频 key 不能为空")
+        @NotBlank(message = "音频 key 不能为空")
         private String key;
+
         // 单位：秒
         private Integer duration;
 

@@ -1,0 +1,64 @@
+package com.xy.lucky.business.domain.mapper;
+
+import com.xy.lucky.business.domain.dto.UserDto;
+import com.xy.lucky.business.domain.vo.UserVo;
+import com.xy.lucky.domain.po.ImUserPo;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Mappings;
+
+import java.util.List;
+
+/**
+ * 用户相关实体映射
+ */
+@Mapper(componentModel = "spring")
+public interface UserBeanMapper {
+
+    /**
+     * ImUserPo -> UserVo
+     */
+    @Mappings({
+            @Mapping(source = "userName", target = "name")
+    })
+    UserVo toUserVo(ImUserPo imUserPo);
+
+    /**
+     * UserVo -> ImUserPo
+     */
+    @Mappings({
+            @Mapping(source = "name", target = "userName")
+    })
+    ImUserPo toImUserPo(UserVo userVo);
+
+    /**
+     * UserDto -> ImUserPo
+     */
+    @Mappings({
+            @Mapping(source = "name", target = "userName")
+    })
+    ImUserPo toImUserPo(UserDto userDto);
+
+    /**
+     * ImUserPo -> UserDto
+     */
+    @Mappings({
+            @Mapping(source = "userName", target = "name")
+    })
+    UserDto toUserDto(ImUserPo imUserPo);
+
+    /**
+     * UserDto -> UserVo
+     */
+    UserVo toUserVo(UserDto userDto);
+
+    /**
+     * UserVo -> UserDto
+     */
+    UserDto toUserDto(UserVo userVo);
+
+    /**
+     * List<ImUserPo> -> List<UserVo>
+     */
+    List<UserVo> toUserVoList(List<ImUserPo> imUserPos);
+}

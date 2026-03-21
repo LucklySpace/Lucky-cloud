@@ -1,6 +1,7 @@
 package com.xy.lucky.utils.json;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -24,23 +25,26 @@ import java.util.LinkedHashMap;
 public class JacksonUtils {
 
     private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper compatTypedMapper = new ObjectMapper();
+    private static final ObjectMapper legacyWrapperTypedMapper = new ObjectMapper();
 
     // 时间日期格式
     private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     static {
-        // 全量字段序列化
-        mapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
-        // 取消时间戳格式
-        mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-        // 忽略空 Bean 错误
-        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-        // 设置统一日期格式
-        mapper.setDateFormat(new SimpleDateFormat(DATE_FORMAT));
-        // 忽略未知属性，防止反序列化失败
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        // 启用默认类型推断，支持 @class 属性
-        mapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance, ObjectMapper.DefaultTyping.EVERYTHING);
+        configureMapper(mapper);
+        configureMapper(compatTypedMapper);
+        configureMapper(legacyWrapperTypedMapper);
+
+        compatTypedMapper.activateDefaultTyping(
+                LaissezFaireSubTypeValidator.instance,
+                ObjectMapper.DefaultTyping.NON_FINAL,
+                JsonTypeInfo.As.PROPERTY
+        );
+        legacyWrapperTypedMapper.activateDefaultTyping(
+                LaissezFaireSubTypeValidator.instance,
+                ObjectMapper.DefaultTyping.EVERYTHING
+        );
     }
 
     /**
@@ -49,7 +53,15 @@ public class JacksonUtils {
     public static <T> T parseObject(String jsonString, Class<T> clazz) {
         try {
             return mapper.readValue(jsonString, clazz);
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
+            try {
+                return compatTypedMapper.readValue(jsonString, clazz);
+            } catch (Exception ignored) {
+            }
+            try {
+                return legacyWrapperTypedMapper.readValue(jsonString, clazz);
+            } catch (Exception ignored) {
+            }
             log.error("JSON 解析失败，目标类型：{}，JSON 字符串：{}", clazz.getName(), jsonString, e);
             return null;
         }
@@ -58,7 +70,15 @@ public class JacksonUtils {
     public static <T> T parseObject(File file, Class<T> clazz) {
         try {
             return mapper.readValue(file, clazz);
-        } catch (IOException e) {
+        } catch (Exception e) {
+            try {
+                return compatTypedMapper.readValue(file, clazz);
+            } catch (Exception ignored) {
+            }
+            try {
+                return legacyWrapperTypedMapper.readValue(file, clazz);
+            } catch (Exception ignored) {
+            }
             log.error("从文件读取 JSON 失败，目标类型：{}，文件路径：{}", clazz.getName(), file.getPath(), e);
             return null;
         }
@@ -68,7 +88,15 @@ public class JacksonUtils {
     public static <T> T parseJSONArray(String jsonArray, TypeReference<T> reference) {
         try {
             return mapper.readValue(jsonArray, reference);
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
+            try {
+                return compatTypedMapper.readValue(jsonArray, reference);
+            } catch (Exception ignored) {
+            }
+            try {
+                return legacyWrapperTypedMapper.readValue(jsonArray, reference);
+            } catch (Exception ignored) {
+            }
             log.error("JSON 数组解析失败，目标类型：{}，JSON 字符串：{}", reference.getType(), jsonArray, e);
             return null;
         }
@@ -76,9 +104,23 @@ public class JacksonUtils {
 
 
     public static <T> T parseObject(Object obj, Class<T> clazz) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof String jsonString) {
+            return parseObject(jsonString, clazz);
+        }
         try {
             return mapper.convertValue(obj, clazz);
         } catch (Exception e) {
+            try {
+                return compatTypedMapper.convertValue(obj, clazz);
+            } catch (Exception ignored) {
+            }
+            try {
+                return legacyWrapperTypedMapper.convertValue(obj, clazz);
+            } catch (Exception ignored) {
+            }
             log.error("对象转换失败，目标类型：{}，对象：{}", clazz.getName(), obj, e);
             return null;
         }
@@ -100,10 +142,37 @@ public class JacksonUtils {
     }
 
     public static <T> T parseObject(Object obj, TypeReference<T> typeReference) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof String jsonString) {
+            try {
+                return mapper.readValue(jsonString, typeReference);
+            } catch (Exception e1) {
+                try {
+                    return compatTypedMapper.readValue(jsonString, typeReference);
+                } catch (Exception ignored) {
+                }
+                try {
+                    return legacyWrapperTypedMapper.readValue(jsonString, typeReference);
+                } catch (Exception ignored) {
+                }
+            }
+        }
         try {
-            String json = mapper.writeValueAsString(obj);
-            return (T) mapper.convertValue(json, typeReference);
-        } catch (JsonProcessingException e) {
+            JsonNode jsonNode = mapper.valueToTree(obj);
+            return mapper.convertValue(jsonNode, typeReference);
+        } catch (Exception e) {
+            try {
+                JsonNode jsonNode = compatTypedMapper.valueToTree(obj);
+                return compatTypedMapper.convertValue(jsonNode, typeReference);
+            } catch (Exception ignored) {
+            }
+            try {
+                JsonNode jsonNode = legacyWrapperTypedMapper.valueToTree(obj);
+                return legacyWrapperTypedMapper.convertValue(jsonNode, typeReference);
+            } catch (Exception ignored) {
+            }
             log.error("对象转换失败，目标类型：{}，对象：{} 错误", typeReference.getType(), obj, e);
             return null;
         }
@@ -188,5 +257,13 @@ public class JacksonUtils {
 
     public static JsonNode getJSONObject(JsonNode jsonObject, String key) {
         return jsonObject.has(key) ? jsonObject.get(key) : null;
+    }
+
+    private static void configureMapper(ObjectMapper objectMapper) {
+        objectMapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
+        objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+        objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+        objectMapper.setDateFormat(new SimpleDateFormat(DATE_FORMAT));
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 }

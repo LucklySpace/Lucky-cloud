@@ -2,6 +2,7 @@ package com.xy.lucky.auth.controller;
 
 
 import com.xy.lucky.auth.domain.AuthRefreshTokenResult;
+import com.xy.lucky.auth.domain.ChangePasswordRequest;
 import com.xy.lucky.auth.domain.LoginRequest;
 import com.xy.lucky.auth.domain.LoginResult;
 import com.xy.lucky.auth.domain.QRCodeResult;
@@ -13,9 +14,10 @@ import com.xy.lucky.security.util.RSAUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -29,8 +31,8 @@ import java.util.Map;
  * 4. 授权成功后给二维码生成临时密码
  * 5. 桌面端使用qrcode 和临时密码登录
  */
-@Slf4j
 @RestController
+@Validated
 @RequiredArgsConstructor
 @RequestMapping({"/api/auth", "/api/{version}/auth"})
 @Tag(name = "Auth", description = "统一认证接口")
@@ -41,7 +43,7 @@ public class AuthController {
 
     @PostMapping("/login")
     @Operation(summary = "统一登录", description = "支持表单(form)、短信(sms)、扫码(scan)等多种认证方式")
-    public LoginResult login(@RequestBody LoginRequest loginRequest, HttpServletRequest request) {
+    public LoginResult login(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest request) {
         return authService.login(loginRequest, request);
     }
 
@@ -105,6 +107,12 @@ public class AuthController {
     @Operation(summary = "退出登录", description = "撤销当前会话的所有 Token 并清理相关缓存")
     public Boolean logout(HttpServletRequest request) {
         return authService.logout(request);
+    }
+
+    @PutMapping("/password")
+    @Operation(summary = "修改密码", description = "校验旧密码后更新为新密码，并使旧会话失效")
+    public Boolean changePassword(@Valid @RequestBody ChangePasswordRequest requestBody, HttpServletRequest request) {
+        return authService.changePassword(requestBody, request);
     }
 
     @PostMapping("/password")

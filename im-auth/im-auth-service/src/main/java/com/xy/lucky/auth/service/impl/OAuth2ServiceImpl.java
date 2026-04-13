@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OAuth2ServiceImpl implements OAuth2Service {
 
-    private static final String AUTH_CODE_KEY_PREFIX = "auth:oauth2:code:";
+    private static final String AUTH_CODE_KEY_PREFIX = "im:auth:oauth2:code:";
 
     private final OAuth2Properties oAuth2Properties;
     private final RedisCache redisCache;

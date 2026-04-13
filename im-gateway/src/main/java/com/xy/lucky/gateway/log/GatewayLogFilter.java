@@ -1,11 +1,10 @@
 package com.xy.lucky.gateway.log;
 
+import com.xy.lucky.gateway.plugin.GatewayPlugin;
+import com.xy.lucky.gateway.plugin.GatewayPluginChain;
 import com.xy.lucky.gateway.utils.IPAddressUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
-import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
-import org.springframework.core.Ordered;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
@@ -15,18 +14,29 @@ import reactor.core.publisher.Mono;
 import java.net.URI;
 import java.util.LinkedHashSet;
 
-/**
- * 全局网关日志过滤器
- * 职责：记录所有请求的入参、来源 IP、处理耗时及响应状态码。
- */
 @Slf4j
 @Component
-public class GatewayLogFilter implements GlobalFilter, Ordered {
+public class GatewayLogFilter implements GatewayPlugin {
 
     private static final String START_TIME_ATTR = "startTime";
 
     @Override
-    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+    public String getId() {
+        return "gateway-log";
+    }
+
+    @Override
+    public String getVersion() {
+        return "1.0.0";
+    }
+
+    @Override
+    public int getOrder() {
+        return 900;
+    }
+
+    @Override
+    public Mono<Void> apply(ServerWebExchange exchange, GatewayPluginChain chain) {
         exchange.getAttributes().put(START_TIME_ATTR, System.currentTimeMillis());
 
         return chain.filter(exchange).then(Mono.fromRunnable(() -> {
@@ -54,10 +64,4 @@ public class GatewayLogFilter implements GlobalFilter, Ordered {
         LinkedHashSet<URI> uris = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ORIGINAL_REQUEST_URL_ATTR);
         return (uris != null && !uris.isEmpty()) ? uris.iterator().next() : exchange.getRequest().getURI();
     }
-
-    @Override
-    public int getOrder() {
-        return Ordered.LOWEST_PRECEDENCE;
-    }
 }
-

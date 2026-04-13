@@ -4,7 +4,6 @@ package com.xy.lucky.connect.netty.process.impl;
 import com.xy.lucky.connect.channel.UserChannelMap;
 import com.xy.lucky.connect.config.LogConstant;
 import com.xy.lucky.connect.config.properties.NettyProperties;
-import com.xy.lucky.connect.mq.RabbitTemplate;
 import com.xy.lucky.connect.netty.process.WebsocketProcess;
 import com.xy.lucky.connect.redis.RedisTemplate;
 import com.xy.lucky.connect.utils.JacksonUtil;
@@ -53,9 +52,6 @@ public class LoginProcess implements WebsocketProcess {
     @Autowired
     private NettyProperties nettyProperties;
 
-    @Autowired
-    private RabbitTemplate rabbitTemplate;
-
     /**
      * 用户登录处理逻辑
      * 1. 解析设备类型
@@ -67,6 +63,12 @@ public class LoginProcess implements WebsocketProcess {
     @Override
     public void process(ChannelHandlerContext ctx, IMessageWrap sendInfo) throws Exception {
         String userId = ctx.channel().attr(USER_ATTR).get();
+        if (!StringUtils.hasText(userId)) {
+            log.warn("登录失败：未识别用户身份, channelId={}", ctx.channel().id().asShortText());
+            MessageUtils.sendError(ctx, IMessageType.LOGOUT.getCode(), "用户身份无效");
+            ctx.close();
+            return;
+        }
         String token = sendInfo.getToken();
         IMDeviceType imDeviceType = resolveDeviceType(ctx, sendInfo);
 
@@ -109,6 +111,9 @@ public class LoginProcess implements WebsocketProcess {
         IMRegisterUser registerUser = Optional.ofNullable(redisTemplate.get(routeKey))
                 .map(json -> JacksonUtil.parseObject(json, IMRegisterUser.class))
                 .orElseGet(() -> new IMRegisterUser().setUserId(userId).setDrivers(new HashMap<>()));
+        if (registerUser.getDrivers() == null) {
+            registerUser.setDrivers(new HashMap<>());
+        }
 
         // 更新用户全局信息与当前设备驱动信息
         registerUser.setToken(token)

@@ -10,6 +10,7 @@ import com.xy.lucky.spring.annotations.core.Component;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -22,6 +23,8 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @ChannelHandler.Sharable
 public class LoginHandler extends SimpleChannelInboundHandler<IMessageWrap<Object>> {
+    private static final AttributeKey<Boolean> LOGIN_DONE_ATTR =
+            AttributeKey.valueOf("im_login_done");
 
     @Autowired
     private LoginProcess loginProcess;
@@ -32,17 +35,23 @@ public class LoginHandler extends SimpleChannelInboundHandler<IMessageWrap<Objec
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, IMessageWrap<Object> message) {
         int code = message.getCode();
+        boolean loginDone = Boolean.TRUE.equals(ctx.channel().attr(LOGIN_DONE_ATTR).get());
 
-        // 注册
         if (code == IMessageType.REGISTER.getCode()) {
             try {
                 loginProcess.process(ctx, message);
+                ctx.channel().attr(LOGIN_DONE_ATTR).set(Boolean.TRUE);
             } catch (Throwable t) {
                 log.error("登录处理异常: channelId={}, error={}", ctx.channel().id().asShortText(), t.getMessage(), t);
+                cleanupHelper.cleanup(ctx, "loginFailed", true);
             }
         } else {
-            // 非登录消息，不处理也不传递 (登录完成后此 Handler 不应再收到其他消息)
-            log.debug("收到非登录消息，忽略: code={}, channelId={}", code, ctx.channel().id().asShortText());
+            if (loginDone) {
+                ctx.fireChannelRead(message);
+            } else {
+                log.warn("登录前收到非注册消息，关闭连接: code={}, channelId={}", code, ctx.channel().id().asShortText());
+                cleanupHelper.cleanup(ctx, "messageBeforeRegister", true);
+            }
         }
     }
 

@@ -29,12 +29,16 @@ public class HeartBeatProcess implements WebsocketProcess {
 
     private static final AttributeKey<String> USER_ATTR = AttributeKey.valueOf(IMConstant.IM_USER);
     private static final AttributeKey<String> DEVICE_ATTR = AttributeKey.valueOf(IMConstant.IM_DEVICE_TYPE);
+    private static final AttributeKey<Long> LAST_ROUTE_CHECK_MS_ATTR = AttributeKey.valueOf("im_last_route_check_ms");
 
     @Autowired
     private NettyProperties nettyProperties;
 
     @Value("${auth.tokenExpired:2}")
     private Integer tokenExpired;
+
+    @Value("${netty.config.heartbeatRedisCheckIntervalMs:5000}")
+    private long heartbeatRedisCheckIntervalMs;
 
     @Autowired
     private RedisTemplate redisTemplate;
@@ -56,11 +60,17 @@ public class HeartBeatProcess implements WebsocketProcess {
             return;
         }
 
-        if(!redisTemplate.exists(IMConstant.USER_CACHE_PREFIX + userId)){
-            log.warn("心跳处理失败：未识别的用户身份");
-            ctx.channel().writeAndFlush(IMessageWrap.builder().code(IMessageType.LOGOUT.getCode()));
-            ctx.close();
-            return;
+        String routeKey = IMConstant.USER_CACHE_PREFIX + userId;
+        long now = System.currentTimeMillis();
+        Long lastCheckTime = ctx.channel().attr(LAST_ROUTE_CHECK_MS_ATTR).get();
+        if (lastCheckTime == null || now - lastCheckTime >= Math.max(1000L, heartbeatRedisCheckIntervalMs)) {
+            if (!redisTemplate.exists(routeKey)) {
+                log.warn("心跳处理失败：未识别的用户身份");
+                ctx.channel().writeAndFlush(IMessageWrap.builder().code(IMessageType.LOGOUT.getCode()));
+                ctx.close();
+                return;
+            }
+            ctx.channel().attr(LAST_ROUTE_CHECK_MS_ATTR).set(now);
         }
 
         IMDeviceType deviceType = IMDeviceType.ofOrDefault(deviceTypeStr, IMDeviceType.WEB);
@@ -95,7 +105,7 @@ public class HeartBeatProcess implements WebsocketProcess {
 
         // 4. 续期 Redis 路由缓存
         long ttlSeconds = toSeconds(nettyProperties.getHeartBeatTime() + nettyProperties.getTimeout());
-        redisTemplate.expire(IMConstant.USER_CACHE_PREFIX + userId, ttlSeconds);
+        redisTemplate.expire(routeKey, ttlSeconds);
 
         if (log.isDebugEnabled()) {
             log.debug("心跳成功: userId={}, group={}, type={}", userId, deviceType.getGroup(), deviceType.getType());

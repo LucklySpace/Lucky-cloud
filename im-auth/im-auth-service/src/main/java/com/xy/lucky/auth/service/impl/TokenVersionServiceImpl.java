@@ -16,7 +16,7 @@ public class TokenVersionServiceImpl implements TokenVersionService {
     /**
      * 用户全局令牌版本号 key: auth:version:{userId}
      */
-    private static final String VERSION_KEY_PREFIX = "auth:version:";
+    private static final String VERSION_KEY_PREFIX = "im:auth:token:version:";
 
     private final RedisCache redisCache;
 

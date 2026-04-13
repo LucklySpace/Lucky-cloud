@@ -174,102 +174,60 @@ public class RabbitTemplate {
             log.debug("RabbitMQ 已在运行，跳过启动");
             return;
         }
-
-        String exchangeName = rabbitProperties.getExchange();
-        String errorQueue = rabbitProperties.getErrorQueue();
-        int prefetch = ConnectConstants.RabbitMQ.DEFAULT_PREFETCH;
-
-        try {
-            // 创建连接与通道
-            connection = factory.newConnection();
-
-            // consumerChannel 专用于消费、ack/nack
-            consumerChannel = connection.createChannel();
-
-            // publishChannel 专用于发布（error queue 等）
-            publishChannel = connection.createChannel();
-
-            // declare exchange & queues（持久、非独占、非自动删除）声明交换机，如果不存在则自动创建
-            consumerChannel.exchangeDeclare(exchangeName, BuiltinExchangeType.DIRECT, true);
-
-            /**
-             * 创建队列并绑定到交换机 （如果不存在则自动创建）
-             * 1. queue： 队列的名称
-             * 2. durable： 是否持久化
-             * 3. exclusive： 是否独占,只能被一个连接使用,连接关闭后队列自动删除
-             * 4. autoDelete： 是否自动删除,当没有消费者时,队列自动删除,确保队列唯一性
-             * 5. arguments： 其他参数
-             */
-            consumerChannel.queueDeclare(queueName, true, true, true, null);
-            consumerChannel.queueBind(queueName, exchangeName, queueName);
-
-            // declare error queue & bind (durable)
-            publishChannel.queueDeclare(errorQueue, true, false, false, null);
-            publishChannel.queueBind(errorQueue, exchangeName, errorQueue);
-
-            // QoS 控制
-            consumerChannel.basicQos(prefetch);
-
-            /**
-             * 消息处理回调逻辑 创建消费者来处理消息
-             *
-             * @param consumerTag 消费者标签
-             * @param envelope    消息信封，含路由信息
-             * @param properties  消息属性
-             * @param body        消息体字节数组
-             */
-            DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-                final long deliveryTag = delivery.getEnvelope().getDeliveryTag();
-                final byte[] body = delivery.getBody();
-
-                // 业务处理提交到 workerPool，处理结束后再 ack/nack
-                boolean success = false;
-                try {
-
-                    String context = new String(body, StandardCharsets.UTF_8);
-
-                    // 发布事件（可被同步或异步处理）
-                    applicationEventBus.publishEvent(new MessageEvent(context));
-
-                    success = true;
-                } catch (Throwable t) {
-                    log.error("Failed to process message", t);
-                    // 发送错误信息到 errorQueue
+        while (!running.get()) {
+            String exchangeName = rabbitProperties.getExchange();
+            String errorQueue = rabbitProperties.getErrorQueue();
+            int prefetch = rabbitProperties.getPrefetch() > 0
+                    ? rabbitProperties.getPrefetch()
+                    : ConnectConstants.RabbitMQ.DEFAULT_PREFETCH;
+            try {
+                connection = factory.newConnection();
+                consumerChannel = connection.createChannel();
+                publishChannel = connection.createChannel();
+                consumerChannel.exchangeDeclare(exchangeName, BuiltinExchangeType.DIRECT, true);
+                consumerChannel.queueDeclare(queueName, true, false, false, null);
+                consumerChannel.queueBind(queueName, exchangeName, queueName);
+                publishChannel.queueDeclare(errorQueue, true, false, false, null);
+                publishChannel.queueBind(errorQueue, exchangeName, errorQueue);
+                consumerChannel.basicQos(prefetch);
+                DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+                    final long deliveryTag = delivery.getEnvelope().getDeliveryTag();
+                    final byte[] body = delivery.getBody();
+                    boolean success = false;
                     try {
-                        sendErrorMessageSynchronized(delivery.getEnvelope(), body, t.getMessage());
-                    } catch (Exception ex) {
-                        log.error("Failed to send error message", ex);
-                    }
-                } finally {
-                    // ack/nack 需要在对 consumerChannel 的同步保护下执行（channel 线程不安全）
-                    synchronized (consumerChannel) {
+                        String context = new String(body, StandardCharsets.UTF_8);
+                        applicationEventBus.publishEvent(new MessageEvent(context));
+                        success = true;
+                    } catch (Throwable t) {
+                        log.error("Failed to process message", t);
                         try {
-                            if (success) {
-                                consumerChannel.basicAck(deliveryTag, false);
-                            } else {
-                                // nack 不重入队
-                                consumerChannel.basicNack(deliveryTag, false, false);
+                            sendErrorMessageSynchronized(delivery.getEnvelope(), body, t.getMessage());
+                        } catch (Exception ex) {
+                            log.error("Failed to send error message", ex);
+                        }
+                    } finally {
+                        synchronized (consumerChannel) {
+                            try {
+                                if (success) {
+                                    consumerChannel.basicAck(deliveryTag, false);
+                                } else {
+                                    consumerChannel.basicNack(deliveryTag, false, false);
+                                }
+                            } catch (IOException e) {
+                                log.error("Failed to ack/nack message", e);
                             }
-                        } catch (IOException e) {
-                            log.error("Failed to ack/nack message", e);
                         }
                     }
-                }
-            };
-
-            CancelCallback cancelCallback = consumerTag -> log.warn("Consumer cancelled: {}", consumerTag);
-
-            // 开始消费消息，自动确认 (autoAck = false)
-            consumerChannel.basicConsume(queueName, false, deliverCallback, cancelCallback);
-
-            running.set(true);
-
-            log.info("RabbitMQ 队列 {} 监听启动成功", queueName);
-
-        } catch (Exception e) {
-            log.error("RabbitMQ 启动监听失败，稍后重试", e);
-            safeSleep(5000);
-            startConsumer(); // 简单重试
+                };
+                CancelCallback cancelCallback = consumerTag -> log.warn("Consumer cancelled: {}", consumerTag);
+                consumerChannel.basicConsume(queueName, false, deliverCallback, cancelCallback);
+                running.set(true);
+                log.info("RabbitMQ 队列 {} 监听启动成功", queueName);
+            } catch (Exception e) {
+                log.error("RabbitMQ 启动监听失败，稍后重试", e);
+                closeResourcesSafely();
+                safeSleep(5000);
+            }
         }
     }
 

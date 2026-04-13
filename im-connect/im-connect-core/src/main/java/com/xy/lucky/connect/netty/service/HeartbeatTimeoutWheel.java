@@ -12,12 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -55,8 +50,14 @@ public class HeartbeatTimeoutWheel {
 
     @PostConstruct
     public void start() {
-        for (int i = 0; i < WHEEL_SIZE; i++) {
-            buckets.add(new ConcurrentLinkedQueue<>());
+        if (!running.compareAndSet(false, true)) {
+            return;
+        }
+
+        if (buckets.isEmpty()) {
+            for (int i = 0; i < WHEEL_SIZE; i++) {
+                buckets.add(new ConcurrentLinkedQueue<>());
+            }
         }
 
         this.tickMs = resolveTickMs(nettyProperties.getHeartBeatTime());
@@ -69,7 +70,6 @@ public class HeartbeatTimeoutWheel {
         };
         this.scheduler = Executors.newSingleThreadScheduledExecutor(threadFactory);
         this.scheduler.scheduleAtFixedRate(this::onTick, tickMs, tickMs, TimeUnit.MILLISECONDS);
-        running.set(true);
 
         log.info("心跳时间轮已启动: tickMs={}, timeoutTicks={}, wheelSize={}", tickMs, timeoutTicks, WHEEL_SIZE);
     }

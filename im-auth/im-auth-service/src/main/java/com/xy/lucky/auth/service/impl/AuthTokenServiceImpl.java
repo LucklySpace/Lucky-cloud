@@ -29,12 +29,12 @@ public class AuthTokenServiceImpl implements AuthTokenService {
 
     // ==================== Redis Key 前缀定义 ====================
 
-    private static final String USER_TOKEN_META_KEY = "auth:token:meta:";
+    private static final String USER_TOKEN_META_KEY = "im:auth:token:meta:";
 
     /**
      * 令牌黑名单
      */
-    private static final String BLACKLIST_KEY = "auth:token:blacklist:";
+    private static final String BLACKLIST_KEY = "im:auth:token:blacklist:";
 
     // ==================== 依赖注入 ====================
 

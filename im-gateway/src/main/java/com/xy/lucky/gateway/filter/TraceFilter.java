@@ -1,9 +1,8 @@
 package com.xy.lucky.gateway.filter;
 
+import com.xy.lucky.gateway.plugin.GatewayPlugin;
+import com.xy.lucky.gateway.plugin.GatewayPluginChain;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
-import org.springframework.cloud.gateway.filter.GlobalFilter;
-import org.springframework.core.Ordered;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -12,18 +11,29 @@ import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 
-/**
- * 分布式链路追踪过滤器
- * 职责：确保每个请求都携带 traceId，若请求头缺失则由网关生成并注入，传递至下游服务。
- */
 @Slf4j
 @Component
-public class TraceFilter implements GlobalFilter, Ordered {
+public class TraceFilter implements GatewayPlugin {
 
     private static final String TRACE_ID_HEADER = "X-Trace-Id";
 
     @Override
-    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+    public String getId() {
+        return "trace";
+    }
+
+    @Override
+    public String getVersion() {
+        return "1.0.0";
+    }
+
+    @Override
+    public int getOrder() {
+        return -1000;
+    }
+
+    @Override
+    public Mono<Void> apply(ServerWebExchange exchange, GatewayPluginChain chain) {
         ServerHttpRequest request = exchange.getRequest();
         String traceId = request.getHeaders().getFirst(TRACE_ID_HEADER);
 
@@ -41,9 +51,4 @@ public class TraceFilter implements GlobalFilter, Ordered {
         return chain.filter(exchange);
     }
 
-    @Override
-    public int getOrder() {
-        return Ordered.HIGHEST_PRECEDENCE; // 最优先级，确保日志记录能拿到 traceId
-    }
 }
-

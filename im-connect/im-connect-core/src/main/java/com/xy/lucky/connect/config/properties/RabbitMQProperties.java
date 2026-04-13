@@ -74,5 +74,9 @@ public class RabbitMQProperties {
      * 是否自动恢复连接
      */
     private boolean automaticRecovery = true;
-}
 
+    /**
+     * 消费预取数量
+     */
+    private int prefetch = 200;
+}

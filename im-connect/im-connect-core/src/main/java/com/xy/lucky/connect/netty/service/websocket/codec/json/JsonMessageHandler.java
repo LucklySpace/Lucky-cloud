@@ -15,22 +15,22 @@ public class JsonMessageHandler extends ChannelDuplexHandler {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (msg instanceof TextWebSocketFrame) {
-            TextWebSocketFrame frame = (TextWebSocketFrame) msg;
+        if (msg instanceof TextWebSocketFrame frame) {
             try {
                 IMessageWrap pojo = JacksonUtil.parseObject(frame.text(), IMessageWrap.class);
-                // 替换消息为 POJO 并 forward
-                ctx.fireChannelRead(pojo);
+                if (pojo != null) {
+                    ctx.fireChannelRead(pojo);
+                } else {
+                    log.warn("JSON 解码结果为空");
+                }
             } catch (Exception e) {
                 log.error("JSON 解码失败", e);
-                ctx.fireChannelRead(msg); // 或丢弃/关闭，根据业务
+            } finally {
+                frame.release();
             }
         } else {
-            // 非 TextWebSocketFrame，直接 forward
             ctx.fireChannelRead(msg);
         }
-        // 释放帧资源
-        ((TextWebSocketFrame) msg).release();
     }
 
     @Override

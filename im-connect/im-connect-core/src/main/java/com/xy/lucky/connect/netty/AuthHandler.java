@@ -96,7 +96,7 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
             return;
         }
 
-        log.info("HTTP 握手鉴权成功: uri={}, userId={}, device={}", request.uri(), result.userId, result.deviceType);
+        log.debug("HTTP 握手鉴权成功: uri={}, userId={}, device={}", request.uri(), result.userId, result.deviceType);
 
         // 重写 URI 为标准 WebSocket 路径
         request.setUri("/im");
@@ -129,7 +129,7 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
             return;
         }
 
-        log.info("TCP ByteBuf 鉴权成功: userId={}, device={}", result.userId, result.deviceType);
+        log.debug("TCP ByteBuf 鉴权成功: userId={}, device={}", result.userId, result.deviceType);
 
         bindUserAttributes(ctx, result);
         ensurePostAuthPipeline(ctx);
@@ -148,7 +148,7 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
             return;
         }
 
-        log.info("TCP String 鉴权成功: userId={}, device={}", result.userId, result.deviceType);
+        log.debug("TCP String 鉴权成功: userId={}, device={}", result.userId, result.deviceType);
 
         bindUserAttributes(ctx, result);
         ensurePostAuthPipeline(ctx);
@@ -167,7 +167,7 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
             return;
         }
 
-        log.info("TCP POJO 鉴权成功: userId={}, device={}", userId, pojo.getDeviceType());
+        log.debug("TCP POJO 鉴权成功: userId={}, device={}", userId, pojo.getDeviceType());
 
         bindUserAttributes(ctx, new AuthResult(userId, pojo.getDeviceType()));
         ensurePostAuthPipeline(ctx);
@@ -198,36 +198,34 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
         // 使用 nioBuffer 避免堆内存拷贝 (如果底层支持)
         byte[] bytes;
         if (buf.hasArray()) {
-            bytes = buf.array();
+            int offset = buf.arrayOffset() + buf.readerIndex();
+            bytes = new byte[readableBytes];
+            System.arraycopy(buf.array(), offset, bytes, 0, readableBytes);
         } else {
             bytes = new byte[readableBytes];
             buf.getBytes(buf.readerIndex(), bytes);
         }
 
         // 根据配置的协议类型优先解析
-        String token = null;
-        String deviceType = null;
+        AuthPayload authPayload = null;
 
         if ("proto".equalsIgnoreCase(protocolType)) {
-            // 优先 Proto，失败再尝试 JSON
-            token = tryExtractTokenFromProto(bytes);
-            deviceType = tryExtractDeviceTypeFromProto(bytes);
-            if (token == null) {
-                token = tryExtractTokenFromJson(bytes);
-                deviceType = tryExtractDeviceTypeFromJson(bytes);
+            authPayload = tryExtractFromProto(bytes);
+            if (authPayload == null || !StringUtils.hasText(authPayload.token())) {
+                authPayload = tryExtractFromJson(bytes);
             }
         } else {
-            // 优先 JSON，失败再尝试 Proto
-            token = tryExtractTokenFromJson(bytes);
-            deviceType = tryExtractDeviceTypeFromJson(bytes);
-            if (token == null) {
-                token = tryExtractTokenFromProto(bytes);
-                deviceType = tryExtractDeviceTypeFromProto(bytes);
+            authPayload = tryExtractFromJson(bytes);
+            if (authPayload == null || !StringUtils.hasText(authPayload.token())) {
+                authPayload = tryExtractFromProto(bytes);
             }
         }
 
-        String userId = validateToken(token);
-        return new AuthResult(userId, deviceType);
+        if (authPayload == null) {
+            return AuthResult.INVALID;
+        }
+        String userId = validateToken(authPayload.token());
+        return new AuthResult(userId, authPayload.deviceType());
     }
 
     /**
@@ -308,50 +306,39 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
 
     // ==================== Proto/JSON 解析方法 ====================
 
-    private String tryExtractTokenFromProto(byte[] bytes) {
+    private AuthPayload tryExtractFromProto(byte[] bytes) {
         try {
             IMessageProto.IMessageWrap proto = IMessageProto.IMessageWrap.parseFrom(bytes);
             String token = proto.getToken();
-            return StringUtils.hasText(token) ? token : null;
+            if (!StringUtils.hasText(token)) {
+                return null;
+            }
+            String deviceType = proto.getDeviceType();
+            return new AuthPayload(token, StringUtils.hasText(deviceType) ? deviceType : null);
         } catch (InvalidProtocolBufferException e) {
             return null;
         }
     }
 
-    private String tryExtractDeviceTypeFromProto(byte[] bytes) {
-        try {
-            IMessageProto.IMessageWrap proto = IMessageProto.IMessageWrap.parseFrom(bytes);
-            String dt = proto.getDeviceType();
-            return StringUtils.hasText(dt) ? dt : null;
-        } catch (InvalidProtocolBufferException e) {
-            return null;
-        }
-    }
-
-    private String tryExtractTokenFromJson(byte[] bytes) {
+    private AuthPayload tryExtractFromJson(byte[] bytes) {
         try {
             String text = new String(bytes, StandardCharsets.UTF_8).trim();
             if (text.isEmpty() || !text.startsWith("{")) return null;
 
             JsonNode node = MAPPER.readTree(text);
             String token = getTextValue(node, "token");
-            if (token != null) return token;
-
-            // 尝试从嵌套 data 字段获取
-            JsonNode data = node.get("data");
-            return data != null ? getTextValue(data, "token") : null;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private String tryExtractDeviceTypeFromJson(byte[] bytes) {
-        try {
-            String text = new String(bytes, StandardCharsets.UTF_8).trim();
-            if (text.isEmpty() || !text.startsWith("{")) return null;
-
-            JsonNode node = MAPPER.readTree(text);
-            return getTextValue(node, "deviceType");
+            String deviceType = getTextValue(node, "deviceType");
+            if (!StringUtils.hasText(token)) {
+                JsonNode data = node.get("data");
+                token = data != null ? getTextValue(data, "token") : null;
+                if (!StringUtils.hasText(deviceType) && data != null) {
+                    deviceType = getTextValue(data, "deviceType");
+                }
+            }
+            if (!StringUtils.hasText(token)) {
+                return null;
+            }
+            return new AuthPayload(token, deviceType);
         } catch (Exception e) {
             return null;
         }
@@ -430,5 +417,8 @@ public class AuthHandler extends ChannelInboundHandlerAdapter {
         boolean isValid() {
             return StringUtils.hasText(userId);
         }
+    }
+
+    private record AuthPayload(String token, String deviceType) {
     }
 }

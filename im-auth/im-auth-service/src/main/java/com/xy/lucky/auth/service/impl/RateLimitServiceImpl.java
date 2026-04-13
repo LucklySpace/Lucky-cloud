@@ -19,8 +19,8 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class RateLimitServiceImpl implements RateLimitService {
 
-    private static final String KEY_PREFIX = "IM:SMS:RL:";
-    private static final String BLOCK_PREFIX = "IM:SMS:BL:";
+    private static final String KEY_PREFIX = "im:sms:rl:";
+    private static final String BLOCK_PREFIX = "im:sms:bl:";
 
     private final StringRedisTemplate stringRedisTemplate;
     private final SmsCodeProperties smsCodeProperties;

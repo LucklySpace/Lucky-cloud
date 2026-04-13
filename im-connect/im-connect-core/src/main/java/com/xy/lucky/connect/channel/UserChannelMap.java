@@ -14,9 +14,7 @@ import io.netty.channel.Channel;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -58,31 +56,31 @@ public class UserChannelMap {
         ch.attr(USER_ATTR).set(userId);
         ch.attr(DEVICE_ATTR).set(dt.getType());
 
-        // 2. 获取或创建用户的通道管理对象
         IMUserChannel imUserChannel = userChannels.computeIfAbsent(userId, k -> new IMUserChannel(userId, new ConcurrentHashMap<>()));
+        Map<IMDeviceType.DeviceGroup, UserChannel> channelMap = imUserChannel.getUserChannelMap();
 
         // 3. 处理同组互斥：如果该分组已存在其他连接，则踢出
-        UserChannel existing = imUserChannel.getUserChannelMap().get(group);
+        UserChannel existing = channelMap.get(group);
         if (existing != null && !channelId.equals(existing.getChannelId())) {
             log.info("触发同组互斥踢人: userId={}, group={}, oldChannelId={}, newChannelId={}", userId, group, existing.getChannelId(), channelId);
-            imUserChannel.getUserChannelMap().remove(group);
+            channelMap.remove(group, existing);
             safeKickAndClose(userId, existing, "同类型设备登录，您已被强制下线");
         }
 
-        // 4. 如果全局配置了单设备登录 (即关闭多端支持)，则清理所有其他分组的连接
         if (Boolean.FALSE.equals(nettyProperties.getMultiDeviceEnabled())) {
-            imUserChannel.getUserChannelMap().forEach((g, uc) -> {
-                if (g != group) {
+            for (Map.Entry<IMDeviceType.DeviceGroup, UserChannel> entry : channelMap.entrySet()) {
+                IMDeviceType.DeviceGroup g = entry.getKey();
+                UserChannel uc = entry.getValue();
+                if (g != group && uc != null) {
                     log.info("触发全局单点登录踢人: userId={}, group={}, kickedGroup={}", userId, group, g);
-                    imUserChannel.getUserChannelMap().remove(g);
+                    channelMap.remove(g, uc);
                     safeKickAndClose(userId, uc, "账号在其他端登录，您已被强制下线");
                 }
-            });
+            }
         }
 
-        // 5. 保存新连接并注册资源回收监听
         UserChannel newUc = new UserChannel(channelId, dt, group, ch);
-        imUserChannel.getUserChannelMap().put(group, newUc);
+        channelMap.put(group, newUc);
 
         ch.closeFuture().addListener(future -> removeByChannel(ch));
 
@@ -108,10 +106,21 @@ public class UserChannelMap {
         IMUserChannel im = userChannels.get(userId);
         if (im == null) return Collections.emptyList();
 
-        return im.getUserChannelMap().values().stream()
-                .map(UserChannel::getChannel)
-                .filter(Objects::nonNull)
-                .toList();
+        Collection<UserChannel> values = im.getUserChannelMap().values();
+        if (values.isEmpty()) {
+            return Collections.emptyList();
+        }
+        ArrayList<Channel> channels = new ArrayList<>(values.size());
+        for (UserChannel userChannel : values) {
+            if (userChannel == null) {
+                continue;
+            }
+            Channel channel = userChannel.getChannel();
+            if (channel != null) {
+                channels.add(channel);
+            }
+        }
+        return channels;
     }
 
     /**
@@ -125,12 +134,12 @@ public class UserChannelMap {
         IMDeviceType dt = IMDeviceType.ofOrDefault(deviceTypeStr, IMDeviceType.WEB);
         UserChannel removed = im.getUserChannelMap().remove(dt.getGroup());
 
-        if (removed != null && close) {
+        if (removed != null && close && removed.getChannel() != null && removed.getChannel().isActive()) {
             removed.getChannel().close();
         }
 
         if (im.getUserChannelMap().isEmpty()) {
-            userChannels.remove(userId);
+            userChannels.remove(userId, im);
         }
     }
 

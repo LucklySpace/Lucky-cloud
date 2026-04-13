@@ -84,6 +84,50 @@ knife4j:
 
 lucky:
   gateway:
+    plugin:
+      enabled: true
+      hot-reload: true
+      strict-version-check: true
+      filter-order: -250
+      default-timeout-ms: 200
+      default-max-concurrency: 256
+      default-fail-open: true
+      definitions:
+        - id: trace
+          enabled: true
+          order: -1000
+          version: 1.0.0
+          timeout-ms: 50
+          max-concurrency: 2048
+          fail-open: true
+        - id: ip-guard
+          enabled: true
+          order: -200
+          version: 1.0.0
+          timeout-ms: 120
+          max-concurrency: 512
+          fail-open: true
+        - id: auth
+          enabled: true
+          order: -150
+          version: 1.0.0
+          timeout-ms: 180
+          max-concurrency: 512
+          fail-open: false
+        - id: api-sign
+          enabled: true
+          order: -180
+          version: 1.0.0
+          timeout-ms: 180
+          max-concurrency: 256
+          fail-open: false
+        - id: gateway-log
+          enabled: true
+          order: 900
+          version: 1.0.0
+          timeout-ms: 200
+          max-concurrency: 1024
+          fail-open: true
     security:
       enabled: true
       ignore:

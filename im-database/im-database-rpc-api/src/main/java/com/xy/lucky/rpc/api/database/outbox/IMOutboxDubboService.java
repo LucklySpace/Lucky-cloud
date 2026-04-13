@@ -75,6 +75,16 @@ public interface IMOutboxDubboService {
     List<IMOutboxPo> queryByStatus(String status, Integer limit);
 
     /**
+     * 根据业务消息 ID 和状态查询 Outbox 记录。
+     *
+     * @param messageId 业务消息 ID
+     * @param status    状态
+     * @param limit     限制数量
+     * @return 消息列表
+     */
+    List<IMOutboxPo> queryByMessageIdAndStatus(String messageId, String status, Integer limit);
+
+    /**
      * 更新消息状态
      *
      * @param id       消息ID
@@ -93,4 +103,15 @@ public interface IMOutboxDubboService {
      * @return 是否更新成功
      */
     Boolean modifyToFailed(Long id, String lastError, Integer attempts);
+
+    /**
+     * 按业务消息 ID 原子更新 Outbox 状态。
+     *
+     * @param messageId    业务消息 ID
+     * @param fromStatus   期望的当前状态
+     * @param targetStatus 目标状态
+     * @param updatedAt    更新时间戳
+     * @return 是否存在记录被更新
+     */
+    Boolean modifyStatusByMessageId(String messageId, String fromStatus, String targetStatus, Long updatedAt);
 }

@@ -56,5 +56,15 @@ public interface OssTemplate {
 
     String getPresignedPutUrl(String bucketName, String objectName);
 
+    String initiateMultipartUpload(String bucketName, String objectName, String contentType);
+
+    String getPresignedUploadPartUrl(String bucketName, String objectName, String uploadId, int partNumber, int expires);
+
+    List<Integer> listUploadedParts(String bucketName, String objectName, String uploadId);
+
+    void completeMultipartUpload(String bucketName, String objectName, String uploadId);
+
+    void abortMultipartUpload(String bucketName, String objectName, String uploadId);
+
     ObjectMetadata getObjectMetadata(String bucketName, String objectName);
 }

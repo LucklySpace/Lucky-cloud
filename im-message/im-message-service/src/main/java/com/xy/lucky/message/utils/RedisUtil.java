@@ -1,42 +1,51 @@
 package com.xy.lucky.message.utils;
 
-import jakarta.annotation.Resource;
-import org.springframework.data.redis.core.RedisCallback;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
+/**
+ * Redis 通用操作封装。
+ * 统一处理常见的参数校验、过期时间保护和空结果兜底，避免业务层重复样板代码。
+ */
 @Component
+@RequiredArgsConstructor
 public class RedisUtil {
 
-    @Resource
-    private RedisTemplate<String, Object> redisTemplate;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     /**
-     * 获取
+     * 获取单个键值。
      *
-     * @param key   键
+     * @param key 键
      */
-    @SuppressWarnings("unchecked")
     public Object get(String key) {
+        if (!StringUtils.hasText(key)) {
+            return null;
+        }
         return redisTemplate.opsForValue().get(key);
     }
 
     /**
-     * 批量获取
+     * 批量获取键值。
+     * 使用 MGET 一次性拉取，结果顺序与 keys 保持一致。
      *
      * @param keys 键集合
      * @return 值
      */
     public List<Object> batchGet(List<String> keys) {
-        return redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
-            for (String key : keys) {
-                connection.get(key.getBytes());
-            }
-            return null;
-        });
+        if (CollectionUtils.isEmpty(keys)) {
+            return Collections.emptyList();
+        }
+        List<Object> values = redisTemplate.opsForValue().multiGet(keys);
+        return Objects.requireNonNullElse(values, Collections.emptyList());
     }
 
     /**
@@ -47,7 +56,11 @@ public class RedisUtil {
      * @param expireSeconds 过期时间（秒）
      */
     public void set(String key, Object value, long expireSeconds) {
-        redisTemplate.opsForValue().set(key, value, Duration.ofSeconds(expireSeconds));
+        if (!StringUtils.hasText(key)) {
+            return;
+        }
+        long ttl = Math.max(1L, expireSeconds);
+        redisTemplate.opsForValue().set(key, value, Duration.ofSeconds(ttl));
     }
 
     /**
@@ -56,6 +69,9 @@ public class RedisUtil {
      * @param key 键
      */
     public void del(String key) {
+        if (!StringUtils.hasText(key)) {
+            return;
+        }
         redisTemplate.delete(key);
     }
 
@@ -68,7 +84,11 @@ public class RedisUtil {
      * @return 是否设置成功
      */
     public boolean setIfAbsent(String key, Object value, long expireSeconds) {
-        Boolean result = redisTemplate.opsForValue().setIfAbsent(key, value, Duration.ofSeconds(expireSeconds));
+        if (!StringUtils.hasText(key)) {
+            return false;
+        }
+        long ttl = Math.max(1L, expireSeconds);
+        Boolean result = redisTemplate.opsForValue().setIfAbsent(key, value, Duration.ofSeconds(ttl));
         return result != null && result;
     }
 }

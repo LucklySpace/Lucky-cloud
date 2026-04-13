@@ -1,16 +1,16 @@
 package com.xy.lucky.message.message;
 
-import com.xy.lucky.message.message.dispatch.MessageDispatchTask;
+import com.xy.lucky.core.constants.IMConstant;
+import com.xy.lucky.core.model.IMRegisterUser;
+import com.xy.lucky.core.model.IMessageWrap;
 import com.xy.lucky.message.message.dispatch.LightweightTimeWheel;
+import com.xy.lucky.message.message.dispatch.MessageDispatchTask;
 import com.xy.lucky.message.message.monitor.MessageMetricsRecorder;
 import com.xy.lucky.message.message.offline.OfflineMessageRecord;
 import com.xy.lucky.message.message.offline.OfflineMessageService;
 import com.xy.lucky.message.message.outbox.OutboxRecordService;
 import com.xy.lucky.message.message.status.MessageStatusService;
 import com.xy.lucky.message.utils.RedisUtil;
-import com.xy.lucky.core.constants.IMConstant;
-import com.xy.lucky.core.model.IMRegisterUser;
-import com.xy.lucky.core.model.IMessageWrap;
 import com.xy.lucky.mq.rabbit.core.RabbitTemplateFactory;
 import com.xy.lucky.utils.id.IdUtils;
 import com.xy.lucky.utils.json.JacksonUtils;
@@ -23,24 +23,16 @@ import org.springframework.amqp.core.ReturnedMessage;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * 默认消息生命周期编排器。
@@ -51,6 +43,10 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class DefaultMessageLifecycleOrchestrator implements MessageLifecycleOrchestrator {
 
+    private static final String OUTBOX_MARK_KEY_PREFIX = "im:outbox:delivered:";
+    private static final int OFFLINE_REPLAY_BATCH_SIZE = 200;
+    private static final String QUEUE_FULL_REASON = "dispatch queue full";
+
     private final RedisUtil redisUtil;
     private final RabbitTemplateFactory rabbitTemplateFactory;
     private final MessageStatusService messageStatusService;
@@ -60,6 +56,7 @@ public class DefaultMessageLifecycleOrchestrator implements MessageLifecycleOrch
     private final RedisTemplate<String, Object> redisTemplate;
     private final BlockingQueue<MessageDispatchTask> dispatchQueue = new LinkedBlockingQueue<>(10000);
     private final Map<String, MessageDispatchTask> pendingTaskMap = new ConcurrentHashMap<>();
+    private final Map<String, Long> pendingTaskStartMap = new ConcurrentHashMap<>();
 
     @Resource(name = "messagePushExecutor")
     private ExecutorService messagePushExecutor;
@@ -82,6 +79,12 @@ public class DefaultMessageLifecycleOrchestrator implements MessageLifecycleOrch
     @Value("${message.dispatch.retry-wheel.slots:512}")
     private int retryWheelSlots;
 
+    @Value("${message.dispatch.confirm-timeout-ms:5000}")
+    private long confirmTimeoutMs;
+
+    @Value("${message.dispatch.confirm-timeout-check-interval-ms:1000}")
+    private long confirmTimeoutCheckIntervalMs;
+
     private RabbitTemplate rabbitTemplate;
     private LightweightTimeWheel retryTimeWheel;
 
@@ -95,6 +98,10 @@ public class DefaultMessageLifecycleOrchestrator implements MessageLifecycleOrch
         retryTimeWheel = new LightweightTimeWheel(retryWheelTickMs, retryWheelSlots, scheduledExecutor, messagePushExecutor);
         retryTimeWheel.start();
         scheduledExecutor.scheduleWithFixedDelay(this::refreshConnectionCount, 0, 10, TimeUnit.SECONDS);
+        scheduledExecutor.scheduleWithFixedDelay(this::checkPendingTimeoutTasks,
+                Math.max(500L, confirmTimeoutCheckIntervalMs),
+                Math.max(500L, confirmTimeoutCheckIntervalMs),
+                TimeUnit.MILLISECONDS);
         int size = Math.max(1, workerSize);
         for (int i = 0; i < size; i++) {
             messagePushExecutor.execute(this::dispatchLoop);
@@ -123,61 +130,20 @@ public class DefaultMessageLifecycleOrchestrator implements MessageLifecycleOrch
      */
     @Override
     public void dispatch(Integer messageType, Object payload, Collection<String> targetUserIds, String messageId) {
-        // 1.参数校验
         if (CollectionUtils.isEmpty(targetUserIds) || !StringUtils.hasText(messageId)) {
             return;
         }
-        // 2.去重用户 ID
-        List<String> deduplicatedUserIds = targetUserIds.stream()
-                .filter(StringUtils::hasText)
-                .distinct()
-                .toList();
+        List<String> deduplicatedUserIds = normalizeTargetUsers(targetUserIds);
         if (CollectionUtils.isEmpty(deduplicatedUserIds)) {
             return;
         }
-        // 3.标记消息为待处理
         messageStatusService.markPending(messageId, deduplicatedUserIds);
-        // 4.获取用户路由
         RoutingPlan plan = resolveRoutingPlan(deduplicatedUserIds);
-
-        // 5.使用队列消费消息
         for (Map.Entry<String, List<String>> entry : plan.onlineBrokerUsers.entrySet()) {
-            IMessageWrap<Object> wrapper = new IMessageWrap<>()
-                    .setCode(messageType)
-                    .setData(payload)
-                    .setIds(entry.getValue());
-            String payloadJson = JacksonUtils.toJSONString(wrapper);
-            Long outboxId = outboxRecordService.createPending(
-                    messageId,
-                    payloadJson,
-                    IMConstant.MQ_EXCHANGE_NAME,
-                    entry.getKey()
-            );
-            String correlationId = buildCorrelationId(messageId, entry.getKey());
-            MessageDispatchTask task = MessageDispatchTask.builder()
-                    .correlationId(correlationId)
-                    .messageId(messageId)
-                    .outboxId(outboxId)
-                    .brokerId(entry.getKey())
-                    .userIds(entry.getValue())
-                    .payload(payloadJson)
-                    .attempt(0)
-                    .firstEnqueueAt(System.currentTimeMillis())
-                    .build();
-            offerDispatch(task);
-            messageMetricsRecorder.onDispatchCreated();
+            enqueueOnlineDispatch(messageType, payload, messageId, entry.getKey(), entry.getValue());
         }
-        // 6.存储离线消息
         for (String offlineUserId : plan.offlineUsers) {
-            IMessageWrap<Object> wrapper = new IMessageWrap<>()
-                    .setCode(messageType)
-                    .setData(payload)
-                    .setIds(List.of(offlineUserId));
-            offlineMessageService.store(offlineUserId, OfflineMessageRecord.builder()
-                    .messageId(messageId)
-                    .messageType(messageType)
-                    .payload(JacksonUtils.toJSONString(wrapper))
-                    .build());
+            storeOfflineMessage(offlineUserId, messageId, messageType, buildPayload(messageType, payload, List.of(offlineUserId)));
         }
     }
 
@@ -193,7 +159,13 @@ public class DefaultMessageLifecycleOrchestrator implements MessageLifecycleOrch
             return;
         }
         messageStatusService.acknowledge(messageId, userId);
-        outboxRecordService.markDeliveredByMessageId(messageId);
+        String dedupeKey = OUTBOX_MARK_KEY_PREFIX + messageId;
+        if (redisUtil.setIfAbsent(dedupeKey, "1", 24 * 3600L)) {
+            boolean updated = outboxRecordService.markDeliveredByMessageId(messageId);
+            if (!updated) {
+                redisUtil.del(dedupeKey);
+            }
+        }
     }
 
     /**
@@ -210,26 +182,9 @@ public class DefaultMessageLifecycleOrchestrator implements MessageLifecycleOrch
         if (onlineUser == null || !StringUtils.hasText(onlineUser.getBrokerId())) {
             return;
         }
-        List<OfflineMessageRecord> records = offlineMessageService.pull(userId, 200);
+        List<OfflineMessageRecord> records = offlineMessageService.pull(userId, OFFLINE_REPLAY_BATCH_SIZE);
         for (OfflineMessageRecord record : records) {
-            Long outboxId = outboxRecordService.createPending(
-                    record.messageId(),
-                    record.payload(),
-                    IMConstant.MQ_EXCHANGE_NAME,
-                    onlineUser.getBrokerId()
-            );
-            MessageDispatchTask task = MessageDispatchTask.builder()
-                    .correlationId(buildCorrelationId(record.messageId(), onlineUser.getBrokerId()))
-                    .messageId(record.messageId())
-                    .outboxId(outboxId)
-                    .brokerId(onlineUser.getBrokerId())
-                    .userIds(List.of(userId))
-                    .payload(record.payload())
-                    .attempt(0)
-                    .firstEnqueueAt(System.currentTimeMillis())
-                    .build();
-            offerDispatch(task);
-            messageMetricsRecorder.onDispatchCreated();
+            enqueueDispatch(record.messageId(), onlineUser.getBrokerId(), List.of(userId), record.payload(), 0, System.currentTimeMillis());
         }
     }
 
@@ -252,18 +207,24 @@ public class DefaultMessageLifecycleOrchestrator implements MessageLifecycleOrch
 
     private void send(MessageDispatchTask task) {
         pendingTaskMap.put(task.correlationId(), task);
+        pendingTaskStartMap.put(task.correlationId(), System.currentTimeMillis());
         try {
             rabbitTemplate.convertAndSend(IMConstant.MQ_EXCHANGE_NAME, task.brokerId(), task.payload(),
                     new CorrelationData(task.correlationId()));
         } catch (Exception e) {
             pendingTaskMap.remove(task.correlationId());
+            pendingTaskStartMap.remove(task.correlationId());
             scheduleRetry(task, e.getMessage());
         }
     }
 
     private void handleConfirm(CorrelationData correlationData, boolean ack, String cause) {
         String correlationId = correlationData == null ? null : correlationData.getId();
+        if (!StringUtils.hasText(correlationId)) {
+            return;
+        }
         MessageDispatchTask task = pendingTaskMap.remove(correlationId);
+        pendingTaskStartMap.remove(correlationId);
         if (task == null) {
             return;
         }
@@ -284,7 +245,11 @@ public class DefaultMessageLifecycleOrchestrator implements MessageLifecycleOrch
                 .map(properties -> properties.getCorrelationId())
                 .map(Object::toString)
                 .orElse(null);
+        if (!StringUtils.hasText(correlationId)) {
+            return;
+        }
         MessageDispatchTask task = pendingTaskMap.remove(correlationId);
+        pendingTaskStartMap.remove(correlationId);
         if (task == null) {
             return;
         }
@@ -296,13 +261,7 @@ public class DefaultMessageLifecycleOrchestrator implements MessageLifecycleOrch
             messageStatusService.markFailed(task.messageId(), task.userIds(), reason);
             outboxRecordService.markDlx(task.outboxId(), task.attempt() + 1, reason);
             messageMetricsRecorder.onDispatchFailed(java.time.Duration.ofMillis(System.currentTimeMillis() - task.firstEnqueueAt()));
-            for (String userId : task.userIds()) {
-                offlineMessageService.store(userId, OfflineMessageRecord.builder()
-                        .messageId(task.messageId())
-                        .messageType(null)
-                        .payload(task.payload())
-                        .build());
-            }
+            storeOfflinePayloadForUsers(task.userIds(), task.messageId(), task.payload());
             return;
         }
         MessageDispatchTask nextTask = task.toBuilder()
@@ -333,7 +292,80 @@ public class DefaultMessageLifecycleOrchestrator implements MessageLifecycleOrch
     private void offerDispatch(MessageDispatchTask task) {
         boolean offered = dispatchQueue.offer(task);
         if (!offered) {
-            scheduleRetry(task, "dispatch queue full");
+            scheduleRetry(task, QUEUE_FULL_REASON);
+        }
+    }
+
+    /**
+     * 归一化目标用户集合：过滤空值并去重，保证后续路由与状态更新输入稳定。
+     */
+    private List<String> normalizeTargetUsers(Collection<String> targetUserIds) {
+        return targetUserIds.stream()
+                .filter(StringUtils::hasText)
+                .distinct()
+                .toList();
+    }
+
+    /**
+     * 构建发送给 connect 节点的标准消息载荷。
+     */
+    private String buildPayload(Integer messageType, Object payload, List<String> userIds) {
+        IMessageWrap<Object> wrapper = new IMessageWrap<>()
+                .setCode(messageType)
+                .setData(payload)
+                .setIds(userIds);
+        return JacksonUtils.toJSONString(wrapper);
+    }
+
+    /**
+     * 在线用户分发入口：负责组装 payload 并入队。
+     */
+    private void enqueueOnlineDispatch(Integer messageType, Object payload, String messageId, String brokerId, List<String> userIds) {
+        String payloadJson = buildPayload(messageType, payload, userIds);
+        enqueueDispatch(messageId, brokerId, userIds, payloadJson, 0, System.currentTimeMillis());
+    }
+
+    /**
+     * 统一创建 Outbox 记录并生成分发任务，避免 dispatch/replay 逻辑重复。
+     */
+    private void enqueueDispatch(String messageId, String brokerId, List<String> userIds, String payload, int attempt, long firstEnqueueAt) {
+        Long outboxId = outboxRecordService.createPending(
+                messageId,
+                payload,
+                IMConstant.MQ_EXCHANGE_NAME,
+                brokerId
+        );
+        MessageDispatchTask task = MessageDispatchTask.builder()
+                .correlationId(buildCorrelationId(messageId, brokerId))
+                .messageId(messageId)
+                .outboxId(outboxId)
+                .brokerId(brokerId)
+                .userIds(userIds)
+                .payload(payload)
+                .attempt(attempt)
+                .firstEnqueueAt(firstEnqueueAt)
+                .build();
+        offerDispatch(task);
+        messageMetricsRecorder.onDispatchCreated();
+    }
+
+    /**
+     * 将离线用户消息落库到 Redis，供后续上线补发。
+     */
+    private void storeOfflineMessage(String userId, String messageId, Integer messageType, String payload) {
+        offlineMessageService.store(userId, OfflineMessageRecord.builder()
+                .messageId(messageId)
+                .messageType(messageType)
+                .payload(payload)
+                .build());
+    }
+
+    /**
+     * 在重试耗尽后，按用户维度降级为离线消息存储。
+     */
+    private void storeOfflinePayloadForUsers(List<String> userIds, String messageId, String payload) {
+        for (String userId : userIds) {
+            storeOfflineMessage(userId, messageId, null, payload);
         }
     }
 
@@ -353,10 +385,60 @@ public class DefaultMessageLifecycleOrchestrator implements MessageLifecycleOrch
     }
 
     private void refreshConnectionCount() {
-        int count = Optional.ofNullable(redisTemplate.keys(IMConstant.USER_CACHE_PREFIX + "*"))
-                .map(Collection::size)
-                .orElse(0);
+        int count = countOnlineConnectionsByScan();
         messageMetricsRecorder.setOnlineConnectionCount(count);
+    }
+
+    private int countOnlineConnectionsByScan() {
+        String pattern = IMConstant.USER_CACHE_PREFIX + "*";
+        Integer count = redisTemplate.execute((RedisCallback<Integer>) connection -> {
+            int total = 0;
+            ScanOptions options = ScanOptions.scanOptions()
+                    .match(pattern)
+                    .count(1000)
+                    .build();
+            try (Cursor<byte[]> cursor = connection.keyCommands().scan(options)) {
+                while (cursor.hasNext()) {
+                    cursor.next();
+                    total++;
+                }
+            } catch (Exception e) {
+                log.warn("统计在线连接数失败", e);
+            }
+            return total;
+        });
+        return count == null ? 0 : Math.max(0, count);
+    }
+
+    private void checkPendingTimeoutTasks() {
+        if (pendingTaskStartMap.isEmpty()) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        long timeoutMs = Math.max(1000L, confirmTimeoutMs);
+        List<String> timeoutCorrelationIds = new ArrayList<>();
+        for (Map.Entry<String, Long> entry : pendingTaskStartMap.entrySet()) {
+            Long start = entry.getValue();
+            if (start == null || now - start < timeoutMs) {
+                continue;
+            }
+            String correlationId = entry.getKey();
+            if (!StringUtils.hasText(correlationId)) {
+                continue;
+            }
+            timeoutCorrelationIds.add(correlationId);
+        }
+        if (timeoutCorrelationIds.isEmpty()) {
+            return;
+        }
+        // ConcurrentHashMap 的迭代器不支持 remove，这里采用二段式收集+删除，避免调度线程异常退出。
+        for (String correlationId : timeoutCorrelationIds) {
+            MessageDispatchTask task = pendingTaskMap.remove(correlationId);
+            pendingTaskStartMap.remove(correlationId);
+            if (task != null) {
+                scheduleRetry(task, "broker confirm timeout");
+            }
+        }
     }
 
     private RoutingPlan resolveRoutingPlan(List<String> userIds) {

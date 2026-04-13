@@ -6,10 +6,12 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @EnableKnife4j
 @EnableAsync
+@EnableScheduling
 @EnableDubbo(scanBasePackages = "com.xy.lucky.database.web")
 @EnableTransactionManagement  //开启事务管理
 @SpringBootApplication(exclude = {SecurityAutoConfiguration.class})

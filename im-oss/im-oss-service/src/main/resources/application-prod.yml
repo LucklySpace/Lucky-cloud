@@ -50,6 +50,44 @@ oss:
     avatar: default
     other: default
 
+upload:
+  whitelist:
+    file:
+      - application/pdf
+      - text/plain
+      - text/csv
+      - application/json
+      - application/xml
+      - application/zip
+      - application/x-7z-compressed
+      - application/x-rar-compressed
+      - image/jpeg
+      - image/png
+      - image/webp
+      - image/gif
+      - audio/mpeg
+      - audio/wav
+      - audio/x-wav
+      - audio/mp4
+      - video/mp4
+      - video/webm
+    image:
+      - image/jpeg
+      - image/png
+      - image/webp
+      - image/gif
+      - image/bmp
+    avatar:
+      - image/jpeg
+      - image/png
+      - image/webp
+    audio:
+      - audio/mpeg
+      - audio/wav
+      - audio/x-wav
+      - audio/mp4
+      - audio/ogg
+
 # TODO: log settings
 logging:
   config: classpath:logback-plus.xml  #日志配置文件，会在当前项目下去找日志配置文件

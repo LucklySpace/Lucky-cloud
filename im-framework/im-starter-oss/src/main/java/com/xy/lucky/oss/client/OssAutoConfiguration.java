@@ -214,6 +214,31 @@ public class OssAutoConfiguration {
         }
 
         @Override
+        public String initiateMultipartUpload(String bucketName, String objectName, String contentType) {
+            return selectByBucket(bucketName).initiateMultipartUpload(bucketName, objectName, contentType);
+        }
+
+        @Override
+        public String getPresignedUploadPartUrl(String bucketName, String objectName, String uploadId, int partNumber, int expires) {
+            return selectByBucket(bucketName).getPresignedUploadPartUrl(bucketName, objectName, uploadId, partNumber, expires);
+        }
+
+        @Override
+        public java.util.List<Integer> listUploadedParts(String bucketName, String objectName, String uploadId) {
+            return selectByBucket(bucketName).listUploadedParts(bucketName, objectName, uploadId);
+        }
+
+        @Override
+        public void completeMultipartUpload(String bucketName, String objectName, String uploadId) {
+            selectByBucket(bucketName).completeMultipartUpload(bucketName, objectName, uploadId);
+        }
+
+        @Override
+        public void abortMultipartUpload(String bucketName, String objectName, String uploadId) {
+            selectByBucket(bucketName).abortMultipartUpload(bucketName, objectName, uploadId);
+        }
+
+        @Override
         public com.amazonaws.services.s3.model.ObjectMetadata getObjectMetadata(String bucketName, String objectName) {
             return selectByBucket(bucketName).getObjectMetadata(bucketName, objectName);
         }

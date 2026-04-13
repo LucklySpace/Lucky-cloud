@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -23,6 +24,7 @@ public class RedisMessageStatusService implements MessageStatusService {
 
     private static final String STATUS_KEY_PREFIX = "im-msg-status:";
     private static final Duration STATUS_TTL = Duration.ofDays(7);
+    private static final String ACKED = "ACKED";
 
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -34,16 +36,7 @@ public class RedisMessageStatusService implements MessageStatusService {
      */
     @Override
     public void markPending(String messageId, Collection<String> userIds) {
-        if (CollectionUtils.isEmpty(userIds)) {
-            return;
-        }
-        String key = buildKey(messageId);
-        Map<String, Integer> statusMap = new HashMap<>();
-        for (String userId : userIds) {
-            statusMap.put(userId, MessageStatus.PENDING.code);
-        }
-        redisTemplate.opsForHash().putAll(key, statusMap);
-        redisTemplate.expire(key, STATUS_TTL);
+        updateStatus(messageId, userIds, MessageStatus.PENDING.code);
     }
 
     /**
@@ -66,7 +59,7 @@ public class RedisMessageStatusService implements MessageStatusService {
      */
     @Override
     public void markFailed(String messageId, Collection<String> userIds, String reason) {
-        updateStatus(messageId, userIds, MessageStatus.PENDING.code);
+        updateStatus(messageId, userIds, MessageStatus.FAILED.code);
         log.warn("消息投递失败: messageId={}, userCount={}, reason={}",
                 messageId, userIds == null ? 0 : userIds.size(), reason);
     }
@@ -79,8 +72,11 @@ public class RedisMessageStatusService implements MessageStatusService {
      */
     @Override
     public void acknowledge(String messageId, String userId) {
+        if (!StringUtils.hasText(messageId) || !StringUtils.hasText(userId)) {
+            return;
+        }
         String key = buildKey(messageId);
-        redisTemplate.opsForHash().put(key, userId, "ACKED");
+        redisTemplate.opsForHash().put(key, userId, ACKED);
         redisTemplate.expire(key, STATUS_TTL);
     }
 
@@ -92,13 +88,20 @@ public class RedisMessageStatusService implements MessageStatusService {
      * @param status    状态值
      */
     private void updateStatus(String messageId, Collection<String> userIds, Integer status) {
-        if (CollectionUtils.isEmpty(userIds)) {
+        if (!StringUtils.hasText(messageId) || CollectionUtils.isEmpty(userIds) || status == null) {
             return;
         }
         String key = buildKey(messageId);
+        Map<String, Integer> statusMap = new HashMap<>(userIds.size());
         for (String userId : userIds) {
-            redisTemplate.opsForHash().put(key, userId, status);
+            if (StringUtils.hasText(userId)) {
+                statusMap.put(userId, status);
+            }
         }
+        if (statusMap.isEmpty()) {
+            return;
+        }
+        redisTemplate.opsForHash().putAll(key, statusMap);
         redisTemplate.expire(key, STATUS_TTL);
     }
 

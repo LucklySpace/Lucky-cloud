@@ -396,6 +396,38 @@ COMMENT ON COLUMN "public"."im_message_delivery"."updated_at" IS '更新时间';
 COMMENT ON TABLE "public"."im_message_delivery" IS 'Per-user delivery state: 记录每条消息向每个目标用户的投递流程与状态';
 
 -- ----------------------------
+-- Table structure for im_offline_message
+-- ----------------------------
+DROP TABLE IF EXISTS "public"."im_offline_message";
+CREATE TABLE "public"."im_offline_message"
+(
+    "id"           int8                                       NOT NULL,
+    "user_id"      varchar(64) COLLATE "pg_catalog"."default" NOT NULL,
+    "message_id"   varchar(64) COLLATE "pg_catalog"."default" NOT NULL,
+    "message_type" int4,
+    "payload"      text COLLATE "pg_catalog"."default"        NOT NULL,
+    "created_at"   int8                                       NOT NULL,
+    "expire_at"    int8                                       NOT NULL
+)
+;
+COMMENT
+ON COLUMN "public"."im_offline_message"."id" IS '主键';
+COMMENT
+ON COLUMN "public"."im_offline_message"."user_id" IS '离线用户 ID';
+COMMENT
+ON COLUMN "public"."im_offline_message"."message_id" IS '业务消息 ID';
+COMMENT
+ON COLUMN "public"."im_offline_message"."message_type" IS '业务消息类型';
+COMMENT
+ON COLUMN "public"."im_offline_message"."payload" IS '离线消息负载 JSON';
+COMMENT
+ON COLUMN "public"."im_offline_message"."created_at" IS '入库时间（毫秒时间戳）';
+COMMENT
+ON COLUMN "public"."im_offline_message"."expire_at" IS '过期时间（毫秒时间戳）';
+COMMENT
+ON TABLE "public"."im_offline_message" IS '离线消息持久化表，保障用户离线期间消息可恢复';
+
+-- ----------------------------
 -- Table structure for im_outbox
 -- ----------------------------
 DROP TABLE IF EXISTS "public"."im_outbox";
@@ -675,9 +707,38 @@ ALTER TABLE "public"."im_message_delivery" ADD CONSTRAINT "message_delivery_pkey
 -- ----------------------------
 -- Indexes structure for table im_outbox
 -- ----------------------------
+CREATE INDEX "idx_offline_message_expire_at" ON "public"."im_offline_message" USING btree (
+    "expire_at" ASC NULLS LAST
+    );
+CREATE INDEX "idx_offline_message_user_created" ON "public"."im_offline_message" USING btree (
+    "user_id" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST,
+    "created_at" ASC NULLS LAST
+    );
+
+-- ----------------------------
+-- Primary Key structure for table im_offline_message
+-- ----------------------------
+ALTER TABLE "public"."im_offline_message"
+    ADD CONSTRAINT "im_offline_message_pkey" PRIMARY KEY ("id");
+
+-- ----------------------------
+-- Indexes structure for table im_outbox
+-- ----------------------------
 CREATE INDEX "idx_outbox_message_id" ON "public"."im_outbox" USING btree (
   "message_id" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
 );
+CREATE INDEX "idx_outbox_message_status" ON "public"."im_outbox" USING btree (
+    "message_id" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST,
+    "status" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST
+    );
+CREATE INDEX "idx_outbox_status_next_try_at" ON "public"."im_outbox" USING btree (
+    "status" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST,
+    "next_try_at" ASC NULLS LAST
+    );
+CREATE INDEX "idx_outbox_status_updated_at" ON "public"."im_outbox" USING btree (
+    "status" COLLATE "pg_catalog"."default" "pg_catalog"."text_ops" ASC NULLS LAST,
+    "updated_at" ASC NULLS LAST
+    );
 
 -- ----------------------------
 -- Primary Key structure for table im_outbox

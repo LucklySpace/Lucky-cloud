@@ -23,10 +23,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 对象存储服务统一工具类
@@ -82,8 +80,10 @@ public class OssUtils {
     public FileChunkVo initUpload(OssFilePo req) {
         String bucket = getOrCreateBucketByFileName(req.getFileName());
         String object = getObjectName(generatePath(), req.getFileName());
+        String uploadId = UUID.randomUUID().toString();
         req.setObjectKey(object);
         req.setBucketName(bucket);
+        req.setUploadId(uploadId);
 
         try {
             log.info("初始化单文件上传 bucket={} object={}", bucket, object);
@@ -92,8 +92,8 @@ public class OssUtils {
             String url = ossTemplate.getPresignedPutUrl(bucket, object, ossProperties.getPresignedUrlExpiry());
 
             return FileChunkVo.builder()
-                    .uploadUrl(Map.of("chunk_0", url))
-                    .uploadId(UUID.randomUUID().toString()) // 生成一个 uploadId 用于跟踪
+                    .uploadUrl(Map.of("1", url))
+                    .uploadId(uploadId)
                     .build();
         } catch (Exception e) {
             log.error("initUpload 失败 object={} bucket={}", object, bucket, e);
@@ -113,24 +113,25 @@ public class OssUtils {
      * @return 分片上传配置信息
      */
     public FileChunkVo initMultiPartUpload(OssFilePo req) {
+        Integer partNum = req.getPartNum();
+        if (partNum == null || partNum < 1) {
+            throw new FileException("分片数量必须大于0");
+        }
         String bucket = getOrCreateBucketByFileName(req.getFileName());
         String object = getObjectName(generatePath(), req.getFileName());
         req.setObjectKey(object);
         req.setBucketName(bucket);
 
         try {
-            log.info("初始化分片上传 bucket={} object={} partNum={}", bucket, object, req.getPartNum());
+            String uploadId = ossTemplate.initiateMultipartUpload(bucket, object, req.getContentType());
+            req.setUploadId(uploadId);
+            log.info("初始化分片上传 bucket={} object={} partNum={}", bucket, object, partNum);
 
-            // 为每个分片生成预签名 PUT URL
-            Map<String, String> urls = new HashMap<>();
-            String uploadId = UUID.randomUUID().toString();
+            Map<String, String> urls = new LinkedHashMap<>(partNum);
 
-            for (int i = 0; i < req.getPartNum(); i++) {
-                // 注意：这里简化了实现，实际 S3 分片上传需要使用 initiateMultipartUpload
-                // 为兼容性考虑，这里生成带有 partNumber 标记的 URL
-                String partObject = object + ".part" + (i + 1);
-                String url = ossTemplate.getPresignedPutUrl(bucket, partObject, ossProperties.getPresignedUrlExpiry());
-                urls.put("chunk_" + i, url);
+            for (int partNumber = 1; partNumber <= partNum; partNumber++) {
+                String url = ossTemplate.getPresignedUploadPartUrl(bucket, object, uploadId, partNumber, ossProperties.getPresignedUrlExpiry());
+                urls.put(String.valueOf(partNumber), url);
             }
 
             return FileChunkVo.builder()
@@ -156,20 +157,32 @@ public class OssUtils {
         String bucket = req.getBucketName();
         String object = req.getObjectKey();
         String uploadId = req.getUploadId();
+        Integer partNum = req.getPartNum();
 
         try {
             log.info("开始合并分片 bucket={} object={} uploadId={}", bucket, object, uploadId);
 
-            // 简化实现：如果只有一个分片，直接返回
-            if (req.getPartNum() == 1) {
-                String path = getPresignedGetUrl(bucket, object);
-                log.info("单文件上传完成 bucket={} object={} path={}", bucket, object, path);
-                return path;
+            if (partNum == null || partNum < 1) {
+                throw new FileException("分片信息异常");
             }
 
-            // 多分片场景：这里假设分片已经通过客户端合并
-            // 实际生产环境建议使用 AWS SDK 的 multipart upload API
+            if (partNum == 1) {
+                if (!ossTemplate.doesObjectExist(bucket, object)) {
+                    throw new FileException("文件尚未上传完成");
+                }
+            } else {
+                List<Integer> uploadedParts = ossTemplate.listUploadedParts(bucket, object, uploadId);
+                TreeMap<String, String> undone = getPendingChunkUploadUrls(req, uploadedParts);
+                if (!undone.isEmpty()) {
+                    throw new FileException("仍有分片未上传完成，剩余分片数=" + undone.size());
+                }
+                ossTemplate.completeMultipartUpload(bucket, object, uploadId);
+            }
+
             String path = getPresignedGetUrl(bucket, object);
+            if (path == null) {
+                throw new FileException("生成文件访问地址失败");
+            }
             log.info("合并完成 bucket={} object={} path={}", bucket, object, path);
             return path;
 
@@ -192,23 +205,28 @@ public class OssUtils {
         String bucket = req.getBucketName();
         String object = req.getObjectKey();
         String uploadId = req.getUploadId();
+        Integer partNum = req.getPartNum();
 
         try {
             log.info("查询分片上传进度 bucket={} object={} uploadId={}", bucket, object, uploadId);
             builder.setUploadId(uploadId);
 
-            // 简化实现：检查所有分片对象是否存在
-            TreeMap<String, String> undone = new TreeMap<>();
-
-            for (int i = 0; i < req.getPartNum(); i++) {
-                String partObject = object + ".part" + (i + 1);
-                if (!ossTemplate.doesObjectExist(bucket, partObject)) {
-                    // 分片未上传，生成预签名 URL
-                    String url = ossTemplate.getPresignedPutUrl(bucket, partObject, ossProperties.getPresignedUrlExpiry());
-                    undone.put("chunk_" + i, url);
-                }
+            if (partNum == null || partNum < 1) {
+                throw new FileException("分片信息异常");
             }
 
+            if (partNum == 1) {
+                TreeMap<String, String> undone = new TreeMap<>();
+                if (!ossTemplate.doesObjectExist(bucket, object)) {
+                    String url = ossTemplate.getPresignedPutUrl(bucket, object, ossProperties.getPresignedUrlExpiry());
+                    undone.put("1", url);
+                }
+                builder.setUndoneChunkMap(undone);
+                return builder;
+            }
+
+            List<Integer> uploadedParts = ossTemplate.listUploadedParts(bucket, object, uploadId);
+            TreeMap<String, String> undone = getPendingChunkUploadUrls(req, uploadedParts);
             builder.setUndoneChunkMap(undone);
             return builder;
         } catch (Exception e) {
@@ -384,6 +402,38 @@ public class OssUtils {
         return ossTemplate.getPresignedUrl(bucketName, objectName, expires);
     }
 
+    public void abortMultipartUpload(OssFilePo req) {
+        if (req == null || req.getPartNum() == null || req.getPartNum() <= 1) {
+            return;
+        }
+        String bucket = req.getBucketName();
+        String object = req.getObjectKey();
+        String uploadId = req.getUploadId();
+        if (StringUtils.isBlank(bucket) || StringUtils.isBlank(object) || StringUtils.isBlank(uploadId)) {
+            return;
+        }
+        try {
+            ossTemplate.abortMultipartUpload(bucket, object, uploadId);
+        } catch (Exception e) {
+            throw new FileException("取消分片上传失败: " + e.getMessage());
+        }
+    }
+
+    private TreeMap<String, String> getPendingChunkUploadUrls(OssFilePo req, List<Integer> uploadedParts) {
+        String bucket = req.getBucketName();
+        String object = req.getObjectKey();
+        int partNum = req.getPartNum();
+        Set<Integer> uploadedPartSet = uploadedParts == null ? Set.of() : uploadedParts.stream().collect(Collectors.toSet());
+        TreeMap<String, String> undone = new TreeMap<>();
+        for (int partNumber = 1; partNumber <= partNum; partNumber++) {
+            if (!uploadedPartSet.contains(partNumber)) {
+                String url = ossTemplate.getPresignedUploadPartUrl(bucket, object, req.getUploadId(), partNumber, ossProperties.getPresignedUrlExpiry());
+                undone.put(String.valueOf(partNumber), url);
+            }
+        }
+        return undone;
+    }
+
     // ==================== 工具方法 ====================
 
     /**
@@ -458,6 +508,23 @@ public class OssUtils {
         }
 
         return createBucket(year + "-" + code.toLowerCase());
+    }
+
+    /**
+     * 根据桶编码选择或创建存储桶。
+     *
+     * @param bucketCode 桶编码
+     * @return 存储桶名称
+     */
+    public String getOrCreateBucketByCode(String bucketCode) {
+        String year = String.valueOf(LocalDate.now().getYear());
+        String code = StringUtils.isBlank(bucketCode) ? StorageBucketEnum.OTHER.getCode() : bucketCode.trim().toLowerCase();
+        if ("thumbnail".equals(code)) {
+            String bucket = createBucket(year + "-" + code);
+            setBucketPublic(bucket);
+            return bucket;
+        }
+        return createBucket(year + "-" + code);
     }
 
     /**

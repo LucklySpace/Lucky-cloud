@@ -1,5 +1,12 @@
 package com.xy.lucky.message.service.impl;
 
+import com.xy.lucky.core.constants.IMConstant;
+import com.xy.lucky.core.enums.IMStatus;
+import com.xy.lucky.core.enums.IMessageContentType;
+import com.xy.lucky.core.enums.IMessageReadStatus;
+import com.xy.lucky.core.enums.IMessageType;
+import com.xy.lucky.core.model.*;
+import com.xy.lucky.domain.po.*;
 import com.xy.lucky.message.common.LockExecutor;
 import com.xy.lucky.message.config.IdGeneratorConstant;
 import com.xy.lucky.message.domain.dto.ChatDto;
@@ -8,10 +15,6 @@ import com.xy.lucky.message.exception.MessageException;
 import com.xy.lucky.message.message.MessageLifecycleOrchestrator;
 import com.xy.lucky.message.service.MessageService;
 import com.xy.lucky.message.service.MuteService;
-import com.xy.lucky.core.constants.IMConstant;
-import com.xy.lucky.core.enums.*;
-import com.xy.lucky.core.model.*;
-import com.xy.lucky.domain.po.*;
 import com.xy.lucky.rpc.api.database.chat.ImChatDubboService;
 import com.xy.lucky.rpc.api.database.group.ImGroupMemberDubboService;
 import com.xy.lucky.rpc.api.database.message.ImGroupMessageDubboService;
@@ -28,7 +31,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
@@ -45,7 +51,7 @@ public class MessageServiceImpl implements MessageService {
     /**
      * 分布式锁前缀
      */
-    private static final String LOCK_PREFIX = "lock:message:";
+    private static final String LOCK_PREFIX = "im:lock:message:";
     /**
      * 撤回消息时间限制（毫秒）
      */
@@ -298,8 +304,8 @@ public class MessageServiceImpl implements MessageService {
                 po.setDelFlag(IMStatus.YES.getCode());
                 saveSingleMessage(po);
 
-                createOrUpdateChat(dto.getFromId(), dto.getToId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
-                createOrUpdateChat(dto.getToId(), dto.getFromId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
+                updateChatSequenceIfExists(dto.getFromId(), dto.getToId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
+                updateChatSequenceIfExists(dto.getToId(), dto.getFromId(), messageTime, IMessageType.SINGLE_MESSAGE.getCode());
             } catch (Exception e) {
                 log.error("异步持久化单聊消息失败: messageId={}", messageId, e);
             }
@@ -319,7 +325,7 @@ public class MessageServiceImpl implements MessageService {
                 setGroupMessageReadStatus(String.valueOf(messageId), dto.getGroupId(), members);
 
                 for (ImGroupMemberPo member : members) {
-                    createOrUpdateChat(member.getMemberId(), dto.getGroupId(), messageTime, IMessageType.GROUP_MESSAGE.getCode());
+                    updateChatSequenceIfExists(member.getMemberId(), dto.getGroupId(), messageTime, IMessageType.GROUP_MESSAGE.getCode());
                 }
             } catch (Exception e) {
                 log.error("异步持久化群聊消息失败: messageId={}", messageId, e);
@@ -465,10 +471,6 @@ public class MessageServiceImpl implements MessageService {
         return idDubboService.generateId(type, businessType).getLongId();
     }
 
-    private String generateStringId(String type, String businessType) {
-        return idDubboService.generateId(type, businessType).getStringId();
-    }
-
     private void saveSingleMessage(ImSingleMessagePo po) {
         if (!singleMessageDubboService.creat(po)) {
             log.error("保存单聊消息失败: messageId={}", po.getMessageId());
@@ -481,7 +483,7 @@ public class MessageServiceImpl implements MessageService {
         }
     }
 
-    private void createOrUpdateChat(String ownerId, String toId, Long messageTime, Integer chatType) {
+    private void updateChatSequenceIfExists(String ownerId, String toId, Long messageTime, Integer chatType) {
         try {
             ImChatPo existing = chatDubboService.queryOne(ownerId, toId, chatType);
             Optional.ofNullable(existing)
@@ -489,21 +491,9 @@ public class MessageServiceImpl implements MessageService {
                         chatPo.setSequence(messageTime);
                         chatDubboService.modify(chatPo);
                         return chatPo;
-                    })
-                    .orElseGet(() -> {
-                        ImChatPo chatPo = new ImChatPo()
-                                .setChatId(generateStringId(IdGeneratorConstant.uuid, IdGeneratorConstant.chat_id))
-                                .setOwnerId(ownerId)
-                                .setToId(toId)
-                                .setSequence(messageTime)
-                                .setIsMute(IMStatus.NO.getCode())
-                                .setIsTop(IMStatus.NO.getCode())
-                                .setChatType(chatType);
-                        chatDubboService.creat(chatPo);
-                        return chatPo;
                     });
         } catch (Exception e) {
-            log.error("创建/更新会话失败: ownerId={}, toId={}", ownerId, toId, e);
+            log.error("更新会话时序失败: ownerId={}, toId={}, chatType={}", ownerId, toId, chatType, e);
         }
     }
 

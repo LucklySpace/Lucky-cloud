@@ -136,6 +136,62 @@ public enum StorageBucketEnum {
     }
 
     /**
+     * 根据 MIME 类型查找桶类型（返回 Optional）。
+     *
+     * @param mimeType MIME 类型（如 "image/png"）
+     */
+    public static Optional<StorageBucketEnum> fromMimeType(String mimeType) {
+        if (StringUtils.isBlank(mimeType)) {
+            return Optional.empty();
+        }
+        String normalized = mimeType.trim().toLowerCase(Locale.ROOT);
+        int semicolonIndex = normalized.indexOf(';');
+        if (semicolonIndex > 0) {
+            normalized = normalized.substring(0, semicolonIndex).trim();
+        }
+        if (normalized.startsWith("image/")) {
+            return Optional.of(IMAGE);
+        }
+        if (normalized.startsWith("audio/")) {
+            return Optional.of(AUDIO);
+        }
+        if (normalized.startsWith("video/")) {
+            return Optional.of(VIDEO);
+        }
+        if (normalized.startsWith("text/")) {
+            return Optional.of(DOCUMENT);
+        }
+        if ("application/zip".equals(normalized)
+                || "application/x-7z-compressed".equals(normalized)
+                || "application/x-rar-compressed".equals(normalized)
+                || "application/x-tar".equals(normalized)
+                || "application/gzip".equals(normalized)
+                || "application/x-bzip2".equals(normalized)
+                || "application/x-xz".equals(normalized)) {
+            return Optional.of(PACKAGE);
+        }
+        if ("application/pdf".equals(normalized)
+                || "application/json".equals(normalized)
+                || "application/xml".equals(normalized)
+                || "application/msword".equals(normalized)
+                || "application/vnd.openxmlformats-officedocument.wordprocessingml.document".equals(normalized)
+                || "application/vnd.ms-excel".equals(normalized)
+                || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".equals(normalized)
+                || "application/vnd.ms-powerpoint".equals(normalized)
+                || "application/vnd.openxmlformats-officedocument.presentationml.presentation".equals(normalized)) {
+            return Optional.of(DOCUMENT);
+        }
+        if ("application/vnd.android.package-archive".equals(normalized)
+                || "application/x-msdownload".equals(normalized)
+                || "application/x-apple-diskimage".equals(normalized)
+                || "application/vnd.debian.binary-package".equals(normalized)
+                || "application/x-rpm".equals(normalized)) {
+            return Optional.of(INSTALLER);
+        }
+        return Optional.of(OTHER);
+    }
+
+    /**
      * 根据文件名直接返回桶 code（若无法识别则返回 "other"）
      */
     public static String getBucketCodeByFilename(String filename) {

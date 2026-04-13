@@ -14,10 +14,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -248,6 +245,115 @@ public class OssTemplateImpl implements OssTemplate {
             return String.format("%s/%s/%s", endpoint, bucketName, objectName);
         } else {
             return String.format("%s.%s/%s", bucketName, endpoint, objectName);
+        }
+    }
+
+    @Override
+    public String initiateMultipartUpload(String bucketName, String objectName, String contentType) {
+        validateBucketAndObject(bucketName, objectName);
+        if (!StringUtils.hasText(contentType)) {
+            contentType = DEFAULT_CONTENT_TYPE;
+        }
+        try {
+            ObjectMetadata metadata = new ObjectMetadata();
+            metadata.setContentType(contentType);
+            InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(bucketName, objectName, metadata);
+            InitiateMultipartUploadResult result = amazonS3.initiateMultipartUpload(request);
+            return result.getUploadId();
+        } catch (AmazonServiceException e) {
+            throw new OssException("初始化分片上传失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public String getPresignedUploadPartUrl(String bucketName, String objectName, String uploadId, int partNumber, int expires) {
+        validateBucketAndObject(bucketName, objectName);
+        if (!StringUtils.hasText(uploadId)) {
+            throw new IllegalArgumentException("uploadId不能为空");
+        }
+        if (partNumber < 1) {
+            throw new IllegalArgumentException("partNumber必须大于0");
+        }
+        if (expires <= 0) {
+            expires = ossProperties.getPresignedUrlExpiry();
+        }
+        try {
+            Date expiration = calculateExpiration(expires);
+            GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucketName, objectName)
+                    .withMethod(HttpMethod.PUT)
+                    .withExpiration(expiration);
+            request.addRequestParameter("uploadId", uploadId);
+            request.addRequestParameter("partNumber", String.valueOf(partNumber));
+            URL url = amazonS3.generatePresignedUrl(request);
+            return url.toString();
+        } catch (SdkClientException e) {
+            throw new OssException("生成分片上传 URL 失败", e);
+        }
+    }
+
+    @Override
+    public List<Integer> listUploadedParts(String bucketName, String objectName, String uploadId) {
+        validateBucketAndObject(bucketName, objectName);
+        if (!StringUtils.hasText(uploadId)) {
+            throw new IllegalArgumentException("uploadId不能为空");
+        }
+        try {
+            ListPartsRequest request = new ListPartsRequest(bucketName, objectName, uploadId);
+            PartListing listing;
+            java.util.ArrayList<Integer> partNumbers = new java.util.ArrayList<>();
+            do {
+                listing = amazonS3.listParts(request);
+                if (listing.getParts() != null) {
+                    listing.getParts().forEach(part -> partNumbers.add(part.getPartNumber()));
+                }
+                request.setPartNumberMarker(listing.getNextPartNumberMarker());
+            } while (listing.isTruncated());
+            partNumbers.sort(Comparator.naturalOrder());
+            return partNumbers;
+        } catch (AmazonServiceException e) {
+            throw new OssException("查询已上传分片失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void completeMultipartUpload(String bucketName, String objectName, String uploadId) {
+        validateBucketAndObject(bucketName, objectName);
+        if (!StringUtils.hasText(uploadId)) {
+            throw new IllegalArgumentException("uploadId不能为空");
+        }
+        try {
+            ListPartsRequest request = new ListPartsRequest(bucketName, objectName, uploadId);
+            PartListing listing;
+            java.util.ArrayList<PartETag> partETags = new java.util.ArrayList<>();
+            do {
+                listing = amazonS3.listParts(request);
+                if (listing.getParts() != null) {
+                    listing.getParts().forEach(part -> partETags.add(new PartETag(part.getPartNumber(), part.getETag())));
+                }
+                request.setPartNumberMarker(listing.getNextPartNumberMarker());
+            } while (listing.isTruncated());
+            if (partETags.isEmpty()) {
+                throw new OssException("无可合并分片");
+            }
+            partETags.sort(Comparator.comparingInt(PartETag::getPartNumber));
+            CompleteMultipartUploadRequest completeRequest = new CompleteMultipartUploadRequest(bucketName, objectName, uploadId, partETags);
+            amazonS3.completeMultipartUpload(completeRequest);
+        } catch (AmazonServiceException e) {
+            throw new OssException("合并分片失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void abortMultipartUpload(String bucketName, String objectName, String uploadId) {
+        validateBucketAndObject(bucketName, objectName);
+        if (!StringUtils.hasText(uploadId)) {
+            return;
+        }
+        try {
+            AbortMultipartUploadRequest request = new AbortMultipartUploadRequest(bucketName, objectName, uploadId);
+            amazonS3.abortMultipartUpload(request);
+        } catch (AmazonServiceException e) {
+            throw new OssException("取消分片上传失败: " + e.getMessage(), e);
         }
     }
 

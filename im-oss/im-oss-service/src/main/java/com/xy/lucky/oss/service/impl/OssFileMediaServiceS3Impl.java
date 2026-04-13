@@ -7,12 +7,12 @@ import com.xy.lucky.oss.domain.po.OssFileImagePo;
 import com.xy.lucky.oss.domain.po.OssFilePo;
 import com.xy.lucky.oss.domain.vo.FileVo;
 import com.xy.lucky.oss.domain.vo.ImageVo;
-import com.xy.lucky.oss.enums.StorageBucketEnum;
 import com.xy.lucky.oss.exception.FileException;
 import com.xy.lucky.oss.handler.ImageProcessingStrategy;
 import com.xy.lucky.oss.repository.OssFileImageRepository;
 import com.xy.lucky.oss.repository.OssFileRepository;
 import com.xy.lucky.oss.service.OssFileMediaService;
+import com.xy.lucky.oss.util.FileTypeDetector;
 import com.xy.lucky.oss.util.MD5Utils;
 import com.xy.lucky.oss.util.OssUtils;
 import com.xy.lucky.oss.util.RedisUtils;
@@ -70,6 +70,8 @@ public class OssFileMediaServiceS3Impl implements OssFileMediaService {
     private RedisUtils redisUtils;
     @Resource(name = "asyncServiceExecutor")
     private ThreadPoolTaskExecutor executor;
+    @Resource
+    private FileTypeDetector fileTypeDetector;
 
     @Autowired
     private Map<String, ImageProcessingStrategy> imageProcessingStrategyMap;
@@ -81,13 +83,16 @@ public class OssFileMediaServiceS3Impl implements OssFileMediaService {
     public ImageVo uploadImage(String identifier, MultipartFile file) {
         OssFileImagePo ossFileByIdentifier = precheckUpload(identifier, file);
         if (Objects.nonNull(ossFileByIdentifier)) {
-            return fileVoMapper.toVo(ossFileByIdentifier);
+            return buildImageVo(ossFileByIdentifier);
         }
+
+        FileTypeDetector.DetectedFileType detectedFileType = fileTypeDetector.detect(file);
+        fileTypeDetector.validateByScene(detectedFileType, FileTypeDetector.UploadScene.IMAGE);
 
         String originalFilename = file.getOriginalFilename();
         String bucket = ossUtils.getOrCreateBucketByImage();
-        String objectName = buildObjectName(originalFilename);
-        String fileSuffix = ossUtils.getFileSuffix(originalFilename);
+        String objectName = buildObjectName(detectedFileType.extension());
+        String fileSuffix = detectedFileType.extension();
 
         File tmp = null;
         byte[] memBytes = null;
@@ -143,7 +148,8 @@ public class OssFileMediaServiceS3Impl implements OssFileMediaService {
 
             CompletableFuture.allOf(mainProcessed).join();
 
-            OssFileImagePo reqOssImagePo = buildImagePo(identifier, file, bucket, objectName, fileSuffix);
+            OssFileImagePo reqOssImagePo = buildImagePo(identifier, file, bucket, objectName, fileSuffix,
+                    detectedFileType.mimeType(), detectedFileType.bucketCode());
 
             if (Boolean.TRUE.equals(ossProperties.getCreateThumbnail())) {
                 CompletableFuture.runAsync(() -> {
@@ -187,11 +193,12 @@ public class OssFileMediaServiceS3Impl implements OssFileMediaService {
     public ImageVo uploadAvatar(String identifier, MultipartFile file) {
         OssFileImagePo ossFileByIdentifier = precheckUpload(identifier, file);
         if (Objects.nonNull(ossFileByIdentifier)) {
-            return fileVoMapper.toVo(ossFileByIdentifier);
+            return buildImageVo(ossFileByIdentifier);
         }
 
-        String originalFilename = file.getOriginalFilename();
-        String fileSuffix = ossUtils.getFileSuffix(originalFilename);
+        FileTypeDetector.DetectedFileType detectedFileType = fileTypeDetector.detect(file);
+        fileTypeDetector.validateByScene(detectedFileType, FileTypeDetector.UploadScene.AVATAR);
+        String fileSuffix = detectedFileType.extension();
 
         try {
             String bucket = ossUtils.getOrCreateBucketByAvatar();
@@ -203,13 +210,14 @@ public class OssFileMediaServiceS3Impl implements OssFileMediaService {
                 }
             }
 
-            String objectName = buildObjectName(file.getOriginalFilename());
+            String objectName = buildObjectName(fileSuffix);
 
             try (InputStream is = file.getInputStream()) {
-                ossUtils.uploadFile(bucket, objectName, is, file.getContentType());
+                ossUtils.uploadFile(bucket, objectName, is, detectedFileType.mimeType());
             }
 
-            OssFileImagePo doc = buildImagePo(identifier, file, bucket, objectName, fileSuffix);
+            OssFileImagePo doc = buildImagePo(identifier, file, bucket, objectName, fileSuffix,
+                    detectedFileType.mimeType(), detectedFileType.bucketCode());
             saveOssImageToRedis(doc);
             return persistAndReturn(doc);
         } catch (Exception e) {
@@ -222,19 +230,22 @@ public class OssFileMediaServiceS3Impl implements OssFileMediaService {
         validateUploadInput(identifier, file);
         OssFilePo existing = findExistingFileByIdentifier(identifier);
         if (Objects.nonNull(existing)) {
-            return fileVoMapper.toVo(existing);
+            return buildFileVo(existing);
         }
+        FileTypeDetector.DetectedFileType detectedFileType = fileTypeDetector.detect(file);
+        fileTypeDetector.validateByScene(detectedFileType, FileTypeDetector.UploadScene.AUDIO);
         // TODO 音频上传  后续需实现语音文件格式转换
         try {
             String bucket = ossUtils.getOrCreateBucketByAudio();
 
-            String objectName = buildObjectName(file.getOriginalFilename());
+            String objectName = buildObjectName(detectedFileType.extension());
 
             try (InputStream is = file.getInputStream()) {
-                ossUtils.uploadFile(bucket, objectName, is, file.getContentType());
+                ossUtils.uploadFile(bucket, objectName, is, detectedFileType.mimeType());
             }
 
-            OssFilePo doc = buildFilePo(identifier, file, bucket, objectName);
+            OssFilePo doc = buildFilePo(identifier, file, bucket, objectName, detectedFileType.mimeType(),
+                    detectedFileType.bucketCode(), detectedFileType.extension());
             saveOssFileToRedis(doc);
             return persistAndReturn(doc);
 
@@ -365,25 +376,13 @@ public class OssFileMediaServiceS3Impl implements OssFileMediaService {
     @Override
     public ImageVo getImagePresignedPutUrl(String identifier) {
         OssFileImagePo file = getRequiredImageFileByIdentifier(identifier);
-
-        String path = ossUtils.getPresignedUrl(file.getBucketName(), file.getObjectKey(), ossProperties.getPresignedUrlExpiry());
-        String thumbPath = file.getHasThumbnail() ?
-                ossUtils.getPresignedUrl(file.getBucketName(), file.getObjectKey() + THUMBNAIL_PREFIX, ossProperties.getPresignedUrlExpiry()) : path;
-
-        return ImageVo.builder()
-                .key(identifier)
-                .path(path)
-                .thumbPath(thumbPath)
-                .build();
+        return buildImageVo(file);
     }
 
     @Override
     public FileVo getAudioPresignedPutUrl(String identifier) {
         OssFilePo file = getRequiredFileByIdentifier(identifier);
-        return FileVo.builder()
-                .key(identifier)
-                .path(ossUtils.getPresignedUrl(file.getBucketName(), file.getObjectKey(), ossProperties.getPresignedUrlExpiry()))
-                .build();
+        return buildFileVo(file);
     }
 
 
@@ -392,7 +391,7 @@ public class OssFileMediaServiceS3Impl implements OssFileMediaService {
      */
     private ImageVo persistAndReturn(OssFileImagePo doc) {
         OssFileImagePo entity = ossFileImageRepository.save(doc);
-        return fileVoMapper.toVo(entity);
+        return buildImageVo(entity);
     }
 
     /**
@@ -400,7 +399,25 @@ public class OssFileMediaServiceS3Impl implements OssFileMediaService {
      */
     protected FileVo persistAndReturn(OssFilePo doc) {
         OssFilePo entity = ossFileRepository.save(doc);
-        return fileVoMapper.toVo(entity);
+        return buildFileVo(entity);
+    }
+
+    private ImageVo buildImageVo(OssFileImagePo entity) {
+        ImageVo vo = fileVoMapper.toVo(entity);
+        String path = getFilePath(entity.getBucketName(), entity.getObjectKey());
+        String thumbPath = Boolean.TRUE.equals(entity.getHasThumbnail())
+                ? getFilePath(entity.getBucketName(), entity.getObjectKey() + THUMBNAIL_PREFIX)
+                : path;
+        return vo.setPath(path).setThumbPath(thumbPath);
+    }
+
+    private FileVo buildFileVo(OssFilePo entity) {
+        FileVo vo = fileVoMapper.toVo(entity);
+        return vo.setPath(getFilePath(entity.getBucketName(), entity.getObjectKey()));
+    }
+
+    private String getFilePath(String bucket, String objectKey) {
+        return ossUtils.getPresignedUrl(bucket, objectKey, ossProperties.getPresignedUrlExpiry());
     }
 
     /**
@@ -412,12 +429,8 @@ public class OssFileMediaServiceS3Impl implements OssFileMediaService {
     }
 
     private void validateUploadInput(String identifier, MultipartFile file) {
-        String originalFilename = file == null ? null : file.getOriginalFilename();
         if (file == null || file.isEmpty() || !StringUtils.hasText(identifier)) {
             throw new FileException("文件或文件md5不能为空");
-        }
-        if (!StringUtils.hasText(originalFilename) || !originalFilename.contains(".")) {
-            throw new FileException("文件名格式错误");
         }
         MD5Utils.checkMD5(identifier, file);
     }
@@ -425,8 +438,8 @@ public class OssFileMediaServiceS3Impl implements OssFileMediaService {
     /**
      * 获取文件
      */
-    private String buildObjectName(String originalFilename) {
-        String suffix = originalFilename.substring(originalFilename.lastIndexOf("."));
+    private String buildObjectName(String extension) {
+        String suffix = StringUtils.hasText(extension) ? "." + extension : null;
         if (StringUtils.hasText(suffix)) {
             return ossUtils.getObjectName(ossUtils.generatePath(), IdUtils.randomUUID()) + suffix;
         }
@@ -436,7 +449,8 @@ public class OssFileMediaServiceS3Impl implements OssFileMediaService {
     /**
      * 构建文件信息
      */
-    private OssFileImagePo buildImagePo(String identifier, MultipartFile file, String bucket, String objectName, String suffix) {
+    private OssFileImagePo buildImagePo(String identifier, MultipartFile file, String bucket, String objectName,
+                                        String suffix, String contentType, String fileType) {
         String originalFilename = file.getOriginalFilename();
         return OssFileImagePo
                 .builder().
@@ -444,8 +458,8 @@ public class OssFileMediaServiceS3Impl implements OssFileMediaService {
                 .bucketName(bucket)
                 .fileName(originalFilename)
                 .objectKey(objectName)
-                .fileType(StorageBucketEnum.getBucketCodeByFilename(originalFilename))
-                .contentType(file.getContentType())
+                .fileType(fileType)
+                .contentType(contentType)
                 .suffix(suffix)
                 .fileSize(file.getSize())
                 .build();
@@ -455,7 +469,8 @@ public class OssFileMediaServiceS3Impl implements OssFileMediaService {
     /**
      * 构建文件信息
      */
-    private OssFilePo buildFilePo(String identifier, MultipartFile file, String bucket, String objectName) {
+    private OssFilePo buildFilePo(String identifier, MultipartFile file, String bucket, String objectName,
+                                  String contentType, String fileType, String suffix) {
         String originalFilename = file.getOriginalFilename();
         return OssFilePo
                 .builder().
@@ -464,8 +479,9 @@ public class OssFileMediaServiceS3Impl implements OssFileMediaService {
                 .fileName(originalFilename)
                 .partNum(1)
                 .objectKey(objectName)
-                .fileType(StorageBucketEnum.getBucketCodeByFilename(originalFilename))
-                .contentType(file.getContentType())
+                .fileType(fileType)
+                .contentType(contentType)
+                .suffix(suffix)
                 .fileSize(file.getSize())
                 .build();
     }

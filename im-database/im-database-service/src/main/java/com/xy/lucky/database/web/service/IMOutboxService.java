@@ -89,4 +89,34 @@ public class IMOutboxService extends ServiceImpl<IMOutboxPoMapper, IMOutboxPo> i
         return super.list(updateWrapper);
     }
 
+    @Override
+    public List<IMOutboxPo> queryByMessageIdAndStatus(String messageId, String status, Integer limit) {
+        String message = messageId == null ? null : messageId.trim();
+        String s = status == null ? null : status.trim().toUpperCase();
+        int lim = limit == null ? 100 : limit;
+        lim = Math.max(1, Math.min(lim, 1000));
+
+        Wrapper<IMOutboxPo> queryWrapper = Wrappers.<IMOutboxPo>lambdaQuery()
+                .eq(IMOutboxPo::getMessageId, message)
+                .eq(IMOutboxPo::getStatus, s)
+                .last("limit " + lim);
+        return super.list(queryWrapper);
+    }
+
+    @Override
+    public Boolean modifyStatusByMessageId(String messageId, String fromStatus, String targetStatus, Long updatedAt) {
+        String message = messageId == null ? null : messageId.trim();
+        String from = fromStatus == null ? null : fromStatus.trim().toUpperCase();
+        String target = targetStatus == null ? null : targetStatus.trim().toUpperCase();
+        if (message == null || from == null || target == null) {
+            return false;
+        }
+        Wrapper<IMOutboxPo> updateWrapper = Wrappers.<IMOutboxPo>lambdaUpdate()
+                .eq(IMOutboxPo::getMessageId, message)
+                .eq(IMOutboxPo::getStatus, from)
+                .set(IMOutboxPo::getStatus, target)
+                .set(IMOutboxPo::getUpdatedAt, updatedAt);
+        return super.update(updateWrapper);
+    }
+
 }

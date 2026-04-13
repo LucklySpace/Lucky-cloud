@@ -10,8 +10,6 @@ import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.List;
-
 /**
  * 基于 Dubbo 数据服务的 Outbox 记录实现，负责状态机驱动的状态更新。
  */
@@ -95,28 +93,19 @@ public class DubboOutboxRecordService implements OutboxRecordService {
      * @param messageId 业务消息 ID
      */
     @Override
-    public void markDeliveredByMessageId(String messageId) {
+    public boolean markDeliveredByMessageId(String messageId) {
         if (!StringUtils.hasText(messageId)) {
-            return;
+            return false;
         }
-        List<IMOutboxPo> candidates = outboxDubboService.queryByStatus(OutboxStatus.SENT.value(), 1000);
-        if (candidates == null || candidates.isEmpty()) {
-            return;
-        }
+        // ACK 回写走一次原子更新，避免 query + N 次 modify 带来的额外开销。
+        OutboxStatus target = stateMachine.transit(OutboxStatus.SENT, OutboxEvent.CLIENT_ACK);
         long now = DateTimeUtils.getCurrentUTCTimestamp();
-        for (IMOutboxPo po : candidates) {
-            if (!messageId.equals(po.getMessageId())) {
-                continue;
-            }
-            OutboxStatus current = OutboxStatus.from(po.getStatus());
-            OutboxStatus next = stateMachine.transit(current, OutboxEvent.CLIENT_ACK);
-            IMOutboxPo update = new IMOutboxPo()
-                    .setId(po.getId())
-                    .setStatus(next.value())
-                    .setAttempts(po.getAttempts())
-                    .setUpdatedAt(now);
-            outboxDubboService.modify(update);
-        }
+        return Boolean.TRUE.equals(outboxDubboService.modifyStatusByMessageId(
+                messageId,
+                OutboxStatus.SENT.value(),
+                target.value(),
+                now
+        ));
     }
 
     /**

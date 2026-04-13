@@ -93,6 +93,8 @@ message:
     max-retry: 3
     retry-delay-ms: 1000
     worker-size: 4
+    confirm-timeout-ms: 5000
+    confirm-timeout-check-interval-ms: 1000
     retry-wheel:
       tick-ms: 100
       slots: 512

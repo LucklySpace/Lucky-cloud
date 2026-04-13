@@ -85,7 +85,7 @@ public class OssFilePo {
 
     @Schema(description = "创建时间（插入时自动填充）")
     @CreationTimestamp
-    @Column(name = "create_time", nullable = false, updatable = false)
+    @Column(name = "create_time", nullable = false)
     private LocalDateTime createTime;
 
 }

@@ -48,5 +48,5 @@ public interface OutboxRecordService {
      *
      * @param messageId 业务消息 ID
      */
-    void markDeliveredByMessageId(String messageId);
+    boolean markDeliveredByMessageId(String messageId);
 }
